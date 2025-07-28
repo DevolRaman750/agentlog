@@ -934,48 +934,89 @@ func (c *Client) executeFunctionCall(ctx context.Context, functionName string, a
 	}
 
 	// Handle Neo4j graph query function
-	if functionName == "query_graph" {
-		query, ok := args["query"].(string)
-		if !ok {
-			return nil, fmt.Errorf("query parameter missing or invalid")
+	if functionName == "query_graph" || functionName == "neo4j_node_lookup" {
+		// For backward-compatibility, we support both the original "query_graph" name and the
+		// newer database-seeded "neo4j_node_lookup" name.
+		//
+		// "query_graph" expects a raw Cypher query string in the "query" argument.
+		// "neo4j_node_lookup" expects structured arguments (label, properties, limit).
+		// We normalise both into a Cypher query and then reuse callNeo4jAPI.
+
+		var (
+			cypherQuery string
+			limit       = 25
+		)
+
+		if functionName == "query_graph" {
+			// Original behaviour ‑ the caller supplies the Cypher directly.
+			queryArg, ok := args["query"].(string)
+			if !ok {
+				return nil, fmt.Errorf("query parameter missing or invalid")
+			}
+			cypherQuery = queryArg
+			if limitVal, exists := args["limit"]; exists {
+				if limitFloat, ok := limitVal.(float64); ok {
+					limit = int(limitFloat)
+				}
+			}
+		} else {
+			// New structured lookup
+			label, ok := args["label"].(string)
+			if !ok || strings.TrimSpace(label) == "" {
+				return nil, fmt.Errorf("label parameter missing or invalid")
+			}
+
+			// Optional properties map to build a WHERE clause
+			whereClause := ""
+			if propsRaw, ok := args["properties"].(map[string]interface{}); ok {
+				var conditions []string
+				for k, v := range propsRaw {
+					// Use parameterised values in real code; for now build simple literals
+					// Assume primitive types convertible to string
+					conditions = append(conditions, fmt.Sprintf("n.%s = '%v'", k, v))
+				}
+				if len(conditions) > 0 {
+					whereClause = "WHERE " + strings.Join(conditions, " AND ")
+				}
+			}
+
+			if limitVal, exists := args["limit"]; exists {
+				if limitFloat, ok := limitVal.(float64); ok {
+					limit = int(limitFloat)
+				}
+			}
+
+			cypherQuery = fmt.Sprintf("MATCH (n:%s) %s RETURN n", label, whereClause)
 		}
 
-		// Get limit parameter (optional, default to 25)
-		limit := 25
-		if limitVal, exists := args["limit"]; exists {
-			if limitFloat, ok := limitVal.(float64); ok {
-				limit = int(limitFloat)
-			}
-			if limit < 1 || limit > 100 {
-				limit = 25 // Reset to default if out of bounds
-			}
+		// Sanity-check limit bounds
+		if limit < 1 || limit > 100 {
+			limit = 25
 		}
 
-		// Call Neo4j query function
-		result, err := c.callNeo4jAPI(ctx, query, limit)
+		// Execute against Neo4j
+		result, err := c.callNeo4jAPI(ctx, cypherQuery, limit)
 		if err != nil {
 			log.Printf("❌ Neo4j query failed: %v", err)
 			// Fallback to mock data if Neo4j call fails
 			result = map[string]interface{}{
-				"nodes": []map[string]interface{}{
-					{
-						"id":         "mock_node_1",
-						"labels":     []string{"Person"},
-						"properties": map[string]interface{}{"name": "Mock User", "age": 30},
-					},
-				},
+				"nodes": []map[string]interface{}{{
+					"id":         "mock_node_1",
+					"labels":     []string{"Error"},
+					"properties": map[string]interface{}{"error": err.Error()},
+				}},
 				"relationships": []map[string]interface{}{},
 				"summary": map[string]interface{}{
 					"totalNodes":         1,
 					"totalRelationships": 0,
 					"executionTime":      "0ms",
-					"query":              query,
+					"query":              cypherQuery,
 					"error":              "Neo4j connection unavailable, showing mock data",
 				},
 			}
 		}
 
-		log.Printf("✅ Neo4j query executed: %s", query)
+		log.Printf("✅ Neo4j query executed: %s", cypherQuery)
 		return result, nil
 	}
 
