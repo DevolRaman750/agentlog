@@ -10,7 +10,9 @@ SELECT COUNT(*) FROM api_requests WHERE user_id = ?;
 SELECT COUNT(*) FROM api_responses WHERE user_id = ?;
 
 -- name: GetUserFunctionCallsCount :one
-SELECT COUNT(*) FROM function_calls WHERE user_id = ?;
+SELECT COUNT(*) FROM function_calls fc
+JOIN api_requests ar ON fc.request_id = ar.id
+WHERE ar.user_id = ?;
 
 -- name: GetUserAvgResponseTime :one
 SELECT COALESCE(AVG(response_time_ms), 0) FROM api_responses WHERE user_id = ?;
@@ -43,12 +45,13 @@ WHERE user_id = ?;
 -- name: GetUserFunctionCallStats :one
 SELECT 
     COUNT(*) as total_function_calls,
-    COUNT(CASE WHEN execution_status = 'success' THEN 1 END) as successful_calls,
-    COUNT(CASE WHEN execution_status = 'error' THEN 1 END) as failed_calls,
-    COUNT(CASE WHEN execution_status = 'pending' THEN 1 END) as pending_calls,
-    COALESCE(AVG(execution_time_ms), 0) as avg_execution_time
-FROM function_calls 
-WHERE user_id = ?;
+    COUNT(CASE WHEN fc.execution_status = 'success' THEN 1 END) as successful_calls,
+    COUNT(CASE WHEN fc.execution_status = 'error' THEN 1 END) as failed_calls,
+    COUNT(CASE WHEN fc.execution_status = 'pending' THEN 1 END) as pending_calls,
+    COALESCE(AVG(fc.execution_time_ms), 0) as avg_execution_time
+FROM function_calls fc
+JOIN api_requests ar ON fc.request_id = ar.id
+WHERE ar.user_id = ?;
 
 -- name: GetUserActivityByDay :many
 SELECT 

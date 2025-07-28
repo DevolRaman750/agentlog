@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"gogent/internal/auth"
+	"gogent/internal/db"
 	"gogent/internal/gogent"
 	"gogent/internal/types"
 
@@ -197,10 +198,33 @@ func (s *Server) runAsyncExecution(executionID string, request *types.MultiExecu
 
 	log.Printf("🚀 Starting async execution: %s for user: %s", executionID, userID)
 
-	// Use API key from frontend headers if available, fallback to server's API key
-	apiKey := headers.Get("X-Gemini-API-Key")
-	if apiKey != "" {
-		log.Printf("🔑 Using Gemini API key from frontend: %s...", apiKey[:10])
+	// Initialize header encryption utility
+	headerEncryption := auth.NewHeaderEncryption()
+
+	// First, try to decrypt encrypted API keys from headers
+	log.Printf("🔍 DEBUG: All headers received: %v", headers)
+	encryptedKeys := headerEncryption.GetDecryptedAPIKeysFromHeaders(headers)
+	log.Printf("🔍 DEBUG: Decrypted keys: %v", func() map[string]string {
+		masked := make(map[string]string)
+		for k, v := range encryptedKeys {
+			if len(v) > 10 {
+				masked[k] = v[:10] + "..."
+			} else {
+				masked[k] = "***"
+			}
+		}
+		return masked
+	}())
+
+	// Use API key from encrypted headers if available, fallback to plain text headers, then server's API key
+	var apiKey string
+	if decryptedGeminiKey, exists := encryptedKeys["geminiApiKey"]; exists && decryptedGeminiKey != "" {
+		apiKey = decryptedGeminiKey
+		log.Printf("🔑 Using decrypted Gemini API key from frontend: %s...", apiKey[:10])
+	} else if plainApiKey := headers.Get("X-Gemini-API-Key"); plainApiKey != "" {
+		apiKey = plainApiKey
+		log.Printf("🔑 Using plain-text Gemini API key from frontend: %s...", apiKey[:10])
+		log.Printf("⚠️ Warning: API key transmitted in plain text - consider upgrading client to use encryption")
 	} else {
 		apiKey = s.config.APIKey
 		if apiKey != "" {
@@ -213,29 +237,69 @@ func (s *Server) runAsyncExecution(executionID string, request *types.MultiExecu
 		log.Printf("⚠️ No Gemini API key available (frontend or server), using mock responses")
 	}
 
-	// Get OpenWeather API key from headers
-	openWeatherAPIKey := headers.Get("X-OpenWeather-API-Key")
-	if openWeatherAPIKey != "" {
-		log.Printf("🌤️ Using OpenWeather API key from frontend: %s...", openWeatherAPIKey[:10])
+	// Get OpenWeather API key from encrypted headers first, then fallback to plain text
+	var openWeatherAPIKey string
+	log.Printf("🔍 DEBUG: Looking for OpenWeather API key...")
+	log.Printf("🔍 DEBUG: encryptedKeys has openWeatherApiKey: %v", encryptedKeys["openWeatherApiKey"] != "")
+	log.Printf("🔍 DEBUG: Headers has X-OpenWeather-API-Key: %v", headers.Get("X-OpenWeather-API-Key") != "")
+	log.Printf("🔍 DEBUG: Headers has X-Encrypted-Openweather-Api-Key: %v", headers.Get("X-Encrypted-Openweather-Api-Key") != "")
+
+	if decryptedKey, exists := encryptedKeys["openWeatherApiKey"]; exists && decryptedKey != "" {
+		openWeatherAPIKey = decryptedKey
+		log.Printf("🌤️ Using decrypted OpenWeather API key from frontend: %s...", openWeatherAPIKey[:10])
+	} else if plainKey := headers.Get("X-OpenWeather-API-Key"); plainKey != "" {
+		openWeatherAPIKey = plainKey
+		log.Printf("🌤️ Using plain-text OpenWeather API key from frontend: %s...", openWeatherAPIKey[:10])
+		log.Printf("⚠️ Warning: OpenWeather API key transmitted in plain text")
 	} else {
-		log.Printf("⚠️ No OpenWeather API key provided in headers")
+		log.Printf("⚠️ No OpenWeather API key provided")
 	}
 
-	// Get Neo4j configuration from headers
-	neo4jURL := headers.Get("X-Neo4j-URL")
-	neo4jUsername := headers.Get("X-Neo4j-Username")
-	neo4jPassword := headers.Get("X-Neo4j-Password")
-	neo4jDatabase := headers.Get("X-Neo4j-Database")
-	if neo4jURL != "" {
-		log.Printf("🔗 Using Neo4j URL from frontend: %s", neo4jURL)
-		if neo4jUsername != "" {
-			log.Printf("👤 Neo4j username: %s", neo4jUsername)
-		}
-		if neo4jDatabase != "" {
-			log.Printf("🗂️ Neo4j database: %s", neo4jDatabase)
-		}
+	// Get Neo4j configuration from encrypted headers first, then fallback to plain text
+	var neo4jURL, neo4jUsername, neo4jPassword, neo4jDatabase string
+
+	if decryptedURL, exists := encryptedKeys["neo4jUrl"]; exists && decryptedURL != "" {
+		neo4jURL = decryptedURL
+		log.Printf("🔗 Using decrypted Neo4j URL from frontend")
 	} else {
-		log.Printf("⚠️ No Neo4j configuration provided in headers")
+		neo4jURL = headers.Get("X-Neo4j-URL")
+		if neo4jURL != "" {
+			log.Printf("🔗 Using plain-text Neo4j URL from frontend")
+			log.Printf("⚠️ Warning: Neo4j URL transmitted in plain text")
+		}
+	}
+
+	if decryptedUsername, exists := encryptedKeys["neo4jUsername"]; exists && decryptedUsername != "" {
+		neo4jUsername = decryptedUsername
+		log.Printf("🔗 Using decrypted Neo4j username from frontend")
+	} else {
+		neo4jUsername = headers.Get("X-Neo4j-Username")
+		if neo4jUsername != "" {
+			log.Printf("🔗 Using plain-text Neo4j username from frontend")
+			log.Printf("⚠️ Warning: Neo4j username transmitted in plain text")
+		}
+	}
+
+	if decryptedPassword, exists := encryptedKeys["neo4jPassword"]; exists && decryptedPassword != "" {
+		neo4jPassword = decryptedPassword
+		log.Printf("🔗 Using decrypted Neo4j password from frontend")
+	} else {
+		neo4jPassword = headers.Get("X-Neo4j-Password")
+		if neo4jPassword != "" {
+			log.Printf("🔗 Using plain-text Neo4j password from frontend")
+			log.Printf("⚠️ Warning: Neo4j password transmitted in plain text")
+		}
+	}
+
+	if decryptedDatabase, exists := encryptedKeys["neo4jDatabase"]; exists && decryptedDatabase != "" {
+		neo4jDatabase = decryptedDatabase
+		log.Printf("🔗 Using decrypted Neo4j database from frontend")
+	} else {
+		neo4jDatabase = headers.Get("X-Neo4j-Database")
+		if neo4jDatabase != "" {
+			log.Printf("🔗 Using plain-text Neo4j database from frontend")
+			log.Printf("⚠️ Warning: Neo4j database transmitted in plain text")
+		}
 	}
 
 	ctx := context.Background()
@@ -458,11 +522,29 @@ func (s *Server) executionStatusHandler(w http.ResponseWriter, r *http.Request) 
 
 // configurationsHandler handles API configuration requests
 func (s *Server) configurationsHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
+	switch r.Method {
+	case http.MethodGet:
+		s.listConfigurations(w, r)
+	case http.MethodPost:
+		s.createConfiguration(w, r)
+	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
 	}
+}
 
+// configurationByIDHandler handles individual configuration operations
+func (s *Server) configurationByIDHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPut:
+		s.updateConfiguration(w, r)
+	case http.MethodDelete:
+		s.deleteConfiguration(w, r)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func (s *Server) listConfigurations(w http.ResponseWriter, r *http.Request) {
 	userID, err := s.getUserID(r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -479,6 +561,134 @@ func (s *Server) configurationsHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(configs)
+}
+
+func (s *Server) createConfiguration(w http.ResponseWriter, r *http.Request) {
+	userID, err := s.getUserID(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var configData map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&configData); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// Create configuration object
+	temp := getFloat32FromMap(configData, "temperature")
+	maxTokens := getInt32FromMap(configData, "maxTokens")
+	topP := getFloat32FromMap(configData, "topP")
+	topK := getInt32FromMap(configData, "topK")
+
+	config := &types.APIConfiguration{
+		ID:            getStringFromMap(configData, "id"),
+		VariationName: getStringFromMap(configData, "variationName"),
+		ModelName:     getStringFromMap(configData, "modelName"),
+		SystemPrompt:  getStringFromMap(configData, "systemPrompt"),
+		Temperature:   &temp,
+		MaxTokens:     &maxTokens,
+		TopP:          &topP,
+		TopK:          &topK,
+	}
+
+	ctx := context.Background()
+	err = s.client.CreateAPIConfiguration(ctx, userID, config)
+	if err != nil {
+		log.Printf("❌ Failed to create configuration: %v", err)
+		http.Error(w, "Failed to create configuration", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(config)
+}
+
+func (s *Server) updateConfiguration(w http.ResponseWriter, r *http.Request) {
+	userID, err := s.getUserID(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Extract ID from URL path
+	path := strings.TrimPrefix(r.URL.Path, "/api/configurations/")
+	configID := strings.Split(path, "/")[0]
+
+	if configID == "" {
+		http.Error(w, "Configuration ID required", http.StatusBadRequest)
+		return
+	}
+
+	var configData map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&configData); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// Create configuration object
+	temp := getFloat32FromMap(configData, "temperature")
+	maxTokens := getInt32FromMap(configData, "maxTokens")
+	topP := getFloat32FromMap(configData, "topP")
+	topK := getInt32FromMap(configData, "topK")
+
+	config := &types.APIConfiguration{
+		ID:            configID,
+		VariationName: getStringFromMap(configData, "variationName"),
+		ModelName:     getStringFromMap(configData, "modelName"),
+		SystemPrompt:  getStringFromMap(configData, "systemPrompt"),
+		Temperature:   &temp,
+		MaxTokens:     &maxTokens,
+		TopP:          &topP,
+		TopK:          &topK,
+	}
+
+	ctx := context.Background()
+	err = s.client.UpdateAPIConfiguration(ctx, userID, config)
+	if err != nil {
+		log.Printf("❌ Failed to update configuration: %v", err)
+		http.Error(w, "Failed to update configuration", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(config)
+}
+
+func (s *Server) deleteConfiguration(w http.ResponseWriter, r *http.Request) {
+	userID, err := s.getUserID(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Extract ID from URL path
+	path := strings.TrimPrefix(r.URL.Path, "/api/configurations/")
+	configID := strings.Split(path, "/")[0]
+
+	if configID == "" {
+		http.Error(w, "Configuration ID required", http.StatusBadRequest)
+		return
+	}
+
+	ctx := context.Background()
+	err = s.client.DeleteAPIConfiguration(ctx, configID, userID)
+	if err != nil {
+		log.Printf("❌ Failed to delete configuration: %v", err)
+		http.Error(w, "Failed to delete configuration", http.StatusInternalServerError)
+		return
+	}
+
+	// Return success response
+	result := map[string]interface{}{
+		"message": fmt.Sprintf("Configuration %s deleted successfully", configID),
+		"success": true,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
 }
 
 // Mock execution for when API key is not available
@@ -1412,7 +1622,7 @@ func (s *Server) enableCORS(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Gemini-API-Key, X-OpenWeather-API-Key, X-Neo4j-URL, X-Neo4j-Username, X-Neo4j-Password, X-Neo4j-Database, X-Use-Mock")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Gemini-API-Key, X-OpenWeather-API-Key, X-Neo4j-URL, X-Neo4j-Username, X-Neo4j-Password, X-Neo4j-Database, X-Use-Mock, X-Encrypted-Gemini-API-Key, X-Encrypted-Openweather-API-Key, X-Encrypted-Neo4j-URL, X-Encrypted-Neo4j-Username, X-Encrypted-Neo4j-Password, X-Encrypted-Neo4j-Database")
 
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
@@ -1462,6 +1672,7 @@ func runServer() {
 
 	// Protected configuration management endpoints
 	http.HandleFunc("/api/configurations", server.enableCORS(authMiddleware(server.configurationsHandler)))
+	http.HandleFunc("/api/configurations/", server.enableCORS(authMiddleware(server.configurationByIDHandler)))
 
 	// Protected database endpoints
 	http.HandleFunc("/api/database/stats", server.enableCORS(authMiddleware(server.databaseStatsHandler)))
@@ -1688,60 +1899,65 @@ func (s *Server) listFunctions(w http.ResponseWriter, r *http.Request) {
 	var functions []types.FunctionDefinition
 
 	for rows.Next() {
-		var function types.FunctionDefinition
-		var parametersSchemaJSON string
-		var mockResponseJSON, headersJSON, authConfigJSON sql.NullString
-		var endpointURL sql.NullString
+		var dbFunction db.FunctionDefinition
 
 		err := rows.Scan(
-			&function.ID,
-			&function.Name,
-			&function.DisplayName,
-			&function.Description,
-			&parametersSchemaJSON,
-			&mockResponseJSON,
-			&endpointURL,
-			&function.HttpMethod,
-			&headersJSON,
-			&authConfigJSON,
-			&function.IsActive,
-			&function.CreatedAt,
-			&function.UpdatedAt,
+			&dbFunction.ID,
+			&dbFunction.Name,
+			&dbFunction.DisplayName,
+			&dbFunction.Description,
+			&dbFunction.ParametersSchema,
+			&dbFunction.MockResponse,
+			&dbFunction.EndpointUrl,
+			&dbFunction.HttpMethod,
+			&dbFunction.Headers,
+			&dbFunction.AuthConfig,
+			&dbFunction.IsActive,
+			&dbFunction.CreatedAt,
+			&dbFunction.UpdatedAt,
 		)
 		if err != nil {
 			log.Printf("❌ Failed to scan function row: %v", err)
 			continue
 		}
 
-		// Set endpoint URL
-		if endpointURL.Valid {
-			function.EndpointURL = endpointURL.String
+		// Convert database model to types model
+		function := types.FunctionDefinition{
+			ID:          dbFunction.ID,
+			Name:        dbFunction.Name,
+			DisplayName: dbFunction.DisplayName,
+			IsActive:    dbFunction.IsActive.Bool,
+			CreatedAt:   dbFunction.CreatedAt.Time,
+			UpdatedAt:   dbFunction.UpdatedAt.Time,
 		}
 
-		// Parse JSON fields
-		if parametersSchemaJSON != "" {
-			if err := json.Unmarshal([]byte(parametersSchemaJSON), &function.ParametersSchema); err != nil {
-				log.Printf("⚠️ Failed to parse parameters schema for %s: %v", function.Name, err)
-				function.ParametersSchema = make(map[string]interface{})
-			}
+		// Handle nullable string fields
+		if dbFunction.Description.Valid {
+			function.Description = dbFunction.Description.String
+		}
+		if dbFunction.EndpointUrl.Valid {
+			function.EndpointURL = dbFunction.EndpointUrl.String
+		}
+		if dbFunction.HttpMethod.Valid {
+			function.HttpMethod = dbFunction.HttpMethod.String
 		}
 
-		if mockResponseJSON.Valid && mockResponseJSON.String != "" {
-			if err := json.Unmarshal([]byte(mockResponseJSON.String), &function.MockResponse); err != nil {
-				log.Printf("⚠️ Failed to parse mock response for %s: %v", function.Name, err)
-			}
+		// Handle JSON fields - no longer nullable after schema fix
+		if err := json.Unmarshal(dbFunction.ParametersSchema, &function.ParametersSchema); err != nil {
+			log.Printf("⚠️ Failed to parse parameters schema for %s: %v", function.Name, err)
+			function.ParametersSchema = make(map[string]interface{})
 		}
 
-		if headersJSON.Valid && headersJSON.String != "" && headersJSON.String != "null" {
-			if err := json.Unmarshal([]byte(headersJSON.String), &function.Headers); err != nil {
-				log.Printf("⚠️ Failed to parse headers for %s: %v", function.Name, err)
-			}
+		if err := json.Unmarshal(dbFunction.MockResponse, &function.MockResponse); err != nil {
+			log.Printf("⚠️ Failed to parse mock response for %s: %v", function.Name, err)
 		}
 
-		if authConfigJSON.Valid && authConfigJSON.String != "" && authConfigJSON.String != "null" {
-			if err := json.Unmarshal([]byte(authConfigJSON.String), &function.AuthConfig); err != nil {
-				log.Printf("⚠️ Failed to parse auth config for %s: %v", function.Name, err)
-			}
+		if err := json.Unmarshal(dbFunction.Headers, &function.Headers); err != nil {
+			log.Printf("⚠️ Failed to parse headers for %s: %v", function.Name, err)
+		}
+
+		if err := json.Unmarshal(dbFunction.AuthConfig, &function.AuthConfig); err != nil {
+			log.Printf("⚠️ Failed to parse auth config for %s: %v", function.Name, err)
 		}
 
 		functions = append(functions, function)
@@ -1790,23 +2006,67 @@ func (s *Server) createFunction(w http.ResponseWriter, r *http.Request) {
 	function.UpdatedAt = time.Now()
 	function.IsActive = true
 
-	// TODO: Implement actual database insertion using raw SQL since sqlc queries aren't available
-	// For now, we'll simulate success but the function won't actually be stored
-	log.Printf("⚠️ Function creation simulated - database storage not implemented yet")
-	log.Printf("📝 Function details: %s (%s) - %s", function.DisplayName, function.Name, function.Description)
+	// Get user ID for ownership
+	userID, err := s.getUserID(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 
-	// In a real implementation, we would:
-	// 1. Execute INSERT INTO function_definitions (...) VALUES (...)
-	// 2. Handle any database errors
-	// 3. Return the created function
+	// Convert complex fields to JSON
+	parametersSchemaJSON, err := json.Marshal(function.ParametersSchema)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid parameters schema: %v", err), http.StatusBadRequest)
+		return
+	}
 
-	log.Printf("✅ Function created (simulated): %s (%s)", function.DisplayName, function.Name)
+	mockResponseJSON, err := json.Marshal(function.MockResponse)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid mock response: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	headersJSON, err := json.Marshal(function.Headers)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid headers: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	authConfigJSON, err := json.Marshal(function.AuthConfig)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid auth config: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	// Insert into database
+	ctx := context.Background()
+	query := `
+		INSERT INTO function_definitions (
+			id, user_id, name, display_name, description, 
+			parameters_schema, mock_response, endpoint_url, http_method,
+			headers, auth_config, is_active, created_at, updated_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`
+
+	_, err = s.client.GetDB().ExecContext(ctx, query,
+		function.ID, userID, function.Name, function.DisplayName, function.Description,
+		string(parametersSchemaJSON), string(mockResponseJSON), function.EndpointURL, function.HttpMethod,
+		string(headersJSON), string(authConfigJSON), function.IsActive, function.CreatedAt, function.UpdatedAt,
+	)
+
+	if err != nil {
+		log.Printf("❌ Failed to insert function into database: %v", err)
+		http.Error(w, "Failed to save function to database", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("✅ Function created and saved to database: %s (%s)", function.DisplayName, function.Name)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"data":    function,
-		"message": "Function created successfully (database storage pending implementation)",
+		"message": "Function created successfully",
 	})
 }
 
@@ -1894,13 +2154,36 @@ func (s *Server) updateFunction(w http.ResponseWriter, r *http.Request, function
 func (s *Server) deleteFunction(w http.ResponseWriter, r *http.Request, functionID string) {
 	log.Printf("🗑️ Deleting function: %s", functionID)
 
-	// TODO: Implement database deletion (soft delete by setting is_active = false)
-	log.Printf("✅ Deleted function: %s", functionID)
+	// Implement database deletion (soft delete by setting is_active = false)
+	query := `UPDATE function_definitions SET is_active = false, updated_at = NOW() WHERE id = ?`
+
+	ctx := context.Background()
+	result, err := s.client.GetDB().ExecContext(ctx, query, functionID)
+	if err != nil {
+		log.Printf("❌ Error deleting function %s: %v", functionID, err)
+		http.Error(w, fmt.Sprintf("Failed to delete function: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Printf("❌ Error checking rows affected for function %s: %v", functionID, err)
+		http.Error(w, "Failed to verify deletion", http.StatusInternalServerError)
+		return
+	}
+
+	if rowsAffected == 0 {
+		log.Printf("❌ Function %s not found", functionID)
+		http.Error(w, "Function not found", http.StatusNotFound)
+		return
+	}
+
+	log.Printf("✅ Successfully deleted function: %s", functionID)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
-		"message": "Function deleted successfully",
+		"message": fmt.Sprintf("Function %s deleted successfully", functionID),
 	})
 }
 

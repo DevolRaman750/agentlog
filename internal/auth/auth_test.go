@@ -2,40 +2,102 @@ package auth
 
 import (
 	"database/sql"
+	"fmt"
+	"os"
 	"testing"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang-jwt/jwt/v5"
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/mysql"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// setupTestDB creates an in-memory SQLite database for testing
+// setupTestDB creates a MySQL test database for testing using proper migration system
 func setupTestDB(t *testing.T) *sql.DB {
-	db, err := sql.Open("sqlite3", ":memory:")
+	// Get database URL from environment or use default test database
+	testDatabaseURL := os.Getenv("TEST_DATABASE_URL")
+	if testDatabaseURL == "" {
+		// Default test database - you can override with TEST_DATABASE_URL env var
+		testDatabaseURL = "root:@tcp(localhost:3306)/gogent_test?parseTime=true"
+	}
+
+	db, err := sql.Open("mysql", testDatabaseURL)
+	if err != nil {
+		t.Skipf("Skipping test: Could not connect to MySQL test database. Set TEST_DATABASE_URL or ensure MySQL is running. Error: %v", err)
+		return nil
+	}
+
+	// Test the connection
+	if err := db.Ping(); err != nil {
+		t.Skipf("Skipping test: Could not ping MySQL test database: %v", err)
+		return nil
+	}
+
+	// Drop and recreate all tables to ensure clean state
+	_, err = db.Exec("SET FOREIGN_KEY_CHECKS = 0")
 	require.NoError(t, err)
 
-	// Create users table
-	schema := `
-	CREATE TABLE users (
-		id TEXT PRIMARY KEY,
-		username TEXT UNIQUE NOT NULL,
-		email TEXT UNIQUE,
-		password_hash TEXT NOT NULL,
-		email_verified BOOLEAN DEFAULT FALSE,
-		email_verification_token TEXT,
-		email_verification_expires_at DATETIME,
-		is_temporary BOOLEAN DEFAULT FALSE,
-		created_at DATETIME NOT NULL,
-		updated_at DATETIME NOT NULL,
-		last_login_at DATETIME
-	);
-	`
-	_, err = db.Exec(schema)
+	// Get list of tables and drop them
+	rows, err := db.Query("SHOW TABLES")
+	if err == nil {
+		var tables []string
+		for rows.Next() {
+			var table string
+			if err := rows.Scan(&table); err == nil {
+				tables = append(tables, table)
+			}
+		}
+		rows.Close()
+
+		// Drop all tables
+		for _, table := range tables {
+			_, err = db.Exec("DROP TABLE IF EXISTS " + table)
+			require.NoError(t, err)
+		}
+	}
+
+	_, err = db.Exec("SET FOREIGN_KEY_CHECKS = 1")
 	require.NoError(t, err)
+
+	// Run migrations using golang-migrate (same as production)
+	err = runMigrations(db)
+	if err != nil {
+		t.Skipf("Skipping test: Could not run migrations: %v", err)
+		return nil
+	}
 
 	return db
+}
+
+// runMigrations applies database migrations using golang-migrate
+func runMigrations(db *sql.DB) error {
+	// Create the migrate driver instance
+	driver, err := mysql.WithInstance(db, &mysql.Config{})
+	if err != nil {
+		return fmt.Errorf("failed to create migrate driver: %w", err)
+	}
+
+	// Create migrate instance pointing to migrations directory
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://../../migrations", // path to migration files from test directory
+		"mysql",                   // database name
+		driver,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create migrate instance: %w", err)
+	}
+	defer m.Close()
+
+	// Run migrations
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		return fmt.Errorf("failed to run migrations: %w", err)
+	}
+
+	return nil
 }
 
 func TestNewAuthService(t *testing.T) {

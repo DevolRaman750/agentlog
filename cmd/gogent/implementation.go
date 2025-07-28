@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"gogent/internal/auth"
+	"gogent/internal/db"
 	"gogent/internal/gogent"
 	"gogent/internal/types"
 
@@ -405,37 +407,67 @@ func (bl *BusinessLogic) ListFunctions(ctx context.Context) ([]*types.FunctionDe
 	var functions []*types.FunctionDefinition
 
 	for rows.Next() {
-		var function types.FunctionDefinition
-		var parametersSchemaJSON string
-		var mockResponseJSON, headersJSON, authConfigJSON sql.NullString
-		var endpointURL sql.NullString
+		var dbFunction db.FunctionDefinition
 
 		err := rows.Scan(
-			&function.ID,
-			&function.Name,
-			&function.DisplayName,
-			&function.Description,
-			&parametersSchemaJSON,
-			&mockResponseJSON,
-			&endpointURL,
-			&function.HttpMethod,
-			&headersJSON,
-			&authConfigJSON,
-			&function.IsActive,
-			&function.CreatedAt,
-			&function.UpdatedAt,
+			&dbFunction.ID,
+			&dbFunction.Name,
+			&dbFunction.DisplayName,
+			&dbFunction.Description,
+			&dbFunction.ParametersSchema,
+			&dbFunction.MockResponse,
+			&dbFunction.EndpointUrl,
+			&dbFunction.HttpMethod,
+			&dbFunction.Headers,
+			&dbFunction.AuthConfig,
+			&dbFunction.IsActive,
+			&dbFunction.CreatedAt,
+			&dbFunction.UpdatedAt,
 		)
 		if err != nil {
 			log.Printf("❌ Failed to scan function row: %v", err)
 			continue
 		}
 
-		// Set endpoint URL
-		if endpointURL.Valid {
-			function.EndpointURL = endpointURL.String
+		// Convert database model to types model
+		function := types.FunctionDefinition{
+			ID:          dbFunction.ID,
+			Name:        dbFunction.Name,
+			DisplayName: dbFunction.DisplayName,
+			IsActive:    dbFunction.IsActive.Bool,
+			CreatedAt:   dbFunction.CreatedAt.Time,
+			UpdatedAt:   dbFunction.UpdatedAt.Time,
 		}
 
-		// TODO: Parse JSON fields
+		// Handle nullable string fields
+		if dbFunction.Description.Valid {
+			function.Description = dbFunction.Description.String
+		}
+		if dbFunction.EndpointUrl.Valid {
+			function.EndpointURL = dbFunction.EndpointUrl.String
+		}
+		if dbFunction.HttpMethod.Valid {
+			function.HttpMethod = dbFunction.HttpMethod.String
+		}
+
+		// Handle JSON fields - no longer nullable after schema fix
+		if err := json.Unmarshal(dbFunction.ParametersSchema, &function.ParametersSchema); err != nil {
+			log.Printf("⚠️ Failed to parse parameters schema for %s: %v", function.Name, err)
+			function.ParametersSchema = make(map[string]interface{})
+		}
+
+		if err := json.Unmarshal(dbFunction.MockResponse, &function.MockResponse); err != nil {
+			log.Printf("⚠️ Failed to parse mock response for %s: %v", function.Name, err)
+		}
+
+		if err := json.Unmarshal(dbFunction.Headers, &function.Headers); err != nil {
+			log.Printf("⚠️ Failed to parse headers for %s: %v", function.Name, err)
+		}
+
+		if err := json.Unmarshal(dbFunction.AuthConfig, &function.AuthConfig); err != nil {
+			log.Printf("⚠️ Failed to parse auth config for %s: %v", function.Name, err)
+		}
+
 		functions = append(functions, &function)
 	}
 

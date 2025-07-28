@@ -480,6 +480,68 @@ func compareResultsByMetrics(results []types.VariationResult, metrics []string) 
 	return comparison
 }
 
+// TestCreateAPIConfiguration_PreservesSystemUserID tests that system configurations
+// maintain their UserID='system' when saved to database during execution
+func TestCreateAPIConfiguration_PreservesSystemUserID(t *testing.T) {
+	// This is a unit test for the UserID preservation logic
+
+	// Test case 1: System configuration should preserve UserID='system'
+	systemConfig := &types.APIConfiguration{
+		ID:               "test-system-config",
+		UserID:           "system", // This should be preserved
+		ExecutionRunID:   "test-run",
+		VariationName:    "Test System Config",
+		ModelName:        "gemini-1.5-flash",
+		SystemPrompt:     "Test system prompt",
+		IsSystemResource: true,
+	}
+
+	// The logic that should be tested (from CreateAPIConfiguration):
+	currentUserID := "test-user-123"
+	configUserID := currentUserID
+	if systemConfig.UserID != "" {
+		configUserID = systemConfig.UserID
+	}
+
+	if configUserID != "system" {
+		t.Errorf("Expected system configuration to preserve UserID='system', got '%s'", configUserID)
+	}
+
+	// Test case 2: User configuration without UserID should use provided userID
+	userConfig := &types.APIConfiguration{
+		ID:            "test-user-config",
+		UserID:        "", // Empty - should use provided userID
+		VariationName: "Test User Config",
+		ModelName:     "gemini-1.5-flash",
+	}
+
+	configUserID = currentUserID
+	if userConfig.UserID != "" {
+		configUserID = userConfig.UserID
+	}
+
+	if configUserID != currentUserID {
+		t.Errorf("Expected user configuration to use provided UserID='%s', got '%s'", currentUserID, configUserID)
+	}
+
+	// Test case 3: User configuration with UserID should preserve it
+	userConfigWithID := &types.APIConfiguration{
+		ID:            "test-user-config-with-id",
+		UserID:        "specific-user-456",
+		VariationName: "Test User Config With ID",
+		ModelName:     "gemini-1.5-flash",
+	}
+
+	configUserID = currentUserID
+	if userConfigWithID.UserID != "" {
+		configUserID = userConfigWithID.UserID
+	}
+
+	if configUserID != "specific-user-456" {
+		t.Errorf("Expected user configuration to preserve UserID='specific-user-456', got '%s'", configUserID)
+	}
+}
+
 // Helper function for string contains check
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) &&

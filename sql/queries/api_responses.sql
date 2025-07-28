@@ -32,7 +32,7 @@ SELECT
     r.response_headers, r.response_body, r.created_at
 FROM api_responses r
 JOIN api_requests req ON r.request_id = req.id
-WHERE req.execution_run_id = ? AND r.user_id = ?
+WHERE req.execution_run_id = ? AND (r.user_id = ? OR r.user_id = 'system')
 ORDER BY r.created_at;
 
 -- name: ListAPIResponses :many

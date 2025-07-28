@@ -1,13 +1,19 @@
 package auth
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/rand"
 	"database/sql"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"time"
+
+	"crypto/md5"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -512,4 +518,214 @@ func ExtractTokenFromHeader(authHeader string) (string, error) {
 	}
 
 	return parts[1], nil
+}
+
+// HeaderEncryption handles encryption/decryption of API keys in headers
+type HeaderEncryption struct {
+	sharedSecret string
+}
+
+// NewHeaderEncryption creates a new header encryption instance
+func NewHeaderEncryption() *HeaderEncryption {
+	// Get shared secret from environment
+	secret := os.Getenv("API_ENCRYPTION_KEY")
+	if secret == "" {
+		secret = "gogent_shared_secret_v1_default"
+	}
+
+	log.Printf("🔑 DEBUG: HeaderEncryption using key: %s", secret)
+
+	return &HeaderEncryption{
+		sharedSecret: secret,
+	}
+}
+
+// DecryptAPIKey decrypts an encrypted API key from header (CryptoJS compatible)
+func (he *HeaderEncryption) DecryptAPIKey(encryptedData string) (string, error) {
+	if encryptedData == "" {
+		return "", nil
+	}
+
+	// Safe logging of encryption key (truncate safely)
+	keyPrefix := he.sharedSecret
+	if len(keyPrefix) > 20 {
+		keyPrefix = keyPrefix[:20]
+	}
+	log.Printf("🔓 DEBUG: Attempting decryption with key: %s...", keyPrefix)
+	log.Printf("🔓 DEBUG: Encrypted data: %s", encryptedData)
+
+	// CryptoJS.AES.encrypt().toString() returns a base64 string that contains the entire encrypted message
+	// We need to decode it first to get the binary data
+	data, err := base64.StdEncoding.DecodeString(encryptedData)
+	if err != nil {
+		log.Printf("🔓 DEBUG: Base64 decode failed: %v", err)
+		return "", fmt.Errorf("failed to decode base64: %w", err)
+	}
+
+	log.Printf("🔓 DEBUG: Decoded data length: %d", len(data))
+
+	// CryptoJS format: "Salted__" + 8-byte salt + encrypted data
+	if len(data) < 16 {
+		log.Printf("🔓 DEBUG: Invalid format - length: %d (minimum 16 bytes required)", len(data))
+		return "", fmt.Errorf("invalid CryptoJS format")
+	}
+
+	if string(data[:8]) != "Salted__" {
+		log.Printf("🔓 DEBUG: Invalid format - prefix: %s", string(data[:8]))
+		return "", fmt.Errorf("invalid CryptoJS format")
+	}
+
+	salt := data[8:16]
+	encryptedBytes := data[16:]
+
+	// Derive key and IV using OpenSSL EVP_BytesToKey algorithm (MD5, 1 iteration – CryptoJS default)
+	keyLen := 32 // AES-256 key length
+	ivLen := 16  // AES CBC IV length
+	var derivedBytes []byte
+	prev := []byte{}
+	for len(derivedBytes) < keyLen+ivLen {
+		h := md5.New()
+		h.Write(prev)
+		h.Write([]byte(he.sharedSecret))
+		h.Write(salt)
+		prev = h.Sum(nil)
+		derivedBytes = append(derivedBytes, prev...)
+	}
+
+	key := derivedBytes[:keyLen]
+	iv := derivedBytes[keyLen : keyLen+ivLen]
+
+	log.Printf("🔓 DEBUG: Derived key/iv using OpenSSL EVP_BytesToKey (MD5)")
+
+	// Create cipher
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", fmt.Errorf("failed to create cipher: %w", err)
+	}
+
+	// Decrypt using CBC mode (CryptoJS default)
+	if len(encryptedBytes)%aes.BlockSize != 0 {
+		return "", fmt.Errorf("encrypted data length is not a multiple of block size")
+	}
+
+	mode := cipher.NewCBCDecrypter(block, iv)
+	decrypted := make([]byte, len(encryptedBytes))
+	mode.CryptBlocks(decrypted, encryptedBytes)
+
+	// Remove PKCS7 padding
+	if len(decrypted) == 0 {
+		log.Printf("🔓 DEBUG: Decrypted data is empty")
+		return "", fmt.Errorf("decrypted data is empty")
+	}
+
+	padLen := int(decrypted[len(decrypted)-1])
+	log.Printf("🔓 DEBUG: Decrypted length: %d, padding length: %d", len(decrypted), padLen)
+	log.Printf("🔓 DEBUG: Last few bytes: %v", decrypted[len(decrypted)-8:])
+
+	if padLen > len(decrypted) || padLen == 0 || padLen > aes.BlockSize {
+		log.Printf("🔓 DEBUG: Invalid padding length - padLen: %d, dataLen: %d, blockSize: %d", padLen, len(decrypted), aes.BlockSize)
+		return "", fmt.Errorf("invalid padding")
+	}
+
+	// Validate padding bytes
+	for i := len(decrypted) - padLen; i < len(decrypted); i++ {
+		if decrypted[i] != byte(padLen) {
+			log.Printf("🔓 DEBUG: Invalid padding byte at position %d: expected %d, got %d", i, padLen, decrypted[i])
+			return "", fmt.Errorf("invalid padding")
+		}
+	}
+
+	result := decrypted[:len(decrypted)-padLen]
+	log.Printf("🔓 DEBUG: Successfully removed padding, result length: %d", len(result))
+	return strings.TrimSpace(string(result)), nil
+}
+
+// GetDecryptedAPIKeysFromHeaders extracts and decrypts API keys from HTTP headers
+func (he *HeaderEncryption) GetDecryptedAPIKeysFromHeaders(headers map[string][]string) map[string]string {
+	apiKeys := make(map[string]string)
+
+	// Helper function to get header value (case insensitive)
+	getHeader := func(key string) string {
+		// Try exact match first
+		if values, exists := headers[key]; exists && len(values) > 0 {
+			return values[0]
+		}
+		// Try case insensitive
+		for headerKey, values := range headers {
+			if strings.EqualFold(headerKey, key) && len(values) > 0 {
+				return values[0]
+			}
+		}
+		return ""
+	}
+
+	// Decrypt each API key using exact header names from frontend
+	if encryptedKey := getHeader("X-Encrypted-Gemini-Api-Key"); encryptedKey != "" {
+		if decrypted, err := he.DecryptAPIKey(encryptedKey); err == nil && decrypted != "" {
+			apiKeys["geminiApiKey"] = decrypted
+			log.Printf("🔓 Successfully decrypted Gemini API key: %s...", decrypted[:10])
+		} else {
+			// Only log decryption errors if not in test environment
+			if os.Getenv("GO_ENV") != "test" && !strings.Contains(os.Args[0], ".test") {
+				log.Printf("❌ Failed to decrypt Gemini API key: %v", err)
+			}
+		}
+	}
+
+	if encryptedKey := getHeader("X-Encrypted-Openweather-Api-Key"); encryptedKey != "" {
+		if decrypted, err := he.DecryptAPIKey(encryptedKey); err == nil && decrypted != "" {
+			apiKeys["openWeatherApiKey"] = decrypted
+			log.Printf("🔓 Successfully decrypted OpenWeather API key: %s...", decrypted[:10])
+		} else {
+			if os.Getenv("GO_ENV") != "test" && !strings.Contains(os.Args[0], ".test") {
+				log.Printf("❌ Failed to decrypt OpenWeather API key: %v", err)
+			}
+		}
+	}
+
+	if encryptedKey := getHeader("X-Encrypted-Neo4j-Url"); encryptedKey != "" {
+		if decrypted, err := he.DecryptAPIKey(encryptedKey); err == nil && decrypted != "" {
+			apiKeys["neo4jUrl"] = decrypted
+			log.Printf("🔓 Successfully decrypted Neo4j URL")
+		} else {
+			if os.Getenv("GO_ENV") != "test" && !strings.Contains(os.Args[0], ".test") {
+				log.Printf("❌ Failed to decrypt Neo4j URL: %v", err)
+			}
+		}
+	}
+
+	if encryptedKey := getHeader("X-Encrypted-Neo4j-Username"); encryptedKey != "" {
+		if decrypted, err := he.DecryptAPIKey(encryptedKey); err == nil && decrypted != "" {
+			apiKeys["neo4jUsername"] = decrypted
+			log.Printf("🔓 Successfully decrypted Neo4j username")
+		} else {
+			if os.Getenv("GO_ENV") != "test" && !strings.Contains(os.Args[0], ".test") {
+				log.Printf("❌ Failed to decrypt Neo4j username: %v", err)
+			}
+		}
+	}
+
+	if encryptedKey := getHeader("X-Encrypted-Neo4j-Password"); encryptedKey != "" {
+		if decrypted, err := he.DecryptAPIKey(encryptedKey); err == nil && decrypted != "" {
+			apiKeys["neo4jPassword"] = decrypted
+			log.Printf("🔓 Successfully decrypted Neo4j password")
+		} else {
+			if os.Getenv("GO_ENV") != "test" && !strings.Contains(os.Args[0], ".test") {
+				log.Printf("❌ Failed to decrypt Neo4j password: %v", err)
+			}
+		}
+	}
+
+	if encryptedKey := getHeader("X-Encrypted-Neo4j-Database"); encryptedKey != "" {
+		if decrypted, err := he.DecryptAPIKey(encryptedKey); err == nil && decrypted != "" {
+			apiKeys["neo4jDatabase"] = decrypted
+			log.Printf("🔓 Successfully decrypted Neo4j database")
+		} else {
+			if os.Getenv("GO_ENV") != "test" && !strings.Contains(os.Args[0], ".test") {
+				log.Printf("❌ Failed to decrypt Neo4j database: %v", err)
+			}
+		}
+	}
+
+	return apiKeys
 }

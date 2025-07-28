@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"gogent/internal/auth"
 	pb "gogent/proto"
 
 	"github.com/joho/godotenv"
@@ -110,25 +111,46 @@ func (g *GRPCGateway) executeHandler(w http.ResponseWriter, r *http.Request) {
 		SessionApiKeys:        make(map[string]string),
 	}
 
-	// Collect all API keys from headers into session_api_keys map
+	// Initialize header encryption utility
+	headerEncryption := auth.NewHeaderEncryption()
+
+	// First, try to decrypt encrypted API keys from headers
+	encryptedKeys := headerEncryption.GetDecryptedAPIKeysFromHeaders(r.Header)
+
+	// Merge decrypted keys into session API keys
+	for key, value := range encryptedKeys {
+		grpcReq.SessionApiKeys[key] = value
+		log.Printf("🔓 Using decrypted API key: %s", key)
+	}
+
+	// Fallback: Collect legacy plain-text API keys from headers (for backward compatibility)
 	if geminiKey := r.Header.Get("X-Gemini-API-Key"); geminiKey != "" {
 		grpcReq.SessionApiKeys["geminiApiKey"] = geminiKey
+		log.Printf("⚠️ Using legacy plain-text Gemini API key")
 	}
 	if openWeatherKey := r.Header.Get("X-OpenWeather-API-Key"); openWeatherKey != "" {
 		grpcReq.SessionApiKeys["openWeatherApiKey"] = openWeatherKey
+		log.Printf("⚠️ Using legacy plain-text OpenWeather API key")
 	}
 	if neo4jUrl := r.Header.Get("X-Neo4j-URL"); neo4jUrl != "" {
 		grpcReq.SessionApiKeys["neo4jUrl"] = neo4jUrl
+		log.Printf("⚠️ Using legacy plain-text Neo4j URL")
 	}
 	if neo4jUsername := r.Header.Get("X-Neo4j-Username"); neo4jUsername != "" {
 		grpcReq.SessionApiKeys["neo4jUsername"] = neo4jUsername
+		log.Printf("⚠️ Using legacy plain-text Neo4j username")
 	}
 	if neo4jPassword := r.Header.Get("X-Neo4j-Password"); neo4jPassword != "" {
 		grpcReq.SessionApiKeys["neo4jPassword"] = neo4jPassword
+		log.Printf("⚠️ Using legacy plain-text Neo4j password")
 	}
 	if neo4jDatabase := r.Header.Get("X-Neo4j-Database"); neo4jDatabase != "" {
 		grpcReq.SessionApiKeys["neo4jDatabase"] = neo4jDatabase
+		log.Printf("⚠️ Using legacy plain-text Neo4j database")
 	}
+
+	// Log the number of API keys we have
+	log.Printf("🔑 Total API keys available: %d", len(grpcReq.SessionApiKeys))
 
 	// Convert configurations
 	if configs, ok := httpReq["configurations"].([]interface{}); ok {
@@ -282,11 +304,28 @@ func (g *GRPCGateway) executionRunsHandler(w http.ResponseWriter, r *http.Reques
 
 // List configurations endpoint
 func (g *GRPCGateway) configurationsHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
+	switch r.Method {
+	case http.MethodGet:
+		g.listConfigurations(w, r)
+	case http.MethodPost:
+		g.createConfiguration(w, r)
+	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
 	}
+}
 
+func (g *GRPCGateway) configurationByIDHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPut:
+		g.updateConfiguration(w, r)
+	case http.MethodDelete:
+		g.deleteConfiguration(w, r)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func (g *GRPCGateway) listConfigurations(w http.ResponseWriter, r *http.Request) {
 	// Call gRPC service
 	ctx := context.Background()
 	req := &pb.ListConfigurationsRequest{}
@@ -316,6 +355,141 @@ func (g *GRPCGateway) configurationsHandler(w http.ResponseWriter, r *http.Reque
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(configs)
+}
+
+func (g *GRPCGateway) createConfiguration(w http.ResponseWriter, r *http.Request) {
+	var configData map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&configData); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// Convert to protobuf
+	protoConfig := &pb.APIConfiguration{
+		Id:            getStringFromMap(configData, "id"),
+		VariationName: getStringFromMap(configData, "variationName"),
+		ModelName:     getStringFromMap(configData, "modelName"),
+		SystemPrompt:  getStringFromMap(configData, "systemPrompt"),
+		Temperature:   getFloat32FromMap(configData, "temperature"),
+		MaxTokens:     getInt32FromMap(configData, "maxTokens"),
+		TopP:          getFloat32FromMap(configData, "topP"),
+		TopK:          getInt32FromMap(configData, "topK"),
+	}
+
+	// Call gRPC service
+	ctx := context.Background()
+	req := &pb.CreateConfigurationRequest{Configuration: protoConfig}
+
+	resp, err := g.grpcClient.CreateConfiguration(ctx, req)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to create configuration: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Convert response back to HTTP format
+	resultConfig := map[string]interface{}{
+		"id":            resp.Configuration.Id,
+		"variationName": resp.Configuration.VariationName,
+		"modelName":     resp.Configuration.ModelName,
+		"systemPrompt":  resp.Configuration.SystemPrompt,
+		"temperature":   resp.Configuration.Temperature,
+		"maxTokens":     resp.Configuration.MaxTokens,
+		"topP":          resp.Configuration.TopP,
+		"topK":          resp.Configuration.TopK,
+		"createdAt":     resp.Configuration.CreatedAt.AsTime().Format(time.RFC3339),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(resultConfig)
+}
+
+func (g *GRPCGateway) updateConfiguration(w http.ResponseWriter, r *http.Request) {
+	// Extract ID from URL path
+	path := strings.TrimPrefix(r.URL.Path, "/api/configurations/")
+	configID := strings.Split(path, "/")[0]
+
+	if configID == "" {
+		http.Error(w, "Configuration ID required", http.StatusBadRequest)
+		return
+	}
+
+	var configData map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&configData); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// Convert to protobuf
+	protoConfig := &pb.APIConfiguration{
+		Id:            configID,
+		VariationName: getStringFromMap(configData, "variationName"),
+		ModelName:     getStringFromMap(configData, "modelName"),
+		SystemPrompt:  getStringFromMap(configData, "systemPrompt"),
+		Temperature:   getFloat32FromMap(configData, "temperature"),
+		MaxTokens:     getInt32FromMap(configData, "maxTokens"),
+		TopP:          getFloat32FromMap(configData, "topP"),
+		TopK:          getInt32FromMap(configData, "topK"),
+	}
+
+	// Call gRPC service
+	ctx := context.Background()
+	req := &pb.UpdateConfigurationRequest{
+		Id:            configID,
+		Configuration: protoConfig,
+	}
+
+	resp, err := g.grpcClient.UpdateConfiguration(ctx, req)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to update configuration: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Convert response back to HTTP format
+	resultConfig := map[string]interface{}{
+		"id":            resp.Configuration.Id,
+		"variationName": resp.Configuration.VariationName,
+		"modelName":     resp.Configuration.ModelName,
+		"systemPrompt":  resp.Configuration.SystemPrompt,
+		"temperature":   resp.Configuration.Temperature,
+		"maxTokens":     resp.Configuration.MaxTokens,
+		"topP":          resp.Configuration.TopP,
+		"topK":          resp.Configuration.TopK,
+		"createdAt":     resp.Configuration.CreatedAt.AsTime().Format(time.RFC3339),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resultConfig)
+}
+
+func (g *GRPCGateway) deleteConfiguration(w http.ResponseWriter, r *http.Request) {
+	// Extract ID from URL path
+	path := strings.TrimPrefix(r.URL.Path, "/api/configurations/")
+	configID := strings.Split(path, "/")[0]
+
+	if configID == "" {
+		http.Error(w, "Configuration ID required", http.StatusBadRequest)
+		return
+	}
+
+	// Call gRPC service
+	ctx := context.Background()
+	req := &pb.DeleteConfigurationRequest{Id: configID}
+
+	resp, err := g.grpcClient.DeleteConfiguration(ctx, req)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to delete configuration: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Return success response
+	result := map[string]interface{}{
+		"message": resp.Message,
+		"success": true,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
 }
 
 // Database stats endpoint
@@ -354,7 +528,7 @@ func (g *GRPCGateway) enableCORS(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Gemini-API-Key, X-OpenWeather-API-Key, X-Neo4j-URL, X-Neo4j-Username, X-Neo4j-Password, X-Neo4j-Database, X-Use-Mock")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Gemini-API-Key, X-OpenWeather-API-Key, X-Neo4j-URL, X-Neo4j-Username, X-Neo4j-Password, X-Neo4j-Database, X-Use-Mock, X-Encrypted-Gemini-API-Key, X-Encrypted-Openweather-API-Key, X-Encrypted-Neo4j-URL, X-Encrypted-Neo4j-Username, X-Encrypted-Neo4j-Password, X-Encrypted-Neo4j-Database")
 
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
@@ -504,6 +678,7 @@ func runGRPCGateway() {
 	http.HandleFunc("/api/execution-runs/status/", gateway.enableCORS(gateway.executionStatusHandler))
 	http.HandleFunc("/api/execution-runs", gateway.enableCORS(gateway.executionRunsHandler))
 	http.HandleFunc("/api/configurations", gateway.enableCORS(gateway.configurationsHandler))
+	http.HandleFunc("/api/configurations/", gateway.enableCORS(gateway.configurationByIDHandler))
 	http.HandleFunc("/api/database/stats", gateway.enableCORS(gateway.databaseStatsHandler))
 
 	port := os.Getenv("GATEWAY_PORT")

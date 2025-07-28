@@ -11,22 +11,22 @@ WHERE id = ? AND user_id = ?;
 
 -- name: GetAPIConfigurationsByRun :many
 SELECT id, user_id, execution_run_id, variation_name, model_name, system_prompt, temperature, max_tokens, top_p, top_k, safety_settings, generation_config, tools, tool_config, created_at FROM api_configurations
-WHERE execution_run_id = ? AND user_id = ?
+WHERE execution_run_id = ? AND (user_id = ? OR user_id = 'system')
 ORDER BY variation_name;
 
 -- name: GetAPIConfigurationByVariation :one
 SELECT id, user_id, execution_run_id, variation_name, model_name, system_prompt, temperature, max_tokens, top_p, top_k, safety_settings, generation_config, tools, tool_config, created_at FROM api_configurations
-WHERE execution_run_id = ? AND variation_name = ? AND user_id = ?;
+WHERE execution_run_id = ? AND variation_name = ? AND (user_id = ? OR user_id = 'system');
 
 -- name: ListAPIConfigurations :many
 SELECT id, user_id, execution_run_id, variation_name, model_name, system_prompt, temperature, max_tokens, top_p, top_k, safety_settings, generation_config, tools, tool_config, created_at FROM api_configurations
-WHERE user_id = ?
+WHERE user_id = ? AND user_id != 'system'
 ORDER BY created_at DESC
 LIMIT ? OFFSET ?;
 
 -- name: ListAPIConfigurationsByUser :many
 SELECT id, user_id, execution_run_id, variation_name, model_name, system_prompt, temperature, max_tokens, top_p, top_k, safety_settings, generation_config, tools, tool_config, created_at FROM api_configurations
-WHERE user_id = ?
+WHERE user_id = ? AND user_id != 'system'
 ORDER BY created_at DESC;
 
 -- name: UpdateAPIConfiguration :exec

@@ -1,4 +1,8 @@
-.PHONY: setup install-deps generate-db init-db run-tests clean frontend-setup frontend-install frontend-start frontend-ios frontend-android frontend-web frontend-build frontend-clean
+.PHONY: setup install-deps generate-db init-db run-tests clean frontend-setup frontend-install frontend-start frontend-ios frontend-android frontend-web frontend-build frontend-clean \
+	test-coverage test-verbose test-race test-bench frontend-test-deps frontend-test frontend-test-coverage frontend-test-watch \
+	frontend-test-unit frontend-test-integration frontend-test-e2e frontend-test-performance frontend-test-smoke \
+	test-all test-quick test-smoke test-comprehensive test-performance test-integration \
+	test-ci test-ci-fast test-pre-commit test-release test-debug test-clean test-load test-stress test-setup test-validate test-report test-full-report
 
 # Setup the entire project (backend + frontend)
 setup: install-deps generate-db frontend-setup
@@ -54,6 +58,9 @@ install-proto-tools:
 	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
+# Backend Testing Commands
+# ========================
+
 # Run backend tests
 run-tests:
 	go test ./...
@@ -62,6 +69,195 @@ run-tests:
 test-coverage:
 	go test -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out -o coverage.html
+
+# Run backend tests with verbose output
+test-verbose:
+	go test -v ./...
+
+# Run backend tests with race detection
+test-race:
+	go test -race ./...
+
+# Run backend benchmarks
+test-bench:
+	go test -bench=. ./...
+
+# Frontend Testing Commands
+# ==========================
+
+# Install frontend test dependencies
+frontend-test-deps:
+	@echo "📦 Installing frontend test dependencies..."
+	cd frontend && yarn add --dev jest @types/jest ts-jest @testing-library/react-native @testing-library/jest-native react-test-renderer
+
+# Run all frontend tests
+frontend-test:
+	@echo "🧪 Running all frontend tests..."
+	cd frontend && yarn test --watchAll=false
+
+# Run frontend tests with coverage
+frontend-test-coverage:
+	@echo "📊 Running frontend tests with coverage..."
+	cd frontend && yarn test --coverage --watchAll=false
+
+# Run frontend tests in watch mode
+frontend-test-watch:
+	@echo "👀 Running frontend tests in watch mode..."
+	cd frontend && yarn test --watch
+
+# Run specific test suites
+frontend-test-unit:
+	@echo "🧪 Running frontend unit tests..."
+	cd frontend && yarn test src/__tests__/components.test.tsx --watchAll=false
+
+frontend-test-integration:
+	@echo "🔗 Running frontend integration tests..."
+	cd frontend && yarn test src/__tests__/integration.test.ts --watchAll=false
+
+frontend-test-e2e:
+	@echo "🎯 Running frontend end-to-end tests..."
+	cd frontend && yarn test src/__tests__/e2e.test.ts --watchAll=false
+
+frontend-test-performance:
+	@echo "⚡ Running frontend performance tests..."
+	cd frontend && yarn test src/__tests__/performance.test.ts --watchAll=false
+
+frontend-test-smoke:
+	@echo "💨 Running frontend smoke tests..."
+	cd frontend && yarn test src/__tests__/smoke.test.ts --watchAll=false
+
+# Comprehensive Testing Commands
+# ===============================
+
+# Run all tests (backend + frontend) with backend server
+test-all: run-tests start-test-server frontend-test kill-server
+	@echo "✅ All tests completed!"
+
+# Run quick validation tests
+test-quick: test-smoke frontend-test-smoke
+	@echo "✅ Quick validation completed!"
+
+# Run smoke tests for fast validation
+test-smoke:
+	@echo "💨 Running backend smoke tests..."
+	go test -run TestSmoke ./... -v
+
+# Run comprehensive test suite with coverage
+test-comprehensive: test-coverage frontend-test-coverage
+	@echo "📊 Comprehensive test suite with coverage completed!"
+
+# Run performance and load tests
+test-performance: test-bench frontend-test-performance
+	@echo "⚡ Performance tests completed!"
+
+# Run integration tests
+test-integration: frontend-test-integration
+	@echo "🔗 Integration tests completed!"
+
+# Continuous Integration Testing
+# ===============================
+
+# Run CI test suite (optimized for CI/CD)
+test-ci: 
+	@echo "🤖 Running CI test suite..."
+	@echo "Backend tests..."
+	go test -race -coverprofile=backend-coverage.out ./...
+	@echo "Frontend tests..."
+	cd frontend && yarn test --coverage --watchAll=false --ci
+	@echo "✅ CI test suite completed!"
+
+# Run tests with proper timeouts for CI
+test-ci-fast:
+	@echo "🚀 Running fast CI test suite..."
+	@echo "Backend smoke tests..."
+	go test -run TestSmoke ./... -timeout=30s
+	@echo "Frontend smoke tests..."
+	cd frontend && yarn test src/__tests__/smoke.test.ts --watchAll=false --testTimeout=10000
+	@echo "✅ Fast CI test suite completed!"
+
+# Development Testing Commands
+# =============================
+
+# Run tests before committing
+test-pre-commit: test-quick
+	@echo "🔍 Pre-commit validation..."
+	@echo "Checking backend formatting..."
+	go fmt ./...
+	@echo "Checking frontend linting..."
+	cd frontend && yarn lint --fix || echo "⚠️  Linting issues found"
+	@echo "✅ Pre-commit checks completed!"
+
+# Run full test suite for releases
+test-release: test-comprehensive test-performance
+	@echo "🚀 Release validation..."
+	@echo "Running security checks..."
+	@command -v gosec >/dev/null 2>&1 && gosec ./... || echo "⚠️  Install gosec for security scanning"
+	@echo "Checking dependencies..."
+	go mod verify
+	cd frontend && yarn audit --level moderate || echo "⚠️  Frontend dependency vulnerabilities found"
+	@echo "✅ Release validation completed!"
+
+# Debug and Development
+# =====================
+
+# Run tests with debug output
+test-debug:
+	@echo "🐛 Running tests with debug output..."
+	go test -v -race ./... 2>&1 | tee backend-test-debug.log
+	cd frontend && yarn test --verbose --watchAll=false 2>&1 | tee frontend-test-debug.log
+
+# Clean test artifacts
+test-clean:
+	@echo "🧹 Cleaning test artifacts..."
+	rm -f coverage.out backend-coverage.out backend-test-debug.log frontend-test-debug.log
+	cd frontend && rm -rf coverage/ jest-coverage/ test-results/
+	@echo "✅ Test artifacts cleaned!"
+
+# Load Testing Commands
+# ======================
+
+# Run load tests (requires backend to be running)
+test-load:
+	@echo "📈 Running load tests..."
+	@echo "⚠️  Make sure backend is running (make run-api)"
+	cd frontend && yarn test src/__tests__/performance.test.ts --testNamePattern="load|concurrent|stress" --watchAll=false
+
+# Run stress tests
+test-stress:
+	@echo "💪 Running stress tests..."
+	@echo "⚠️  Make sure backend is running (make run-api)"
+	cd frontend && yarn test src/__tests__/performance.test.ts --testNamePattern="stress|sustained|burst" --watchAll=false
+
+# Test Environment Setup
+# =======================
+
+# Setup test environment
+test-setup: frontend-test-deps
+	@echo "🔧 Setting up test environment..."
+	@echo "Installing backend test tools..."
+	go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest || echo "⚠️  Could not install gosec"
+	@echo "✅ Test environment setup completed!"
+
+# Validate test setup
+test-validate:
+	@echo "🔍 Validating test setup..."
+	@echo "Backend tools..."
+	@command -v go >/dev/null 2>&1 && echo "✅ Go installed" || echo "❌ Go not found"
+	@echo "Frontend tools..."
+	@cd frontend && command -v yarn >/dev/null 2>&1 && echo "✅ Yarn installed" || echo "❌ Yarn not found"
+	@cd frontend && test -f node_modules/.bin/jest && echo "✅ Jest installed" || echo "❌ Jest not found"
+	@echo "Test configuration..."
+	@cd frontend && test -f jest.config.js && echo "✅ Jest config found" || echo "❌ Jest config missing"
+	@test -f Makefile && echo "✅ Makefile found" || echo "❌ Makefile missing"
+
+# Generate comprehensive test report
+test-report:
+	@echo "📊 Generating comprehensive test report..."
+	@chmod +x scripts/test-report.sh
+	@./scripts/test-report.sh
+
+# Run tests and generate report (alias for test-report)
+test-full-report: test-report
 
 # Build the backend project
 build:
@@ -93,8 +289,23 @@ run-server:
 	@lsof -ti:8080 | xargs kill -9 2>/dev/null || true
 	@sleep 2
 	@echo "✅ Port 8080 is now available"
+	@echo "🔧 Loading environment configuration..."
+	@if [ -f "config.env" ]; then \
+		echo "📋 Using config.env for environment setup"; \
+		export $$(grep -v '^#' config.env | xargs); \
+		if [ -n "$$API_ENCRYPTION_KEY" ]; then \
+			export EXPO_PUBLIC_API_ENCRYPTION_KEY="$$API_ENCRYPTION_KEY"; \
+			echo "🔐 Synchronized encryption keys"; \
+		fi; \
+	fi
 	@echo "🚀 Starting GoGent HTTP Server..."
-	go run cmd/gogent/*.go --server
+	@if [ -f "config.env" ]; then \
+		export $$(grep -v '^#' config.env | xargs) && \
+		export EXPO_PUBLIC_API_ENCRYPTION_KEY="$$API_ENCRYPTION_KEY" && \
+		go run cmd/gogent/*.go --server; \
+	else \
+		go run cmd/gogent/*.go --server; \
+	fi
 
 # Run real API demo with database logging (one-time execution)
 run-api-demo:
@@ -108,12 +319,40 @@ run-db:
 help:
 	go run cmd/gogent/*.go --help
 
+# Start backend server for testing (background with health check)
+start-test-server:
+	@echo "🧪 Starting backend server for integration tests..."
+	@# Clean up any existing processes first
+	@pkill -9 -f gogent 2>/dev/null || true
+	@pkill -9 -f "go run.*gogent" 2>/dev/null || true
+	@lsof -ti:8080 | xargs kill -9 2>/dev/null || true
+	@sleep 2
+	@echo "🚀 Starting GoGent test server in background..."
+	@go run cmd/gogent/*.go --server > /tmp/gogent-test.log 2>&1 & echo $$! > /tmp/gogent-test.pid
+	@echo "⏳ Waiting for server to be ready..."
+	@for i in 1 2 3 4 5 6 7 8 9 10; do \
+		if curl -s http://localhost:8080/test > /dev/null 2>&1; then \
+			echo "✅ Backend server is ready for testing!"; \
+			break; \
+		elif [ $$i -eq 10 ]; then \
+			echo "❌ Server failed to start within 10 seconds"; \
+			echo "📋 Server logs:"; \
+			cat /tmp/gogent-test.log 2>/dev/null || echo "No logs available"; \
+			exit 1; \
+		else \
+			echo "🔄 Attempt $$i/10: Server not ready yet, waiting..."; \
+			sleep 1; \
+		fi; \
+	done
+
 # Kill all server processes and free port 8080
 kill-server:
 	@echo "🧹 Stopping all GoGent processes..."
 	@pkill -9 -f gogent 2>/dev/null || true
 	@pkill -9 -f "go run.*gogent" 2>/dev/null || true
 	@lsof -ti:8080 | xargs kill -9 2>/dev/null || true
+	@# Clean up test server files
+	@rm -f /tmp/gogent-test.pid /tmp/gogent-test.log 2>/dev/null || true
 	@echo "✅ All processes stopped and port 8080 freed"
 
 # Kill all frontend processes and free port 8081
@@ -305,7 +544,55 @@ commands:
 	@echo "  run-api                # Real API + database demo"
 	@echo "  run-db                 # Database demo"
 	@echo "  build                  # Build backend binary"
-	@echo "  run-tests              # Run backend tests"
+	@echo "  run-tests              # Run backend tests
+	@echo ""
+	@echo "📋 Testing Commands:"
+	@echo "  Backend Tests:"
+	@echo "    run-tests              # Run backend tests"
+	@echo "    test-coverage          # Run backend tests with coverage"
+	@echo "    test-verbose           # Run backend tests with verbose output"
+	@echo "    test-race              # Run backend tests with race detection"
+	@echo "    test-bench             # Run backend benchmarks"
+	@echo ""
+	@echo "  Frontend Tests:"
+	@echo "    frontend-test          # Run all frontend tests"
+	@echo "    frontend-test-coverage # Run frontend tests with coverage"
+	@echo "    frontend-test-watch    # Run frontend tests in watch mode"
+	@echo "    frontend-test-unit     # Run frontend unit tests"
+	@echo "    frontend-test-integration # Run frontend integration tests"
+	@echo "    frontend-test-e2e      # Run frontend end-to-end tests"
+	@echo "    frontend-test-performance # Run frontend performance tests"
+	@echo "    frontend-test-smoke    # Run frontend smoke tests"
+	@echo ""
+	@echo "  Comprehensive Testing:"
+	@echo "    test-all               # Run all tests (backend + frontend)"
+	@echo "    test-quick             # Run quick validation tests"
+	@echo "    test-comprehensive     # Run comprehensive test suite with coverage"
+	@echo "    test-performance       # Run performance and load tests"
+	@echo "    test-integration       # Run integration tests"
+	@echo ""
+	@echo "  CI/CD Testing:"
+	@echo "    test-ci                # Run CI test suite (optimized for CI/CD)"
+	@echo "    test-ci-fast           # Run fast CI test suite"
+	@echo ""
+	@echo "  Development Testing:"
+	@echo "    test-pre-commit        # Run tests before committing"
+	@echo "    test-release           # Run full test suite for releases"
+	@echo "    test-debug             # Run tests with debug output"
+	@echo ""
+	@echo "  Load Testing:"
+	@echo "    test-load              # Run load tests (requires backend running)"
+	@echo "    test-stress            # Run stress tests (requires backend running)"
+	@echo ""
+	@echo "  Test Environment:"
+	@echo "    test-setup             # Setup test environment"
+	@echo "    test-validate          # Validate test setup"
+	@echo "    test-clean             # Clean test artifacts"
+	@echo ""
+	@echo "  Test Reporting:"
+	@echo "    test-report            # Generate comprehensive test report"
+	@echo "    test-full-report       # Generate full test report (alias)"
+	@echo ""
 	@echo ""
 	@echo "📱 Frontend Commands:"
 	@echo "  frontend-start         # Start Expo dev server"

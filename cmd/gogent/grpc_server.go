@@ -263,10 +263,19 @@ func (s *GRPCServer) DeleteExecutionRun(ctx context.Context, req *pb.DeleteExecu
 // =============================================================================
 
 func (s *GRPCServer) ListConfigurations(ctx context.Context, req *pb.ListConfigurationsRequest) (*pb.ListConfigurationsResponse, error) {
-	configs := s.businessLogic.GetDefaultConfigurations()
-	var protoConfigs []*pb.APIConfiguration
+	// TODO: Extract user ID from gRPC metadata/context when authentication is implemented
+	// For now, use the business logic's user ID (typically "system-user" for gRPC)
+	userID := s.businessLogic.userID
 
-	for _, config := range configs {
+	// Get user-specific configurations from database (includes system + user configs)
+	userConfigs, err := s.businessLogic.client.ListAPIConfigurationsByUser(ctx, userID, 50, 0)
+	if err != nil {
+		log.Printf("⚠️ Failed to load user configurations for gRPC: %v", err)
+		return nil, status.Errorf(codes.Internal, "Failed to load configurations: %v", err)
+	}
+
+	var protoConfigs []*pb.APIConfiguration
+	for _, config := range userConfigs {
 		protoConfig := s.convertConfigurationToProto(&config)
 		protoConfigs = append(protoConfigs, protoConfig)
 	}

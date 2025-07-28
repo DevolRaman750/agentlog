@@ -74,6 +74,7 @@ type ExecutionRun struct {
 // APIConfiguration represents a specific configuration for API calls
 type APIConfiguration struct {
 	ID               string                 `json:"id"`
+	UserID           string                 `json:"userId,omitempty"`       // User who owns this configuration
 	ExecutionRunID   string                 `json:"executionRunId"`
 	VariationName    string                 `json:"variationName"`
 	ModelName        string                 `json:"modelName"`
@@ -87,6 +88,7 @@ type APIConfiguration struct {
 	Tools            []Tool                 `json:"tools,omitempty"`
 	ToolConfig       map[string]interface{} `json:"toolConfig,omitempty"`
 	CreatedAt        time.Time              `json:"createdAt"`
+	IsSystemResource bool                   `json:"isSystemResource,omitempty"` // Mark as system-provided resource
 }
 
 // FunctionDefinition represents a reusable function definition

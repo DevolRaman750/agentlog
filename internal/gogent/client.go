@@ -146,9 +146,19 @@ func (c *Client) CreateAPIConfiguration(ctx context.Context, userID string, conf
 	toolsJSON, _ := types.ToJSON(config.Tools)
 	toolConfigJSON, _ := types.ToJSON(config.ToolConfig)
 
+	// CRITICAL: Preserve the configuration's original UserID if it exists (e.g., 'system')
+	// Only use the provided userID if the config doesn't have one set
+	configUserID := userID
+	if config.UserID != "" {
+		configUserID = config.UserID
+		log.Printf("🔧 Preserving original UserID '%s' for configuration '%s'", config.UserID, config.VariationName)
+	} else {
+		log.Printf("🔧 Using provided UserID '%s' for configuration '%s'", userID, config.VariationName)
+	}
+
 	return c.queries.CreateAPIConfiguration(ctx, db.CreateAPIConfigurationParams{
 		ID:               config.ID,
-		UserID:           userID,
+		UserID:           configUserID,
 		ExecutionRunID:   config.ExecutionRunID,
 		VariationName:    config.VariationName,
 		ModelName:        config.ModelName,
@@ -161,6 +171,42 @@ func (c *Client) CreateAPIConfiguration(ctx context.Context, userID string, conf
 		GenerationConfig: convertStringToRawMessage(generationConfigJSON),
 		Tools:            convertStringToRawMessage(toolsJSON),
 		ToolConfig:       convertStringToRawMessage(toolConfigJSON),
+	})
+}
+
+func (c *Client) UpdateAPIConfiguration(ctx context.Context, userID string, config *types.APIConfiguration) error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	safetySettingsJSON, _ := types.ToJSON(config.SafetySettings)
+	generationConfigJSON, _ := types.ToJSON(config.GenerationConfig)
+	toolsJSON, _ := types.ToJSON(config.Tools)
+	toolConfigJSON, _ := types.ToJSON(config.ToolConfig)
+
+	return c.queries.UpdateAPIConfiguration(ctx, db.UpdateAPIConfigurationParams{
+		VariationName:    config.VariationName,
+		ModelName:        config.ModelName,
+		SystemPrompt:     sql.NullString{String: config.SystemPrompt, Valid: config.SystemPrompt != ""},
+		Temperature:      convertFloat32ToNullString(config.Temperature),
+		MaxTokens:        convertInt32ToNullInt32(config.MaxTokens),
+		TopP:             convertFloat32ToNullString(config.TopP),
+		TopK:             convertInt32ToNullInt32(config.TopK),
+		SafetySettings:   convertStringToRawMessage(safetySettingsJSON),
+		GenerationConfig: convertStringToRawMessage(generationConfigJSON),
+		Tools:            convertStringToRawMessage(toolsJSON),
+		ToolConfig:       convertStringToRawMessage(toolConfigJSON),
+		ID:               config.ID,
+		UserID:           userID,
+	})
+}
+
+func (c *Client) DeleteAPIConfiguration(ctx context.Context, configID string, userID string) error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	return c.queries.DeleteAPIConfiguration(ctx, db.DeleteAPIConfigurationParams{
+		ID:     configID,
+		UserID: userID,
 	})
 }
 
@@ -1942,11 +1988,11 @@ func (c *Client) GetExecutionResult(ctx context.Context, userID string, executio
 			continue
 		}
 
-		// Parse the parameters schema
+		// Parse the parameters schema - no longer nullable after schema fix
 		var parametersSchema map[string]interface{}
-		if err := json.Unmarshal([]byte(funcDef.ParametersSchema), &parametersSchema); err != nil {
+		if err := json.Unmarshal(funcDef.ParametersSchema, &parametersSchema); err != nil {
 			log.Printf("⚠️ Failed to parse parameters schema for function %s: %v", funcDef.Name, err)
-			continue
+			parametersSchema = make(map[string]interface{})
 		}
 
 		tool := types.Tool{

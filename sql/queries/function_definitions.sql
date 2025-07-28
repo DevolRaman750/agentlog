@@ -7,14 +7,14 @@ INSERT INTO function_definitions (
 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- name: GetFunctionDefinition :one
-SELECT * FROM function_definitions WHERE id = ? AND user_id = ?;
+SELECT * FROM function_definitions WHERE id = ? AND (user_id = ? OR user_id = 'system');
 
 -- name: GetFunctionDefinitionByName :one
-SELECT * FROM function_definitions WHERE name = ? AND user_id = ?;
+SELECT * FROM function_definitions WHERE name = ? AND (user_id = ? OR user_id = 'system');
 
 -- name: ListFunctionDefinitions :many
 SELECT * FROM function_definitions 
-WHERE is_active = TRUE AND user_id = ?
+WHERE is_active = TRUE AND (user_id = ? OR user_id = 'system')
 ORDER BY display_name ASC;
 
 -- name: ListAllFunctionDefinitions :many
@@ -52,7 +52,7 @@ ORDER BY display_name ASC;
 SELECT fd.*, efc.use_mock_response, efc.execution_order
 FROM function_definitions fd
 JOIN execution_function_configs efc ON fd.id = efc.function_definition_id
-WHERE efc.execution_run_id = ? AND fd.user_id = ?
+WHERE efc.execution_run_id = ? AND (fd.user_id = ? OR fd.user_id = 'system')
 AND fd.is_active = TRUE
 ORDER BY efc.execution_order ASC, fd.display_name ASC;
 

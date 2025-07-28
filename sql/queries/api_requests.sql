@@ -10,7 +10,7 @@ WHERE id = ? AND user_id = ?;
 
 -- name: GetAPIRequestsByRun :many
 SELECT * FROM api_requests
-WHERE execution_run_id = ? AND user_id = ?
+WHERE execution_run_id = ? AND (user_id = ? OR user_id = 'system')
 ORDER BY created_at;
 
 -- name: GetAPIRequestsByConfiguration :many
