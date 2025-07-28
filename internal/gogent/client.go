@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -1161,6 +1162,128 @@ LIMIT %d`, currencyFilter, minAmountFilter, limit)
 		return result, nil
 	}
 
+	// Handle Attribute Normalization function
+	if functionName == "normalize_attributes" {
+		c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryFunctionCall,
+			"Executing attribute normalization function", nil)
+
+		// Parse required parameters
+		nodeLabel, ok := args["node_label"].(string)
+		if !ok || strings.TrimSpace(nodeLabel) == "" {
+			return nil, fmt.Errorf("node_label parameter missing or invalid")
+		}
+
+		attributeName, ok := args["attribute_name"].(string)
+		if !ok || strings.TrimSpace(attributeName) == "" {
+			return nil, fmt.Errorf("attribute_name parameter missing or invalid")
+		}
+
+		// Parse optional parameters
+		limit := 100
+		if limitVal, exists := args["limit"]; exists {
+			if limitFloat, ok := limitVal.(float64); ok {
+				limit = int(limitFloat)
+			}
+		}
+
+		normalizationType := "general"
+		if normTypeVal, exists := args["normalization_type"]; exists {
+			if normType, ok := normTypeVal.(string); ok && normType != "" {
+				normalizationType = normType
+			}
+		}
+
+		caseStyle := "title_case"
+		if caseVal, exists := args["case_style"]; exists {
+			if caseStr, ok := caseVal.(string); ok && caseStr != "" {
+				caseStyle = caseStr
+			}
+		}
+
+		var customMappings map[string]interface{}
+		if customVal, exists := args["custom_mappings"]; exists {
+			if customMap, ok := customVal.(map[string]interface{}); ok {
+				customMappings = customMap
+			}
+		}
+
+		// Sanity-check limit bounds
+		if limit < 1 || limit > 1000 {
+			limit = 100
+		}
+
+		// Build Cypher query to get unique attribute values
+		cypherQuery := fmt.Sprintf(`
+MATCH (n:%s)
+WHERE n.%s IS NOT NULL AND n.%s <> ''
+RETURN DISTINCT n.%s AS raw_value
+ORDER BY raw_value
+LIMIT %d`, nodeLabel, attributeName, attributeName, attributeName, limit)
+
+		c.logExecutionEvent(types.LogLevelDebug, types.LogCategoryFunctionCall,
+			fmt.Sprintf("Normalization query: %s", cypherQuery),
+			map[string]interface{}{
+				"node_label":         nodeLabel,
+				"attribute_name":     attributeName,
+				"normalization_type": normalizationType,
+				"case_style":         caseStyle,
+				"limit":              limit,
+			})
+
+		// Execute the query to get raw values
+		neo4jResult, err := c.callNeo4jAPI(ctx, cypherQuery, limit)
+		if err != nil {
+			c.logExecutionEvent(types.LogLevelError, types.LogCategoryFunctionCall,
+				fmt.Sprintf("Attribute normalization query failed: %v", err),
+				map[string]interface{}{
+					"error": err.Error(),
+					"query": cypherQuery,
+				})
+
+			// Fallback to mock normalization data if Neo4j call fails
+			result := map[string]interface{}{
+				"attribute_mappings": []map[string]interface{}{
+					{
+						"raw_value":        "software engineering",
+						"normalized_value": "Software Engineering",
+						"confidence":       1.0,
+					},
+					{
+						"raw_value":        "Software Engineering",
+						"normalized_value": "Software Engineering",
+						"confidence":       1.0,
+					},
+					{
+						"raw_value":        "data science",
+						"normalized_value": "Data Science",
+						"confidence":       1.0,
+					},
+				},
+				"summary": map[string]interface{}{
+					"total_raw_values":        3,
+					"total_unique_normalized": 2,
+					"normalization_type":      normalizationType,
+					"case_style":              caseStyle,
+					"query":                   cypherQuery,
+					"executionTime":           "0ms",
+					"error":                   "Neo4j connection unavailable, showing mock normalization data",
+				},
+			}
+			return result, nil
+		}
+
+		// Process and normalize the results
+		result := c.processAttributeNormalization(neo4jResult, normalizationType, caseStyle, customMappings, cypherQuery)
+
+		c.logExecutionEvent(types.LogLevelSuccess, types.LogCategoryFunctionCall,
+			"Attribute normalization completed successfully",
+			map[string]interface{}{
+				"mappings_returned": len(result["attribute_mappings"].([]map[string]interface{})),
+			})
+
+		return result, nil
+	}
+
 	// For other functions, return a generic success response
 	return map[string]interface{}{
 		"status":  "success",
@@ -1501,6 +1624,269 @@ func (c *Client) transformNeo4jToSalesSummary(neo4jResult map[string]interface{}
 	}
 
 	return result
+}
+
+// processAttributeNormalization processes raw attribute values and applies normalization rules
+func (c *Client) processAttributeNormalization(neo4jResult map[string]interface{}, normalizationType, caseStyle string, customMappings map[string]interface{}, originalQuery string) map[string]interface{} {
+	attributeMappings := make([]map[string]interface{}, 0)
+	normalizedSet := make(map[string]bool)
+
+	// Extract raw values from Neo4j result
+	var rawValues []string
+	if nodes, exists := neo4jResult["nodes"]; exists {
+		if nodeList, ok := nodes.([]map[string]interface{}); ok {
+			for _, node := range nodeList {
+				if props, hasProps := node["properties"].(map[string]interface{}); hasProps {
+					if rawValue, hasValue := props["raw_value"]; hasValue {
+						if valueStr, isString := rawValue.(string); isString && strings.TrimSpace(valueStr) != "" {
+							rawValues = append(rawValues, valueStr)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Process each raw value and apply normalization
+	for _, rawValue := range rawValues {
+		normalizedValue := c.normalizeAttributeValue(rawValue, normalizationType, caseStyle, customMappings)
+		confidence := c.calculateNormalizationConfidence(rawValue, normalizedValue)
+
+		mapping := map[string]interface{}{
+			"raw_value":        rawValue,
+			"normalized_value": normalizedValue,
+			"confidence":       confidence,
+		}
+
+		attributeMappings = append(attributeMappings, mapping)
+		normalizedSet[normalizedValue] = true
+	}
+
+	// Get summary information from original Neo4j result
+	var summary map[string]interface{}
+	if summaryData, exists := neo4jResult["summary"]; exists {
+		if summaryMap, ok := summaryData.(map[string]interface{}); ok {
+			summary = summaryMap
+		}
+	}
+
+	if summary == nil {
+		summary = make(map[string]interface{})
+	}
+
+	// Add normalization-specific summary data
+	summary["total_raw_values"] = len(rawValues)
+	summary["total_unique_normalized"] = len(normalizedSet)
+	summary["normalization_type"] = normalizationType
+	summary["case_style"] = caseStyle
+	summary["query"] = originalQuery
+
+	result := map[string]interface{}{
+		"attribute_mappings": attributeMappings,
+		"summary":            summary,
+	}
+
+	return result
+}
+
+// normalizeAttributeValue applies normalization rules to a single attribute value
+func (c *Client) normalizeAttributeValue(rawValue, normalizationType, caseStyle string, customMappings map[string]interface{}) string {
+	// Start with the raw value
+	normalized := strings.TrimSpace(rawValue)
+
+	// Apply custom mappings first (highest priority)
+	if customMappings != nil {
+		for pattern, replacement := range customMappings {
+			if replacementStr, ok := replacement.(string); ok {
+				// Case-insensitive pattern matching
+				if strings.EqualFold(normalized, pattern) {
+					return replacementStr
+				}
+			}
+		}
+	}
+
+	// Apply normalization type-specific rules
+	switch normalizationType {
+	case "financial_categories":
+		normalized = c.normalizeFinancialCategory(normalized)
+	case "job_titles":
+		normalized = c.normalizeJobTitle(normalized)
+	case "industries":
+		normalized = c.normalizeIndustry(normalized)
+	case "general":
+		normalized = c.normalizeGeneral(normalized)
+	}
+
+	// Apply case style
+	switch caseStyle {
+	case "title_case":
+		normalized = c.toTitleCase(normalized)
+	case "lower_case":
+		normalized = strings.ToLower(normalized)
+	case "upper_case":
+		normalized = strings.ToUpper(normalized)
+	case "preserve":
+		// Keep original case
+	default:
+		normalized = c.toTitleCase(normalized)
+	}
+
+	return normalized
+}
+
+// normalizeFinancialCategory applies financial category-specific normalization
+func (c *Client) normalizeFinancialCategory(value string) string {
+	lower := strings.ToLower(value)
+
+	// Financial category mappings (similar to sales summary)
+	switch {
+	case strings.Contains(lower, "e-signature") || strings.Contains(lower, "esignature"):
+		return "E-Signature"
+	case strings.Contains(lower, "direct-mail") || strings.Contains(lower, "direct mail"):
+		return "Direct Mail Marketing"
+	case strings.Contains(lower, "rev ops") || strings.Contains(lower, "revenue ops"):
+		return "Revenue Operations"
+	case strings.Contains(lower, "sales engagement") || strings.Contains(lower, "sales intelligence") ||
+		strings.Contains(lower, "sales training") || strings.Contains(lower, "sales communication") ||
+		strings.Contains(lower, "sales productivity"):
+		return "Sales Enablement"
+	case strings.Contains(lower, "commission") && strings.Contains(lower, "management"):
+		return "Compensation Management"
+	case strings.Contains(lower, "lead") && strings.Contains(lower, "generation"):
+		return "Lead Management"
+	case strings.Contains(lower, "event") && strings.Contains(lower, "services"):
+		return "Event Services"
+	case strings.Contains(lower, "security") && strings.Contains(lower, "training"):
+		return "Security Training"
+	case strings.Contains(lower, "software"):
+		return "Software"
+	case strings.Contains(lower, "consulting"):
+		return "Consulting Services"
+	case strings.Contains(lower, "marketing"):
+		return "Marketing"
+	case strings.Contains(lower, "analytics"):
+		return "Analytics"
+	default:
+		return value
+	}
+}
+
+// normalizeJobTitle applies job title-specific normalization
+func (c *Client) normalizeJobTitle(value string) string {
+	lower := strings.ToLower(value)
+
+	switch {
+	case strings.Contains(lower, "software") && (strings.Contains(lower, "engineer") || strings.Contains(lower, "developer")):
+		return "Software Engineer"
+	case strings.Contains(lower, "data") && strings.Contains(lower, "scientist"):
+		return "Data Scientist"
+	case strings.Contains(lower, "product") && strings.Contains(lower, "manager"):
+		return "Product Manager"
+	case strings.Contains(lower, "sales") && strings.Contains(lower, "engineer"):
+		return "Sales Engineer"
+	case strings.Contains(lower, "devops") || (strings.Contains(lower, "dev") && strings.Contains(lower, "ops")):
+		return "DevOps Engineer"
+	case strings.Contains(lower, "ui") || strings.Contains(lower, "ux"):
+		return "UX/UI Designer"
+	case strings.Contains(lower, "analyst"):
+		return "Business Analyst"
+	default:
+		return value
+	}
+}
+
+// normalizeIndustry applies industry-specific normalization
+func (c *Client) normalizeIndustry(value string) string {
+	lower := strings.ToLower(value)
+
+	switch {
+	case strings.Contains(lower, "fintech") || (strings.Contains(lower, "financial") && strings.Contains(lower, "tech")):
+		return "Financial Technology"
+	case strings.Contains(lower, "healthtech") || (strings.Contains(lower, "health") && strings.Contains(lower, "tech")):
+		return "Healthcare Technology"
+	case strings.Contains(lower, "saas") || strings.Contains(lower, "software as a service"):
+		return "Software as a Service"
+	case strings.Contains(lower, "e-commerce") || strings.Contains(lower, "ecommerce"):
+		return "E-Commerce"
+	case strings.Contains(lower, "artificial intelligence") || strings.Contains(lower, "ai"):
+		return "Artificial Intelligence"
+	case strings.Contains(lower, "machine learning") || strings.Contains(lower, "ml"):
+		return "Machine Learning"
+	default:
+		return value
+	}
+}
+
+// normalizeGeneral applies general normalization rules
+func (c *Client) normalizeGeneral(value string) string {
+	// Remove extra whitespace
+	normalized := strings.TrimSpace(value)
+
+	// Replace multiple spaces with single space
+	re := regexp.MustCompile(`\s+`)
+	normalized = re.ReplaceAllString(normalized, " ")
+
+	// Remove common prefixes/suffixes that add noise
+	normalized = strings.TrimPrefix(normalized, "the ")
+	normalized = strings.TrimPrefix(normalized, "The ")
+	normalized = strings.TrimSuffix(normalized, " inc")
+	normalized = strings.TrimSuffix(normalized, " Inc")
+	normalized = strings.TrimSuffix(normalized, " LLC")
+	normalized = strings.TrimSuffix(normalized, " ltd")
+	normalized = strings.TrimSuffix(normalized, " Ltd")
+
+	return normalized
+}
+
+// toTitleCase converts a string to title case
+func (c *Client) toTitleCase(value string) string {
+	words := strings.Fields(value)
+	for i, word := range words {
+		if len(word) > 0 {
+			words[i] = strings.ToUpper(string(word[0])) + strings.ToLower(word[1:])
+		}
+	}
+	return strings.Join(words, " ")
+}
+
+// calculateNormalizationConfidence calculates confidence score for the normalization
+func (c *Client) calculateNormalizationConfidence(rawValue, normalizedValue string) float64 {
+	if rawValue == normalizedValue {
+		return 1.0 // Perfect match
+	}
+
+	if strings.EqualFold(rawValue, normalizedValue) {
+		return 0.95 // Case-only difference
+	}
+
+	// Calculate similarity based on character overlap
+	rawLower := strings.ToLower(rawValue)
+	normLower := strings.ToLower(normalizedValue)
+
+	if strings.Contains(normLower, rawLower) || strings.Contains(rawLower, normLower) {
+		return 0.8 // Substring match
+	}
+
+	// Basic similarity calculation
+	maxLen := len(rawValue)
+	if len(normalizedValue) > maxLen {
+		maxLen = len(normalizedValue)
+	}
+
+	if maxLen == 0 {
+		return 0.0
+	}
+
+	// Count common characters (simple approach)
+	commonChars := 0
+	for _, char := range rawLower {
+		if strings.ContainsRune(normLower, char) {
+			commonChars++
+		}
+	}
+
+	return float64(commonChars) / float64(maxLen)
 }
 
 // sendFunctionResultToGemini sends the function result back to Gemini for a final response
