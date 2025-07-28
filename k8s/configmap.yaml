@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agentlog-config
+  namespace: agentlog
+data:
+  PORT: "8080"
+  # Add other non-sensitive variables here 

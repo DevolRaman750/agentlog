@@ -1,0 +1,29 @@
+# -------- Stage 1: Build --------
+FROM golang:1.22-alpine AS builder
+RUN apk add --no-cache git
+WORKDIR /app
+
+# Copy go mod files first for better caching
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source
+COPY . .
+
+# Build the backend binary
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o gogent ./cmd/gogent
+
+# -------- Stage 2: Runtime --------
+FROM alpine:3.19
+WORKDIR /app
+
+# Copy the binary
+COPY --from=builder /app/gogent /usr/local/bin/gogent
+
+# Optionally copy default env file (can be overridden by k8s env)
+COPY config.example.env /app/config.env
+
+ENV PORT=8080
+EXPOSE 8080
+
+CMD ["gogent", "--server"] 

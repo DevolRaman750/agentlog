@@ -58,6 +58,132 @@ install-proto-tools:
 	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
+# ==================== DOCKER COMMANDS ====================
+
+# Variables for Docker deployment
+DOCKER_REGISTRY = registry.digitalocean.com/resourceloop
+BACKEND_IMAGE = $(DOCKER_REGISTRY)/agentlog/backend
+FRONTEND_IMAGE = $(DOCKER_REGISTRY)/agentlog/frontend
+GIT_HASH := $(shell git rev-parse --short HEAD 2>/dev/null || echo "latest")
+TIMESTAMP := $(shell date +%Y%m%d-%H%M%S)
+IMAGE_TAG := $(GIT_HASH)-$(TIMESTAMP)
+
+# Build backend Docker image
+docker-build-backend: ## Build backend Docker image
+	@echo "🐳 Building backend Docker image..."
+	docker build -f Dockerfile.backend -t $(BACKEND_IMAGE):$(IMAGE_TAG) .
+	docker tag $(BACKEND_IMAGE):$(IMAGE_TAG) $(BACKEND_IMAGE):latest
+	@echo "✅ Backend image built: $(BACKEND_IMAGE):$(IMAGE_TAG)"
+
+# Build frontend Docker image  
+docker-build-frontend: ## Build frontend Docker image
+	@echo "🐳 Building frontend Docker image..."
+	cd frontend && docker build -t $(FRONTEND_IMAGE):$(IMAGE_TAG) .
+	docker tag $(FRONTEND_IMAGE):$(IMAGE_TAG) $(FRONTEND_IMAGE):latest
+	@echo "✅ Frontend image built: $(FRONTEND_IMAGE):$(IMAGE_TAG)"
+
+# Build both Docker images
+docker-build-all: docker-build-backend docker-build-frontend ## Build both backend and frontend Docker images
+	@echo "✅ All Docker images built successfully!"
+
+# Push backend Docker image
+docker-push-backend: ## Push backend Docker image to registry
+	@echo "📤 Pushing backend image to registry..."
+	docker push $(BACKEND_IMAGE):$(IMAGE_TAG)
+	docker push $(BACKEND_IMAGE):latest
+	@echo "✅ Backend image pushed: $(BACKEND_IMAGE):$(IMAGE_TAG)"
+
+# Push frontend Docker image
+docker-push-frontend: ## Push frontend Docker image to registry
+	@echo "📤 Pushing frontend image to registry..."
+	docker push $(FRONTEND_IMAGE):$(IMAGE_TAG)
+	docker push $(FRONTEND_IMAGE):latest
+	@echo "✅ Frontend image pushed: $(FRONTEND_IMAGE):$(IMAGE_TAG)"
+
+# Push both Docker images
+docker-push-all: docker-push-backend docker-push-frontend ## Push both Docker images to registry
+	@echo "✅ All Docker images pushed successfully!"
+
+# Build and push all images
+docker-deploy: docker-build-all docker-push-all ## Build and push all Docker images
+	@echo "🚀 Docker deployment complete!"
+	@echo "📝 Images deployed:"
+	@echo "   Backend: $(BACKEND_IMAGE):$(IMAGE_TAG)"
+	@echo "   Frontend: $(FRONTEND_IMAGE):$(IMAGE_TAG)"
+
+# ==================== KUBERNETES COMMANDS ====================
+
+# Update Kubernetes deployment image tags
+k8s-update-images: ## Update K8s deployment files with new image tags
+	@echo "📝 Updating Kubernetes deployment files with new image tags..."
+	@echo "Backend image: $(BACKEND_IMAGE):$(IMAGE_TAG)"
+	@echo "Frontend image: $(FRONTEND_IMAGE):$(IMAGE_TAG)"
+	
+	# Update backend deployment
+	sed -i.bak "s|registry.digitalocean.com/resourceloop/agentlog/backend:.*|$(BACKEND_IMAGE):$(IMAGE_TAG)|g" k8s/backend-deployment.yaml
+	
+	# Update frontend deployment
+	sed -i.bak "s|registry.digitalocean.com/resourceloop/agentlog/frontend:.*|$(FRONTEND_IMAGE):$(IMAGE_TAG)|g" k8s/frontend-deployment.yaml
+	
+	@echo "✅ Kubernetes deployment files updated!"
+
+# Deploy to Kubernetes
+k8s-deploy: ## Deploy to Kubernetes cluster
+	@echo "🚀 Deploying to Kubernetes..."
+	cd k8s && ./deploy.sh
+	@echo "✅ Kubernetes deployment complete!"
+
+# Restart deployments to pick up new images
+k8s-restart: ## Restart Kubernetes deployments to pick up new images
+	@echo "🔄 Restarting Kubernetes deployments..."
+	kubectl rollout restart deployment/agentlog-backend -n agentlog
+	kubectl rollout restart deployment/agentlog-frontend -n agentlog
+	@echo "✅ Deployments restarted!"
+
+# Wait for deployments to be ready
+k8s-wait: ## Wait for Kubernetes deployments to be ready
+	@echo "⏳ Waiting for deployments to be ready..."
+	kubectl rollout status deployment/agentlog-backend -n agentlog --timeout=300s
+	kubectl rollout status deployment/agentlog-frontend -n agentlog --timeout=300s
+	@echo "✅ All deployments are ready!"
+
+# Show Kubernetes status
+k8s-status: ## Show Kubernetes deployment status
+	@echo "📊 Kubernetes Status:"
+	@echo "===================="
+	@echo "Pods:"
+	kubectl get pods -n agentlog
+	@echo ""
+	@echo "Services:"
+	kubectl get services -n agentlog
+	@echo ""
+	@echo "Ingress:"
+	kubectl get ingress -n agentlog
+	@echo ""
+	@echo "Deployments:"
+	kubectl get deployments -n agentlog
+
+# Show logs
+k8s-logs-backend: ## Show backend logs
+	kubectl logs -f deployment/agentlog-backend -n agentlog
+
+k8s-logs-frontend: ## Show frontend logs  
+	kubectl logs -f deployment/agentlog-frontend -n agentlog
+
+# ==================== COMPLETE DEPLOYMENT WORKFLOW ====================
+
+# Complete deployment: build, push, update K8s, deploy, and restart
+deploy-all: docker-deploy k8s-update-images k8s-deploy k8s-restart k8s-wait ## Complete deployment workflow
+	@echo "🎉 Complete deployment finished!"
+	@echo "📝 Deployed:"
+	@echo "   Backend: $(BACKEND_IMAGE):$(IMAGE_TAG)"
+	@echo "   Frontend: $(FRONTEND_IMAGE):$(IMAGE_TAG)"
+	@echo ""
+	@echo "🔍 Check status:"
+	@echo "   make k8s-status"
+	@echo "   make k8s-logs-backend"
+	@echo "   make k8s-logs-frontend"
+
 # Backend Testing Commands
 # ========================
 

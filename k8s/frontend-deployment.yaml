@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentlog-frontend
+  namespace: agentlog
+  labels:
+    app: agentlog-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: agentlog-frontend
+  template:
+    metadata:
+      labels:
+        app: agentlog-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: registry.digitalocean.com/resourceloop/agentlog/frontend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+      imagePullSecrets:
+        - name: do-registry 

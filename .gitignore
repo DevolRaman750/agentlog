@@ -57,4 +57,9 @@ temp/
 
 # Build artifacts
 dist/
-build/ 
+build/
+
+# Kubernetes secrets (keep out of git)
+k8s/secrets/*.yaml
+k8s/secrets/*.yml
+!k8s/secrets/README.md 
