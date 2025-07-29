@@ -839,8 +839,7 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 					"result":        functionResult,
 				}
 
-				// Function execution complete
-				break // Only handle the first function call
+				// Continue parsing in case additional function calls are present
 			}
 		}
 	}
@@ -890,6 +889,16 @@ func (c *Client) executeFunctionCall(ctx context.Context, functionName string, a
 			"functionName": functionName,
 			"args":         args,
 		})
+
+	// Normalize common argument aliases (e.g. node_label → label)
+	switch functionName {
+	case "neo4j_node_lookup":
+		if _, ok := args["label"]; !ok {
+			if nodeLabel, hasNL := args["node_label"]; hasNL {
+				args["label"] = nodeLabel
+			}
+		}
+	}
 
 	// NEW: Dynamic function execution using database definitions
 	funcDef, err := c.getFunctionDefinitionForExecution(ctx, functionName)
@@ -1939,17 +1948,29 @@ func (c *Client) calculateNormalizationConfidence(rawValue, normalizedValue stri
 
 // getFunctionDefinitionForExecution retrieves function definition from database for execution
 func (c *Client) getFunctionDefinitionForExecution(ctx context.Context, functionName string) (*db.FunctionDefinition, error) {
-	// Try system functions first
-	funcDef, err := c.queries.GetFunctionDefinitionByName(ctx, db.GetFunctionDefinitionByNameParams{
-		Name:   functionName,
+	cleanName := strings.TrimSpace(functionName)
+
+	// First attempt: exact match
+	if funcDef, err := c.queries.GetFunctionDefinitionByName(ctx, db.GetFunctionDefinitionByNameParams{
+		Name:   cleanName,
 		UserID: "system",
-	})
-	if err == nil {
+	}); err == nil {
 		return &funcDef, nil
 	}
 
-	// If no system function found, return error (later we can add user-specific functions)
-	return nil, fmt.Errorf("function definition not found: %s", functionName)
+	// Second attempt: case-insensitive match (MySQL default collation may be case-sensitive)
+	if funcDef, err := c.queries.GetFunctionDefinitionByName(ctx, db.GetFunctionDefinitionByNameParams{
+		Name:   strings.ToLower(cleanName),
+		UserID: "system",
+	}); err == nil {
+		return &funcDef, nil
+	}
+
+	// Not found – log for easier debugging
+	c.logExecutionEvent(types.LogLevelWarn, types.LogCategoryFunctionCall,
+		"Function definition lookup failed", map[string]interface{}{"name": cleanName})
+
+	return nil, fmt.Errorf("function definition not found: %s", cleanName)
 }
 
 // validateFunctionParameters validates function arguments against stored JSON schema
