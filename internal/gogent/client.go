@@ -891,6 +891,54 @@ func (c *Client) executeFunctionCall(ctx context.Context, functionName string, a
 			"args":         args,
 		})
 
+	// NEW: Dynamic function execution using database definitions
+	funcDef, err := c.getFunctionDefinitionForExecution(ctx, functionName)
+	if err != nil {
+		c.logExecutionEvent(types.LogLevelWarn, types.LogCategoryFunctionCall,
+			fmt.Sprintf("Function definition not found, falling back to legacy handling: %s", functionName),
+			map[string]interface{}{
+				"error": err.Error(),
+			})
+		// Fall back to legacy hardcoded function handling
+		return c.executeLegacyFunction(ctx, functionName, args)
+	}
+
+	// Validate parameters against stored schema
+	if err := c.validateFunctionParameters(args, funcDef.ParametersSchema); err != nil {
+		c.logExecutionEvent(types.LogLevelError, types.LogCategoryFunctionCall,
+			fmt.Sprintf("Parameter validation failed for %s: %v", functionName, err),
+			map[string]interface{}{
+				"error": err.Error(),
+				"args":  args,
+			})
+		return nil, fmt.Errorf("parameter validation failed: %w", err)
+	}
+
+	// Execute function based on method type
+	result, err := c.executeDynamicFunction(ctx, funcDef, args)
+	if err != nil {
+		c.logExecutionEvent(types.LogLevelError, types.LogCategoryFunctionCall,
+			fmt.Sprintf("Function execution failed for %s: %v", functionName, err),
+			map[string]interface{}{
+				"error": err.Error(),
+			})
+		return nil, err
+	}
+
+	c.logExecutionEvent(types.LogLevelSuccess, types.LogCategoryFunctionCall,
+		fmt.Sprintf("Function %s executed successfully via dynamic execution", functionName),
+		map[string]interface{}{
+			"result_size": len(fmt.Sprintf("%v", result)),
+		})
+
+	return result, nil
+}
+
+// executeLegacyFunction handles functions that aren't in the database (backward compatibility)
+func (c *Client) executeLegacyFunction(ctx context.Context, functionName string, args map[string]interface{}) (map[string]interface{}, error) {
+	c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryFunctionCall,
+		"Using legacy hardcoded function execution", nil)
+
 	// Handle weather function with real API call
 	if functionName == "get_current_weather" {
 		location, ok := args["location"].(string)
@@ -1887,6 +1935,686 @@ func (c *Client) calculateNormalizationConfidence(rawValue, normalizedValue stri
 	}
 
 	return float64(commonChars) / float64(maxLen)
+}
+
+// getFunctionDefinitionForExecution retrieves function definition from database for execution
+func (c *Client) getFunctionDefinitionForExecution(ctx context.Context, functionName string) (*db.FunctionDefinition, error) {
+	// Try system functions first
+	funcDef, err := c.queries.GetFunctionDefinitionByName(ctx, db.GetFunctionDefinitionByNameParams{
+		Name:   functionName,
+		UserID: "system",
+	})
+	if err == nil {
+		return &funcDef, nil
+	}
+
+	// If no system function found, return error (later we can add user-specific functions)
+	return nil, fmt.Errorf("function definition not found: %s", functionName)
+}
+
+// validateFunctionParameters validates function arguments against stored JSON schema
+func (c *Client) validateFunctionParameters(args map[string]interface{}, schemaBytes json.RawMessage) error {
+	// Parse the stored schema
+	var schema map[string]interface{}
+	if err := json.Unmarshal(schemaBytes, &schema); err != nil {
+		return fmt.Errorf("invalid schema format: %w", err)
+	}
+
+	// Extract required fields
+	required, _ := schema["required"].([]interface{})
+	properties, _ := schema["properties"].(map[string]interface{})
+
+	// Check required parameters
+	for _, reqField := range required {
+		if reqFieldStr, ok := reqField.(string); ok {
+			if _, exists := args[reqFieldStr]; !exists {
+				return fmt.Errorf("required parameter missing: %s", reqFieldStr)
+			}
+		}
+	}
+
+	// Validate parameter types (basic validation)
+	for paramName, paramValue := range args {
+		if propDef, exists := properties[paramName]; exists {
+			if propMap, ok := propDef.(map[string]interface{}); ok {
+				if err := c.validateParameterType(paramName, paramValue, propMap); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// validateParameterType performs basic type validation for a single parameter
+func (c *Client) validateParameterType(paramName string, value interface{}, propDef map[string]interface{}) error {
+	expectedType, _ := propDef["type"].(string)
+
+	switch expectedType {
+	case "string":
+		if _, ok := value.(string); !ok {
+			return fmt.Errorf("parameter %s must be a string", paramName)
+		}
+	case "integer":
+		switch v := value.(type) {
+		case int, int32, int64, float64:
+			// Allow numeric types that can be converted to integer
+		default:
+			return fmt.Errorf("parameter %s must be an integer, got %T", paramName, v)
+		}
+	case "number":
+		switch v := value.(type) {
+		case int, int32, int64, float32, float64:
+			// Allow numeric types
+		default:
+			return fmt.Errorf("parameter %s must be a number, got %T", paramName, v)
+		}
+	case "boolean":
+		if _, ok := value.(bool); !ok {
+			return fmt.Errorf("parameter %s must be a boolean", paramName)
+		}
+	case "object":
+		if _, ok := value.(map[string]interface{}); !ok {
+			return fmt.Errorf("parameter %s must be an object", paramName)
+		}
+	case "array":
+		if _, ok := value.([]interface{}); !ok {
+			return fmt.Errorf("parameter %s must be an array", paramName)
+		}
+	}
+
+	// Validate enum values if specified
+	if enumValues, exists := propDef["enum"].([]interface{}); exists {
+		valueStr := fmt.Sprintf("%v", value)
+		found := false
+		for _, enumVal := range enumValues {
+			if fmt.Sprintf("%v", enumVal) == valueStr {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return fmt.Errorf("parameter %s must be one of %v", paramName, enumValues)
+		}
+	}
+
+	return nil
+}
+
+// executeDynamicFunction executes a function based on its stored definition
+func (c *Client) executeDynamicFunction(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+	switch funcDef.HttpMethod.String {
+	case "GET", "POST", "PUT", "DELETE", "PATCH":
+		return c.executeHTTPFunction(ctx, funcDef, args)
+	case "CYPHER":
+		return c.executeCypherFunction(ctx, funcDef, args)
+	default:
+		return nil, fmt.Errorf("unsupported execution method: %s", funcDef.HttpMethod.String)
+	}
+}
+
+// executeHTTPFunction executes HTTP-based functions
+func (c *Client) executeHTTPFunction(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+	c.logExecutionEvent(types.LogLevelDebug, types.LogCategoryFunctionCall,
+		fmt.Sprintf("Executing HTTP function: %s %s", funcDef.HttpMethod.String, funcDef.EndpointUrl.String),
+		args)
+
+	// Build URL with query parameters for GET requests
+	requestURL := funcDef.EndpointUrl.String
+	var requestBody []byte
+
+	if funcDef.HttpMethod.String == "GET" {
+		// Add parameters as query string
+		if len(args) > 0 {
+			u, err := url.Parse(requestURL)
+			if err != nil {
+				return nil, fmt.Errorf("invalid endpoint URL: %w", err)
+			}
+			q := u.Query()
+			for key, value := range args {
+				q.Set(key, fmt.Sprintf("%v", value))
+			}
+			u.RawQuery = q.Encode()
+			requestURL = u.String()
+		}
+	} else {
+		// Add parameters as JSON body for POST/PUT/etc
+		var err error
+		requestBody, err = json.Marshal(args)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal request body: %w", err)
+		}
+	}
+
+	// Create HTTP request
+	req, err := http.NewRequestWithContext(ctx, funcDef.HttpMethod.String, requestURL, bytes.NewBuffer(requestBody))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
+	}
+
+	// Add headers from function definition
+	var headers map[string]interface{}
+	if len(funcDef.Headers) > 0 {
+		if err := json.Unmarshal(funcDef.Headers, &headers); err != nil {
+			c.logExecutionEvent(types.LogLevelWarn, types.LogCategoryFunctionCall,
+				"Failed to parse function headers, using defaults", nil)
+		}
+	}
+
+	// Apply headers
+	for key, value := range headers {
+		req.Header.Set(key, fmt.Sprintf("%v", value))
+	}
+
+	// Add API key handling for specific services
+	if err := c.addAPIKeyAuthentication(req, funcDef.EndpointUrl.String, args); err != nil {
+		c.logExecutionEvent(types.LogLevelWarn, types.LogCategoryFunctionCall,
+			fmt.Sprintf("API key authentication failed: %v", err), nil)
+	}
+
+	// Execute request
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("HTTP request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Parse JSON response
+	var result map[string]interface{}
+	if err := json.Unmarshal(body, &result); err != nil {
+		// If not JSON, return as text
+		result = map[string]interface{}{
+			"response":    string(body),
+			"status_code": resp.StatusCode,
+		}
+	}
+
+	// Add metadata
+	result["_metadata"] = map[string]interface{}{
+		"status_code":      resp.StatusCode,
+		"function_name":    funcDef.Name,
+		"execution_method": "HTTP",
+	}
+
+	return result, nil
+}
+
+// executeCypherFunction executes Neo4j Cypher queries using stored templates
+func (c *Client) executeCypherFunction(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+	c.logExecutionEvent(types.LogLevelDebug, types.LogCategoryFunctionCall,
+		fmt.Sprintf("Executing Cypher function: %s", funcDef.Name),
+		args)
+
+	// Check if function has a query template
+	if funcDef.QueryTemplate.Valid && strings.TrimSpace(funcDef.QueryTemplate.String) != "" {
+		// Use stored query template (fully dynamic)
+		return c.executeTemplatedCypherFunction(ctx, funcDef, args)
+	} else {
+		// Fall back to hardcoded logic for backward compatibility
+		c.logExecutionEvent(types.LogLevelWarn, types.LogCategoryFunctionCall,
+			"No query template found, falling back to hardcoded logic", nil)
+		return c.executeLegacyCypherFunction(ctx, funcDef, args)
+	}
+}
+
+// executeTemplatedCypherFunction executes Cypher using stored query templates
+func (c *Client) executeTemplatedCypherFunction(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+	// Substitute parameters in the query template
+	cypherQuery, err := c.substituteQueryTemplate(funcDef.QueryTemplate.String, args)
+	if err != nil {
+		return nil, fmt.Errorf("failed to substitute query template: %w", err)
+	}
+
+	// Extract limit parameter
+	limit := 25
+	if limitVal, exists := args["limit"]; exists {
+		if limitFloat, ok := limitVal.(float64); ok {
+			limit = int(limitFloat)
+		}
+	}
+
+	c.logExecutionEvent(types.LogLevelDebug, types.LogCategoryFunctionCall,
+		"Executing templated Cypher query",
+		map[string]interface{}{
+			"query": cypherQuery,
+			"limit": limit,
+		})
+
+	// Execute the query using existing Neo4j infrastructure
+	result, err := c.callNeo4jAPI(ctx, cypherQuery, limit)
+	if err != nil {
+		c.logExecutionEvent(types.LogLevelError, types.LogCategoryFunctionCall,
+			fmt.Sprintf("Templated Cypher query failed: %v", err),
+			map[string]interface{}{
+				"query": cypherQuery,
+				"error": err.Error(),
+			})
+
+		// Return stored fallback data
+		return c.getStoredFallbackData(funcDef)
+	}
+
+	// Transform result using stored transformer
+	return c.applyStoredResultTransformer(funcDef, result, cypherQuery, args)
+}
+
+// executeLegacyCypherFunction handles functions without query templates (backward compatibility)
+func (c *Client) executeLegacyCypherFunction(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+	// Build Cypher query based on function name and arguments (legacy method)
+	cypherQuery, limit, err := c.buildCypherQuery(funcDef.Name, args)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build Cypher query: %w", err)
+	}
+
+	// Execute the query using existing Neo4j infrastructure
+	result, err := c.callNeo4jAPI(ctx, cypherQuery, limit)
+	if err != nil {
+		c.logExecutionEvent(types.LogLevelError, types.LogCategoryFunctionCall,
+			fmt.Sprintf("Legacy Cypher query failed: %v", err),
+			map[string]interface{}{
+				"query": cypherQuery,
+				"error": err.Error(),
+			})
+
+		// Return fallback data based on function type (legacy method)
+		return c.getCypherFallbackData(funcDef.Name, args)
+	}
+
+	// Transform result based on function type (legacy method)
+	return c.transformCypherResult(funcDef.Name, result, cypherQuery, args)
+}
+
+// buildCypherQuery builds appropriate Cypher query based on function name and arguments
+func (c *Client) buildCypherQuery(functionName string, args map[string]interface{}) (string, int, error) {
+	limit := 25
+	if limitVal, exists := args["limit"]; exists {
+		if limitFloat, ok := limitVal.(float64); ok {
+			limit = int(limitFloat)
+		}
+	}
+
+	switch functionName {
+	case "neo4j_node_lookup":
+		return c.buildNodeLookupQuery(args, limit)
+	case "sales_summary":
+		return c.buildSalesSummaryQuery(args, limit)
+	case "normalize_attributes":
+		return c.buildNormalizeAttributesQuery(args, limit)
+	default:
+		return "", 0, fmt.Errorf("unknown Cypher function: %s", functionName)
+	}
+}
+
+// addAPIKeyAuthentication adds appropriate API key authentication
+func (c *Client) addAPIKeyAuthentication(req *http.Request, endpointURL string, args map[string]interface{}) error {
+	// OpenWeather API
+	if strings.Contains(endpointURL, "openweathermap.org") {
+		// Add API key from secure storage or environment
+		// This would need to be implemented based on your API key storage
+		req.URL.RawQuery += "&appid=YOUR_OPENWEATHER_API_KEY"
+	}
+
+	// Add other API authentications as needed
+
+	return nil
+}
+
+// getCypherFallbackData returns fallback data for Cypher functions when Neo4j is unavailable
+func (c *Client) getCypherFallbackData(functionName string, args map[string]interface{}) (map[string]interface{}, error) {
+	switch functionName {
+	case "neo4j_node_lookup":
+		return map[string]interface{}{
+			"nodes": []map[string]interface{}{{
+				"id":         "mock_node_1",
+				"labels":     []string{"Error"},
+				"properties": map[string]interface{}{"error": "Neo4j connection unavailable"},
+			}},
+			"relationships": []map[string]interface{}{},
+			"summary": map[string]interface{}{
+				"totalNodes":         1,
+				"totalRelationships": 0,
+				"executionTime":      "0ms",
+				"error":              "Neo4j connection unavailable, showing mock data",
+			},
+		}, nil
+	case "sales_summary":
+		return map[string]interface{}{
+			"sales_summary": []map[string]interface{}{
+				{
+					"standard_category":         "Sales Enablement",
+					"avg_annualized_amount_usd": 125000.00,
+					"document_count":            15,
+					"total_item_count":          45,
+				},
+				{
+					"standard_category":         "Revenue Operations",
+					"avg_annualized_amount_usd": 98000.00,
+					"document_count":            8,
+					"total_item_count":          24,
+				},
+			},
+			"summary": map[string]interface{}{
+				"total_categories": 2,
+				"executionTime":    "0ms",
+				"error":            "Neo4j connection unavailable, showing mock sales data",
+			},
+		}, nil
+	case "normalize_attributes":
+		return map[string]interface{}{
+			"attribute_mappings": []map[string]interface{}{
+				{
+					"raw_value":        "software engineering",
+					"normalized_value": "Software Engineering",
+					"confidence":       1.0,
+				},
+				{
+					"raw_value":        "data science",
+					"normalized_value": "Data Science",
+					"confidence":       1.0,
+				},
+			},
+			"summary": map[string]interface{}{
+				"total_raw_values":        2,
+				"total_unique_normalized": 2,
+				"executionTime":           "0ms",
+				"error":                   "Neo4j connection unavailable, showing mock normalization data",
+			},
+		}, nil
+	default:
+		return nil, fmt.Errorf("no fallback data available for function: %s", functionName)
+	}
+}
+
+// transformCypherResult transforms Neo4j results based on function type
+func (c *Client) transformCypherResult(functionName string, result map[string]interface{}, cypherQuery string, args map[string]interface{}) (map[string]interface{}, error) {
+	switch functionName {
+	case "neo4j_node_lookup":
+		// Return result as-is for node lookup
+		return result, nil
+	case "sales_summary":
+		return c.transformNeo4jToSalesSummary(result, cypherQuery), nil
+	case "normalize_attributes":
+		// Extract normalization parameters
+		normalizationType := "general"
+		if normTypeVal, exists := args["normalization_type"]; exists {
+			if normType, ok := normTypeVal.(string); ok && normType != "" {
+				normalizationType = normType
+			}
+		}
+
+		caseStyle := "title_case"
+		if caseVal, exists := args["case_style"]; exists {
+			if caseStr, ok := caseVal.(string); ok && caseStr != "" {
+				caseStyle = caseStr
+			}
+		}
+
+		var customMappings map[string]interface{}
+		if customVal, exists := args["custom_mappings"]; exists {
+			if customMap, ok := customVal.(map[string]interface{}); ok {
+				customMappings = customMap
+			}
+		}
+
+		return c.processAttributeNormalization(result, normalizationType, caseStyle, customMappings, cypherQuery), nil
+	default:
+		return result, nil
+	}
+}
+
+// buildNodeLookupQuery builds query for Neo4j node lookup
+func (c *Client) buildNodeLookupQuery(args map[string]interface{}, limit int) (string, int, error) {
+	label, ok := args["label"].(string)
+	if !ok || strings.TrimSpace(label) == "" {
+		return "", 0, fmt.Errorf("label parameter missing or invalid")
+	}
+
+	// Optional properties map to build a WHERE clause
+	whereClause := ""
+	if propsRaw, ok := args["properties"].(map[string]interface{}); ok {
+		var conditions []string
+		for k, v := range propsRaw {
+			conditions = append(conditions, fmt.Sprintf("n.%s = '%v'", k, v))
+		}
+		if len(conditions) > 0 {
+			whereClause = "WHERE " + strings.Join(conditions, " AND ")
+		}
+	}
+
+	cypherQuery := fmt.Sprintf("MATCH (n:%s) %s RETURN n LIMIT %d", label, whereClause, limit)
+	return cypherQuery, limit, nil
+}
+
+// buildSalesSummaryQuery builds query for sales summary
+func (c *Client) buildSalesSummaryQuery(args map[string]interface{}, limit int) (string, int, error) {
+	// Currency filter - add to WHERE clause if specified
+	var currencyFilter string
+	if currencyVal, exists := args["currency_filter"]; exists {
+		if currency, ok := currencyVal.(string); ok && currency != "" {
+			currencyFilter = fmt.Sprintf("AND d.currency_code = '%s'", currency)
+		}
+	}
+
+	// Minimum amount filter
+	var minAmountFilter string
+	if minAmountVal, exists := args["min_amount"]; exists {
+		if minAmount, ok := minAmountVal.(float64); ok && minAmount > 0 {
+			minAmountFilter = fmt.Sprintf("AND (annualized_amount * conversion_rate) >= %f", minAmount)
+		}
+	}
+
+	// Build the comprehensive sales summary Cypher query
+	cypherQuery := fmt.Sprintf(`
+MATCH (p:Product)-[:HAS_DOCUMENT]->(d:Document)
+OPTIONAL MATCH (d)-[:HAS_ITEM]->(i:Item)
+WITH 
+  p.category AS raw_category,
+  coalesce(d.total_amount, d.total_discounted_amount) AS amount,
+  d.currency_code AS currency,
+  d.service_duration_month AS duration_months,
+  count(i) AS item_count_per_document
+WHERE duration_months IS NOT NULL AND duration_months > 0 %s
+
+WITH 
+  raw_category,
+  currency,
+  amount / duration_months * 12 AS annualized_amount,
+  item_count_per_document,
+  CASE 
+    WHEN toLower(raw_category) IN ['e-signature'] THEN 'E-Signature'
+    WHEN toLower(raw_category) IN ['direct-mail-marketing', 'direct mail marketing'] THEN 'Direct Mail Marketing'
+    WHEN toLower(raw_category) IN ['rev ops', 'revenue ops'] THEN 'Revenue Operations'
+    WHEN toLower(raw_category) IN ['sales engagement', 'sales intelligence', 'sales training', 'sales communication', 'sales productivity'] THEN 'Sales Enablement'
+    WHEN toLower(raw_category) = 'commission-management' THEN 'Compensation Management'
+    WHEN toLower(raw_category) = 'lead-generation' THEN 'Lead Management'
+    WHEN toLower(raw_category) = 'event-services' THEN 'Event Services'
+    WHEN toLower(raw_category) = 'security training' THEN 'Security Training'
+    ELSE raw_category
+  END AS standard_category,
+
+  CASE 
+    WHEN currency = 'USD' THEN 1.0
+    WHEN currency = 'EUR' THEN 1.1
+    WHEN currency = 'GBP' THEN 1.3
+    ELSE 1.0
+  END AS conversion_rate
+
+WITH 
+  standard_category,
+  round(avg(annualized_amount * conversion_rate), 2) AS avg_annualized_amount_usd,
+  count(*) AS document_count,
+  sum(item_count_per_document) AS total_item_count
+WHERE 1=1 %s
+RETURN 
+  standard_category,
+  avg_annualized_amount_usd,
+  document_count,
+  total_item_count
+ORDER BY avg_annualized_amount_usd DESC
+LIMIT %d`, currencyFilter, minAmountFilter, limit)
+
+	return cypherQuery, limit, nil
+}
+
+// buildNormalizeAttributesQuery builds query for attribute normalization
+func (c *Client) buildNormalizeAttributesQuery(args map[string]interface{}, limit int) (string, int, error) {
+	nodeLabel, ok := args["node_label"].(string)
+	if !ok || strings.TrimSpace(nodeLabel) == "" {
+		return "", 0, fmt.Errorf("node_label parameter missing or invalid")
+	}
+
+	attributeName, ok := args["attribute_name"].(string)
+	if !ok || strings.TrimSpace(attributeName) == "" {
+		return "", 0, fmt.Errorf("attribute_name parameter missing or invalid")
+	}
+
+	cypherQuery := fmt.Sprintf(`
+MATCH (n:%s)
+WHERE n.%s IS NOT NULL AND n.%s <> ''
+RETURN DISTINCT n.%s AS raw_value
+ORDER BY raw_value
+LIMIT %d`, nodeLabel, attributeName, attributeName, attributeName, limit)
+
+	return cypherQuery, limit, nil
+}
+
+// substituteQueryTemplate substitutes parameters in a query template
+func (c *Client) substituteQueryTemplate(template string, args map[string]interface{}) (string, error) {
+	result := template
+
+	// Handle common parameter substitutions
+	for key, value := range args {
+		placeholder := fmt.Sprintf("{{%s}}", key)
+		replacement := fmt.Sprintf("%v", value)
+		result = strings.ReplaceAll(result, placeholder, replacement)
+	}
+
+	// Handle special cases for Neo4j node lookup where clause
+	if strings.Contains(result, "{{where_clause}}") {
+		whereClause := ""
+		if propsRaw, ok := args["properties"].(map[string]interface{}); ok {
+			var conditions []string
+			for k, v := range propsRaw {
+				conditions = append(conditions, fmt.Sprintf("n.%s = '%v'", k, v))
+			}
+			if len(conditions) > 0 {
+				whereClause = "WHERE " + strings.Join(conditions, " AND ")
+			}
+		}
+		result = strings.ReplaceAll(result, "{{where_clause}}", whereClause)
+	}
+
+	// Handle currency filter for sales summary
+	if strings.Contains(result, "{{currency_filter}}") {
+		currencyFilter := ""
+		if currencyVal, exists := args["currency_filter"]; exists {
+			if currency, ok := currencyVal.(string); ok && currency != "" {
+				currencyFilter = fmt.Sprintf("AND d.currency_code = '%s'", currency)
+			}
+		}
+		result = strings.ReplaceAll(result, "{{currency_filter}}", currencyFilter)
+	}
+
+	// Handle minimum amount filter for sales summary
+	if strings.Contains(result, "{{min_amount_filter}}") {
+		minAmountFilter := ""
+		if minAmountVal, exists := args["min_amount"]; exists {
+			if minAmount, ok := minAmountVal.(float64); ok && minAmount > 0 {
+				minAmountFilter = fmt.Sprintf("AND (annualized_amount * conversion_rate) >= %f", minAmount)
+			}
+		}
+		result = strings.ReplaceAll(result, "{{min_amount_filter}}", minAmountFilter)
+	}
+
+	// Set default values for common parameters
+	if !strings.Contains(result, "{{limit}}") {
+		// No limit placeholder, query is complete
+	} else if _, exists := args["limit"]; !exists {
+		result = strings.ReplaceAll(result, "{{limit}}", "25")
+	}
+
+	return result, nil
+}
+
+// getStoredFallbackData returns fallback data from function definition
+func (c *Client) getStoredFallbackData(funcDef *db.FunctionDefinition) (map[string]interface{}, error) {
+	if len(funcDef.FallbackData) > 0 {
+		var fallbackData map[string]interface{}
+		if err := json.Unmarshal(funcDef.FallbackData, &fallbackData); err != nil {
+			c.logExecutionEvent(types.LogLevelWarn, types.LogCategoryFunctionCall,
+				"Failed to parse stored fallback data, using default", nil)
+			return c.getDefaultFallbackData(funcDef.Name), nil
+		}
+		return fallbackData, nil
+	}
+
+	// Fall back to default if no stored fallback data
+	return c.getDefaultFallbackData(funcDef.Name), nil
+}
+
+// getDefaultFallbackData provides default fallback data
+func (c *Client) getDefaultFallbackData(functionName string) map[string]interface{} {
+	return map[string]interface{}{
+		"error":         "Function execution failed and no fallback data available",
+		"function_name": functionName,
+		"timestamp":     time.Now().UTC().Format(time.RFC3339),
+	}
+}
+
+// applyStoredResultTransformer applies the stored result transformer
+func (c *Client) applyStoredResultTransformer(funcDef *db.FunctionDefinition, result map[string]interface{}, cypherQuery string, args map[string]interface{}) (map[string]interface{}, error) {
+	transformerType := "default"
+	if funcDef.ResultTransformer.Valid {
+		transformerType = funcDef.ResultTransformer.String
+	}
+
+	switch transformerType {
+	case "neo4j_nodes":
+		// Return Neo4j result as-is for node lookup
+		return result, nil
+	case "sales_summary":
+		return c.transformNeo4jToSalesSummary(result, cypherQuery), nil
+	case "normalize_attributes":
+		// Extract normalization parameters
+		normalizationType := "general"
+		if normTypeVal, exists := args["normalization_type"]; exists {
+			if normType, ok := normTypeVal.(string); ok && normType != "" {
+				normalizationType = normType
+			}
+		}
+
+		caseStyle := "title_case"
+		if caseVal, exists := args["case_style"]; exists {
+			if caseStr, ok := caseVal.(string); ok && caseStr != "" {
+				caseStyle = caseStr
+			}
+		}
+
+		var customMappings map[string]interface{}
+		if customVal, exists := args["custom_mappings"]; exists {
+			if customMap, ok := customVal.(map[string]interface{}); ok {
+				customMappings = customMap
+			}
+		}
+
+		return c.processAttributeNormalization(result, normalizationType, caseStyle, customMappings, cypherQuery), nil
+	default:
+		// Default transformer - return result with metadata
+		result["_metadata"] = map[string]interface{}{
+			"function_name":    funcDef.Name,
+			"execution_method": "CYPHER",
+			"transformer_type": transformerType,
+		}
+		return result, nil
+	}
 }
 
 // sendFunctionResultToGemini sends the function result back to Gemini for a final response

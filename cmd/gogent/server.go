@@ -552,15 +552,27 @@ func (s *Server) listConfigurations(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := context.Background()
-	configs, err := s.client.ListAPIConfigurationsByUser(ctx, userID, 50, 0)
+
+	// Get user configurations
+	userConfigs, err := s.client.ListAPIConfigurationsByUser(ctx, userID, 50, 0)
 	if err != nil {
 		log.Printf("⚠️ Failed to load user configurations from DB: %v", err)
 		http.Error(w, "Failed to load configurations", http.StatusInternalServerError)
 		return
 	}
 
+	// Get system configurations
+	systemConfigs, err := s.client.ListAPIConfigurationsByUser(ctx, "system", 50, 0)
+	if err != nil {
+		log.Printf("⚠️ Failed to load system configurations from DB: %v", err)
+		// Don't fail the request, just log the error and continue with user configs only
+	}
+
+	// Combine user and system configurations
+	allConfigs := append(userConfigs, systemConfigs...)
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(configs)
+	json.NewEncoder(w).Encode(allConfigs)
 }
 
 func (s *Server) createConfiguration(w http.ResponseWriter, r *http.Request) {
@@ -1880,9 +1892,10 @@ func (s *Server) listFunctions(w http.ResponseWriter, r *http.Request) {
 
 	// Query the database directly for function definitions
 	query := `
-		SELECT id, name, display_name, description, parameters_schema,
+		SELECT id, user_id, name, display_name, description, parameters_schema,
 		       mock_response, endpoint_url, http_method, headers, auth_config,
-		       is_active, created_at, updated_at
+		       is_active, is_system_resource, query_template, result_transformer, fallback_data,
+		       created_at, updated_at
 		FROM function_definitions
 		WHERE (user_id = ? OR user_id = 'system') AND is_active = true
 		ORDER BY display_name ASC
@@ -1903,6 +1916,7 @@ func (s *Server) listFunctions(w http.ResponseWriter, r *http.Request) {
 
 		err := rows.Scan(
 			&dbFunction.ID,
+			&dbFunction.UserID,
 			&dbFunction.Name,
 			&dbFunction.DisplayName,
 			&dbFunction.Description,
@@ -1913,6 +1927,10 @@ func (s *Server) listFunctions(w http.ResponseWriter, r *http.Request) {
 			&dbFunction.Headers,
 			&dbFunction.AuthConfig,
 			&dbFunction.IsActive,
+			&dbFunction.IsSystemResource,
+			&dbFunction.QueryTemplate,
+			&dbFunction.ResultTransformer,
+			&dbFunction.FallbackData,
 			&dbFunction.CreatedAt,
 			&dbFunction.UpdatedAt,
 		)
@@ -1923,15 +1941,19 @@ func (s *Server) listFunctions(w http.ResponseWriter, r *http.Request) {
 
 		// Convert database model to types model
 		function := types.FunctionDefinition{
-			ID:          dbFunction.ID,
-			Name:        dbFunction.Name,
-			DisplayName: dbFunction.DisplayName,
-			IsActive:    dbFunction.IsActive.Bool,
-			CreatedAt:   dbFunction.CreatedAt.Time,
-			UpdatedAt:   dbFunction.UpdatedAt.Time,
+			ID:               dbFunction.ID,
+			Name:             dbFunction.Name,
+			DisplayName:      dbFunction.DisplayName,
+			IsActive:         dbFunction.IsActive.Bool,
+			IsSystemResource: dbFunction.IsSystemResource.Bool,
+			CreatedAt:        dbFunction.CreatedAt.Time,
+			UpdatedAt:        dbFunction.UpdatedAt.Time,
 		}
 
 		// Handle nullable string fields
+		if dbFunction.UserID != "" {
+			function.UserID = dbFunction.UserID
+		}
 		if dbFunction.Description.Valid {
 			function.Description = dbFunction.Description.String
 		}
@@ -1940,6 +1962,12 @@ func (s *Server) listFunctions(w http.ResponseWriter, r *http.Request) {
 		}
 		if dbFunction.HttpMethod.Valid {
 			function.HttpMethod = dbFunction.HttpMethod.String
+		}
+		if dbFunction.QueryTemplate.Valid {
+			function.QueryTemplate = dbFunction.QueryTemplate.String
+		}
+		if dbFunction.ResultTransformer.Valid {
+			function.ResultTransformer = dbFunction.ResultTransformer.String
 		}
 
 		// Handle JSON fields - no longer nullable after schema fix
@@ -1958,6 +1986,10 @@ func (s *Server) listFunctions(w http.ResponseWriter, r *http.Request) {
 
 		if err := json.Unmarshal(dbFunction.AuthConfig, &function.AuthConfig); err != nil {
 			log.Printf("⚠️ Failed to parse auth config for %s: %v", function.Name, err)
+		}
+
+		if err := json.Unmarshal(dbFunction.FallbackData, &function.FallbackData); err != nil {
+			log.Printf("⚠️ Failed to parse fallback data for %s: %v", function.Name, err)
 		}
 
 		functions = append(functions, function)

@@ -3,8 +3,9 @@
 -- name: CreateFunctionDefinition :exec
 INSERT INTO function_definitions (
     id, user_id, name, display_name, description, parameters_schema, 
-    mock_response, endpoint_url, http_method, headers, auth_config, is_active
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    mock_response, endpoint_url, http_method, headers, auth_config, is_active,
+    query_template, result_transformer, fallback_data
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- name: GetFunctionDefinition :one
 SELECT * FROM function_definitions WHERE id = ? AND (user_id = ? OR user_id = 'system');
@@ -31,7 +32,9 @@ ORDER BY display_name ASC;
 UPDATE function_definitions 
 SET display_name = ?, description = ?, parameters_schema = ?, 
     mock_response = ?, endpoint_url = ?, http_method = ?, 
-    headers = ?, auth_config = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
+    headers = ?, auth_config = ?, is_active = ?, 
+    query_template = ?, result_transformer = ?, fallback_data = ?,
+    updated_at = CURRENT_TIMESTAMP
 WHERE id = ? AND user_id = ?;
 
 -- name: DeleteFunctionDefinition :exec

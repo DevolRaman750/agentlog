@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GoGent Coverage Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { text-align: center; color: #333; border-bottom: 2px solid #007acc; padding-bottom: 20px; margin-bottom: 30px; }
+        .metrics { display: flex; justify-content: space-around; margin: 30px 0; }
+        .metric { text-align: center; padding: 20px; background: #f8f9fa; border-radius: 8px; min-width: 150px; }
+        .metric h3 { margin: 0 0 10px 0; color: #333; }
+        .metric .value { font-size: 2em; font-weight: bold; margin: 10px 0; }
+        .pass { color: #28a745; }
+        .fail { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .links { margin: 30px 0; text-align: center; }
+        .links a { display: inline-block; margin: 0 10px; padding: 10px 20px; background: #007acc; color: white; text-decoration: none; border-radius: 5px; }
+        .links a:hover { background: #0056b3; }
+        .timestamp { text-align: center; color: #666; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 GoGent Coverage Report</h1>
+            <p>Comprehensive test coverage analysis for backend and frontend</p>
+        </div>
+        
+        <div class="metrics">
+            <div class="metric">
+                <h3>Overall Coverage</h3>
+                <div class="value fail">
+                    3.41%
+                </div>
+                <div>Target: 80%</div>
+            </div>
+            
+            <div class="metric">
+                <h3>Backend (Go)</h3>
+                <div class="value fail">
+                    1.8%
+                </div>
+                <div>Target: 80%</div>
+            </div>
+            
+            <div class="metric">
+                <h3>Frontend (TS)</h3>
+                <div class="value fail">
+                    5.03%
+                </div>
+                <div>Target: 80%</div>
+            </div>
+        </div>
+        
+        <div class="links">
+            <a href="../coverage.html">📊 Backend Coverage Details</a>
+            <a href="../frontend/coverage/index.html">🌐 Frontend Coverage Details</a>
+            <a href="coverage-gaps.txt">🔍 Coverage Gaps Report</a>
+        </div>
+        
+        <div class="timestamp">
+            Generated: Tue Jul 29 10:05:25 PDT 2025
+        </div>
+    </div>
+</body>
+</html>

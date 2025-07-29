@@ -74,7 +74,7 @@ type ExecutionRun struct {
 // APIConfiguration represents a specific configuration for API calls
 type APIConfiguration struct {
 	ID               string                 `json:"id"`
-	UserID           string                 `json:"userId,omitempty"`       // User who owns this configuration
+	UserID           string                 `json:"userId,omitempty"` // User who owns this configuration
 	ExecutionRunID   string                 `json:"executionRunId"`
 	VariationName    string                 `json:"variationName"`
 	ModelName        string                 `json:"modelName"`
@@ -93,21 +93,26 @@ type APIConfiguration struct {
 
 // FunctionDefinition represents a reusable function definition
 type FunctionDefinition struct {
-	ID               string                 `json:"id"`
-	Name             string                 `json:"name"`                   // Unique function name for API calls
-	DisplayName      string                 `json:"displayName"`            // Human-readable name
-	Description      string                 `json:"description"`            // Function description
-	ParametersSchema map[string]interface{} `json:"parametersSchema"`       // JSON schema for parameters
-	MockResponse     map[string]interface{} `json:"mockResponse,omitempty"` // Mock response for testing
-	EndpointURL      string                 `json:"endpointUrl,omitempty"`  // Real API endpoint
-	HttpMethod       string                 `json:"httpMethod"`             // HTTP method (GET, POST, etc.)
-	Headers          map[string]interface{} `json:"headers,omitempty"`      // HTTP headers
-	AuthConfig       map[string]interface{} `json:"authConfig,omitempty"`   // Authentication config
-	IsActive         bool                   `json:"isActive"`
-	RequiredApiKeys  []string               `json:"requiredApiKeys,omitempty"`  // API keys required for this function
-	ApiKeyValidation map[string]interface{} `json:"apiKeyValidation,omitempty"` // Validation rules for each API key
-	CreatedAt        time.Time              `json:"createdAt"`
-	UpdatedAt        time.Time              `json:"updatedAt"`
+	ID                string                 `json:"id"`
+	UserID            string                 `json:"userId,omitempty"`       // User who owns this function
+	Name              string                 `json:"name"`                   // Unique function name for API calls
+	DisplayName       string                 `json:"displayName"`            // Human-readable name
+	Description       string                 `json:"description"`            // Function description
+	ParametersSchema  map[string]interface{} `json:"parametersSchema"`       // JSON schema for parameters
+	MockResponse      map[string]interface{} `json:"mockResponse,omitempty"` // Mock response for testing
+	EndpointURL       string                 `json:"endpointUrl,omitempty"`  // Real API endpoint
+	HttpMethod        string                 `json:"httpMethod"`             // HTTP method (GET, POST, etc.)
+	Headers           map[string]interface{} `json:"headers,omitempty"`      // HTTP headers
+	AuthConfig        map[string]interface{} `json:"authConfig,omitempty"`   // Authentication config
+	IsActive          bool                   `json:"isActive"`
+	IsSystemResource  bool                   `json:"isSystemResource"`            // Mark as system-provided resource
+	RequiredApiKeys   []string               `json:"requiredApiKeys,omitempty"`   // API keys required for this function
+	ApiKeyValidation  map[string]interface{} `json:"apiKeyValidation,omitempty"`  // Validation rules for each API key
+	QueryTemplate     string                 `json:"queryTemplate,omitempty"`     // Cypher query template with {{parameter}} placeholders
+	ResultTransformer string                 `json:"resultTransformer,omitempty"` // How to transform the raw results (e.g., 'sales_summary', 'normalize_attributes')
+	FallbackData      map[string]interface{} `json:"fallbackData,omitempty"`      // Fallback data when external services are unavailable
+	CreatedAt         time.Time              `json:"createdAt"`
+	UpdatedAt         time.Time              `json:"updatedAt"`
 }
 
 // ExecutionFunctionConfig represents function configuration for a specific execution

@@ -57,6 +57,11 @@ CREATE TABLE function_definitions (
     is_system_resource BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    required_api_keys JSON,
+    api_key_validation JSON,
+    query_template TEXT,
+    result_transformer VARCHAR(50) DEFAULT 'default',
+    fallback_data JSON,
     UNIQUE KEY unique_user_function (user_id, name),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

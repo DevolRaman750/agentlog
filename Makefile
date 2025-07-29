@@ -1,6 +1,8 @@
 .PHONY: setup install-deps generate-db init-db run-tests clean frontend-setup frontend-install frontend-start frontend-ios frontend-android frontend-web frontend-build frontend-clean \
 	test-coverage test-verbose test-race test-bench frontend-test-deps frontend-test frontend-test-coverage frontend-test-watch \
-	frontend-test-unit frontend-test-integration frontend-test-e2e frontend-test-performance frontend-test-smoke \
+	frontend-test-unit frontend-test-integration frontend-test-e2e frontend-test-performance frontend-test-smoke frontend-test-responsive \
+	coverage coverage-backend coverage-frontend coverage-gaps coverage-gaps-backend coverage-gaps-frontend coverage-templates \
+	coverage-backend-detailed coverage-frontend-detailed coverage-view coverage-clean coverage-badge \
 	test-all test-quick test-smoke test-comprehensive test-performance test-integration \
 	test-ci test-ci-fast test-pre-commit test-release test-debug test-clean test-load test-stress test-setup test-validate test-report test-full-report
 
@@ -191,7 +193,7 @@ deploy-all: docker-deploy k8s-update-images k8s-deploy k8s-restart k8s-wait ## C
 run-tests:
 	go test ./...
 
-# Run tests with coverage
+# Run tests with coverage (legacy - use 'make coverage' for comprehensive analysis)
 test-coverage:
 	go test -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out -o coverage.html
@@ -252,11 +254,105 @@ frontend-test-smoke:
 	@echo "💨 Running frontend smoke tests..."
 	cd frontend && yarn test src/__tests__/smoke.test.ts --watchAll=false
 
+frontend-test-responsive:
+	@echo "📱 Running frontend responsive tests..."
+	cd frontend && yarn test src/__tests__/responsive.e2e.test.tsx --watchAll=false
+
+# Coverage Analysis Commands
+# ===========================
+
+# Comprehensive coverage analysis (backend + frontend + gaps)
+coverage:
+	@echo "📊 Running comprehensive coverage analysis..."
+	./scripts/coverage-analysis.sh
+
+# Backend-only coverage analysis
+coverage-backend:
+	@echo "📊 Running backend coverage analysis..."
+	./scripts/coverage-analysis.sh --backend-only
+
+# Frontend-only coverage analysis
+coverage-frontend:
+	@echo "📊 Running frontend coverage analysis..."
+	./scripts/coverage-analysis.sh --frontend-only
+
+# Analyze coverage gaps and provide recommendations
+coverage-gaps:
+	@echo "🔍 Analyzing coverage gaps..."
+	./scripts/coverage-gaps-finder.sh
+
+# Analyze backend coverage gaps only
+coverage-gaps-backend:
+	@echo "🔍 Analyzing backend coverage gaps..."
+	./scripts/coverage-gaps-finder.sh --backend-only
+
+# Analyze frontend coverage gaps only
+coverage-gaps-frontend:
+	@echo "🔍 Analyzing frontend coverage gaps..."
+	./scripts/coverage-gaps-finder.sh --frontend-only
+
+# Create test templates for missing coverage
+coverage-templates:
+	@echo "📝 Creating test templates..."
+	./scripts/coverage-gaps-finder.sh --templates-only
+
+# Enhanced backend coverage with detailed reporting
+coverage-backend-detailed:
+	@echo "📊 Running detailed backend coverage analysis..."
+	go test -coverprofile=coverage.out -covermode=atomic ./...
+	go tool cover -html=coverage.out -o coverage.html
+	go tool cover -func=coverage.out | sort -k3 -nr
+	@echo "📂 Coverage report: coverage.html"
+
+# Enhanced frontend coverage with detailed reporting
+coverage-frontend-detailed:
+	@echo "📊 Running detailed frontend coverage analysis..."
+	cd frontend && yarn test --coverage --watchAll=false --coverageReporters=json,html,text,lcov
+	@echo "📂 Coverage report: frontend/coverage/index.html"
+
+# Open coverage reports in browser (macOS)
+coverage-view:
+	@echo "🌐 Opening coverage reports..."
+	@if [ -f "coverage-reports/unified-coverage-report.html" ]; then \
+		open coverage-reports/unified-coverage-report.html; \
+	else \
+		echo "❌ Unified coverage report not found. Run 'make coverage' first."; \
+	fi
+	@if [ -f "coverage.html" ]; then \
+		open coverage.html; \
+	fi
+	@if [ -f "frontend/coverage/index.html" ]; then \
+		open frontend/coverage/index.html; \
+	fi
+
+# Clean coverage files
+coverage-clean:
+	@echo "🧹 Cleaning coverage files..."
+	rm -f coverage.out coverage.html backend-coverage.json
+	rm -rf frontend/coverage
+	rm -rf coverage-reports
+	rm -f coverage-gaps-summary.md
+	rm -rf test-templates
+
+# Generate coverage badge (requires shields.io)
+coverage-badge:
+	@echo "🏷️  Generating coverage badge..."
+	@if [ -f "coverage.out" ]; then \
+		COVERAGE=$$(go tool cover -func=coverage.out | grep total | awk '{print $$3}' | sed 's/%//'); \
+		echo "Backend Coverage: $$COVERAGE%"; \
+		curl -s "https://img.shields.io/badge/Backend_Coverage-$$COVERAGE%25-$(if [ $$COVERAGE -ge 80 ]; then echo "brightgreen"; elif [ $$COVERAGE -ge 60 ]; then echo "yellow"; else echo "red"; fi)" > backend-coverage-badge.svg; \
+	fi
+	@if [ -f "frontend/coverage/coverage-summary.json" ]; then \
+		FRONTEND_COVERAGE=$$(node -p "require('./frontend/coverage/coverage-summary.json').total.lines.pct"); \
+		echo "Frontend Coverage: $$FRONTEND_COVERAGE%"; \
+		curl -s "https://img.shields.io/badge/Frontend_Coverage-$$FRONTEND_COVERAGE%25-$(if [ $$(echo "$$FRONTEND_COVERAGE >= 80" | bc) -eq 1 ]; then echo "brightgreen"; elif [ $$(echo "$$FRONTEND_COVERAGE >= 60" | bc) -eq 1 ]; then echo "yellow"; else echo "red"; fi)" > frontend-coverage-badge.svg; \
+	fi
+
 # Comprehensive Testing Commands
 # ===============================
 
 # Run all tests (backend + frontend) with backend server
-test-all: run-tests start-test-server frontend-test kill-server
+test-all: run-tests start-test-server frontend-test frontend-test-responsive kill-server
 	@echo "✅ All tests completed!"
 
 # Run quick validation tests
