@@ -19,8 +19,10 @@ import (
 	"sync"
 	"time"
 
+	"gogent/internal/code_analysis"
 	"gogent/internal/db"
 	"gogent/internal/gemini"
+	"gogent/internal/github"
 	"gogent/internal/types"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -43,6 +45,10 @@ type Client struct {
 	currentExecutionRunID *string
 	currentConfigID       *string
 	currentRequestID      *string
+
+	// Refactored components
+	codeAnalyzer      *code_analysis.Analyzer
+	directoryAnalyzer *github.DirectoryAnalyzer
 }
 
 // NewClient creates a new gogent client with database connection
@@ -79,6 +85,10 @@ func NewClient(dbURL string, config *types.GeminiClientConfig, sessionApiKeys *t
 		sessionApiKeys: sessionApiKeys,
 		mutex:          sync.RWMutex{},
 	}
+
+	// Initialize refactored components
+	client.codeAnalyzer = code_analysis.NewAnalyzer(code_analysis.DefaultConfig())
+	client.directoryAnalyzer = github.NewDirectoryAnalyzer(code_analysis.DefaultConfig())
 
 	// Initialize Gemini client if API key is provided
 	// DISABLED: Go SDK has model name format issues, using REST API directly
@@ -2231,9 +2241,17 @@ func (c *Client) executeHTTPFunction(ctx context.Context, funcDef *db.FunctionDe
 			for key, value := range args {
 				// Skip parameters already used in URL path substitution
 				placeholder := fmt.Sprintf("{%s}", key)
-				if !strings.Contains(funcDef.EndpointUrl.String, placeholder) {
-					q.Set(key, fmt.Sprintf("%v", value))
+				if strings.Contains(funcDef.EndpointUrl.String, placeholder) {
+					continue
 				}
+
+				// Special case: map 'location' → 'q' for OpenWeather API
+				paramKey := key
+				if funcDef.Name == "get_current_weather" && key == "location" {
+					paramKey = "q"
+				}
+
+				q.Set(paramKey, fmt.Sprintf("%v", value))
 			}
 			u.RawQuery = q.Encode()
 			requestURL = u.String()
@@ -2243,9 +2261,17 @@ func (c *Client) executeHTTPFunction(ctx context.Context, funcDef *db.FunctionDe
 		bodyArgs := make(map[string]interface{})
 		for key, value := range args {
 			placeholder := fmt.Sprintf("{%s}", key)
-			if !strings.Contains(funcDef.EndpointUrl.String, placeholder) {
-				bodyArgs[key] = value
+			if strings.Contains(funcDef.EndpointUrl.String, placeholder) {
+				continue
 			}
+
+			// Special case: map 'location' → 'q' for OpenWeather API
+			paramKey := key
+			if funcDef.Name == "get_current_weather" && key == "location" {
+				paramKey = "q"
+			}
+
+			bodyArgs[paramKey] = value
 		}
 
 		if len(bodyArgs) > 0 {
@@ -2297,6 +2323,20 @@ func (c *Client) executeHTTPFunction(ctx context.Context, funcDef *db.FunctionDe
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
+	// === NEW: log error for non-success status codes ===
+	if resp.StatusCode >= 400 {
+		preview := string(body)
+		if len(preview) > 200 {
+			preview = preview[:200] + "…"
+		}
+		c.logExecutionEvent(types.LogLevelError, types.LogCategoryFunctionCall,
+			fmt.Sprintf("HTTP %d error for %s", resp.StatusCode, funcDef.Name),
+			map[string]interface{}{
+				"status_code":      resp.StatusCode,
+				"response_preview": preview,
+			})
+	}
+
 	// Parse JSON response
 	var result map[string]interface{}
 	if err := json.Unmarshal(body, &result); err != nil {
@@ -2312,6 +2352,7 @@ func (c *Client) executeHTTPFunction(ctx context.Context, funcDef *db.FunctionDe
 		"status_code":      resp.StatusCode,
 		"function_name":    funcDef.Name,
 		"execution_method": "HTTP",
+		"is_error":         resp.StatusCode >= 400,
 	}
 
 	// Apply result transformer if specified
@@ -2857,8 +2898,16 @@ func (c *Client) transformGitHubCodeResponse(result map[string]interface{}, args
 		"type": getStringFromResult(githubDataMap, "type"),
 	}
 
-	// Basic code analysis
-	analysis := c.analyzeCodeContent(decodedContent, getStringFromResult(githubDataMap, "name"))
+	// Use the new code analyzer
+	var analysis map[string]interface{}
+	if decodedContent != "" && decodedContent != "Failed to decode file content" {
+		fileName := getStringFromResult(githubDataMap, "name")
+		analysis = c.codeAnalyzer.AnalyzeContent(decodedContent, fileName)
+	} else {
+		analysis = map[string]interface{}{
+			"error": "Unable to decode file content",
+		}
+	}
 
 	// Return transformed response
 	transformed := map[string]interface{}{
@@ -3062,76 +3111,7 @@ func extractPythonImports(content string) []string {
 
 // transformDirectoryListing handles GitHub directory listing responses
 func (c *Client) transformDirectoryListing(result map[string]interface{}, githubArray []interface{}) map[string]interface{} {
-	log.Printf("🔧 Processing GitHub directory listing with %d items", len(githubArray))
-
-	files := make([]map[string]interface{}, 0)
-	directories := make([]map[string]interface{}, 0)
-
-	// Auto-fetch content for files that are reasonably sized
-	filesWithContent := make([]map[string]interface{}, 0)
-
-	for _, item := range githubArray {
-		if itemMap, ok := item.(map[string]interface{}); ok {
-			itemType := getStringFromResult(itemMap, "type")
-			itemInfo := map[string]interface{}{
-				"name": getStringFromResult(itemMap, "name"),
-				"path": getStringFromResult(itemMap, "path"),
-				"type": itemType,
-				"size": getIntFromResult(itemMap, "size"),
-			}
-
-			if itemType == "file" {
-				files = append(files, itemInfo)
-
-				// Auto-fetch content for files under 50KB that look like code files
-				fileSize := getIntFromResult(itemMap, "size")
-				fileName := getStringFromResult(itemMap, "name")
-				if fileSize > 0 && fileSize < 50000 && c.isCodeFile(fileName) {
-					log.Printf("🔧 Auto-fetching content for file: %s (%d bytes)", fileName, fileSize)
-					if fileContent := c.fetchFileContent(itemMap); fileContent != nil {
-						itemInfo["content"] = fileContent["content"]
-						itemInfo["analysis"] = fileContent["analysis"]
-						filesWithContent = append(filesWithContent, itemInfo)
-					}
-				}
-			} else if itemType == "dir" {
-				directories = append(directories, itemInfo)
-			}
-		}
-	}
-
-	// Enhanced result with structured directory listing
-	enhanced := map[string]interface{}{
-		"type": "directory_listing",
-		"directory_contents": map[string]interface{}{
-			"files":       files,
-			"directories": directories,
-			"total_files": len(files),
-			"total_dirs":  len(directories),
-		},
-		"raw_response": result["response"],
-		"_metadata":    result["_metadata"],
-		"analysis": map[string]interface{}{
-			"summary":             fmt.Sprintf("Directory contains %d files and %d subdirectories", len(files), len(directories)),
-			"file_types":          c.analyzeFileTypes(files),
-			"files_with_content":  len(filesWithContent),
-			"total_lines_of_code": c.countTotalLinesOfCode(filesWithContent),
-			"code_files_analyzed": c.summarizeCodeFiles(filesWithContent),
-		},
-	}
-
-	// If we successfully fetched content for files, include detailed code analysis
-	if len(filesWithContent) > 0 {
-		enhanced["detailed_code_analysis"] = map[string]interface{}{
-			"files_analyzed": filesWithContent,
-			"overview":       c.generateCodeOverview(filesWithContent),
-		}
-		log.Printf("✅ Enhanced directory listing with code analysis: %d files analyzed", len(filesWithContent))
-	} else {
-		log.Printf("✅ Enhanced directory listing: %d files, %d directories (no code content fetched)", len(files), len(directories))
-	}
-
-	return enhanced
+	return c.directoryAnalyzer.ProcessDirectoryListing(result, githubArray)
 }
 
 // analyzeFileTypes analyzes the file types in a directory listing
