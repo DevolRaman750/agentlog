@@ -489,7 +489,6 @@ func TestCreateAPIConfiguration_PreservesSystemUserID(t *testing.T) {
 	systemConfig := &types.APIConfiguration{
 		ID:               "test-system-config",
 		UserID:           "system", // This should be preserved
-		ExecutionRunID:   "test-run",
 		VariationName:    "Test System Config",
 		ModelName:        "gemini-1.5-flash",
 		SystemPrompt:     "Test system prompt",
@@ -539,6 +538,406 @@ func TestCreateAPIConfiguration_PreservesSystemUserID(t *testing.T) {
 
 	if configUserID != "specific-user-456" {
 		t.Errorf("Expected user configuration to preserve UserID='specific-user-456', got '%s'", configUserID)
+	}
+}
+
+// TestGitHubFunctionDefinitions tests the structure and validation of GitHub functions
+func TestGitHubFunctionDefinitions(t *testing.T) {
+	tests := []struct {
+		name                string
+		functionName        string
+		arguments           map[string]interface{}
+		expectValid         bool
+		expectedErrContains string
+	}{
+		{
+			name:         "github_read_issues_valid_basic",
+			functionName: "github_read_issues",
+			arguments: map[string]interface{}{
+				"owner": "microsoft",
+				"repo":  "vscode",
+				"state": "open",
+			},
+			expectValid: true,
+		},
+		{
+			name:         "github_read_issues_valid_with_filters",
+			functionName: "github_read_issues",
+			arguments: map[string]interface{}{
+				"owner":  "microsoft",
+				"repo":   "vscode",
+				"state":  "open",
+				"labels": "bug,enhancement",
+				"limit":  10,
+			},
+			expectValid: true,
+		},
+		{
+			name:         "github_read_issues_missing_owner",
+			functionName: "github_read_issues",
+			arguments: map[string]interface{}{
+				"repo":  "vscode",
+				"state": "open",
+			},
+			expectValid:         false,
+			expectedErrContains: "owner",
+		},
+		{
+			name:         "github_read_issues_missing_repo",
+			functionName: "github_read_issues",
+			arguments: map[string]interface{}{
+				"owner": "microsoft",
+				"state": "open",
+			},
+			expectValid:         false,
+			expectedErrContains: "repo",
+		},
+		{
+			name:         "github_read_code_valid_file",
+			functionName: "github_read_code",
+			arguments: map[string]interface{}{
+				"owner": "microsoft",
+				"repo":  "vscode",
+				"path":  "package.json",
+			},
+			expectValid: true,
+		},
+		{
+			name:         "github_read_code_valid_directory",
+			functionName: "github_read_code",
+			arguments: map[string]interface{}{
+				"owner": "microsoft",
+				"repo":  "vscode",
+				"path":  "src",
+			},
+			expectValid: true,
+		},
+		{
+			name:         "github_read_code_missing_path",
+			functionName: "github_read_code",
+			arguments: map[string]interface{}{
+				"owner": "microsoft",
+				"repo":  "vscode",
+			},
+			expectValid:         false,
+			expectedErrContains: "path",
+		},
+		{
+			name:         "github_repo_info_valid",
+			functionName: "github_repo_info",
+			arguments: map[string]interface{}{
+				"owner": "microsoft",
+				"repo":  "vscode",
+			},
+			expectValid: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateGitHubFunctionArguments(tt.functionName, tt.arguments)
+
+			if tt.expectValid {
+				if err != nil {
+					t.Errorf("expected valid arguments but got error: %v", err)
+				}
+			} else {
+				if err == nil {
+					t.Errorf("expected error but got none")
+					return
+				}
+				if tt.expectedErrContains != "" && !contains(err.Error(), tt.expectedErrContains) {
+					t.Errorf("expected error to contain %q, got %q", tt.expectedErrContains, err.Error())
+				}
+			}
+		})
+	}
+}
+
+// TestGitHubURLConstruction tests GitHub API URL building
+func TestGitHubURLConstruction(t *testing.T) {
+	tests := []struct {
+		name         string
+		functionName string
+		arguments    map[string]interface{}
+		expectedURL  string
+	}{
+		{
+			name:         "github_repo_info_url",
+			functionName: "github_repo_info",
+			arguments: map[string]interface{}{
+				"owner": "microsoft",
+				"repo":  "vscode",
+			},
+			expectedURL: "https://api.github.com/repos/microsoft/vscode",
+		},
+		{
+			name:         "github_read_issues_basic",
+			functionName: "github_read_issues",
+			arguments: map[string]interface{}{
+				"owner": "microsoft",
+				"repo":  "vscode",
+				"state": "open",
+			},
+			expectedURL: "https://api.github.com/repos/microsoft/vscode/issues?state=open",
+		},
+		{
+			name:         "github_read_issues_with_filters",
+			functionName: "github_read_issues",
+			arguments: map[string]interface{}{
+				"owner":  "microsoft",
+				"repo":   "vscode",
+				"state":  "open",
+				"labels": "bug,enhancement",
+				"limit":  5,
+			},
+			expectedURL: "https://api.github.com/repos/microsoft/vscode/issues?state=open&labels=bug,enhancement&per_page=5",
+		},
+		{
+			name:         "github_read_code_file",
+			functionName: "github_read_code",
+			arguments: map[string]interface{}{
+				"owner": "microsoft",
+				"repo":  "vscode",
+				"path":  "package.json",
+			},
+			expectedURL: "https://api.github.com/repos/microsoft/vscode/contents/package.json",
+		},
+		{
+			name:         "github_read_code_directory",
+			functionName: "github_read_code",
+			arguments: map[string]interface{}{
+				"owner": "microsoft",
+				"repo":  "vscode",
+				"path":  "src/vs",
+			},
+			expectedURL: "https://api.github.com/repos/microsoft/vscode/contents/src/vs",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			url, err := buildGitHubURL(tt.functionName, tt.arguments)
+			if err != nil {
+				t.Errorf("unexpected error building URL: %v", err)
+				return
+			}
+
+			if url != tt.expectedURL {
+				t.Errorf("expected URL %q, got %q", tt.expectedURL, url)
+			}
+		})
+	}
+}
+
+// TestGitHubMockResponses tests the structure of mock responses for GitHub functions
+func TestGitHubMockResponses(t *testing.T) {
+	tests := []struct {
+		name           string
+		functionName   string
+		expectedFields []string
+		expectArray    bool
+	}{
+		{
+			name:           "github_repo_info_mock",
+			functionName:   "github_repo_info",
+			expectedFields: []string{"name", "full_name", "description", "stargazers_count", "forks_count"},
+			expectArray:    false,
+		},
+		{
+			name:           "github_read_issues_mock",
+			functionName:   "github_read_issues",
+			expectedFields: []string{"title", "body", "state", "number"},
+			expectArray:    true,
+		},
+		{
+			name:           "github_read_code_mock",
+			functionName:   "github_read_code",
+			expectedFields: []string{"name", "type", "content"},
+			expectArray:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockResponse := getGitHubMockResponse(tt.functionName)
+
+			if mockResponse == nil {
+				t.Errorf("expected mock response but got nil")
+				return
+			}
+
+			// Check if it's an array when expected
+			if tt.expectArray {
+				if responseArray, ok := mockResponse.([]interface{}); ok {
+					if len(responseArray) == 0 {
+						t.Errorf("expected non-empty array response")
+						return
+					}
+					// Check first item in array
+					if firstItem, ok := responseArray[0].(map[string]interface{}); ok {
+						for _, field := range tt.expectedFields {
+							if _, exists := firstItem[field]; !exists {
+								t.Errorf("expected field %q not found in mock response", field)
+							}
+						}
+					} else {
+						t.Errorf("expected array of objects but got different type")
+					}
+				} else {
+					t.Errorf("expected array response but got different type")
+				}
+			} else {
+				// Check object response
+				if responseObj, ok := mockResponse.(map[string]interface{}); ok {
+					for _, field := range tt.expectedFields {
+						if _, exists := responseObj[field]; !exists {
+							t.Errorf("expected field %q not found in mock response", field)
+						}
+					}
+				} else {
+					t.Errorf("expected object response but got different type")
+				}
+			}
+		})
+	}
+}
+
+// Helper functions for GitHub function tests
+func validateGitHubFunctionArguments(functionName string, arguments map[string]interface{}) error {
+	// Basic validation for required fields
+	switch functionName {
+	case "github_repo_info", "github_read_issues", "github_read_code":
+		if _, ok := arguments["owner"]; !ok {
+			return fmt.Errorf("owner is required")
+		}
+		if _, ok := arguments["repo"]; !ok {
+			return fmt.Errorf("repo is required")
+		}
+	}
+
+	// Function-specific validation
+	switch functionName {
+	case "github_read_code":
+		if _, ok := arguments["path"]; !ok {
+			return fmt.Errorf("path is required")
+		}
+	case "github_read_issues":
+		// State is optional but if provided should be valid
+		if state, ok := arguments["state"]; ok {
+			if stateStr, ok := state.(string); ok {
+				if stateStr != "open" && stateStr != "closed" && stateStr != "all" {
+					return fmt.Errorf("state must be 'open', 'closed', or 'all'")
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func buildGitHubURL(functionName string, arguments map[string]interface{}) (string, error) {
+	owner, ok := arguments["owner"].(string)
+	if !ok {
+		return "", fmt.Errorf("owner must be a string")
+	}
+
+	repo, ok := arguments["repo"].(string)
+	if !ok {
+		return "", fmt.Errorf("repo must be a string")
+	}
+
+	baseURL := fmt.Sprintf("https://api.github.com/repos/%s/%s", owner, repo)
+
+	switch functionName {
+	case "github_repo_info":
+		return baseURL, nil
+
+	case "github_read_issues":
+		url := baseURL + "/issues"
+		params := []string{}
+
+		if state, ok := arguments["state"].(string); ok {
+			params = append(params, fmt.Sprintf("state=%s", state))
+		}
+		if labels, ok := arguments["labels"].(string); ok {
+			params = append(params, fmt.Sprintf("labels=%s", labels))
+		}
+		if limit, ok := arguments["limit"]; ok {
+			if limitInt, ok := limit.(int); ok {
+				params = append(params, fmt.Sprintf("per_page=%d", limitInt))
+			}
+		}
+
+		if len(params) > 0 {
+			url += "?" + fmt.Sprintf("%s", params[0])
+			for _, param := range params[1:] {
+				url += "&" + param
+			}
+		}
+		return url, nil
+
+	case "github_read_code":
+		path, ok := arguments["path"].(string)
+		if !ok {
+			return "", fmt.Errorf("path must be a string")
+		}
+		return baseURL + "/contents/" + path, nil
+
+	default:
+		return "", fmt.Errorf("unknown GitHub function: %s", functionName)
+	}
+}
+
+func getGitHubMockResponse(functionName string) interface{} {
+	switch functionName {
+	case "github_repo_info":
+		return map[string]interface{}{
+			"name":             "vscode",
+			"full_name":        "microsoft/vscode",
+			"description":      "Visual Studio Code",
+			"stargazers_count": 158000,
+			"forks_count":      28000,
+			"language":         "TypeScript",
+			"open_issues":      5234,
+		}
+
+	case "github_read_issues":
+		return []interface{}{
+			map[string]interface{}{
+				"number":     12345,
+				"title":      "Sample Issue Title",
+				"body":       "This is a sample issue description for testing purposes.",
+				"state":      "open",
+				"labels":     []string{"bug", "needs-investigation"},
+				"user":       map[string]interface{}{"login": "testuser"},
+				"created_at": "2024-01-15T10:30:00Z",
+				"updated_at": "2024-01-16T14:20:00Z",
+			},
+			map[string]interface{}{
+				"number":     12344,
+				"title":      "Another Sample Issue",
+				"body":       "Another issue for testing GitHub API integration.",
+				"state":      "open",
+				"labels":     []string{"enhancement"},
+				"user":       map[string]interface{}{"login": "developer"},
+				"created_at": "2024-01-14T09:15:00Z",
+				"updated_at": "2024-01-15T16:45:00Z",
+			},
+		}
+
+	case "github_read_code":
+		return map[string]interface{}{
+			"name":     "package.json",
+			"type":     "file",
+			"size":     1024,
+			"content":  "ewogICJuYW1lIjogInZzY29kZSIsCiAgInZlcnNpb24iOiAiMS44NS4wIgp9", // base64 encoded
+			"encoding": "base64",
+			"sha":      "abc123def456",
+		}
+
+	default:
+		return nil
 	}
 }
 

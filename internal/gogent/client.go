@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -31,11 +33,12 @@ import (
 
 // Client represents the main gogent client that wraps Gemini API calls
 type Client struct {
-	db           *sql.DB
-	queries      *db.Queries
-	config       *types.GeminiClientConfig
-	geminiClient *gemini.GeminiClient
-	mutex        sync.RWMutex
+	db             *sql.DB
+	queries        *db.Queries
+	config         *types.GeminiClientConfig
+	sessionApiKeys *types.SessionApiKeys // Session API keys for this execution
+	geminiClient   *gemini.GeminiClient
+	mutex          sync.RWMutex
 	// Add execution context for logging
 	currentExecutionRunID *string
 	currentConfigID       *string
@@ -43,7 +46,7 @@ type Client struct {
 }
 
 // NewClient creates a new gogent client with database connection
-func NewClient(dbURL string, config *types.GeminiClientConfig) (*Client, error) {
+func NewClient(dbURL string, config *types.GeminiClientConfig, sessionApiKeys *types.SessionApiKeys) (*Client, error) {
 	database, err := sql.Open("mysql", dbURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
@@ -70,10 +73,11 @@ func NewClient(dbURL string, config *types.GeminiClientConfig) (*Client, error) 
 	}
 
 	client := &Client{
-		db:      database,
-		queries: queries,
-		config:  config,
-		mutex:   sync.RWMutex{},
+		db:             database,
+		queries:        queries,
+		config:         config,
+		sessionApiKeys: sessionApiKeys,
+		mutex:          sync.RWMutex{},
 	}
 
 	// Initialize Gemini client if API key is provided
@@ -160,7 +164,6 @@ func (c *Client) CreateAPIConfiguration(ctx context.Context, userID string, conf
 	return c.queries.CreateAPIConfiguration(ctx, db.CreateAPIConfigurationParams{
 		ID:               config.ID,
 		UserID:           configUserID,
-		ExecutionRunID:   config.ExecutionRunID,
 		VariationName:    config.VariationName,
 		ModelName:        config.ModelName,
 		SystemPrompt:     sql.NullString{String: config.SystemPrompt, Valid: config.SystemPrompt != ""},
@@ -304,7 +307,6 @@ func (c *Client) ExecuteMultiVariation(ctx context.Context, userID string, reque
 	// Execute each configuration with rate limiting
 	for i, config := range request.Configurations {
 		config.ID = uuid.New().String()
-		config.ExecutionRunID = executionRun.ID
 
 		// CRITICAL: Add function tools to configuration if function calling is enabled
 		if request.EnableFunctionCalling && len(request.FunctionTools) > 0 {
@@ -318,8 +320,57 @@ func (c *Client) ExecuteMultiVariation(ctx context.Context, userID string, reque
 			return nil, fmt.Errorf("failed to save configuration: %w", err)
 		}
 
+		// Get the actual configuration ID from database (in case ON DUPLICATE KEY UPDATE was used)
+		configUserID := userID
+		if config.UserID != "" {
+			configUserID = config.UserID
+		}
+
+		// Query to get the actual configuration that exists in the database
+		actualConfig, err := c.queries.GetAPIConfiguration(ctx, db.GetAPIConfigurationParams{
+			ID:     config.ID,
+			UserID: configUserID,
+		})
+		if err != nil {
+			// Try to get by user_id + variation_name if direct ID lookup fails
+			configs, err2 := c.queries.ListAPIConfigurationsByUser(ctx, configUserID)
+			if err2 != nil {
+				c.logExecutionEvent(types.LogLevelError, types.LogCategoryError,
+					fmt.Sprintf("Failed to retrieve saved configuration: %v, %v", err, err2), nil)
+				return nil, fmt.Errorf("failed to retrieve saved configuration: %w", err)
+			}
+
+			// Find the config with matching variation name
+			var foundConfig *db.ApiConfiguration
+			for _, cfg := range configs {
+				if cfg.VariationName == config.VariationName {
+					foundConfig = &cfg
+					break
+				}
+			}
+
+			if foundConfig == nil {
+				c.logExecutionEvent(types.LogLevelError, types.LogCategoryError,
+					fmt.Sprintf("Configuration not found after creation: %s", config.VariationName), nil)
+				return nil, fmt.Errorf("configuration not found after creation: %s", config.VariationName)
+			}
+			actualConfig = *foundConfig
+		}
+
+		// Create execution configuration mapping with the actual configuration ID
+		execConfigID := uuid.New().String()
+		if err := c.queries.CreateExecutionConfiguration(ctx, db.CreateExecutionConfigurationParams{
+			ID:              execConfigID,
+			ExecutionRunID:  executionRun.ID,
+			ConfigurationID: actualConfig.ID,
+		}); err != nil {
+			c.logExecutionEvent(types.LogLevelError, types.LogCategoryError,
+				fmt.Sprintf("Failed to create execution configuration mapping: %v", err), nil)
+			return nil, fmt.Errorf("failed to create execution configuration mapping: %w", err)
+		}
+
 		// Set configuration context for logging AFTER saving to database
-		c.setExecutionContext(&executionRun.ID, &config.ID, nil)
+		c.setExecutionContext(&executionRun.ID, &actualConfig.ID, nil)
 
 		// Log the function tools setup
 		if request.EnableFunctionCalling && len(request.FunctionTools) > 0 {
@@ -407,11 +458,52 @@ func (c *Client) ExecuteMultiVariation(ctx context.Context, userID string, reque
 func (c *Client) executeSingleVariation(ctx context.Context, userID string, executionRunID string, config *types.APIConfiguration, prompt, context string) (*types.VariationResult, error) {
 	startTime := time.Now()
 
-	// Create API request
+	// Get the actual configuration ID from the database since config.ID might not be persisted yet
+	// We need to find the configuration that was actually saved to the database
+	configUserID := userID
+	if config.UserID != "" {
+		configUserID = config.UserID
+	}
+
+	// First try to get by ID if it exists
+	var actualConfigID string
+	if config.ID != "" {
+		actualConfig, err := c.queries.GetAPIConfiguration(ctx, db.GetAPIConfigurationParams{
+			ID:     config.ID,
+			UserID: configUserID,
+		})
+		if err == nil {
+			actualConfigID = actualConfig.ID
+		}
+	}
+
+	// If we couldn't find by ID, find by user_id + variation_name
+	if actualConfigID == "" {
+		configs, err := c.queries.ListAPIConfigurationsByUser(ctx, configUserID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to retrieve saved configuration: %w", err)
+		}
+
+		// Find the config with matching variation name
+		var foundConfig *db.ApiConfiguration
+		for _, cfg := range configs {
+			if cfg.VariationName == config.VariationName {
+				foundConfig = &cfg
+				break
+			}
+		}
+
+		if foundConfig == nil {
+			return nil, fmt.Errorf("configuration not found after creation: %s", config.VariationName)
+		}
+		actualConfigID = foundConfig.ID
+	}
+
+	// Create API request with the actual configuration ID from database
 	apiRequest := &types.APIRequest{
 		ID:              uuid.New().String(),
 		ExecutionRunID:  executionRunID,
-		ConfigurationID: config.ID,
+		ConfigurationID: actualConfigID,
 		RequestType:     types.RequestTypeGenerate, // Default to generate for now
 		Prompt:          prompt,
 		Context:         context,
@@ -442,6 +534,9 @@ func (c *Client) executeSingleVariation(ctx context.Context, userID string, exec
 		return nil, fmt.Errorf("failed to log API response: %w", logErr)
 	}
 
+	// Update the config ID to use the actual database ID for consistency
+	config.ID = actualConfigID
+
 	return &types.VariationResult{
 		Configuration: *config,
 		Request:       *apiRequest,
@@ -453,13 +548,17 @@ func (c *Client) executeSingleVariation(ctx context.Context, userID string, exec
 // callGeminiAPI makes the actual API call to Gemini
 func (c *Client) callGeminiAPI(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest) (*types.APIResponse, error) {
 	// Check if we have an API key available
-	if c.config.APIKey == "" {
-		log.Printf("No API key available, using mock responses")
+	var geminiApiKey string
+	if c.sessionApiKeys != nil {
+		geminiApiKey = c.sessionApiKeys.GeminiApiKey
+	}
+	if geminiApiKey == "" {
+		log.Printf("No Gemini API key available, using mock responses")
 		return c.callMockGeminiAPI(ctx, config, request)
 	}
 
 	// Force REST API implementation since it works perfectly
-	log.Printf("Using REST API for model: %s with API key: %s...", config.ModelName, c.config.APIKey[:10])
+	log.Printf("Using REST API for model: %s with API key: %s...", config.ModelName, geminiApiKey[:10])
 
 	// Use our working REST API implementation
 	return c.callGeminiRestAPI(ctx, config, request)
@@ -560,7 +659,11 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 	startTime := time.Now()
 
 	fmt.Printf("\n🚀 USING REST API IMPLEMENTATION - Model: '%s'\n", config.ModelName)
-	log.Printf("🚀 REST API CALLED - Model: '%s', API Key: %s...", config.ModelName, c.config.APIKey[:10])
+	var geminiApiKey string
+	if c.sessionApiKeys != nil {
+		geminiApiKey = c.sessionApiKeys.GeminiApiKey
+	}
+	log.Printf("🚀 REST API CALLED - Model: '%s', API Key: %s...", config.ModelName, geminiApiKey[:10])
 
 	if config.ModelName == "" {
 		log.Printf("❌ ERROR: Model name is empty!")
@@ -574,10 +677,13 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 		}, nil
 	}
 
-	// Use the same API key from the client configuration
-	apiKey := c.config.APIKey
+	// Use the API key from session keys
+	var apiKey string
+	if c.sessionApiKeys != nil {
+		apiKey = c.sessionApiKeys.GeminiApiKey
+	}
 	if apiKey == "" {
-		log.Printf("❌ No API key available for REST API call")
+		log.Printf("❌ No Gemini API key available for REST API call")
 		return c.callMockGeminiAPI(ctx, config, request)
 	}
 
@@ -690,7 +796,7 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-goog-api-key", apiKey)
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := &http.Client{Timeout: 10 * time.Minute} // Very tolerant for async execution
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("REST API - HTTP request error: %v", err)
@@ -767,6 +873,17 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 				startTime := time.Now()
 				functionResult, err := c.executeFunctionCall(ctx, part.FunctionCall.Name, part.FunctionCall.Args)
 				executionTime := time.Since(startTime).Milliseconds()
+
+				// Store original arguments in function result metadata for conversation reconstruction
+				if functionResult != nil {
+					if metadata, ok := functionResult["_metadata"].(map[string]interface{}); ok {
+						metadata["original_args"] = part.FunctionCall.Args
+					} else {
+						functionResult["_metadata"] = map[string]interface{}{
+							"original_args": part.FunctionCall.Args,
+						}
+					}
+				}
 
 				// Create function call record for logging
 				functionCall := &types.FunctionCall{
@@ -958,7 +1075,11 @@ func (c *Client) executeLegacyFunction(ctx context.Context, functionName string,
 		}
 
 		// Call real weather API
-		result, err := c.callWeatherAPI(ctx, location, c.config.OpenWeatherAPIKey)
+		var openWeatherApiKey string
+		if c.sessionApiKeys != nil {
+			openWeatherApiKey = c.sessionApiKeys.OpenWeatherApiKey
+		}
+		result, err := c.callWeatherAPI(ctx, location, openWeatherApiKey)
 		if err != nil {
 			c.logExecutionEvent(types.LogLevelError, types.LogCategoryFunctionCall,
 				fmt.Sprintf("Weather API call failed: %v", err),
@@ -1515,14 +1636,14 @@ func (c *Client) getLocationSuggestion(location string, statusCode int, response
 
 // callNeo4jAPI executes a Cypher query against a Neo4j database
 func (c *Client) callNeo4jAPI(ctx context.Context, query string, limit int) (map[string]interface{}, error) {
-	if c.config.Neo4jURL == "" {
+	if c.sessionApiKeys == nil || c.sessionApiKeys.Neo4jUrl == "" {
 		return nil, fmt.Errorf("Neo4j URL not configured")
 	}
 
-	log.Printf("🔗 Connecting to Neo4j at: %s", c.config.Neo4jURL)
+	log.Printf("🔗 Connecting to Neo4j at: %s", c.sessionApiKeys.Neo4jUrl)
 
 	// Create Neo4j driver
-	driver, err := neo4j.NewDriverWithContext(c.config.Neo4jURL, neo4j.BasicAuth(c.config.Neo4jUsername, c.config.Neo4jPassword, ""))
+	driver, err := neo4j.NewDriverWithContext(c.sessionApiKeys.Neo4jUrl, neo4j.BasicAuth(c.sessionApiKeys.Neo4jUsername, c.sessionApiKeys.Neo4jPassword, ""))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Neo4j driver: %w", err)
 	}
@@ -1536,7 +1657,7 @@ func (c *Client) callNeo4jAPI(ctx context.Context, query string, limit int) (map
 	// Create session
 	sessionConfig := neo4j.SessionConfig{
 		AccessMode:   neo4j.AccessModeRead,
-		DatabaseName: c.config.Neo4jDatabase,
+		DatabaseName: c.sessionApiKeys.Neo4jDatabase,
 	}
 	session := driver.NewSession(ctx, sessionConfig)
 	defer session.Close(ctx)
@@ -2081,12 +2202,26 @@ func (c *Client) executeHTTPFunction(ctx context.Context, funcDef *db.FunctionDe
 		fmt.Sprintf("Executing HTTP function: %s %s", funcDef.HttpMethod.String, funcDef.EndpointUrl.String),
 		args)
 
-	// Build URL with query parameters for GET requests
+	// Build URL with path parameter substitution
 	requestURL := funcDef.EndpointUrl.String
 	var requestBody []byte
 
+	// Replace URL path parameters (e.g., {owner}, {repo})
+	for key, value := range args {
+		placeholder := fmt.Sprintf("{%s}", key)
+		if strings.Contains(requestURL, placeholder) {
+			requestURL = strings.ReplaceAll(requestURL, placeholder, fmt.Sprintf("%v", value))
+			c.logExecutionEvent(types.LogLevelDebug, types.LogCategoryFunctionCall,
+				fmt.Sprintf("Replaced URL parameter %s", key),
+				map[string]interface{}{
+					"parameter": key,
+					"value":     fmt.Sprintf("%v", value),
+				})
+		}
+	}
+
 	if funcDef.HttpMethod.String == "GET" {
-		// Add parameters as query string
+		// Add remaining parameters as query string (excluding those used in URL path)
 		if len(args) > 0 {
 			u, err := url.Parse(requestURL)
 			if err != nil {
@@ -2094,17 +2229,31 @@ func (c *Client) executeHTTPFunction(ctx context.Context, funcDef *db.FunctionDe
 			}
 			q := u.Query()
 			for key, value := range args {
-				q.Set(key, fmt.Sprintf("%v", value))
+				// Skip parameters already used in URL path substitution
+				placeholder := fmt.Sprintf("{%s}", key)
+				if !strings.Contains(funcDef.EndpointUrl.String, placeholder) {
+					q.Set(key, fmt.Sprintf("%v", value))
+				}
 			}
 			u.RawQuery = q.Encode()
 			requestURL = u.String()
 		}
 	} else {
-		// Add parameters as JSON body for POST/PUT/etc
-		var err error
-		requestBody, err = json.Marshal(args)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal request body: %w", err)
+		// Add parameters as JSON body for POST/PUT/etc (excluding URL path parameters)
+		bodyArgs := make(map[string]interface{})
+		for key, value := range args {
+			placeholder := fmt.Sprintf("{%s}", key)
+			if !strings.Contains(funcDef.EndpointUrl.String, placeholder) {
+				bodyArgs[key] = value
+			}
+		}
+
+		if len(bodyArgs) > 0 {
+			var err error
+			requestBody, err = json.Marshal(bodyArgs)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal request body: %w", err)
+			}
 		}
 	}
 
@@ -2135,7 +2284,7 @@ func (c *Client) executeHTTPFunction(ctx context.Context, funcDef *db.FunctionDe
 	}
 
 	// Execute request
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := &http.Client{Timeout: 5 * time.Minute} // Generous timeout for external API calls
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("HTTP request failed: %w", err)
@@ -2165,7 +2314,8 @@ func (c *Client) executeHTTPFunction(ctx context.Context, funcDef *db.FunctionDe
 		"execution_method": "HTTP",
 	}
 
-	return result, nil
+	// Apply result transformer if specified
+	return c.applyStoredResultTransformer(funcDef, result, "", args)
 }
 
 // executeCypherFunction executes Neo4j Cypher queries using stored templates
@@ -2276,14 +2426,55 @@ func (c *Client) buildCypherQuery(functionName string, args map[string]interface
 
 // addAPIKeyAuthentication adds appropriate API key authentication
 func (c *Client) addAPIKeyAuthentication(req *http.Request, endpointURL string, args map[string]interface{}) error {
-	// OpenWeather API
-	if strings.Contains(endpointURL, "openweathermap.org") {
-		// Add API key from secure storage or environment
-		// This would need to be implemented based on your API key storage
-		req.URL.RawQuery += "&appid=YOUR_OPENWEATHER_API_KEY"
+	if c.sessionApiKeys == nil {
+		c.logExecutionEvent(types.LogLevelWarn, types.LogCategoryAPICall,
+			"No session API keys available for authentication",
+			map[string]interface{}{"endpoint": endpointURL})
+		return nil
 	}
 
-	// Add other API authentications as needed
+	// GitHub API
+	if strings.Contains(endpointURL, "api.github.com") {
+		if c.sessionApiKeys.GithubApiKey != "" {
+			req.Header.Set("Authorization", "token "+c.sessionApiKeys.GithubApiKey)
+			c.logExecutionEvent(types.LogLevelDebug, types.LogCategoryAPICall,
+				"Added GitHub API authentication",
+				map[string]interface{}{
+					"endpoint":       endpointURL,
+					"api_key_masked": "***" + c.sessionApiKeys.GithubApiKey[len(c.sessionApiKeys.GithubApiKey)-4:],
+				})
+		} else {
+			c.logExecutionEvent(types.LogLevelWarn, types.LogCategoryAPICall,
+				"GitHub API key not available for authentication",
+				map[string]interface{}{"endpoint": endpointURL})
+		}
+	}
+
+	// OpenWeather API
+	if strings.Contains(endpointURL, "openweathermap.org") {
+		if c.sessionApiKeys.OpenWeatherApiKey != "" {
+			// Add API key as query parameter
+			u, err := url.Parse(req.URL.String())
+			if err != nil {
+				return fmt.Errorf("failed to parse URL for OpenWeather API key: %w", err)
+			}
+			q := u.Query()
+			q.Set("appid", c.sessionApiKeys.OpenWeatherApiKey)
+			u.RawQuery = q.Encode()
+			req.URL = u
+
+			c.logExecutionEvent(types.LogLevelDebug, types.LogCategoryAPICall,
+				"Added OpenWeather API authentication",
+				map[string]interface{}{
+					"endpoint":       endpointURL,
+					"api_key_masked": "***" + c.sessionApiKeys.OpenWeatherApiKey[len(c.sessionApiKeys.OpenWeatherApiKey)-4:],
+				})
+		} else {
+			c.logExecutionEvent(types.LogLevelWarn, types.LogCategoryAPICall,
+				"OpenWeather API key not available for authentication",
+				map[string]interface{}{"endpoint": endpointURL})
+		}
+	}
 
 	return nil
 }
@@ -2590,6 +2781,553 @@ func (c *Client) getDefaultFallbackData(functionName string) map[string]interfac
 	}
 }
 
+// transformGitHubCodeResponse transforms GitHub API code response by decoding base64 content and providing analysis
+func (c *Client) transformGitHubCodeResponse(result map[string]interface{}, args map[string]interface{}) map[string]interface{} {
+	log.Printf("🔧 Applying github_code_analyzer transformer to GitHub response")
+
+	// Extract the actual GitHub API response from the HTTP result
+	var githubData interface{}
+	if response, exists := result["response"]; exists {
+		githubData = response
+		log.Printf("🔧 Found response data, type: %T", githubData)
+
+		// If it's a string, it might be JSON that needs parsing
+		if responseStr, ok := githubData.(string); ok {
+			log.Printf("🔧 Response is string, attempting JSON decode")
+			var parsed interface{}
+			if err := json.Unmarshal([]byte(responseStr), &parsed); err == nil {
+				githubData = parsed
+				log.Printf("🔧 Successfully parsed JSON, new type: %T", githubData)
+			} else {
+				log.Printf("⚠️ Failed to parse JSON string: %v", err)
+			}
+		}
+	} else {
+		githubData = result // Fallback for direct GitHub data
+		log.Printf("🔧 Using result as github data, type: %T", githubData)
+	}
+
+	// Extract content if it exists and is base64 encoded
+	var decodedContent string
+	var fileInfo map[string]interface{}
+
+	// Handle both single file and array of files/directories
+	log.Printf("🔧 Checking if githubData is array - type: %T", githubData)
+	if githubArray, ok := githubData.([]interface{}); ok && len(githubArray) > 0 {
+		log.Printf("🔧 Detected directory listing with %d items", len(githubArray))
+		// Directory listing - no content to decode
+		return c.transformDirectoryListing(result, githubArray)
+	}
+
+	// Single file response
+	log.Printf("🔧 Attempting to parse as single file map")
+	githubDataMap, ok := githubData.(map[string]interface{})
+	if !ok {
+		log.Printf("⚠️ Unable to parse GitHub response data - type: %T, data (first 200 chars): %.200s", githubData, fmt.Sprintf("%+v", githubData))
+		return result
+	}
+
+	var keys []string
+	for k := range githubDataMap {
+		keys = append(keys, k)
+	}
+	log.Printf("🔧 Parsed GitHub data as map with keys: %v", keys)
+
+	if content, exists := githubDataMap["content"]; exists {
+		if contentStr, ok := content.(string); ok && contentStr != "" {
+			// GitHub API returns base64 content with newlines, so we need to clean it
+			cleanContent := strings.ReplaceAll(contentStr, "\n", "")
+			cleanContent = strings.ReplaceAll(cleanContent, "\r", "")
+
+			if decoded, err := base64.StdEncoding.DecodeString(cleanContent); err == nil {
+				decodedContent = string(decoded)
+				log.Printf("✅ Successfully decoded %d bytes of code content", len(decoded))
+			} else {
+				log.Printf("⚠️ Failed to decode base64 content: %v", err)
+				decodedContent = "Failed to decode file content"
+			}
+		}
+	}
+
+	// Extract file information
+	fileInfo = map[string]interface{}{
+		"name": getStringFromResult(githubDataMap, "name"),
+		"path": getStringFromResult(githubDataMap, "path"),
+		"size": getIntFromResult(githubDataMap, "size"),
+		"type": getStringFromResult(githubDataMap, "type"),
+	}
+
+	// Basic code analysis
+	analysis := c.analyzeCodeContent(decodedContent, getStringFromResult(githubDataMap, "name"))
+
+	// Return transformed response
+	transformed := map[string]interface{}{
+		"file_info":       fileInfo,
+		"decoded_content": decodedContent,
+		"analysis":        analysis,
+		"_metadata": map[string]interface{}{
+			"function_name":    "github_analyze_code",
+			"execution_method": "HTTP",
+			"transformer_type": "code_analyzer",
+			"status_code":      200,
+			"original_args":    args,
+		},
+	}
+
+	log.Printf("✅ Code analysis complete for file: %s", getStringFromResult(result, "name"))
+	return transformed
+}
+
+// Helper function to safely extract string values from result
+func getStringFromResult(result map[string]interface{}, key string) string {
+	if val, exists := result[key]; exists {
+		if str, ok := val.(string); ok {
+			return str
+		}
+	}
+	return ""
+}
+
+// Helper function to safely extract int values from result
+func getIntFromResult(result map[string]interface{}, key string) int {
+	if val, exists := result[key]; exists {
+		if num, ok := val.(float64); ok {
+			return int(num)
+		}
+		if num, ok := val.(int); ok {
+			return num
+		}
+	}
+	return 0
+}
+
+// Basic code analysis based on file content and extension
+func (c *Client) analyzeCodeContent(content, filename string) map[string]interface{} {
+	analysis := map[string]interface{}{
+		"language":   detectLanguage(filename),
+		"lines":      len(strings.Split(content, "\n")),
+		"size_bytes": len(content),
+	}
+
+	// Language-specific analysis
+	switch detectLanguage(filename) {
+	case "go":
+		analysis["functions"] = extractGoFunctions(content)
+		analysis["imports"] = extractGoImports(content)
+		analysis["packages"] = extractGoPackages(content)
+	case "javascript", "typescript":
+		analysis["functions"] = extractJSFunctions(content)
+		analysis["imports"] = extractJSImports(content)
+	case "python":
+		analysis["functions"] = extractPythonFunctions(content)
+		analysis["imports"] = extractPythonImports(content)
+	}
+
+	return analysis
+}
+
+// Detect programming language from filename
+func detectLanguage(filename string) string {
+	ext := strings.ToLower(filepath.Ext(filename))
+	switch ext {
+	case ".go":
+		return "go"
+	case ".js":
+		return "javascript"
+	case ".ts":
+		return "typescript"
+	case ".py":
+		return "python"
+	case ".java":
+		return "java"
+	case ".cpp", ".cc", ".cxx":
+		return "cpp"
+	case ".c":
+		return "c"
+	case ".rb":
+		return "ruby"
+	case ".php":
+		return "php"
+	case ".rs":
+		return "rust"
+	default:
+		return "unknown"
+	}
+}
+
+// Extract Go function names from content
+func extractGoFunctions(content string) []string {
+	funcRegex := regexp.MustCompile(`func\s+(\w+)\s*\(`)
+	matches := funcRegex.FindAllStringSubmatch(content, -1)
+	var functions []string
+	for _, match := range matches {
+		if len(match) > 1 {
+			functions = append(functions, match[1])
+		}
+	}
+	return functions
+}
+
+// Extract Go imports from content
+func extractGoImports(content string) []string {
+	// Handle both single import and import blocks
+	importRegex := regexp.MustCompile(`import\s+(?:\(\s*((?:[^)]*\n)*)\s*\)|"([^"]+)")`)
+	matches := importRegex.FindAllStringSubmatch(content, -1)
+	var imports []string
+
+	for _, match := range matches {
+		if len(match) > 2 && match[2] != "" {
+			// Single import
+			imports = append(imports, match[2])
+		} else if len(match) > 1 && match[1] != "" {
+			// Import block
+			blockImports := regexp.MustCompile(`"([^"]+)"`).FindAllStringSubmatch(match[1], -1)
+			for _, blockMatch := range blockImports {
+				if len(blockMatch) > 1 {
+					imports = append(imports, blockMatch[1])
+				}
+			}
+		}
+	}
+	return imports
+}
+
+// Extract Go package name from content
+func extractGoPackages(content string) []string {
+	packageRegex := regexp.MustCompile(`package\s+(\w+)`)
+	match := packageRegex.FindStringSubmatch(content)
+	if len(match) > 1 {
+		return []string{match[1]}
+	}
+	return []string{}
+}
+
+// Extract JavaScript/TypeScript function names
+func extractJSFunctions(content string) []string {
+	funcRegex := regexp.MustCompile(`(?:function\s+(\w+)|const\s+(\w+)\s*=|(\w+)\s*:\s*function|\s+(\w+)\s*\()`)
+	matches := funcRegex.FindAllStringSubmatch(content, -1)
+	var functions []string
+	for _, match := range matches {
+		for i := 1; i < len(match); i++ {
+			if match[i] != "" {
+				functions = append(functions, match[i])
+				break
+			}
+		}
+	}
+	return functions
+}
+
+// Extract JavaScript/TypeScript imports
+func extractJSImports(content string) []string {
+	importRegex := regexp.MustCompile(`import\s+.*?from\s+['"]([^'"]+)['"]`)
+	matches := importRegex.FindAllStringSubmatch(content, -1)
+	var imports []string
+	for _, match := range matches {
+		if len(match) > 1 {
+			imports = append(imports, match[1])
+		}
+	}
+	return imports
+}
+
+// Extract Python function names
+func extractPythonFunctions(content string) []string {
+	funcRegex := regexp.MustCompile(`def\s+(\w+)\s*\(`)
+	matches := funcRegex.FindAllStringSubmatch(content, -1)
+	var functions []string
+	for _, match := range matches {
+		if len(match) > 1 {
+			functions = append(functions, match[1])
+		}
+	}
+	return functions
+}
+
+// Extract Python imports
+func extractPythonImports(content string) []string {
+	importRegex := regexp.MustCompile(`(?:import\s+(\w+)|from\s+(\w+)\s+import)`)
+	matches := importRegex.FindAllStringSubmatch(content, -1)
+	var imports []string
+	for _, match := range matches {
+		for i := 1; i < len(match); i++ {
+			if match[i] != "" {
+				imports = append(imports, match[i])
+				break
+			}
+		}
+	}
+	return imports
+}
+
+// transformDirectoryListing handles GitHub directory listing responses
+func (c *Client) transformDirectoryListing(result map[string]interface{}, githubArray []interface{}) map[string]interface{} {
+	log.Printf("🔧 Processing GitHub directory listing with %d items", len(githubArray))
+
+	files := make([]map[string]interface{}, 0)
+	directories := make([]map[string]interface{}, 0)
+
+	// Auto-fetch content for files that are reasonably sized
+	filesWithContent := make([]map[string]interface{}, 0)
+
+	for _, item := range githubArray {
+		if itemMap, ok := item.(map[string]interface{}); ok {
+			itemType := getStringFromResult(itemMap, "type")
+			itemInfo := map[string]interface{}{
+				"name": getStringFromResult(itemMap, "name"),
+				"path": getStringFromResult(itemMap, "path"),
+				"type": itemType,
+				"size": getIntFromResult(itemMap, "size"),
+			}
+
+			if itemType == "file" {
+				files = append(files, itemInfo)
+
+				// Auto-fetch content for files under 50KB that look like code files
+				fileSize := getIntFromResult(itemMap, "size")
+				fileName := getStringFromResult(itemMap, "name")
+				if fileSize > 0 && fileSize < 50000 && c.isCodeFile(fileName) {
+					log.Printf("🔧 Auto-fetching content for file: %s (%d bytes)", fileName, fileSize)
+					if fileContent := c.fetchFileContent(itemMap); fileContent != nil {
+						itemInfo["content"] = fileContent["content"]
+						itemInfo["analysis"] = fileContent["analysis"]
+						filesWithContent = append(filesWithContent, itemInfo)
+					}
+				}
+			} else if itemType == "dir" {
+				directories = append(directories, itemInfo)
+			}
+		}
+	}
+
+	// Enhanced result with structured directory listing
+	enhanced := map[string]interface{}{
+		"type": "directory_listing",
+		"directory_contents": map[string]interface{}{
+			"files":       files,
+			"directories": directories,
+			"total_files": len(files),
+			"total_dirs":  len(directories),
+		},
+		"raw_response": result["response"],
+		"_metadata":    result["_metadata"],
+		"analysis": map[string]interface{}{
+			"summary":             fmt.Sprintf("Directory contains %d files and %d subdirectories", len(files), len(directories)),
+			"file_types":          c.analyzeFileTypes(files),
+			"files_with_content":  len(filesWithContent),
+			"total_lines_of_code": c.countTotalLinesOfCode(filesWithContent),
+			"code_files_analyzed": c.summarizeCodeFiles(filesWithContent),
+		},
+	}
+
+	// If we successfully fetched content for files, include detailed code analysis
+	if len(filesWithContent) > 0 {
+		enhanced["detailed_code_analysis"] = map[string]interface{}{
+			"files_analyzed": filesWithContent,
+			"overview":       c.generateCodeOverview(filesWithContent),
+		}
+		log.Printf("✅ Enhanced directory listing with code analysis: %d files analyzed", len(filesWithContent))
+	} else {
+		log.Printf("✅ Enhanced directory listing: %d files, %d directories (no code content fetched)", len(files), len(directories))
+	}
+
+	return enhanced
+}
+
+// analyzeFileTypes analyzes the file types in a directory listing
+func (c *Client) analyzeFileTypes(files []map[string]interface{}) map[string]interface{} {
+	typeCount := make(map[string]int)
+
+	for _, file := range files {
+		if name, ok := file["name"].(string); ok {
+			ext := filepath.Ext(name)
+			if ext == "" {
+				ext = "no_extension"
+			}
+			typeCount[ext]++
+		}
+	}
+
+	return map[string]interface{}{
+		"by_extension": typeCount,
+		"total_types":  len(typeCount),
+	}
+}
+
+// isCodeFile determines if a file should be analyzed as code based on its extension
+func (c *Client) isCodeFile(fileName string) bool {
+	ext := strings.ToLower(filepath.Ext(fileName))
+	codeExtensions := map[string]bool{
+		".go":    true,
+		".js":    true,
+		".ts":    true,
+		".py":    true,
+		".java":  true,
+		".cpp":   true,
+		".c":     true,
+		".h":     true,
+		".hpp":   true,
+		".rs":    true,
+		".php":   true,
+		".rb":    true,
+		".cs":    true,
+		".swift": true,
+		".kt":    true,
+		".scala": true,
+		".sql":   true,
+		".sh":    true,
+		".bash":  true,
+		".zsh":   true,
+		".fish":  true,
+		".yml":   true,
+		".yaml":  true,
+		".json":  true,
+		".xml":   true,
+		".html":  true,
+		".css":   true,
+		".scss":  true,
+		".less":  true,
+		".vue":   true,
+		".jsx":   true,
+		".tsx":   true,
+	}
+	return codeExtensions[ext]
+}
+
+// fetchFileContent fetches the content of a single file from GitHub API
+func (c *Client) fetchFileContent(fileItem map[string]interface{}) map[string]interface{} {
+	downloadURL := getStringFromResult(fileItem, "download_url")
+	if downloadURL == "" {
+		log.Printf("⚠️ No download_url found for file")
+		return nil
+	}
+
+	// Make HTTP request to fetch file content
+	resp, err := http.Get(downloadURL)
+	if err != nil {
+		log.Printf("⚠️ Failed to fetch file content: %v", err)
+		return nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		log.Printf("⚠️ Failed to fetch file content, status: %d", resp.StatusCode)
+		return nil
+	}
+
+	contentBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("⚠️ Failed to read file content: %v", err)
+		return nil
+	}
+
+	content := string(contentBytes)
+	fileName := getStringFromResult(fileItem, "name")
+
+	return map[string]interface{}{
+		"content":  content,
+		"analysis": c.analyzeCodeContent(content, fileName),
+	}
+}
+
+// countTotalLinesOfCode counts total lines across all analyzed files
+func (c *Client) countTotalLinesOfCode(filesWithContent []map[string]interface{}) int {
+	totalLines := 0
+	for _, file := range filesWithContent {
+		if content, ok := file["content"].(string); ok {
+			totalLines += len(strings.Split(content, "\n"))
+		}
+	}
+	return totalLines
+}
+
+// summarizeCodeFiles provides a summary of the analyzed code files
+func (c *Client) summarizeCodeFiles(filesWithContent []map[string]interface{}) []map[string]interface{} {
+	summaries := make([]map[string]interface{}, 0)
+
+	for _, file := range filesWithContent {
+		if analysis, ok := file["analysis"].(map[string]interface{}); ok {
+			summary := map[string]interface{}{
+				"name":      file["name"],
+				"size":      file["size"],
+				"functions": getIntFromResult(analysis, "function_count"),
+				"imports":   getIntFromResult(analysis, "import_count"),
+				"lines":     getIntFromResult(analysis, "line_count"),
+			}
+			summaries = append(summaries, summary)
+		}
+	}
+
+	return summaries
+}
+
+// generateCodeOverview generates a high-level overview of the analyzed code
+func (c *Client) generateCodeOverview(filesWithContent []map[string]interface{}) map[string]interface{} {
+	totalFunctions := 0
+	totalImports := 0
+	totalLines := 0
+	fileLanguages := make(map[string]int)
+
+	for _, file := range filesWithContent {
+		fileName := getStringFromResult(file, "name")
+		ext := strings.ToLower(filepath.Ext(fileName))
+		fileLanguages[ext]++
+
+		if analysis, ok := file["analysis"].(map[string]interface{}); ok {
+			totalFunctions += getIntFromResult(analysis, "function_count")
+			totalImports += getIntFromResult(analysis, "import_count")
+			totalLines += getIntFromResult(analysis, "line_count")
+		}
+	}
+
+	return map[string]interface{}{
+		"total_functions":    totalFunctions,
+		"total_imports":      totalImports,
+		"total_lines":        totalLines,
+		"files_analyzed":     len(filesWithContent),
+		"languages_detected": fileLanguages,
+		"purpose_analysis":   c.inferDirectoryPurpose(filesWithContent),
+	}
+}
+
+// inferDirectoryPurpose attempts to infer the purpose of the directory based on file analysis
+func (c *Client) inferDirectoryPurpose(filesWithContent []map[string]interface{}) string {
+	hasMain := false
+	hasServer := false
+	hasGRPC := false
+	hasHttp := false
+
+	for _, file := range filesWithContent {
+		fileName := strings.ToLower(getStringFromResult(file, "name"))
+		content := getStringFromResult(file, "content")
+
+		if fileName == "main.go" {
+			hasMain = true
+		}
+		if strings.Contains(fileName, "server") {
+			hasServer = true
+		}
+		if strings.Contains(content, "grpc") || strings.Contains(fileName, "grpc") {
+			hasGRPC = true
+		}
+		if strings.Contains(content, "http") && strings.Contains(content, "ListenAndServe") {
+			hasHttp = true
+		}
+	}
+
+	if hasMain && hasServer && hasGRPC {
+		return "Go gRPC server application with main entry point"
+	} else if hasMain && hasServer && hasHttp {
+		return "Go HTTP server application with main entry point"
+	} else if hasMain {
+		return "Go application with main entry point"
+	} else if hasServer {
+		return "Server-related code module"
+	} else {
+		return "Go code module (purpose unclear from file analysis)"
+	}
+}
+
 // applyStoredResultTransformer applies the stored result transformer
 func (c *Client) applyStoredResultTransformer(funcDef *db.FunctionDefinition, result map[string]interface{}, cypherQuery string, args map[string]interface{}) (map[string]interface{}, error) {
 	transformerType := "default"
@@ -2627,6 +3365,10 @@ func (c *Client) applyStoredResultTransformer(funcDef *db.FunctionDefinition, re
 		}
 
 		return c.processAttributeNormalization(result, normalizationType, caseStyle, customMappings, cypherQuery), nil
+	case "code_analyzer":
+		return c.transformGitHubCodeResponse(result, args), nil
+	case "github_code_analyzer":
+		return c.transformGitHubCodeResponse(result, args), nil
 	default:
 		// Default transformer - return result with metadata
 		result["_metadata"] = map[string]interface{}{
@@ -2642,30 +3384,95 @@ func (c *Client) applyStoredResultTransformer(funcDef *db.FunctionDefinition, re
 func (c *Client) sendFunctionResultToGemini(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest, functionName string, functionResult map[string]interface{}, originalPrompt string) (string, error) {
 	log.Printf("🔧 Sending function result back to Gemini for final response")
 
-	// Create a follow-up prompt that includes the function result
-	resultText, _ := json.Marshal(functionResult)
-	followUpPrompt := fmt.Sprintf("%s\n\nFunction %s was called and returned: %s\n\nPlease provide a natural, helpful response to the user based on this information.", originalPrompt, functionName, string(resultText))
-
-	// Create request body for the follow-up call
+	// According to Gemini API docs, we need to send the conversation history including the function call and response
+	// Create the conversation with the original user message, function call, and function response
 	requestBody := map[string]interface{}{
 		"contents": []map[string]interface{}{
+			// Original user message
 			{
+				"role": "user",
 				"parts": []map[string]interface{}{
-					{"text": followUpPrompt},
+					{"text": originalPrompt},
+				},
+			},
+			// Model's function call response
+			{
+				"role": "model",
+				"parts": []map[string]interface{}{
+					{
+						"functionCall": map[string]interface{}{
+							"name": functionName,
+							"args": extractArgsFromResult(functionResult),
+						},
+					},
+				},
+			},
+			// Function response
+			{
+				"role": "function",
+				"parts": []map[string]interface{}{
+					{
+						"functionResponse": map[string]interface{}{
+							"name":     functionName,
+							"response": functionResult,
+						},
+					},
 				},
 			},
 		},
 	}
 
-	// Add generation config
+	// Add generation config if available
+	generationConfig := make(map[string]interface{})
 	if config.Temperature != nil {
-		requestBody["generationConfig"] = map[string]interface{}{
-			"temperature": *config.Temperature,
-		}
+		generationConfig["temperature"] = *config.Temperature
+	}
+	if config.MaxTokens != nil {
+		generationConfig["maxOutputTokens"] = *config.MaxTokens
+	}
+	if len(generationConfig) > 0 {
+		requestBody["generationConfig"] = generationConfig
 	}
 
-	// Make the API call
+	// Include tools in follow-up request to enable function chaining if needed
+	// But use a different toolConfig mode to make it optional rather than required
+	if len(config.Tools) > 0 {
+		log.Printf("🔧 Adding %d tools to follow-up Gemini request for potential function chaining", len(config.Tools))
+		tools := make([]map[string]interface{}, len(config.Tools))
+		for i, tool := range config.Tools {
+			// Sanitize the parameters to remove unsupported fields
+			sanitizedParams := sanitizeToolParameters(tool.Parameters)
+
+			toolDeclaration := map[string]interface{}{
+				"functionDeclarations": []map[string]interface{}{
+					{
+						"name":        tool.Name,
+						"description": tool.Description,
+						"parameters":  sanitizedParams,
+					},
+				},
+			}
+			tools[i] = toolDeclaration
+		}
+		requestBody["tools"] = tools
+
+		// Use AUTO mode instead of ANY - this allows Gemini to choose whether to use functions
+		// or provide a text response based on the function result
+		requestBody["toolConfig"] = map[string]interface{}{
+			"functionCallingConfig": map[string]interface{}{
+				"mode": "AUTO", // Let Gemini decide whether to call functions or respond with text
+			},
+		}
+		log.Printf("🔧 Added tools with AUTO mode to allow Gemini to choose between function calls and text response")
+	} else {
+		log.Printf("🔧 No tools available - Gemini will only provide text response")
+	}
+
+	// Debug: Log the request body (truncated for readability)
 	reqBodyBytes, _ := json.Marshal(requestBody)
+	log.Printf("🔧 DEBUG: Follow-up request body (first 500 chars): %s", string(reqBodyBytes)[:min(500, len(reqBodyBytes))])
+
+	// Make the API call
 	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent", config.ModelName)
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(reqBodyBytes))
@@ -2674,9 +3481,13 @@ func (c *Client) sendFunctionResultToGemini(ctx context.Context, config *types.A
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("x-goog-api-key", c.config.APIKey)
+	var geminiApiKey string
+	if c.sessionApiKeys != nil {
+		geminiApiKey = c.sessionApiKeys.GeminiApiKey
+	}
+	req.Header.Set("x-goog-api-key", geminiApiKey)
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := &http.Client{Timeout: 10 * time.Minute} // Very tolerant for async follow-up calls
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
@@ -2688,12 +3499,19 @@ func (c *Client) sendFunctionResultToGemini(ctx context.Context, config *types.A
 		return "", err
 	}
 
+	// Debug: Log the response body
+	log.Printf("🔧 DEBUG: Follow-up response body (first 1000 chars): %s", string(body)[:min(1000, len(body))])
+
 	// Parse response
 	var geminiResp struct {
 		Candidates []struct {
 			Content struct {
 				Parts []struct {
-					Text string `json:"text"`
+					Text         string `json:"text,omitempty"`
+					FunctionCall struct {
+						Name string                 `json:"name"`
+						Args map[string]interface{} `json:"args"`
+					} `json:"functionCall,omitempty"`
 				} `json:"parts"`
 			} `json:"content"`
 		} `json:"candidates"`
@@ -2704,12 +3522,222 @@ func (c *Client) sendFunctionResultToGemini(ctx context.Context, config *types.A
 	}
 
 	if len(geminiResp.Candidates) > 0 && len(geminiResp.Candidates[0].Content.Parts) > 0 {
-		finalResponse := geminiResp.Candidates[0].Content.Parts[0].Text
-		log.Printf("✅ Got final response from Gemini: %s", finalResponse[:min(50, len(finalResponse))])
-		return finalResponse, nil
+		for _, part := range geminiResp.Candidates[0].Content.Parts {
+			// If we get a text response, that's what we want
+			if part.Text != "" {
+				log.Printf("✅ Got final response from Gemini: %s", part.Text[:min(50, len(part.Text))])
+				return part.Text, nil
+			}
+
+			// If we get another function call, this is function chaining - execute it
+			if part.FunctionCall.Name != "" {
+				log.Printf("🔗 Function chaining detected: %s", part.FunctionCall.Name)
+
+				// Execute the additional function call
+				chainedResult, err := c.executeFunctionCall(ctx, part.FunctionCall.Name, part.FunctionCall.Args)
+				if err != nil {
+					log.Printf("⚠️ Failed to execute chained function %s: %v", part.FunctionCall.Name, err)
+					// Fallback to providing the original function result
+					resultData, _ := json.Marshal(functionResult)
+					return fmt.Sprintf("I successfully called the %s function and retrieved the data: %s", functionName, string(resultData)[:min(500, len(resultData))]), nil
+				}
+
+				// Instead of returning concatenated results, send both function results back to Gemini
+				// for proper synthesis. Create a conversation history with both function calls and results.
+				log.Printf("🔗 Sending both function results to Gemini for synthesis")
+
+				// Combine both function results into a comprehensive context
+				combinedContext := map[string]interface{}{
+					"first_function": map[string]interface{}{
+						"name":   functionName,
+						"result": functionResult,
+					},
+					"second_function": map[string]interface{}{
+						"name":   part.FunctionCall.Name,
+						"result": chainedResult,
+					},
+				}
+
+				// Send the combined results back to Gemini for final synthesis
+				// Use a prompt that asks Gemini to analyze and synthesize the results
+				synthesisPrompt := fmt.Sprintf("Based on the results from both function calls (%s and %s), please provide a comprehensive analysis and summary.", functionName, part.FunctionCall.Name)
+
+				return c.sendCombinedFunctionResultsToGemini(ctx, config, request, combinedContext, originalPrompt, synthesisPrompt)
+			}
+		}
 	}
 
 	return "I executed the function successfully but couldn't generate a proper response.", nil
+}
+
+// sendCombinedFunctionResultsToGemini sends multiple function results to Gemini for synthesis
+func (c *Client) sendCombinedFunctionResultsToGemini(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest, combinedContext map[string]interface{}, originalPrompt, synthesisPrompt string) (string, error) {
+	log.Printf("🔧 Sending combined function results to Gemini for synthesis")
+
+	// Create a conversation history that includes the original prompt and all function calls/results
+	requestBody := map[string]interface{}{
+		"contents": []map[string]interface{}{
+			// Original user message
+			{
+				"role": "user",
+				"parts": []map[string]interface{}{
+					{"text": originalPrompt},
+				},
+			},
+			// Model's first function call
+			{
+				"role": "model",
+				"parts": []map[string]interface{}{
+					{
+						"functionCall": map[string]interface{}{
+							"name": combinedContext["first_function"].(map[string]interface{})["name"].(string),
+							"args": extractArgsFromCombinedResult(combinedContext["first_function"].(map[string]interface{})["result"].(map[string]interface{})),
+						},
+					},
+				},
+			},
+			// First function response
+			{
+				"role": "function",
+				"parts": []map[string]interface{}{
+					{
+						"functionResponse": map[string]interface{}{
+							"name":     combinedContext["first_function"].(map[string]interface{})["name"].(string),
+							"response": combinedContext["first_function"].(map[string]interface{})["result"].(map[string]interface{}),
+						},
+					},
+				},
+			},
+			// Model's second function call
+			{
+				"role": "model",
+				"parts": []map[string]interface{}{
+					{
+						"functionCall": map[string]interface{}{
+							"name": combinedContext["second_function"].(map[string]interface{})["name"].(string),
+							"args": extractArgsFromCombinedResult(combinedContext["second_function"].(map[string]interface{})["result"].(map[string]interface{})),
+						},
+					},
+				},
+			},
+			// Second function response
+			{
+				"role": "function",
+				"parts": []map[string]interface{}{
+					{
+						"functionResponse": map[string]interface{}{
+							"name":     combinedContext["second_function"].(map[string]interface{})["name"].(string),
+							"response": combinedContext["second_function"].(map[string]interface{})["result"].(map[string]interface{}),
+						},
+					},
+				},
+			},
+			// Synthesis request
+			{
+				"role": "user",
+				"parts": []map[string]interface{}{
+					{"text": synthesisPrompt},
+				},
+			},
+		},
+	}
+
+	// Add generation config
+	generationConfig := make(map[string]interface{})
+	if config.Temperature != nil {
+		generationConfig["temperature"] = *config.Temperature
+	}
+	if config.MaxTokens != nil {
+		generationConfig["maxOutputTokens"] = *config.MaxTokens
+	}
+	if len(generationConfig) > 0 {
+		requestBody["generationConfig"] = generationConfig
+	}
+
+	// Do NOT include tools in this final synthesis call to force a text response
+	log.Printf("🔧 No tools included in synthesis call to force text response")
+
+	// Make the API call
+	reqBodyBytes, err := json.Marshal(requestBody)
+	if err != nil {
+		return "", err
+	}
+
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent", config.ModelName)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(reqBodyBytes))
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	var geminiApiKey string
+	if c.sessionApiKeys != nil {
+		geminiApiKey = c.sessionApiKeys.GeminiApiKey
+	}
+	req.Header.Set("x-goog-api-key", geminiApiKey)
+
+	client := &http.Client{Timeout: 10 * time.Minute}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	responseBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	// Parse response
+	var geminiResp struct {
+		Candidates []struct {
+			Content struct {
+				Parts []struct {
+					Text string `json:"text,omitempty"`
+				} `json:"parts"`
+			} `json:"content"`
+		} `json:"candidates"`
+	}
+
+	if err := json.Unmarshal(responseBody, &geminiResp); err != nil {
+		return "", err
+	}
+
+	if len(geminiResp.Candidates) > 0 && len(geminiResp.Candidates[0].Content.Parts) > 0 {
+		for _, part := range geminiResp.Candidates[0].Content.Parts {
+			if part.Text != "" {
+				log.Printf("✅ Got synthesis response from Gemini: %s", part.Text[:min(100, len(part.Text))])
+				return part.Text, nil
+			}
+		}
+	}
+
+	return "I executed multiple functions successfully but couldn't generate a proper synthesis.", nil
+}
+
+// Helper function to extract function arguments from combined results
+func extractArgsFromCombinedResult(functionResult map[string]interface{}) map[string]interface{} {
+	if metadata, ok := functionResult["_metadata"].(map[string]interface{}); ok {
+		if args, ok := metadata["original_args"].(map[string]interface{}); ok {
+			return args
+		}
+	}
+	return make(map[string]interface{})
+}
+
+// Helper function to extract function arguments from the original function call
+// This is needed because we need to reconstruct the function call in the conversation history
+func extractArgsFromResult(functionResult map[string]interface{}) map[string]interface{} {
+	// Try to extract the original arguments from the function result metadata
+	if metadata, ok := functionResult["_metadata"].(map[string]interface{}); ok {
+		if args, ok := metadata["original_args"].(map[string]interface{}); ok {
+			return args
+		}
+	}
+
+	// If we can't find the original args, return empty map
+	// The function call reconstruction might not be perfect, but Gemini should still process the response
+	return make(map[string]interface{})
 }
 
 // min helper function
@@ -3386,13 +4414,12 @@ func (c *Client) GetExecutionResult(ctx context.Context, userID string, executio
 	configs := make(map[string]*types.APIConfiguration)
 	for _, row := range configRows {
 		config := &types.APIConfiguration{
-			ID:             row.ID,
-			ExecutionRunID: row.ExecutionRunID,
-			VariationName:  row.VariationName,
-			ModelName:      row.ModelName,
-			SystemPrompt:   row.SystemPrompt.String,
-			CreatedAt:      row.CreatedAt.Time,
-			Tools:          functionTools, // Add the function tools to each configuration
+			ID:            row.ID,
+			VariationName: row.VariationName,
+			ModelName:     row.ModelName,
+			SystemPrompt:  row.SystemPrompt.String,
+			CreatedAt:     row.CreatedAt.Time,
+			Tools:         functionTools, // Add the function tools to each configuration
 		}
 
 		// Parse nullable fields
@@ -3710,66 +4737,67 @@ func (c *Client) GetSystemConfigurations(ctx context.Context) ([]types.APIConfig
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 
-	// Get all configurations and filter for system ones
-	configRows, err := c.queries.ListAPIConfigurations(ctx, db.ListAPIConfigurationsParams{
-		Limit:  100, // Reasonable limit for system configurations
-		Offset: 0,
-	})
+	// Use the dedicated system configurations query
+	configRows, err := c.queries.ListSystemConfigurations(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get configurations: %w", err)
+		return nil, fmt.Errorf("failed to get system configurations: %w", err)
 	}
 
 	var systemConfigs []types.APIConfiguration
 	for _, row := range configRows {
-		// Check if this is a system configuration
-		if row.UserID == "system" {
-			config := types.APIConfiguration{
-				ID:             row.ID,
-				ExecutionRunID: row.ExecutionRunID,
-				VariationName:  row.VariationName,
-				ModelName:      row.ModelName,
-				SystemPrompt:   row.SystemPrompt.String,
-				CreatedAt:      row.CreatedAt.Time,
-			}
-
-			// Parse nullable fields
-			if row.Temperature.Valid {
-				temp, _ := parseFloat32(row.Temperature.String)
-				config.Temperature = &temp
-			}
-			if row.MaxTokens.Valid {
-				config.MaxTokens = &row.MaxTokens.Int32
-			}
-			if row.TopP.Valid {
-				topP, _ := parseFloat32(row.TopP.String)
-				config.TopP = &topP
-			}
-			if row.TopK.Valid {
-				config.TopK = &row.TopK.Int32
-			}
-
-			// Parse JSON fields
-			if len(row.SafetySettings) > 0 {
-				var safetySettings map[string]interface{}
-				if err := json.Unmarshal(row.SafetySettings, &safetySettings); err == nil {
-					config.SafetySettings = safetySettings
-				}
-			}
-			if len(row.GenerationConfig) > 0 {
-				var generationConfig map[string]interface{}
-				if err := json.Unmarshal(row.GenerationConfig, &generationConfig); err == nil {
-					config.GenerationConfig = generationConfig
-				}
-			}
-			if len(row.Tools) > 0 {
-				var tools []types.Tool
-				if err := json.Unmarshal(row.Tools, &tools); err == nil {
-					config.Tools = tools
-				}
-			}
-
-			systemConfigs = append(systemConfigs, config)
+		config := types.APIConfiguration{
+			ID:            row.ID,
+			VariationName: row.VariationName,
+			ModelName:     row.ModelName,
+			SystemPrompt:  row.SystemPrompt.String,
+			CreatedAt:     row.CreatedAt.Time,
+			UserID:        row.UserID, // Include UserID for proper ownership tracking
 		}
+
+		// Handle nullable UpdatedAt
+		if row.UpdatedAt.Valid {
+			config.UpdatedAt = row.UpdatedAt.Time
+		} else {
+			config.UpdatedAt = row.CreatedAt.Time // fallback to created_at
+		}
+
+		// Parse nullable fields
+		if row.Temperature.Valid {
+			temp, _ := parseFloat32(row.Temperature.String)
+			config.Temperature = &temp
+		}
+		if row.MaxTokens.Valid {
+			config.MaxTokens = &row.MaxTokens.Int32
+		}
+		if row.TopP.Valid {
+			topP, _ := parseFloat32(row.TopP.String)
+			config.TopP = &topP
+		}
+		if row.TopK.Valid {
+			config.TopK = &row.TopK.Int32
+		}
+
+		// Parse JSON fields
+		if len(row.SafetySettings) > 0 {
+			var safetySettings map[string]interface{}
+			if err := json.Unmarshal(row.SafetySettings, &safetySettings); err == nil {
+				config.SafetySettings = safetySettings
+			}
+		}
+		if len(row.GenerationConfig) > 0 {
+			var generationConfig map[string]interface{}
+			if err := json.Unmarshal(row.GenerationConfig, &generationConfig); err == nil {
+				config.GenerationConfig = generationConfig
+			}
+		}
+		if len(row.Tools) > 0 {
+			var tools []types.Tool
+			if err := json.Unmarshal(row.Tools, &tools); err == nil {
+				config.Tools = tools
+			}
+		}
+
+		systemConfigs = append(systemConfigs, config)
 	}
 
 	log.Printf("✅ Retrieved %d system configurations from database", len(systemConfigs))
@@ -3845,28 +4873,77 @@ func (c *Client) ListAPIConfigurationsByUser(ctx context.Context, userID string,
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 
-	rows, err := c.queries.ListAPIConfigurations(ctx, db.ListAPIConfigurationsParams{
-		UserID: userID,
-		Limit:  limit,
-		Offset: offset,
-	})
+	// Use the fixed ListAPIConfigurationsByUser query (no limit/offset version for now)
+	rows, err := c.queries.ListAPIConfigurationsByUser(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
+
+	// Apply limit and offset manually for now (could be optimized with a new query later)
 	var configs []types.APIConfiguration
-	for _, row := range rows {
-		cfg := types.APIConfiguration{
-			ID:             row.ID,
-			ExecutionRunID: row.ExecutionRunID,
-			VariationName:  row.VariationName,
-			ModelName:      row.ModelName,
-			SystemPrompt:   row.SystemPrompt.String,
-			CreatedAt:      row.CreatedAt.Time,
+	startIdx := int(offset)
+	endIdx := startIdx + int(limit)
+
+	for i, row := range rows {
+		if i < startIdx {
+			continue
 		}
+		if i >= endIdx {
+			break
+		}
+
+		cfg := types.APIConfiguration{
+			ID:            row.ID,
+			VariationName: row.VariationName,
+			ModelName:     row.ModelName,
+			SystemPrompt:  row.SystemPrompt.String,
+			CreatedAt:     row.CreatedAt.Time,
+			UserID:        row.UserID, // Include UserID for proper ownership tracking
+		}
+
+		// Handle nullable UpdatedAt
+		if row.UpdatedAt.Valid {
+			cfg.UpdatedAt = row.UpdatedAt.Time
+		} else {
+			cfg.UpdatedAt = row.CreatedAt.Time // fallback to created_at
+		}
+
+		// Parse all nullable fields
 		if row.Temperature.Valid {
 			temp, _ := parseFloat32(row.Temperature.String)
 			cfg.Temperature = &temp
 		}
+		if row.MaxTokens.Valid {
+			cfg.MaxTokens = &row.MaxTokens.Int32
+		}
+		if row.TopP.Valid {
+			topP, _ := parseFloat32(row.TopP.String)
+			cfg.TopP = &topP
+		}
+		if row.TopK.Valid {
+			cfg.TopK = &row.TopK.Int32
+		}
+
+		// Parse JSON fields
+		if len(row.SafetySettings) > 0 {
+			var safetySettings map[string]interface{}
+			if err := json.Unmarshal(row.SafetySettings, &safetySettings); err == nil {
+				cfg.SafetySettings = safetySettings
+			}
+		}
+		if len(row.GenerationConfig) > 0 {
+			var generationConfig map[string]interface{}
+			if err := json.Unmarshal(row.GenerationConfig, &generationConfig); err == nil {
+				cfg.GenerationConfig = generationConfig
+			}
+		}
+		if len(row.Tools) > 0 {
+			var tools []types.Tool
+			if err := json.Unmarshal(row.Tools, &tools); err == nil {
+				cfg.Tools = tools
+			}
+		}
+
 		configs = append(configs, cfg)
 	}
 	return configs, nil

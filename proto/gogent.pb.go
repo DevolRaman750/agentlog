@@ -2900,7 +2900,7 @@ func (x *ExecutionRun) GetUpdatedAt() *timestamppb.Timestamp {
 type APIConfiguration struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	Id               string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	ExecutionRunId   string                 `protobuf:"bytes,2,opt,name=execution_run_id,json=executionRunId,proto3" json:"execution_run_id,omitempty"`
+	UserId           string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	VariationName    string                 `protobuf:"bytes,3,opt,name=variation_name,json=variationName,proto3" json:"variation_name,omitempty"`
 	ModelName        string                 `protobuf:"bytes,4,opt,name=model_name,json=modelName,proto3" json:"model_name,omitempty"`
 	SystemPrompt     string                 `protobuf:"bytes,5,opt,name=system_prompt,json=systemPrompt,proto3" json:"system_prompt,omitempty"`
@@ -2913,6 +2913,7 @@ type APIConfiguration struct {
 	Tools            []*Tool                `protobuf:"bytes,12,rep,name=tools,proto3" json:"tools,omitempty"`
 	ToolConfig       *structpb.Struct       `protobuf:"bytes,13,opt,name=tool_config,json=toolConfig,proto3" json:"tool_config,omitempty"`
 	CreatedAt        *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt        *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -2954,9 +2955,9 @@ func (x *APIConfiguration) GetId() string {
 	return ""
 }
 
-func (x *APIConfiguration) GetExecutionRunId() string {
+func (x *APIConfiguration) GetUserId() string {
 	if x != nil {
-		return x.ExecutionRunId
+		return x.UserId
 	}
 	return ""
 }
@@ -3045,6 +3046,13 @@ func (x *APIConfiguration) GetCreatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *APIConfiguration) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
 // Tool definition for function calling
 type Tool struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -3114,6 +3122,7 @@ type FunctionDefinition struct {
 	Name             string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	DisplayName      string                 `protobuf:"bytes,4,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	Description      string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
+	FunctionGroup    string                 `protobuf:"bytes,17,opt,name=function_group,json=functionGroup,proto3" json:"function_group,omitempty"` // Group functions by category (e.g., "graph", "weather", "github")
 	ParametersSchema *structpb.Struct       `protobuf:"bytes,6,opt,name=parameters_schema,json=parametersSchema,proto3" json:"parameters_schema,omitempty"`
 	MockResponse     *structpb.Struct       `protobuf:"bytes,7,opt,name=mock_response,json=mockResponse,proto3" json:"mock_response,omitempty"`
 	EndpointUrl      string                 `protobuf:"bytes,8,opt,name=endpoint_url,json=endpointUrl,proto3" json:"endpoint_url,omitempty"`
@@ -3190,6 +3199,13 @@ func (x *FunctionDefinition) GetDisplayName() string {
 func (x *FunctionDefinition) GetDescription() string {
 	if x != nil {
 		return x.Description
+	}
+	return ""
+}
+
+func (x *FunctionDefinition) GetFunctionGroup() string {
+	if x != nil {
+		return x.FunctionGroup
 	}
 	return ""
 }
@@ -4296,10 +4312,10 @@ const file_proto_gogent_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xc3\x04\n" +
+	"updated_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xed\x04\n" +
 	"\x10APIConfiguration\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12(\n" +
-	"\x10execution_run_id\x18\x02 \x01(\tR\x0eexecutionRunId\x12%\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12%\n" +
 	"\x0evariation_name\x18\x03 \x01(\tR\rvariationName\x12\x1d\n" +
 	"\n" +
 	"model_name\x18\x04 \x01(\tR\tmodelName\x12#\n" +
@@ -4316,19 +4332,22 @@ const file_proto_gogent_proto_rawDesc = "" +
 	"\vtool_config\x18\r \x01(\v2\x17.google.protobuf.StructR\n" +
 	"toolConfig\x129\n" +
 	"\n" +
-	"created_at\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"u\n" +
+	"created_at\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"u\n" +
 	"\x04Tool\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x127\n" +
 	"\n" +
 	"parameters\x18\x03 \x01(\v2\x17.google.protobuf.StructR\n" +
-	"parameters\"\xd1\x05\n" +
+	"parameters\"\xf8\x05\n" +
 	"\x12FunctionDefinition\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12!\n" +
 	"\fdisplay_name\x18\x04 \x01(\tR\vdisplayName\x12 \n" +
-	"\vdescription\x18\x05 \x01(\tR\vdescription\x12D\n" +
+	"\vdescription\x18\x05 \x01(\tR\vdescription\x12%\n" +
+	"\x0efunction_group\x18\x11 \x01(\tR\rfunctionGroup\x12D\n" +
 	"\x11parameters_schema\x18\x06 \x01(\v2\x17.google.protobuf.StructR\x10parametersSchema\x12<\n" +
 	"\rmock_response\x18\a \x01(\v2\x17.google.protobuf.StructR\fmockResponse\x12!\n" +
 	"\fendpoint_url\x18\b \x01(\tR\vendpointUrl\x12\x1f\n" +
@@ -4588,96 +4607,97 @@ var file_proto_gogent_proto_depIdxs = []int32{
 	53,  // 39: gogent.APIConfiguration.tools:type_name -> gogent.Tool
 	65,  // 40: gogent.APIConfiguration.tool_config:type_name -> google.protobuf.Struct
 	64,  // 41: gogent.APIConfiguration.created_at:type_name -> google.protobuf.Timestamp
-	65,  // 42: gogent.Tool.parameters:type_name -> google.protobuf.Struct
-	65,  // 43: gogent.FunctionDefinition.parameters_schema:type_name -> google.protobuf.Struct
-	65,  // 44: gogent.FunctionDefinition.mock_response:type_name -> google.protobuf.Struct
-	65,  // 45: gogent.FunctionDefinition.headers:type_name -> google.protobuf.Struct
-	65,  // 46: gogent.FunctionDefinition.auth_config:type_name -> google.protobuf.Struct
-	65,  // 47: gogent.FunctionDefinition.api_key_validation:type_name -> google.protobuf.Struct
-	64,  // 48: gogent.FunctionDefinition.created_at:type_name -> google.protobuf.Timestamp
-	64,  // 49: gogent.FunctionDefinition.updated_at:type_name -> google.protobuf.Timestamp
-	65,  // 50: gogent.APIRequest.function_parameters:type_name -> google.protobuf.Struct
-	65,  // 51: gogent.APIRequest.request_headers:type_name -> google.protobuf.Struct
-	65,  // 52: gogent.APIRequest.request_body:type_name -> google.protobuf.Struct
-	64,  // 53: gogent.APIRequest.created_at:type_name -> google.protobuf.Timestamp
-	65,  // 54: gogent.APIResponse.function_call_response:type_name -> google.protobuf.Struct
-	65,  // 55: gogent.APIResponse.usage_metadata:type_name -> google.protobuf.Struct
-	65,  // 56: gogent.APIResponse.safety_ratings:type_name -> google.protobuf.Struct
-	65,  // 57: gogent.APIResponse.response_headers:type_name -> google.protobuf.Struct
-	65,  // 58: gogent.APIResponse.response_body:type_name -> google.protobuf.Struct
-	64,  // 59: gogent.APIResponse.created_at:type_name -> google.protobuf.Timestamp
-	65,  // 60: gogent.FunctionCall.function_arguments:type_name -> google.protobuf.Struct
-	65,  // 61: gogent.FunctionCall.function_response:type_name -> google.protobuf.Struct
-	64,  // 62: gogent.FunctionCall.created_at:type_name -> google.protobuf.Timestamp
-	51,  // 63: gogent.ExecutionResult.execution_run:type_name -> gogent.ExecutionRun
-	59,  // 64: gogent.ExecutionResult.results:type_name -> gogent.VariationResult
-	60,  // 65: gogent.ExecutionResult.comparison:type_name -> gogent.ComparisonResult
-	61,  // 66: gogent.ExecutionResult.logs:type_name -> gogent.ExecutionLog
-	52,  // 67: gogent.VariationResult.configuration:type_name -> gogent.APIConfiguration
-	55,  // 68: gogent.VariationResult.request:type_name -> gogent.APIRequest
-	56,  // 69: gogent.VariationResult.response:type_name -> gogent.APIResponse
-	57,  // 70: gogent.VariationResult.function_calls:type_name -> gogent.FunctionCall
-	65,  // 71: gogent.ComparisonResult.configuration_scores:type_name -> google.protobuf.Struct
-	52,  // 72: gogent.ComparisonResult.best_configuration:type_name -> gogent.APIConfiguration
-	52,  // 73: gogent.ComparisonResult.all_configurations:type_name -> gogent.APIConfiguration
-	64,  // 74: gogent.ComparisonResult.created_at:type_name -> google.protobuf.Timestamp
-	65,  // 75: gogent.ExecutionLog.details:type_name -> google.protobuf.Struct
-	64,  // 76: gogent.ExecutionLog.timestamp:type_name -> google.protobuf.Timestamp
-	1,   // 77: gogent.GogentService.Login:input_type -> gogent.LoginRequest
-	3,   // 78: gogent.GogentService.Register:input_type -> gogent.RegisterRequest
-	5,   // 79: gogent.GogentService.CreateTemporaryUser:input_type -> gogent.CreateTemporaryUserRequest
-	7,   // 80: gogent.GogentService.SaveTemporaryAccount:input_type -> gogent.SaveTemporaryAccountRequest
-	9,   // 81: gogent.GogentService.VerifyEmail:input_type -> gogent.VerifyEmailRequest
-	11,  // 82: gogent.GogentService.GetCurrentUser:input_type -> gogent.GetCurrentUserRequest
-	13,  // 83: gogent.GogentService.Execute:input_type -> gogent.ExecuteRequest
-	15,  // 84: gogent.GogentService.GetExecutionStatus:input_type -> gogent.GetExecutionStatusRequest
-	17,  // 85: gogent.GogentService.GetExecutionResult:input_type -> gogent.GetExecutionResultRequest
-	19,  // 86: gogent.GogentService.ListExecutionRuns:input_type -> gogent.ListExecutionRunsRequest
-	21,  // 87: gogent.GogentService.DeleteExecutionRun:input_type -> gogent.DeleteExecutionRunRequest
-	23,  // 88: gogent.GogentService.ListConfigurations:input_type -> gogent.ListConfigurationsRequest
-	25,  // 89: gogent.GogentService.CreateConfiguration:input_type -> gogent.CreateConfigurationRequest
-	27,  // 90: gogent.GogentService.UpdateConfiguration:input_type -> gogent.UpdateConfigurationRequest
-	29,  // 91: gogent.GogentService.DeleteConfiguration:input_type -> gogent.DeleteConfigurationRequest
-	31,  // 92: gogent.GogentService.ListFunctions:input_type -> gogent.ListFunctionsRequest
-	33,  // 93: gogent.GogentService.GetFunction:input_type -> gogent.GetFunctionRequest
-	35,  // 94: gogent.GogentService.CreateFunction:input_type -> gogent.CreateFunctionRequest
-	37,  // 95: gogent.GogentService.UpdateFunction:input_type -> gogent.UpdateFunctionRequest
-	39,  // 96: gogent.GogentService.DeleteFunction:input_type -> gogent.DeleteFunctionRequest
-	41,  // 97: gogent.GogentService.TestFunction:input_type -> gogent.TestFunctionRequest
-	43,  // 98: gogent.GogentService.GetDatabaseStats:input_type -> gogent.GetDatabaseStatsRequest
-	45,  // 99: gogent.GogentService.ListDatabaseTables:input_type -> gogent.ListDatabaseTablesRequest
-	47,  // 100: gogent.GogentService.GetTableData:input_type -> gogent.GetTableDataRequest
-	49,  // 101: gogent.GogentService.Health:input_type -> gogent.HealthRequest
-	2,   // 102: gogent.GogentService.Login:output_type -> gogent.LoginResponse
-	4,   // 103: gogent.GogentService.Register:output_type -> gogent.RegisterResponse
-	6,   // 104: gogent.GogentService.CreateTemporaryUser:output_type -> gogent.CreateTemporaryUserResponse
-	8,   // 105: gogent.GogentService.SaveTemporaryAccount:output_type -> gogent.SaveTemporaryAccountResponse
-	10,  // 106: gogent.GogentService.VerifyEmail:output_type -> gogent.VerifyEmailResponse
-	12,  // 107: gogent.GogentService.GetCurrentUser:output_type -> gogent.GetCurrentUserResponse
-	14,  // 108: gogent.GogentService.Execute:output_type -> gogent.ExecuteResponse
-	16,  // 109: gogent.GogentService.GetExecutionStatus:output_type -> gogent.GetExecutionStatusResponse
-	18,  // 110: gogent.GogentService.GetExecutionResult:output_type -> gogent.GetExecutionResultResponse
-	20,  // 111: gogent.GogentService.ListExecutionRuns:output_type -> gogent.ListExecutionRunsResponse
-	22,  // 112: gogent.GogentService.DeleteExecutionRun:output_type -> gogent.DeleteExecutionRunResponse
-	24,  // 113: gogent.GogentService.ListConfigurations:output_type -> gogent.ListConfigurationsResponse
-	26,  // 114: gogent.GogentService.CreateConfiguration:output_type -> gogent.CreateConfigurationResponse
-	28,  // 115: gogent.GogentService.UpdateConfiguration:output_type -> gogent.UpdateConfigurationResponse
-	30,  // 116: gogent.GogentService.DeleteConfiguration:output_type -> gogent.DeleteConfigurationResponse
-	32,  // 117: gogent.GogentService.ListFunctions:output_type -> gogent.ListFunctionsResponse
-	34,  // 118: gogent.GogentService.GetFunction:output_type -> gogent.GetFunctionResponse
-	36,  // 119: gogent.GogentService.CreateFunction:output_type -> gogent.CreateFunctionResponse
-	38,  // 120: gogent.GogentService.UpdateFunction:output_type -> gogent.UpdateFunctionResponse
-	40,  // 121: gogent.GogentService.DeleteFunction:output_type -> gogent.DeleteFunctionResponse
-	42,  // 122: gogent.GogentService.TestFunction:output_type -> gogent.TestFunctionResponse
-	44,  // 123: gogent.GogentService.GetDatabaseStats:output_type -> gogent.GetDatabaseStatsResponse
-	46,  // 124: gogent.GogentService.ListDatabaseTables:output_type -> gogent.ListDatabaseTablesResponse
-	48,  // 125: gogent.GogentService.GetTableData:output_type -> gogent.GetTableDataResponse
-	50,  // 126: gogent.GogentService.Health:output_type -> gogent.HealthResponse
-	102, // [102:127] is the sub-list for method output_type
-	77,  // [77:102] is the sub-list for method input_type
-	77,  // [77:77] is the sub-list for extension type_name
-	77,  // [77:77] is the sub-list for extension extendee
-	0,   // [0:77] is the sub-list for field type_name
+	64,  // 42: gogent.APIConfiguration.updated_at:type_name -> google.protobuf.Timestamp
+	65,  // 43: gogent.Tool.parameters:type_name -> google.protobuf.Struct
+	65,  // 44: gogent.FunctionDefinition.parameters_schema:type_name -> google.protobuf.Struct
+	65,  // 45: gogent.FunctionDefinition.mock_response:type_name -> google.protobuf.Struct
+	65,  // 46: gogent.FunctionDefinition.headers:type_name -> google.protobuf.Struct
+	65,  // 47: gogent.FunctionDefinition.auth_config:type_name -> google.protobuf.Struct
+	65,  // 48: gogent.FunctionDefinition.api_key_validation:type_name -> google.protobuf.Struct
+	64,  // 49: gogent.FunctionDefinition.created_at:type_name -> google.protobuf.Timestamp
+	64,  // 50: gogent.FunctionDefinition.updated_at:type_name -> google.protobuf.Timestamp
+	65,  // 51: gogent.APIRequest.function_parameters:type_name -> google.protobuf.Struct
+	65,  // 52: gogent.APIRequest.request_headers:type_name -> google.protobuf.Struct
+	65,  // 53: gogent.APIRequest.request_body:type_name -> google.protobuf.Struct
+	64,  // 54: gogent.APIRequest.created_at:type_name -> google.protobuf.Timestamp
+	65,  // 55: gogent.APIResponse.function_call_response:type_name -> google.protobuf.Struct
+	65,  // 56: gogent.APIResponse.usage_metadata:type_name -> google.protobuf.Struct
+	65,  // 57: gogent.APIResponse.safety_ratings:type_name -> google.protobuf.Struct
+	65,  // 58: gogent.APIResponse.response_headers:type_name -> google.protobuf.Struct
+	65,  // 59: gogent.APIResponse.response_body:type_name -> google.protobuf.Struct
+	64,  // 60: gogent.APIResponse.created_at:type_name -> google.protobuf.Timestamp
+	65,  // 61: gogent.FunctionCall.function_arguments:type_name -> google.protobuf.Struct
+	65,  // 62: gogent.FunctionCall.function_response:type_name -> google.protobuf.Struct
+	64,  // 63: gogent.FunctionCall.created_at:type_name -> google.protobuf.Timestamp
+	51,  // 64: gogent.ExecutionResult.execution_run:type_name -> gogent.ExecutionRun
+	59,  // 65: gogent.ExecutionResult.results:type_name -> gogent.VariationResult
+	60,  // 66: gogent.ExecutionResult.comparison:type_name -> gogent.ComparisonResult
+	61,  // 67: gogent.ExecutionResult.logs:type_name -> gogent.ExecutionLog
+	52,  // 68: gogent.VariationResult.configuration:type_name -> gogent.APIConfiguration
+	55,  // 69: gogent.VariationResult.request:type_name -> gogent.APIRequest
+	56,  // 70: gogent.VariationResult.response:type_name -> gogent.APIResponse
+	57,  // 71: gogent.VariationResult.function_calls:type_name -> gogent.FunctionCall
+	65,  // 72: gogent.ComparisonResult.configuration_scores:type_name -> google.protobuf.Struct
+	52,  // 73: gogent.ComparisonResult.best_configuration:type_name -> gogent.APIConfiguration
+	52,  // 74: gogent.ComparisonResult.all_configurations:type_name -> gogent.APIConfiguration
+	64,  // 75: gogent.ComparisonResult.created_at:type_name -> google.protobuf.Timestamp
+	65,  // 76: gogent.ExecutionLog.details:type_name -> google.protobuf.Struct
+	64,  // 77: gogent.ExecutionLog.timestamp:type_name -> google.protobuf.Timestamp
+	1,   // 78: gogent.GogentService.Login:input_type -> gogent.LoginRequest
+	3,   // 79: gogent.GogentService.Register:input_type -> gogent.RegisterRequest
+	5,   // 80: gogent.GogentService.CreateTemporaryUser:input_type -> gogent.CreateTemporaryUserRequest
+	7,   // 81: gogent.GogentService.SaveTemporaryAccount:input_type -> gogent.SaveTemporaryAccountRequest
+	9,   // 82: gogent.GogentService.VerifyEmail:input_type -> gogent.VerifyEmailRequest
+	11,  // 83: gogent.GogentService.GetCurrentUser:input_type -> gogent.GetCurrentUserRequest
+	13,  // 84: gogent.GogentService.Execute:input_type -> gogent.ExecuteRequest
+	15,  // 85: gogent.GogentService.GetExecutionStatus:input_type -> gogent.GetExecutionStatusRequest
+	17,  // 86: gogent.GogentService.GetExecutionResult:input_type -> gogent.GetExecutionResultRequest
+	19,  // 87: gogent.GogentService.ListExecutionRuns:input_type -> gogent.ListExecutionRunsRequest
+	21,  // 88: gogent.GogentService.DeleteExecutionRun:input_type -> gogent.DeleteExecutionRunRequest
+	23,  // 89: gogent.GogentService.ListConfigurations:input_type -> gogent.ListConfigurationsRequest
+	25,  // 90: gogent.GogentService.CreateConfiguration:input_type -> gogent.CreateConfigurationRequest
+	27,  // 91: gogent.GogentService.UpdateConfiguration:input_type -> gogent.UpdateConfigurationRequest
+	29,  // 92: gogent.GogentService.DeleteConfiguration:input_type -> gogent.DeleteConfigurationRequest
+	31,  // 93: gogent.GogentService.ListFunctions:input_type -> gogent.ListFunctionsRequest
+	33,  // 94: gogent.GogentService.GetFunction:input_type -> gogent.GetFunctionRequest
+	35,  // 95: gogent.GogentService.CreateFunction:input_type -> gogent.CreateFunctionRequest
+	37,  // 96: gogent.GogentService.UpdateFunction:input_type -> gogent.UpdateFunctionRequest
+	39,  // 97: gogent.GogentService.DeleteFunction:input_type -> gogent.DeleteFunctionRequest
+	41,  // 98: gogent.GogentService.TestFunction:input_type -> gogent.TestFunctionRequest
+	43,  // 99: gogent.GogentService.GetDatabaseStats:input_type -> gogent.GetDatabaseStatsRequest
+	45,  // 100: gogent.GogentService.ListDatabaseTables:input_type -> gogent.ListDatabaseTablesRequest
+	47,  // 101: gogent.GogentService.GetTableData:input_type -> gogent.GetTableDataRequest
+	49,  // 102: gogent.GogentService.Health:input_type -> gogent.HealthRequest
+	2,   // 103: gogent.GogentService.Login:output_type -> gogent.LoginResponse
+	4,   // 104: gogent.GogentService.Register:output_type -> gogent.RegisterResponse
+	6,   // 105: gogent.GogentService.CreateTemporaryUser:output_type -> gogent.CreateTemporaryUserResponse
+	8,   // 106: gogent.GogentService.SaveTemporaryAccount:output_type -> gogent.SaveTemporaryAccountResponse
+	10,  // 107: gogent.GogentService.VerifyEmail:output_type -> gogent.VerifyEmailResponse
+	12,  // 108: gogent.GogentService.GetCurrentUser:output_type -> gogent.GetCurrentUserResponse
+	14,  // 109: gogent.GogentService.Execute:output_type -> gogent.ExecuteResponse
+	16,  // 110: gogent.GogentService.GetExecutionStatus:output_type -> gogent.GetExecutionStatusResponse
+	18,  // 111: gogent.GogentService.GetExecutionResult:output_type -> gogent.GetExecutionResultResponse
+	20,  // 112: gogent.GogentService.ListExecutionRuns:output_type -> gogent.ListExecutionRunsResponse
+	22,  // 113: gogent.GogentService.DeleteExecutionRun:output_type -> gogent.DeleteExecutionRunResponse
+	24,  // 114: gogent.GogentService.ListConfigurations:output_type -> gogent.ListConfigurationsResponse
+	26,  // 115: gogent.GogentService.CreateConfiguration:output_type -> gogent.CreateConfigurationResponse
+	28,  // 116: gogent.GogentService.UpdateConfiguration:output_type -> gogent.UpdateConfigurationResponse
+	30,  // 117: gogent.GogentService.DeleteConfiguration:output_type -> gogent.DeleteConfigurationResponse
+	32,  // 118: gogent.GogentService.ListFunctions:output_type -> gogent.ListFunctionsResponse
+	34,  // 119: gogent.GogentService.GetFunction:output_type -> gogent.GetFunctionResponse
+	36,  // 120: gogent.GogentService.CreateFunction:output_type -> gogent.CreateFunctionResponse
+	38,  // 121: gogent.GogentService.UpdateFunction:output_type -> gogent.UpdateFunctionResponse
+	40,  // 122: gogent.GogentService.DeleteFunction:output_type -> gogent.DeleteFunctionResponse
+	42,  // 123: gogent.GogentService.TestFunction:output_type -> gogent.TestFunctionResponse
+	44,  // 124: gogent.GogentService.GetDatabaseStats:output_type -> gogent.GetDatabaseStatsResponse
+	46,  // 125: gogent.GogentService.ListDatabaseTables:output_type -> gogent.ListDatabaseTablesResponse
+	48,  // 126: gogent.GogentService.GetTableData:output_type -> gogent.GetTableDataResponse
+	50,  // 127: gogent.GogentService.Health:output_type -> gogent.HealthResponse
+	103, // [103:128] is the sub-list for method output_type
+	78,  // [78:103] is the sub-list for method input_type
+	78,  // [78:78] is the sub-list for extension type_name
+	78,  // [78:78] is the sub-list for extension extendee
+	0,   // [0:78] is the sub-list for field type_name
 }
 
 func init() { file_proto_gogent_proto_init() }

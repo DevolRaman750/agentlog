@@ -47,20 +47,14 @@ func NewBusinessLogic(userID string) (*BusinessLogic, error) {
 		log.Printf("⚠️ Warning: GEMINI_API_KEY not set, will use mock responses")
 	}
 
-	// Create Gemini client config
+	// Create Gemini client config (deprecated fields removed)
 	config := &types.GeminiClientConfig{
-		APIKey:            apiKey,
-		OpenWeatherAPIKey: os.Getenv("OPENWEATHER_API_KEY"),
-		Neo4jURL:          os.Getenv("NEO4J_URL"),
-		Neo4jUsername:     os.Getenv("NEO4J_USERNAME"),
-		Neo4jPassword:     os.Getenv("NEO4J_PASSWORD"),
-		Neo4jDatabase:     os.Getenv("NEO4J_DATABASE"),
-		MaxRetries:        3,
-		TimeoutSecs:       30,
+		MaxRetries:  3,
+		TimeoutSecs: 600, // 10 minutes - very tolerant for async execution
 	}
 
-	// Create gogent client
-	client, err := gogent.NewClient(dbURL, config)
+	// Create gogent client (without session keys for main business logic client)
+	client, err := gogent.NewClient(dbURL, config, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gogent client: %w", err)
 	}
@@ -635,28 +629,35 @@ func (bl *BusinessLogic) runAsyncExecution(executionID string, request *types.Mu
 
 	log.Printf("🚀 Starting async execution: %s", executionID)
 
-	// Create temporary client configuration with session API keys
+	// Create temporary client configuration
 	tempConfig := &types.GeminiClientConfig{
 		MaxRetries:  bl.config.MaxRetries,
 		TimeoutSecs: bl.config.TimeoutSecs,
 	}
 
-	// Use session API keys instead of stored configuration
-	geminiApiKey := ""
+	// Convert session API keys map to SessionApiKeys struct
+	var sessionKeys *types.SessionApiKeys
 	if sessionApiKeys != nil {
-		geminiApiKey = sessionApiKeys["geminiApiKey"]
+		sessionKeys = &types.SessionApiKeys{
+			GeminiApiKey:      sessionApiKeys["geminiApiKey"],
+			OpenWeatherApiKey: sessionApiKeys["openWeatherApiKey"],
+			Neo4jUrl:          sessionApiKeys["neo4jUrl"],
+			Neo4jUsername:     sessionApiKeys["neo4jUsername"],
+			Neo4jPassword:     sessionApiKeys["neo4jPassword"],
+			Neo4jDatabase:     sessionApiKeys["neo4jDatabase"],
+			GithubApiKey:      sessionApiKeys["githubApiKey"],
+		}
 	}
 
-	if useMock || geminiApiKey == "" {
+	if useMock || (sessionKeys == nil || sessionKeys.GeminiApiKey == "") {
 		log.Printf("Using mock mode for execution (no Gemini API key)")
 	} else {
 		log.Printf("Using real Gemini API for execution")
 	}
 
-	// Create temporary client - the gogent.NewClient will need to be updated
-	// For now, we'll use the existing configuration but this needs to be refactored
+	// Create client with session API keys
 	dbURL := os.Getenv("DB_URL")
-	tempClient, err := gogent.NewClient(dbURL, tempConfig)
+	tempClient, err := gogent.NewClient(dbURL, tempConfig, sessionKeys)
 	if err != nil {
 		bl.markExecutionFailed(executionID, fmt.Sprintf("Failed to create client: %v", err))
 		return

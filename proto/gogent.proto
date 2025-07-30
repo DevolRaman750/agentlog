@@ -359,7 +359,7 @@ message ExecutionRun {
 // API configuration for multi-variation execution
 message APIConfiguration {
   string id = 1;
-  string execution_run_id = 2;
+  string user_id = 2;
   string variation_name = 3;
   string model_name = 4;
   string system_prompt = 5;
@@ -372,6 +372,7 @@ message APIConfiguration {
   repeated Tool tools = 12;
   google.protobuf.Struct tool_config = 13;
   google.protobuf.Timestamp created_at = 14;
+  google.protobuf.Timestamp updated_at = 15;
 }
 
 // Tool definition for function calling
@@ -388,6 +389,7 @@ message FunctionDefinition {
   string name = 3;
   string display_name = 4;
   string description = 5;
+  string function_group = 17; // Group functions by category (e.g., "graph", "weather", "github")
   google.protobuf.Struct parameters_schema = 6;
   google.protobuf.Struct mock_response = 7;
   string endpoint_url = 8;

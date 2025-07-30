@@ -75,7 +75,6 @@ type ExecutionRun struct {
 type APIConfiguration struct {
 	ID               string                 `json:"id"`
 	UserID           string                 `json:"userId,omitempty"` // User who owns this configuration
-	ExecutionRunID   string                 `json:"executionRunId"`
 	VariationName    string                 `json:"variationName"`
 	ModelName        string                 `json:"modelName"`
 	SystemPrompt     string                 `json:"systemPrompt,omitempty"`
@@ -88,6 +87,7 @@ type APIConfiguration struct {
 	Tools            []Tool                 `json:"tools,omitempty"`
 	ToolConfig       map[string]interface{} `json:"toolConfig,omitempty"`
 	CreatedAt        time.Time              `json:"createdAt"`
+	UpdatedAt        time.Time              `json:"updatedAt"`
 	IsSystemResource bool                   `json:"isSystemResource,omitempty"` // Mark as system-provided resource
 }
 
@@ -98,6 +98,7 @@ type FunctionDefinition struct {
 	Name              string                 `json:"name"`                   // Unique function name for API calls
 	DisplayName       string                 `json:"displayName"`            // Human-readable name
 	Description       string                 `json:"description"`            // Function description
+	FunctionGroup     string                 `json:"functionGroup"`          // Group functions by category (e.g., "graph", "weather", "github")
 	ParametersSchema  map[string]interface{} `json:"parametersSchema"`       // JSON schema for parameters
 	MockResponse      map[string]interface{} `json:"mockResponse,omitempty"` // Mock response for testing
 	EndpointURL       string                 `json:"endpointUrl,omitempty"`  // Real API endpoint
@@ -237,19 +238,11 @@ type SessionApiKeys struct {
 	Neo4jUsername     string `json:"neo4jUsername,omitempty"`
 	Neo4jPassword     string `json:"neo4jPassword,omitempty"`
 	Neo4jDatabase     string `json:"neo4jDatabase,omitempty"`
+	GithubApiKey      string `json:"githubApiKey,omitempty"`
 }
 
 // GeminiClientConfig represents the configuration for the Gemini client
 type GeminiClientConfig struct {
-	// DEPRECATED: These fields are kept for backward compatibility
-	// Use SessionApiKeys for new implementations
-	APIKey            string `json:"api_key,omitempty"`             // DEPRECATED: Use session API keys instead
-	OpenWeatherAPIKey string `json:"openweather_api_key,omitempty"` // DEPRECATED: Use session API keys instead
-	Neo4jURL          string `json:"neo4j_url,omitempty"`           // DEPRECATED: Use session API keys instead
-	Neo4jUsername     string `json:"neo4j_username,omitempty"`      // DEPRECATED: Use session API keys instead
-	Neo4jPassword     string `json:"neo4j_password,omitempty"`      // DEPRECATED: Use session API keys instead
-	Neo4jDatabase     string `json:"neo4j_database,omitempty"`      // DEPRECATED: Use session API keys instead
-
 	ProjectID   string `json:"project_id,omitempty"`
 	Region      string `json:"region,omitempty"`
 	MaxRetries  int    `json:"max_retries"`

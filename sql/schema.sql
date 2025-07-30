@@ -46,6 +46,7 @@ CREATE TABLE function_definitions (
     user_id VARCHAR(255) NOT NULL,
     name VARCHAR(100) NOT NULL,
     display_name VARCHAR(100) NOT NULL,
+    function_group VARCHAR(100) NOT NULL DEFAULT 'general',
     description TEXT,
     parameters_schema JSON,
     mock_response JSON DEFAULT NULL,
@@ -66,11 +67,10 @@ CREATE TABLE function_definitions (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- API configurations table
+-- API configurations table (standalone configurations)
 CREATE TABLE api_configurations (
     id VARCHAR(255) PRIMARY KEY,
     user_id VARCHAR(255) NOT NULL,
-    execution_run_id VARCHAR(255) NOT NULL,
     variation_name VARCHAR(255) NOT NULL,
     model_name VARCHAR(255) NOT NULL,
     system_prompt TEXT,
@@ -83,8 +83,20 @@ CREATE TABLE api_configurations (
     tools JSON DEFAULT NULL,
     tool_config JSON DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (execution_run_id) REFERENCES execution_runs(id) ON DELETE CASCADE
+    UNIQUE KEY unique_user_config (user_id, variation_name)
+);
+
+-- Execution to configuration mapping table
+CREATE TABLE execution_configurations (
+    id VARCHAR(255) PRIMARY KEY,
+    execution_run_id VARCHAR(255) NOT NULL,
+    configuration_id VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (execution_run_id) REFERENCES execution_runs(id) ON DELETE CASCADE,
+    FOREIGN KEY (configuration_id) REFERENCES api_configurations(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_execution_config (execution_run_id, configuration_id)
 );
 
 -- API requests table (based on sql/queries/api_requests.sql)

@@ -1,17 +1,17 @@
 {
-    "timestamp": "2025-07-29T10:05:25-07:00",
+    "timestamp": "2025-07-29T14:04:12-07:00",
     "overall": {
-        "coverage": "3.41",
+        "coverage": "3.47",
         "threshold": 80,
         "status": "FAIL"
     },
     "backend": {
-        "coverage": "1.8",
+        "coverage": "1.9",
         "threshold": 80,
         "status": "FAIL"
     },
     "frontend": {
-        "coverage": "5.03",
+        "coverage": "5.04",
         "threshold": 80,
         "status": "FAIL"
     }

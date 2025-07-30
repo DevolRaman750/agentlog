@@ -2,10 +2,10 @@
 
 -- name: CreateFunctionDefinition :exec
 INSERT INTO function_definitions (
-    id, user_id, name, display_name, description, parameters_schema, 
+    id, user_id, name, display_name, function_group, description, parameters_schema, 
     mock_response, endpoint_url, http_method, headers, auth_config, is_active,
     query_template, result_transformer, fallback_data
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- name: GetFunctionDefinition :one
 SELECT * FROM function_definitions WHERE id = ? AND (user_id = ? OR user_id = 'system');
@@ -30,7 +30,7 @@ ORDER BY display_name ASC;
 
 -- name: UpdateFunctionDefinition :exec
 UPDATE function_definitions 
-SET display_name = ?, description = ?, parameters_schema = ?, 
+SET display_name = ?, function_group = ?, description = ?, parameters_schema = ?, 
     mock_response = ?, endpoint_url = ?, http_method = ?, 
     headers = ?, auth_config = ?, is_active = ?, 
     query_template = ?, result_transformer = ?, fallback_data = ?,

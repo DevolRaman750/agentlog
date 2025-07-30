@@ -50,7 +50,6 @@ func NewServer() (*Server, error) {
 	}
 
 	// Get configuration from environment
-	apiKey := os.Getenv("GEMINI_API_KEY")
 	dbURL := os.Getenv("DB_URL")
 	jwtSecret := os.Getenv("JWT_SECRET")
 
@@ -58,15 +57,14 @@ func NewServer() (*Server, error) {
 		return nil, fmt.Errorf("DB_URL environment variable is required")
 	}
 
-	// Create Gemini client configuration
+	// Create Gemini client configuration (deprecated fields removed)
 	config := &types.GeminiClientConfig{
-		APIKey:      apiKey,
 		MaxRetries:  3,
-		TimeoutSecs: 30,
+		TimeoutSecs: 600, // 10 minutes - very tolerant for async execution
 	}
 
-	// Create gogent client
-	client, err := gogent.NewClient(dbURL, config)
+	// Create gogent client (without session keys for server client)
+	client, err := gogent.NewClient(dbURL, config, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gogent client: %w", err)
 	}
@@ -95,11 +93,10 @@ func (s *Server) Close() error {
 // Health check endpoint
 func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 	response := map[string]interface{}{
-		"status":     "ok",
-		"version":    "1.0.0",
-		"timestamp":  time.Now().Format(time.RFC3339),
-		"database":   s.client != nil,
-		"gemini_api": s.config.APIKey != "",
+		"status":    "ok",
+		"version":   "1.0.0",
+		"timestamp": time.Now().Format(time.RFC3339),
+		"database":  s.client != nil,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -226,10 +223,7 @@ func (s *Server) runAsyncExecution(executionID string, request *types.MultiExecu
 		log.Printf("🔑 Using plain-text Gemini API key from frontend: %s...", apiKey[:10])
 		log.Printf("⚠️ Warning: API key transmitted in plain text - consider upgrading client to use encryption")
 	} else {
-		apiKey = s.config.APIKey
-		if apiKey != "" {
-			log.Printf("🔑 Using server Gemini API key: %s...", apiKey[:10])
-		}
+		log.Printf("🔑 No Gemini API key available from frontend")
 	}
 
 	if apiKey == "" {
@@ -302,28 +296,41 @@ func (s *Server) runAsyncExecution(executionID string, request *types.MultiExecu
 		}
 	}
 
+	// Get GitHub API key from encrypted headers
+	var githubAPIKey string
+	if decryptedKey, exists := encryptedKeys["githubApiKey"]; exists && decryptedKey != "" {
+		githubAPIKey = decryptedKey
+		log.Printf("🐙 Using decrypted GitHub API key from frontend: %s...", githubAPIKey[:10])
+	} else {
+		log.Printf("⚠️ No GitHub API key provided")
+	}
+
 	ctx := context.Background()
 	var err error
 	var result *types.ExecutionResult
 
 	if useMock {
-		// Create a client without API key to force mock responses but with logging
+		// Create a client with session keys but force mock mode
 		tempConfig := &types.GeminiClientConfig{
-			APIKey:            "", // Empty to force mock
-			OpenWeatherAPIKey: openWeatherAPIKey,
-			Neo4jURL:          neo4jURL,
+			MaxRetries:  s.config.MaxRetries,
+			TimeoutSecs: s.config.TimeoutSecs,
+		}
+
+		sessionKeys := &types.SessionApiKeys{
+			GeminiApiKey:      "", // Empty to force mock
+			OpenWeatherApiKey: openWeatherAPIKey,
+			Neo4jUrl:          neo4jURL,
 			Neo4jUsername:     neo4jUsername,
 			Neo4jPassword:     neo4jPassword,
 			Neo4jDatabase:     neo4jDatabase,
-			MaxRetries:        s.config.MaxRetries,
-			TimeoutSecs:       s.config.TimeoutSecs,
+			GithubApiKey:      githubAPIKey,
 		}
 
 		log.Printf("Creating mock client for execution with logging")
 
 		// Get database URL from environment for mock client
 		dbURL := os.Getenv("DB_URL")
-		mockClient, clientErr := gogent.NewClient(dbURL, tempConfig)
+		mockClient, clientErr := gogent.NewClient(dbURL, tempConfig, sessionKeys)
 		if clientErr != nil {
 			log.Printf("Failed to create mock client: %v", clientErr)
 			s.markExecutionFailed(executionID, fmt.Sprintf("Failed to create mock client: %v", clientErr))
@@ -339,23 +346,27 @@ func (s *Server) runAsyncExecution(executionID string, request *types.MultiExecu
 			return
 		}
 	} else {
-		// Create a temporary client with the API key
+		// Create a temporary client with session API keys
 		tempConfig := &types.GeminiClientConfig{
-			APIKey:            apiKey,
-			OpenWeatherAPIKey: openWeatherAPIKey,
-			Neo4jURL:          neo4jURL,
+			MaxRetries:  s.config.MaxRetries,
+			TimeoutSecs: s.config.TimeoutSecs,
+		}
+
+		sessionKeys := &types.SessionApiKeys{
+			GeminiApiKey:      apiKey,
+			OpenWeatherApiKey: openWeatherAPIKey,
+			Neo4jUrl:          neo4jURL,
 			Neo4jUsername:     neo4jUsername,
 			Neo4jPassword:     neo4jPassword,
 			Neo4jDatabase:     neo4jDatabase,
-			MaxRetries:        s.config.MaxRetries,
-			TimeoutSecs:       s.config.TimeoutSecs,
+			GithubApiKey:      githubAPIKey,
 		}
 
 		log.Printf("Creating temporary client with API key")
 
 		// Get database URL from environment for temporary client
 		dbURL := os.Getenv("DB_URL")
-		tempClient, clientErr := gogent.NewClient(dbURL, tempConfig)
+		tempClient, clientErr := gogent.NewClient(dbURL, tempConfig, sessionKeys)
 		if clientErr != nil {
 			log.Printf("Failed to create temporary client: %v", clientErr)
 			s.markExecutionFailed(executionID, fmt.Sprintf("Failed to create client: %v", clientErr))
@@ -561,15 +572,20 @@ func (s *Server) listConfigurations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get system configurations
-	systemConfigs, err := s.client.ListAPIConfigurationsByUser(ctx, "system", 50, 0)
+	// Get system configurations using dedicated query
+	systemConfigs, err := s.client.GetSystemConfigurations(ctx)
 	if err != nil {
 		log.Printf("⚠️ Failed to load system configurations from DB: %v", err)
 		// Don't fail the request, just log the error and continue with user configs only
+		systemConfigs = []types.APIConfiguration{}
 	}
 
-	// Combine user and system configurations
+	// With the new schema, configurations are already unique - no deduplication needed
+	// Simply combine user and system configurations
 	allConfigs := append(userConfigs, systemConfigs...)
+
+	log.Printf("📋 Returning configurations for user %s: %d user configs, %d system configs, %d total",
+		userID, len(userConfigs), len(systemConfigs), len(allConfigs))
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(allConfigs)
@@ -1634,7 +1650,7 @@ func (s *Server) enableCORS(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Gemini-API-Key, X-OpenWeather-API-Key, X-Neo4j-URL, X-Neo4j-Username, X-Neo4j-Password, X-Neo4j-Database, X-Use-Mock, X-Encrypted-Gemini-API-Key, X-Encrypted-Openweather-API-Key, X-Encrypted-Neo4j-URL, X-Encrypted-Neo4j-Username, X-Encrypted-Neo4j-Password, X-Encrypted-Neo4j-Database")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Gemini-API-Key, X-OpenWeather-API-Key, X-Neo4j-URL, X-Neo4j-Username, X-Neo4j-Password, X-Neo4j-Database, X-Use-Mock, X-Encrypted-Gemini-API-Key, X-Encrypted-Openweather-API-Key, X-Encrypted-Neo4j-URL, X-Encrypted-Neo4j-Username, X-Encrypted-Neo4j-Password, X-Encrypted-Neo4j-Database, X-Encrypted-Github-Api-Key")
 
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
@@ -1892,10 +1908,10 @@ func (s *Server) listFunctions(w http.ResponseWriter, r *http.Request) {
 
 	// Query the database directly for function definitions
 	query := `
-		SELECT id, user_id, name, display_name, description, parameters_schema,
+		SELECT id, user_id, name, display_name, function_group, description, parameters_schema,
 		       mock_response, endpoint_url, http_method, headers, auth_config,
-		       is_active, is_system_resource, query_template, result_transformer, fallback_data,
-		       created_at, updated_at
+		       is_active, is_system_resource, required_api_keys, api_key_validation,
+		       query_template, result_transformer, fallback_data, created_at, updated_at
 		FROM function_definitions
 		WHERE (user_id = ? OR user_id = 'system') AND is_active = true
 		ORDER BY display_name ASC
@@ -1919,6 +1935,7 @@ func (s *Server) listFunctions(w http.ResponseWriter, r *http.Request) {
 			&dbFunction.UserID,
 			&dbFunction.Name,
 			&dbFunction.DisplayName,
+			&dbFunction.FunctionGroup,
 			&dbFunction.Description,
 			&dbFunction.ParametersSchema,
 			&dbFunction.MockResponse,
@@ -1928,6 +1945,8 @@ func (s *Server) listFunctions(w http.ResponseWriter, r *http.Request) {
 			&dbFunction.AuthConfig,
 			&dbFunction.IsActive,
 			&dbFunction.IsSystemResource,
+			&dbFunction.RequiredApiKeys,
+			&dbFunction.ApiKeyValidation,
 			&dbFunction.QueryTemplate,
 			&dbFunction.ResultTransformer,
 			&dbFunction.FallbackData,
@@ -1957,6 +1976,7 @@ func (s *Server) listFunctions(w http.ResponseWriter, r *http.Request) {
 		if dbFunction.Description.Valid {
 			function.Description = dbFunction.Description.String
 		}
+		function.FunctionGroup = dbFunction.FunctionGroup
 		if dbFunction.EndpointUrl.Valid {
 			function.EndpointURL = dbFunction.EndpointUrl.String
 		}
@@ -1990,6 +2010,17 @@ func (s *Server) listFunctions(w http.ResponseWriter, r *http.Request) {
 
 		if err := json.Unmarshal(dbFunction.FallbackData, &function.FallbackData); err != nil {
 			log.Printf("⚠️ Failed to parse fallback data for %s: %v", function.Name, err)
+		}
+
+		// Handle RequiredApiKeys and ApiKeyValidation JSON fields
+		if err := json.Unmarshal(dbFunction.RequiredApiKeys, &function.RequiredApiKeys); err != nil {
+			log.Printf("⚠️ Failed to parse required API keys for %s: %v", function.Name, err)
+			function.RequiredApiKeys = []string{}
+		}
+
+		if err := json.Unmarshal(dbFunction.ApiKeyValidation, &function.ApiKeyValidation); err != nil {
+			log.Printf("⚠️ Failed to parse API key validation for %s: %v", function.Name, err)
+			function.ApiKeyValidation = make(map[string]interface{})
 		}
 
 		functions = append(functions, function)
