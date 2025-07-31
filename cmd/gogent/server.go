@@ -1698,6 +1698,9 @@ func runServer() {
 	http.HandleFunc("/api/functions/", server.enableCORS(authMiddleware(server.functionByIDHandler)))
 	http.HandleFunc("/api/functions/test/", server.enableCORS(authMiddleware(server.testFunctionHandler)))
 
+	// Execution flow graph endpoints
+	http.HandleFunc("/api/execution-flow/", server.enableCORS(authMiddleware(server.executionFlowGraphHandler)))
+
 	// Protected configuration management endpoints
 	http.HandleFunc("/api/configurations", server.enableCORS(authMiddleware(server.configurationsHandler)))
 	http.HandleFunc("/api/configurations/", server.enableCORS(authMiddleware(server.configurationByIDHandler)))
@@ -1825,6 +1828,56 @@ func (s *Server) createMockExecutionResult(run *types.ExecutionRun) *types.Execu
 			CreatedAt:           run.CreatedAt,
 		},
 	}
+}
+
+// Execution flow graph handlers
+
+// executionFlowGraphHandler handles requests for execution flow graph data
+func (s *Server) executionFlowGraphHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Extract user ID for authorization
+	userID, err := s.getUserID(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Extract execution run ID from URL path
+	// URL format: /api/execution-flow/{execution-run-id}
+	path := r.URL.Path
+	flowPrefix := "/api/execution-flow/"
+	if !strings.HasPrefix(path, flowPrefix) {
+		http.Error(w, "Invalid execution flow endpoint", http.StatusBadRequest)
+		return
+	}
+
+	executionRunID := path[len(flowPrefix):]
+	if executionRunID == "" {
+		http.Error(w, "Execution run ID required", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("🔍 Getting execution flow graph for execution run: %s, user: %s", executionRunID, userID)
+
+	// Get execution flow data from database using the client
+	flowGraph, err := s.client.GetExecutionFlowGraph(context.Background(), userID, executionRunID)
+	if err != nil {
+		log.Printf("❌ Failed to get execution flow graph: %v", err)
+		http.Error(w, fmt.Sprintf("Failed to get execution flow graph: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	if flowGraph == nil {
+		http.Error(w, "Execution run not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(flowGraph)
 }
 
 // Function management handlers

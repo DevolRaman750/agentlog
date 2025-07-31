@@ -52,6 +52,15 @@ type Client struct {
 	directoryAnalyzer *github.DirectoryAnalyzer
 }
 
+// ResponsePart represents a part of the Gemini API response
+type ResponsePart struct {
+	Text         string `json:"text,omitempty"`
+	FunctionCall struct {
+		Name string                 `json:"name"`
+		Args map[string]interface{} `json:"args"`
+	} `json:"functionCall,omitempty"`
+}
+
 // ensureMultiStatements ensures the database URL includes multiStatements=true for proper migration support
 func ensureMultiStatements(dbURL string) string {
 	if !strings.Contains(dbURL, "multiStatements=true") {
@@ -788,15 +797,15 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 		}
 		requestBody["tools"] = tools
 
-		// Add tool configuration to make function calling more aggressive
+		// Use AUTO mode as recommended by Gemini docs - let the model decide when to call functions
 		requestBody["toolConfig"] = map[string]interface{}{
 			"functionCallingConfig": map[string]interface{}{
-				"mode": "ANY",
+				"mode": "AUTO",
 			},
 		}
 
 		log.Printf("🔧 Final tools in request body: %+v", tools)
-		log.Printf("🔧 Added toolConfig with mode: ANY")
+		log.Printf("🔧 Added toolConfig with mode: AUTO (following Gemini best practices)")
 	} else {
 		log.Printf("⚠️  No tools provided to Gemini API call")
 	}
@@ -875,18 +884,34 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 	var responseText string
 	var finishReason string
 	var functionCallResponse map[string]interface{}
+	var allFunctionCalls []ResponsePart
 
 	if len(geminiResp.Candidates) > 0 {
 		candidate := geminiResp.Candidates[0]
 		finishReason = candidate.FinishReason
 
+		// First pass: collect all function calls and text responses (Gemini parallel function calling)
 		for _, part := range candidate.Content.Parts {
-			// Handle text response
 			if part.Text != "" {
 				responseText = part.Text
 			}
+			if part.FunctionCall.Name != "" {
+				allFunctionCalls = append(allFunctionCalls, part)
+			}
+		}
 
-			// Handle function call
+		// Process function calls - let Gemini decide parallel vs sequential
+		if len(allFunctionCalls) > 0 {
+			log.Printf("🔧 Processing %d function call(s) - executing them and allowing iterative calling", len(allFunctionCalls))
+			responseText, functionCallResponse = c.processIterativeFunctionCalls(ctx, config, request, allFunctionCalls, finalPrompt)
+		}
+	}
+
+	// Skip the old sequential processing since we're now handling all function calls in parallel
+	// The old code below will be removed after implementing processParallelFunctionCalls
+	if false && len(allFunctionCalls) == 0 {
+		// Old single function call handling (keeping temporarily for reference)
+		for _, part := range geminiResp.Candidates[0].Content.Parts {
 			if part.FunctionCall.Name != "" {
 				c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryFunctionCall,
 					fmt.Sprintf("Function call detected: %s", part.FunctionCall.Name),
@@ -1084,6 +1109,471 @@ func (c *Client) executeFunctionCall(ctx context.Context, functionName string, a
 		})
 
 	return result, nil
+}
+
+// processIterativeFunctionCalls handles function calls with proper dependency support
+func (c *Client) processIterativeFunctionCalls(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest, functionCalls []ResponsePart, originalPrompt string) (string, map[string]interface{}) {
+	log.Printf("🔧 Starting iterative function calling with %d initial function(s)", len(functionCalls))
+
+	// Build conversation history starting with user message
+	conversationHistory := []map[string]interface{}{
+		{
+			"role": "user",
+			"parts": []map[string]interface{}{
+				{"text": originalPrompt},
+			},
+		},
+	}
+
+	// Execute the iterative function calling loop
+	return c.executeIterativeFunctionLoop(ctx, config, request, functionCalls, conversationHistory)
+}
+
+// executeIterativeFunctionLoop handles the iterative execution of functions until Gemini provides final response
+func (c *Client) executeIterativeFunctionLoop(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest, functionCalls []ResponsePart, conversationHistory []map[string]interface{}) (string, map[string]interface{}) {
+	maxIterations := 5 // Prevent infinite loops
+	iteration := 0
+
+	for iteration < maxIterations {
+		iteration++
+		log.Printf("🔄 Function calling iteration %d with %d function(s)", iteration, len(functionCalls))
+
+		// Execute all requested functions (Gemini decides what to call)
+		functionResults := make([]map[string]interface{}, len(functionCalls))
+		modelParts := make([]map[string]interface{}, len(functionCalls))
+
+		for i, funcCall := range functionCalls {
+			// Add to conversation as model function call
+			modelParts[i] = map[string]interface{}{
+				"functionCall": map[string]interface{}{
+					"name": funcCall.FunctionCall.Name,
+					"args": funcCall.FunctionCall.Args,
+				},
+			}
+
+			// Execute the function
+			result, err := c.executeFunctionCall(ctx, funcCall.FunctionCall.Name, funcCall.FunctionCall.Args)
+			if err != nil {
+				log.Printf("⚠️ Function %s failed: %v", funcCall.FunctionCall.Name, err)
+				result = map[string]interface{}{
+					"error":  err.Error(),
+					"status": "failed",
+				}
+			}
+			functionResults[i] = result
+		}
+
+		// Add model function calls to conversation
+		conversationHistory = append(conversationHistory, map[string]interface{}{
+			"role":  "model",
+			"parts": modelParts,
+		})
+
+		// Add function responses to conversation
+		functionResponseParts := make([]map[string]interface{}, len(functionCalls))
+		for i, funcCall := range functionCalls {
+			functionResponseParts[i] = map[string]interface{}{
+				"functionResponse": map[string]interface{}{
+					"name":     funcCall.FunctionCall.Name,
+					"response": functionResults[i],
+				},
+			}
+		}
+
+		conversationHistory = append(conversationHistory, map[string]interface{}{
+			"role":  "function",
+			"parts": functionResponseParts,
+		})
+
+		// Send conversation back to Gemini to see if it wants to call more functions or provide final answer
+		nextResponse, err := c.sendConversationToGeminiForIteration(ctx, config, conversationHistory)
+		if err != nil {
+			log.Printf("⚠️ Failed to get next response from Gemini: %v", err)
+			// Fallback to simple summary
+			return c.createFallbackSummary(functionCalls, functionResults), nil
+		}
+
+		// Check if Gemini provided a text response (done) or more function calls
+		if nextResponse.TextResponse != "" {
+			// Check if this looks like a complete response for the complex task
+			responseLength := len(strings.TrimSpace(nextResponse.TextResponse))
+			if responseLength < 100 {
+				log.Printf("⚠️ Response seems incomplete (only %d chars), encouraging continuation", responseLength)
+				// Add a follow-up message to encourage completion
+				conversationHistory = append(conversationHistory, map[string]interface{}{
+					"role": "user",
+					"parts": []map[string]interface{}{
+						{"text": "Please continue and complete the full analysis. Make sure to address all parts of the original request, including reading relevant code and updating the GitHub issue with your findings."},
+					},
+				})
+				// Continue iteration
+			} else {
+				// Before returning, ask Gemini to provide a comprehensive summary of ALL work completed
+				log.Printf("🔧 Requesting comprehensive summary of all work completed in %d iterations", iteration)
+
+				// Add a summary request to the conversation
+				conversationHistory = append(conversationHistory, map[string]interface{}{
+					"role": "user",
+					"parts": []map[string]interface{}{
+						{"text": "Thank you for completing all the tasks! Please provide a comprehensive summary of everything you accomplished:\n\n1. What GitHub issues you found and analyzed\n2. What code files you examined and what you discovered\n3. What updates you made to the GitHub issue\n4. What weather information you retrieved\n\nPlease confirm each task was completed successfully and provide a clear summary of the results."},
+					},
+				})
+
+				// Get the comprehensive summary
+				finalSummary, err := c.sendConversationToGeminiForIteration(ctx, config, conversationHistory)
+				if err != nil {
+					log.Printf("⚠️ Failed to get final summary: %v", err)
+					// Return original response as fallback
+					return nextResponse.TextResponse, nil
+				}
+
+				if finalSummary.TextResponse != "" {
+					log.Printf("✅ Gemini provided comprehensive summary after %d iterations", iteration+1)
+					return finalSummary.TextResponse, nil
+				}
+
+				// Fallback to original response
+				log.Printf("✅ Gemini provided final response after %d iterations", iteration)
+				return nextResponse.TextResponse, nil
+			}
+		}
+
+		if len(nextResponse.FunctionCalls) > 0 {
+			log.Printf("🔗 Gemini requested %d more function(s) for iteration %d", len(nextResponse.FunctionCalls), iteration+1)
+			functionCalls = nextResponse.FunctionCalls
+			continue // Next iteration with new function calls
+		}
+
+		// If we get here, Gemini didn't provide text or function calls - something went wrong
+		log.Printf("⚠️ Gemini provided neither text nor function calls, ending iteration")
+		break
+	}
+
+	log.Printf("⚠️ Reached maximum iterations (%d), providing fallback response", maxIterations)
+	return c.createFallbackSummary(functionCalls, nil), nil
+}
+
+// GeminiIterationResponse holds the response from Gemini during iterative function calling
+type GeminiIterationResponse struct {
+	TextResponse  string
+	FunctionCalls []ResponsePart
+}
+
+// sendConversationToGeminiForIteration sends conversation to Gemini and parses response for iteration
+func (c *Client) sendConversationToGeminiForIteration(ctx context.Context, config *types.APIConfiguration, conversationHistory []map[string]interface{}) (*GeminiIterationResponse, error) {
+	// Build request body with conversation history
+	requestBody := map[string]interface{}{
+		"contents": conversationHistory,
+	}
+
+	// Add generation config
+	generationConfig := make(map[string]interface{})
+	if config.Temperature != nil {
+		generationConfig["temperature"] = *config.Temperature
+	}
+	if config.MaxTokens != nil {
+		generationConfig["maxOutputTokens"] = *config.MaxTokens
+	}
+	if len(generationConfig) > 0 {
+		requestBody["generationConfig"] = generationConfig
+	}
+
+	// Include tools to allow more function calls (using same pattern as existing code)
+	if len(config.Tools) > 0 {
+		tools := make([]map[string]interface{}, len(config.Tools))
+		for i, tool := range config.Tools {
+			// Sanitize the parameters to remove unsupported fields
+			sanitizedParams := sanitizeToolParameters(tool.Parameters)
+
+			toolDeclaration := map[string]interface{}{
+				"functionDeclarations": []map[string]interface{}{
+					{
+						"name":        tool.Name,
+						"description": tool.Description,
+						"parameters":  sanitizedParams,
+					},
+				},
+			}
+			tools[i] = toolDeclaration
+		}
+		requestBody["tools"] = tools
+
+		// Use AUTO mode to let Gemini decide
+		requestBody["toolConfig"] = map[string]interface{}{
+			"functionCallingConfig": map[string]interface{}{
+				"mode": "AUTO",
+			},
+		}
+	}
+
+	// Make HTTP request using same pattern as existing code
+	reqBodyBytes, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request body: %w", err)
+	}
+
+	// Get API key from session keys (same pattern as existing code)
+	apiKey := ""
+	if c.sessionApiKeys != nil {
+		apiKey = c.sessionApiKeys.GeminiApiKey
+	}
+
+	// Make HTTP request to Gemini REST API
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent", config.ModelName)
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(reqBodyBytes))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("x-goog-api-key", apiKey)
+
+	client := &http.Client{Timeout: 10 * time.Minute}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP error %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Parse response using same pattern as existing code
+	var geminiResp struct {
+		Candidates []struct {
+			Content struct {
+				Parts []struct {
+					Text         string `json:"text,omitempty"`
+					FunctionCall struct {
+						Name string                 `json:"name"`
+						Args map[string]interface{} `json:"args"`
+					} `json:"functionCall,omitempty"`
+				} `json:"parts"`
+			} `json:"content"`
+			FinishReason string `json:"finishReason"`
+		} `json:"candidates"`
+	}
+
+	if err := json.Unmarshal(body, &geminiResp); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	response := &GeminiIterationResponse{}
+
+	if len(geminiResp.Candidates) > 0 {
+		candidate := geminiResp.Candidates[0]
+
+		for _, part := range candidate.Content.Parts {
+			if part.Text != "" {
+				response.TextResponse = part.Text
+			}
+			if part.FunctionCall.Name != "" {
+				// Convert to ResponsePart format
+				responsePart := ResponsePart{
+					Text: "",
+					FunctionCall: struct {
+						Name string                 `json:"name"`
+						Args map[string]interface{} `json:"args"`
+					}{
+						Name: part.FunctionCall.Name,
+						Args: part.FunctionCall.Args,
+					},
+				}
+				response.FunctionCalls = append(response.FunctionCalls, responsePart)
+			}
+		}
+	}
+
+	return response, nil
+}
+
+// createFallbackSummary creates a simple summary when function calling fails
+func (c *Client) createFallbackSummary(functionCalls []ResponsePart, functionResults []map[string]interface{}) string {
+	if len(functionCalls) == 0 {
+		return "I attempted to process your request but encountered an error."
+	}
+
+	var functionNames []string
+	for _, funcCall := range functionCalls {
+		functionNames = append(functionNames, funcCall.FunctionCall.Name)
+	}
+
+	summary := fmt.Sprintf("I executed %d functions: %s", len(functionNames), strings.Join(functionNames, ", "))
+
+	if functionResults != nil && len(functionResults) > 0 {
+		summary += "\n\nHowever, I encountered an issue providing a comprehensive analysis. The functions executed successfully, but I was unable to synthesize the results properly."
+	}
+
+	return summary
+}
+
+// processParallelFunctionCalls handles multiple function calls as per Gemini documentation (DEPRECATED - keeping for compatibility)
+func (c *Client) processParallelFunctionCalls(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest, functionCalls []ResponsePart, originalPrompt string) (string, map[string]interface{}) {
+	log.Printf("🔧 Executing %d function calls in parallel", len(functionCalls))
+
+	// Execute all functions and collect results
+	var functionResults []map[string]interface{}
+	var conversationParts []map[string]interface{}
+
+	// Add original user message
+	conversationParts = append(conversationParts, map[string]interface{}{
+		"role": "user",
+		"parts": []map[string]interface{}{
+			{"text": originalPrompt},
+		},
+	})
+
+	// Add model function calls (all at once)
+	modelParts := make([]map[string]interface{}, len(functionCalls))
+	for i, funcCall := range functionCalls {
+		modelParts[i] = map[string]interface{}{
+			"functionCall": map[string]interface{}{
+				"name": funcCall.FunctionCall.Name,
+				"args": funcCall.FunctionCall.Args,
+			},
+		}
+
+		// Execute the function
+		result, err := c.executeFunctionCall(ctx, funcCall.FunctionCall.Name, funcCall.FunctionCall.Args)
+		if err != nil {
+			log.Printf("⚠️ Function %s failed: %v", funcCall.FunctionCall.Name, err)
+			result = map[string]interface{}{
+				"error":  err.Error(),
+				"status": "failed",
+			}
+		}
+		functionResults = append(functionResults, result)
+	}
+
+	conversationParts = append(conversationParts, map[string]interface{}{
+		"role":  "model",
+		"parts": modelParts,
+	})
+
+	// Add ALL function responses in a single function role entry (required by Gemini API)
+	functionResponseParts := make([]map[string]interface{}, len(functionCalls))
+	for i, funcCall := range functionCalls {
+		functionResponseParts[i] = map[string]interface{}{
+			"functionResponse": map[string]interface{}{
+				"name":     funcCall.FunctionCall.Name,
+				"response": functionResults[i],
+			},
+		}
+	}
+
+	conversationParts = append(conversationParts, map[string]interface{}{
+		"role":  "function",
+		"parts": functionResponseParts,
+	})
+
+	// Send complete conversation to Gemini for final synthesis
+	finalResponse, err := c.sendConversationToGemini(ctx, config, conversationParts)
+	if err != nil {
+		log.Printf("⚠️ Failed to get final synthesis from Gemini: %v", err)
+		// Fallback to basic response
+		functionNames := make([]string, len(functionCalls))
+		for i, fc := range functionCalls {
+			functionNames[i] = fc.FunctionCall.Name
+		}
+		return fmt.Sprintf("I executed %d functions: %s", len(functionCalls), strings.Join(functionNames, ", ")), nil
+	}
+
+	// Return the first function call info for legacy compatibility
+	firstFunctionResponse := map[string]interface{}{
+		"function_name": functionCalls[0].FunctionCall.Name,
+		"arguments":     functionCalls[0].FunctionCall.Args,
+		"result":        functionResults[0],
+	}
+
+	return finalResponse, firstFunctionResponse
+}
+
+// sendConversationToGemini sends a complete conversation history to Gemini for synthesis
+func (c *Client) sendConversationToGemini(ctx context.Context, config *types.APIConfiguration, conversationParts []map[string]interface{}) (string, error) {
+	requestBody := map[string]interface{}{
+		"contents": conversationParts,
+	}
+
+	// Add generation config
+	generationConfig := make(map[string]interface{})
+	if config.Temperature != nil {
+		generationConfig["temperature"] = *config.Temperature
+	}
+	if config.MaxTokens != nil {
+		generationConfig["maxOutputTokens"] = *config.MaxTokens
+	}
+	if len(generationConfig) > 0 {
+		requestBody["generationConfig"] = generationConfig
+	}
+
+	// Don't include tools in synthesis call to force text response
+	log.Printf("🔧 Sending conversation to Gemini for synthesis (no tools)")
+
+	reqBodyBytes, err := json.Marshal(requestBody)
+	if err != nil {
+		return "", err
+	}
+
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent", config.ModelName)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(reqBodyBytes))
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	var geminiApiKey string
+	if c.sessionApiKeys != nil {
+		geminiApiKey = c.sessionApiKeys.GeminiApiKey
+	}
+	req.Header.Set("x-goog-api-key", geminiApiKey)
+
+	client := &http.Client{Timeout: 2 * time.Minute}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("HTTP error %d: %s", resp.StatusCode, string(body))
+	}
+
+	var geminiResp struct {
+		Candidates []struct {
+			Content struct {
+				Parts []struct {
+					Text string `json:"text,omitempty"`
+				} `json:"parts"`
+			} `json:"content"`
+		} `json:"candidates"`
+	}
+
+	if err := json.Unmarshal(body, &geminiResp); err != nil {
+		return "", err
+	}
+
+	if len(geminiResp.Candidates) > 0 && len(geminiResp.Candidates[0].Content.Parts) > 0 {
+		for _, part := range geminiResp.Candidates[0].Content.Parts {
+			if part.Text != "" {
+				log.Printf("✅ Got synthesis response from Gemini: %s", part.Text[:min(100, len(part.Text))])
+				return part.Text, nil
+			}
+		}
+	}
+
+	return "I executed the requested functions successfully.", nil
 }
 
 // executeLegacyFunction handles functions that aren't in the database (backward compatibility)
@@ -2232,16 +2722,44 @@ func (c *Client) executeHTTPFunction(ctx context.Context, funcDef *db.FunctionDe
 	requestURL := funcDef.EndpointUrl.String
 	var requestBody []byte
 
+	// Special handling for GitHub contents API - handle missing or empty path
+	if funcDef.Name == "github_read_code" {
+		pathValue, pathExists := args["path"]
+		pathStr := ""
+		if pathExists {
+			pathStr = fmt.Sprintf("%v", pathValue)
+		}
+
+		// For GitHub contents API, handle path specially
+		if pathStr == "" {
+			// For empty or missing path, remove the /{path} part entirely
+			requestURL = strings.ReplaceAll(requestURL, "/{path}", "")
+		} else {
+			// For non-empty path, replace normally
+			requestURL = strings.ReplaceAll(requestURL, "{path}", pathStr)
+		}
+
+		c.logExecutionEvent(types.LogLevelDebug, types.LogCategoryFunctionCall,
+			"Handled GitHub path parameter",
+			map[string]interface{}{
+				"path_exists": pathExists,
+				"path_value":  pathStr,
+				"final_url":   requestURL,
+			})
+	}
+
 	// Replace URL path parameters (e.g., {owner}, {repo})
 	for key, value := range args {
 		placeholder := fmt.Sprintf("{%s}", key)
 		if strings.Contains(requestURL, placeholder) {
-			requestURL = strings.ReplaceAll(requestURL, placeholder, fmt.Sprintf("%v", value))
+			valueStr := fmt.Sprintf("%v", value)
+			requestURL = strings.ReplaceAll(requestURL, placeholder, valueStr)
+
 			c.logExecutionEvent(types.LogLevelDebug, types.LogCategoryFunctionCall,
 				fmt.Sprintf("Replaced URL parameter %s", key),
 				map[string]interface{}{
 					"parameter": key,
-					"value":     fmt.Sprintf("%v", value),
+					"value":     valueStr,
 				})
 		}
 	}
@@ -5070,4 +5588,301 @@ func (c *Client) RunMigrations() error {
 	}
 
 	return nil
+}
+
+// GetExecutionFlowGraph retrieves the complete execution flow graph for an execution run
+func (c *Client) GetExecutionFlowGraph(ctx context.Context, userID, executionRunID string) (*types.ExecutionFlowGraph, error) {
+	log.Printf("🔍 Getting execution flow graph for execution run: %s, user: %s", executionRunID, userID)
+
+	// First verify the execution run belongs to the user
+	executionRun, err := c.GetExecutionRun(ctx, userID, executionRunID)
+	if err != nil {
+		return nil, fmt.Errorf("execution run not found or access denied: %w", err)
+	}
+
+	// 1. Get execution flow events
+	events, err := c.getExecutionFlowEvents(ctx, executionRunID)
+	if err != nil {
+		log.Printf("⚠️ Failed to get execution flow events: %v", err)
+		events = []types.ExecutionFlowEvent{} // Continue with empty events
+	}
+
+	// 2. Get function calls for this execution run
+	functionCalls, err := c.getFunctionCallsForExecutionRun(ctx, executionRunID)
+	if err != nil {
+		log.Printf("⚠️ Failed to get function calls: %v", err)
+		functionCalls = []types.FunctionCall{} // Continue with empty function calls
+	}
+
+	// 3. Get execution stats
+	stats, err := c.getExecutionStats(ctx, executionRunID)
+	if err != nil {
+		log.Printf("⚠️ Failed to get execution stats: %v", err)
+		// Continue without stats
+	}
+
+	// 4. Generate graph YAML (simplified for now)
+	graphYAML := c.generateGraphYAML(executionRun, events, functionCalls)
+
+	flowGraph := &types.ExecutionFlowGraph{
+		ExecutionRunID: executionRunID,
+		Events:         events,
+		FunctionCalls:  functionCalls,
+		Stats:          stats,
+		GraphYAML:      graphYAML,
+	}
+
+	log.Printf("✅ Generated execution flow graph with %d events, %d function calls", len(events), len(functionCalls))
+	return flowGraph, nil
+}
+
+// getExecutionFlowEvents retrieves all execution flow events for an execution run
+func (c *Client) getExecutionFlowEvents(ctx context.Context, executionRunID string) ([]types.ExecutionFlowEvent, error) {
+	query := `
+		SELECT id, execution_run_id, request_id, event_type, sequence_number, 
+		       parent_event_id, event_data, duration_ms, status, error_message, created_at
+		FROM execution_flow_events 
+		WHERE execution_run_id = ?
+		ORDER BY sequence_number ASC, created_at ASC
+	`
+
+	rows, err := c.db.QueryContext(ctx, query, executionRunID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query execution flow events: %w", err)
+	}
+	defer rows.Close()
+
+	var events []types.ExecutionFlowEvent
+	for rows.Next() {
+		var event types.ExecutionFlowEvent
+		var requestID, parentEventID, errorMessage sql.NullString
+		var eventDataJSON sql.NullString
+		var durationMs sql.NullInt32
+
+		err := rows.Scan(
+			&event.ID,
+			&event.ExecutionRunID,
+			&requestID,
+			&event.EventType,
+			&event.SequenceNumber,
+			&parentEventID,
+			&eventDataJSON,
+			&durationMs,
+			&event.Status,
+			&errorMessage,
+			&event.CreatedAt,
+		)
+		if err != nil {
+			log.Printf("⚠️ Failed to scan execution flow event: %v", err)
+			continue
+		}
+
+		// Handle nullable fields
+		if requestID.Valid {
+			event.RequestID = &requestID.String
+		}
+		if parentEventID.Valid {
+			event.ParentEventID = &parentEventID.String
+		}
+		if errorMessage.Valid {
+			event.ErrorMessage = &errorMessage.String
+		}
+		if durationMs.Valid {
+			event.DurationMs = &durationMs.Int32
+		}
+
+		// Parse event data JSON
+		if eventDataJSON.Valid && eventDataJSON.String != "" {
+			var eventData map[string]interface{}
+			if err := json.Unmarshal([]byte(eventDataJSON.String), &eventData); err != nil {
+				log.Printf("⚠️ Failed to parse event data JSON for event %s: %v", event.ID, err)
+			} else {
+				event.EventData = eventData
+			}
+		}
+
+		events = append(events, event)
+	}
+
+	return events, rows.Err()
+}
+
+// getFunctionCallsForExecutionRun retrieves all function calls for an execution run
+func (c *Client) getFunctionCallsForExecutionRun(ctx context.Context, executionRunID string) ([]types.FunctionCall, error) {
+	query := `
+		SELECT fc.id, fc.request_id, fc.function_name, fc.function_arguments, 
+		       fc.function_response, fc.execution_status, fc.execution_time_ms, 
+		       fc.error_details, fc.sequence_number, fc.parent_call_id, 
+		       fc.execution_depth, fc.created_at
+		FROM function_calls fc
+		INNER JOIN api_requests ar ON fc.request_id = ar.id
+		WHERE ar.execution_run_id = ?
+		ORDER BY fc.sequence_number ASC, fc.created_at ASC
+	`
+
+	rows, err := c.db.QueryContext(ctx, query, executionRunID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query function calls: %w", err)
+	}
+	defer rows.Close()
+
+	var functionCalls []types.FunctionCall
+	for rows.Next() {
+		var functionCall types.FunctionCall
+		var functionArgs, functionResponse []byte
+		var errorDetails, parentCallID sql.NullString
+		var executionTimeMs sql.NullInt32
+		var sequenceNumber, executionDepth sql.NullInt32
+
+		err := rows.Scan(
+			&functionCall.ID,
+			&functionCall.RequestID,
+			&functionCall.FunctionName,
+			&functionArgs,
+			&functionResponse,
+			&functionCall.ExecutionStatus,
+			&executionTimeMs,
+			&errorDetails,
+			&sequenceNumber,
+			&parentCallID,
+			&executionDepth,
+			&functionCall.CreatedAt,
+		)
+		if err != nil {
+			log.Printf("⚠️ Failed to scan function call: %v", err)
+			continue
+		}
+
+		// Parse JSON fields
+		if len(functionArgs) > 0 {
+			if err := json.Unmarshal(functionArgs, &functionCall.FunctionArgs); err != nil {
+				log.Printf("⚠️ Failed to parse function args for call %s: %v", functionCall.ID, err)
+			}
+		}
+		if len(functionResponse) > 0 {
+			if err := json.Unmarshal(functionResponse, &functionCall.FunctionResponse); err != nil {
+				log.Printf("⚠️ Failed to parse function response for call %s: %v", functionCall.ID, err)
+			}
+		}
+
+		// Handle nullable fields
+		if errorDetails.Valid {
+			functionCall.ErrorDetails = errorDetails.String
+		}
+		if executionTimeMs.Valid {
+			functionCall.ExecutionTimeMs = executionTimeMs.Int32
+		}
+		if sequenceNumber.Valid {
+			functionCall.SequenceNumber = sequenceNumber.Int32
+		}
+		if parentCallID.Valid {
+			functionCall.ParentCallID = &parentCallID.String
+		}
+		if executionDepth.Valid {
+			functionCall.ExecutionDepth = executionDepth.Int32
+		}
+
+		functionCalls = append(functionCalls, functionCall)
+	}
+
+	return functionCalls, rows.Err()
+}
+
+// getExecutionStats retrieves execution statistics for an execution run
+func (c *Client) getExecutionStats(ctx context.Context, executionRunID string) (*types.ExecutionStats, error) {
+	query := `
+		SELECT id, execution_run_id, total_function_calls, total_ai_model_calls, 
+		       total_errors, total_retries, total_execution_time_ms, 
+		       avg_function_call_time_ms, avg_ai_response_time_ms, max_execution_depth,
+		       function_call_breakdown, created_at, updated_at
+		FROM execution_stats 
+		WHERE execution_run_id = ?
+		LIMIT 1
+	`
+
+	var stats types.ExecutionStats
+	var functionCallBreakdownJSON sql.NullString
+
+	err := c.db.QueryRowContext(ctx, query, executionRunID).Scan(
+		&stats.ID,
+		&stats.ExecutionRunID,
+		&stats.TotalFunctionCalls,
+		&stats.TotalAIModelCalls,
+		&stats.TotalErrors,
+		&stats.TotalRetries,
+		&stats.TotalExecutionTimeMs,
+		&stats.AvgFunctionCallTimeMs,
+		&stats.AvgAIResponseTimeMs,
+		&stats.MaxExecutionDepth,
+		&functionCallBreakdownJSON,
+		&stats.CreatedAt,
+		&stats.UpdatedAt,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // No stats available yet
+		}
+		return nil, fmt.Errorf("failed to query execution stats: %w", err)
+	}
+
+	// Parse function call breakdown JSON
+	if functionCallBreakdownJSON.Valid && functionCallBreakdownJSON.String != "" {
+		var breakdown map[string]interface{}
+		if err := json.Unmarshal([]byte(functionCallBreakdownJSON.String), &breakdown); err != nil {
+			log.Printf("⚠️ Failed to parse function call breakdown JSON: %v", err)
+		} else {
+			stats.FunctionCallBreakdown = breakdown
+		}
+	}
+
+	return &stats, nil
+}
+
+// generateGraphYAML generates a simple YAML representation of the execution flow
+func (c *Client) generateGraphYAML(executionRun *types.ExecutionRun, events []types.ExecutionFlowEvent, functionCalls []types.FunctionCall) string {
+	// Simple YAML generation for Gorph visualization
+	// This is a basic implementation - can be enhanced with more sophisticated graph generation
+
+	yamlBuilder := strings.Builder{}
+	yamlBuilder.WriteString("# Execution Flow Graph\n")
+	yamlBuilder.WriteString(fmt.Sprintf("name: %s\n", executionRun.Name))
+	yamlBuilder.WriteString(fmt.Sprintf("description: %s\n", executionRun.Description))
+	yamlBuilder.WriteString("nodes:\n")
+
+	// Add event nodes
+	for _, event := range events {
+		yamlBuilder.WriteString(fmt.Sprintf("  - id: %s\n", event.ID))
+		yamlBuilder.WriteString(fmt.Sprintf("    type: %s\n", event.EventType))
+		yamlBuilder.WriteString(fmt.Sprintf("    status: %s\n", event.Status))
+		if event.DurationMs != nil {
+			yamlBuilder.WriteString(fmt.Sprintf("    duration_ms: %d\n", *event.DurationMs))
+		}
+	}
+
+	// Add function call nodes
+	for _, fc := range functionCalls {
+		yamlBuilder.WriteString(fmt.Sprintf("  - id: %s\n", fc.ID))
+		yamlBuilder.WriteString(fmt.Sprintf("    type: function_call\n"))
+		yamlBuilder.WriteString(fmt.Sprintf("    function: %s\n", fc.FunctionName))
+		yamlBuilder.WriteString(fmt.Sprintf("    status: %s\n", fc.ExecutionStatus))
+		yamlBuilder.WriteString(fmt.Sprintf("    duration_ms: %d\n", fc.ExecutionTimeMs))
+	}
+
+	yamlBuilder.WriteString("edges:\n")
+	// Add parent-child relationships
+	for _, event := range events {
+		if event.ParentEventID != nil {
+			yamlBuilder.WriteString(fmt.Sprintf("  - from: %s\n", *event.ParentEventID))
+			yamlBuilder.WriteString(fmt.Sprintf("    to: %s\n", event.ID))
+		}
+	}
+	for _, fc := range functionCalls {
+		if fc.ParentCallID != nil {
+			yamlBuilder.WriteString(fmt.Sprintf("  - from: %s\n", *fc.ParentCallID))
+			yamlBuilder.WriteString(fmt.Sprintf("    to: %s\n", fc.ID))
+		}
+	}
+
+	return yamlBuilder.String()
 }

@@ -57,6 +57,9 @@ type ExecutionLog struct {
 	Message         string                 `json:"message"`
 	Details         map[string]interface{} `json:"details,omitempty"`
 	Timestamp       time.Time              `json:"timestamp"`
+	SequenceNumber  *int32                 `json:"sequenceNumber,omitempty"`
+	DurationMs      *int32                 `json:"durationMs,omitempty"`
+	RelatedEventID  *string                `json:"relatedEventId,omitempty"`
 }
 
 // ExecutionRun represents a group of related API calls with variations
@@ -228,6 +231,9 @@ type FunctionCall struct {
 	ExecutionTimeMs  int32                  `json:"execution_time_ms,omitempty"`
 	ErrorDetails     string                 `json:"error_details,omitempty"`
 	CreatedAt        time.Time              `json:"created_at"`
+	SequenceNumber   int32                  `json:"sequence_number"`
+	ParentCallID     *string                `json:"parent_call_id,omitempty"`
+	ExecutionDepth   int32                  `json:"execution_depth"`
 }
 
 // SessionApiKeys represents API keys passed with each request (not stored on backend)
@@ -301,6 +307,71 @@ type ComparisonResult struct {
 	AllConfigurations   []APIConfiguration     `json:"allConfigurations,omitempty"`
 	AnalysisNotes       string                 `json:"analysisNotes,omitempty"`
 	CreatedAt           time.Time              `json:"createdAt"`
+}
+
+// ExecutionFlowEventType represents the type of execution flow event
+type ExecutionFlowEventType string
+
+const (
+	EventTypePromptStart       ExecutionFlowEventType = "prompt_start"
+	EventTypeAIModelCall       ExecutionFlowEventType = "ai_model_call"
+	EventTypeFunctionCallStart ExecutionFlowEventType = "function_call_start"
+	EventTypeFunctionCallEnd   ExecutionFlowEventType = "function_call_end"
+	EventTypeAIResponse        ExecutionFlowEventType = "ai_response"
+	EventTypeErrorOccurred     ExecutionFlowEventType = "error_occurred"
+	EventTypeRetryAttempt      ExecutionFlowEventType = "retry_attempt"
+	EventTypeExecutionComplete ExecutionFlowEventType = "execution_complete"
+)
+
+// ExecutionFlowEventStatus represents the status of an execution flow event
+type ExecutionFlowEventStatus string
+
+const (
+	EventStatusPending ExecutionFlowEventStatus = "pending"
+	EventStatusSuccess ExecutionFlowEventStatus = "success"
+	EventStatusError   ExecutionFlowEventStatus = "error"
+	EventStatusTimeout ExecutionFlowEventStatus = "timeout"
+)
+
+// ExecutionFlowEvent represents an event in the execution flow for graph visualization
+type ExecutionFlowEvent struct {
+	ID             string                   `json:"id"`
+	ExecutionRunID string                   `json:"executionRunId"`
+	RequestID      *string                  `json:"requestId,omitempty"`
+	EventType      ExecutionFlowEventType   `json:"eventType"`
+	SequenceNumber int32                    `json:"sequenceNumber"`
+	ParentEventID  *string                  `json:"parentEventId,omitempty"`
+	EventData      map[string]interface{}   `json:"eventData,omitempty"`
+	DurationMs     *int32                   `json:"durationMs,omitempty"`
+	Status         ExecutionFlowEventStatus `json:"status"`
+	ErrorMessage   *string                  `json:"errorMessage,omitempty"`
+	CreatedAt      time.Time                `json:"createdAt"`
+}
+
+// ExecutionStats represents performance statistics for an execution
+type ExecutionStats struct {
+	ID                    string                 `json:"id"`
+	ExecutionRunID        string                 `json:"executionRunId"`
+	TotalFunctionCalls    int32                  `json:"totalFunctionCalls"`
+	TotalAIModelCalls     int32                  `json:"totalAIModelCalls"`
+	TotalErrors           int32                  `json:"totalErrors"`
+	TotalRetries          int32                  `json:"totalRetries"`
+	TotalExecutionTimeMs  int32                  `json:"totalExecutionTimeMs"`
+	AvgFunctionCallTimeMs float64                `json:"avgFunctionCallTimeMs"`
+	AvgAIResponseTimeMs   float64                `json:"avgAIResponseTimeMs"`
+	MaxExecutionDepth     int32                  `json:"maxExecutionDepth"`
+	FunctionCallBreakdown map[string]interface{} `json:"functionCallBreakdown,omitempty"`
+	CreatedAt             time.Time              `json:"createdAt"`
+	UpdatedAt             time.Time              `json:"updatedAt"`
+}
+
+// ExecutionFlowGraph represents the complete execution flow for Gorph visualization
+type ExecutionFlowGraph struct {
+	ExecutionRunID string               `json:"executionRunId"`
+	Events         []ExecutionFlowEvent `json:"events"`
+	FunctionCalls  []FunctionCall       `json:"functionCalls"`
+	Stats          *ExecutionStats      `json:"stats,omitempty"`
+	GraphYAML      string               `json:"graphYaml"` // Generated YAML for Gorph
 }
 
 // Additional types for interface support
