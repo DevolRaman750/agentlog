@@ -12,6 +12,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -51,8 +52,23 @@ type Client struct {
 	directoryAnalyzer *github.DirectoryAnalyzer
 }
 
+// ensureMultiStatements ensures the database URL includes multiStatements=true for proper migration support
+func ensureMultiStatements(dbURL string) string {
+	if !strings.Contains(dbURL, "multiStatements=true") {
+		if strings.Contains(dbURL, "?") {
+			dbURL += "&multiStatements=true"
+		} else {
+			dbURL += "?multiStatements=true"
+		}
+	}
+	return dbURL
+}
+
 // NewClient creates a new gogent client with database connection
 func NewClient(dbURL string, config *types.GeminiClientConfig, sessionApiKeys *types.SessionApiKeys) (*Client, error) {
+	// Ensure dbURL includes multiStatements=true for migrations
+	dbURL = ensureMultiStatements(dbURL)
+
 	database, err := sql.Open("mysql", dbURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
@@ -4486,10 +4502,67 @@ func (c *Client) GetExecutionResult(ctx context.Context, userID string, executio
 			CreatedAt:      respRow.CreatedAt.Time,
 		}
 
+		// Get function calls for this request
+		functionCallRows, err := c.queries.ListFunctionCallsByRequest(ctx, respRow.RequestID)
+		if err != nil {
+			log.Printf("⚠️ Failed to get function calls for request %s: %v", respRow.RequestID, err)
+			// Continue without function calls rather than failing
+		}
+
+		// Convert function call rows to types.FunctionCall
+		functionCalls := make([]types.FunctionCall, 0, len(functionCallRows))
+		for _, fcRow := range functionCallRows {
+			// Parse function arguments
+			var functionArgs map[string]interface{}
+			if fcRow.FunctionArguments != nil {
+				if err := json.Unmarshal(fcRow.FunctionArguments, &functionArgs); err != nil {
+					log.Printf("⚠️ Failed to parse function arguments for call %s: %v", fcRow.ID, err)
+					functionArgs = make(map[string]interface{})
+				}
+			}
+
+			// Parse function response
+			var functionResponse map[string]interface{}
+			if fcRow.FunctionResponse != nil {
+				if err := json.Unmarshal(fcRow.FunctionResponse, &functionResponse); err != nil {
+					log.Printf("⚠️ Failed to parse function response for call %s: %v", fcRow.ID, err)
+					functionResponse = make(map[string]interface{})
+				}
+			}
+
+			// Get execution time, default to 0 if null
+			executionTimeMs := int32(0)
+			if fcRow.ExecutionTimeMs.Valid {
+				executionTimeMs = fcRow.ExecutionTimeMs.Int32
+			}
+
+			// Get error details, default to empty string if null
+			errorDetails := ""
+			if fcRow.ErrorDetails.Valid {
+				errorDetails = fcRow.ErrorDetails.String
+			}
+
+			functionCall := types.FunctionCall{
+				ID:               fcRow.ID,
+				RequestID:        fcRow.RequestID,
+				FunctionName:     fcRow.FunctionName,
+				FunctionArgs:     functionArgs,
+				FunctionResponse: functionResponse,
+				ExecutionStatus:  fcRow.ExecutionStatus.String,
+				ExecutionTimeMs:  executionTimeMs,
+				ErrorDetails:     errorDetails,
+				CreatedAt:        fcRow.CreatedAt.Time,
+			}
+
+			functionCalls = append(functionCalls, functionCall)
+			log.Printf("✅ Added function call: %s (%s)", fcRow.FunctionName, fcRow.ExecutionStatus.String)
+		}
+
 		result := types.VariationResult{
 			Configuration: *config,
 			Request:       *request,
 			Response:      *response,
+			FunctionCalls: functionCalls,                  // Add the function calls here
 			ExecutionTime: int64(response.ResponseTimeMs), // Already in milliseconds
 		}
 
@@ -4939,10 +5012,32 @@ func (c *Client) RunMigrations() error {
 		return fmt.Errorf("failed to create migrate driver: %w", err)
 	}
 
-	// Create migrate instance
+	// Check if migrations directory exists
+	migrationPath := "./migrations"
+	if files, err := os.ReadDir(migrationPath); err == nil {
+		log.Printf("🔍 Found %d migration files in %s", len(files), migrationPath)
+	} else {
+		// Try absolute path if relative doesn't work
+		migrationPath = "/app/migrations"
+		if files, err := os.ReadDir(migrationPath); err == nil {
+			log.Printf("🔍 Found %d migration files in %s", len(files), migrationPath)
+		} else {
+			log.Printf("⚠️ Could not read migrations directory: %v", err)
+			return fmt.Errorf("migrations directory not found: %w", err)
+		}
+	}
+
+	// Create migrate instance with file:// prefix for the path that exists
+	var sourcePath string
+	if _, err := os.Stat("./migrations"); err == nil {
+		sourcePath = "file://./migrations"
+	} else {
+		sourcePath = "file:///app/migrations"
+	}
+
 	m, err := migrate.NewWithDatabaseInstance(
-		"file://migrations", // path to migration files
-		"mysql",             // database name
+		sourcePath, // path to migration files
+		"mysql",    // database name
 		driver,
 	)
 	if err != nil {
@@ -4951,7 +5046,21 @@ func (c *Client) RunMigrations() error {
 
 	// Run migrations
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-		return fmt.Errorf("failed to run migrations: %w", err)
+		// Check if it's a dirty database error
+		if strings.Contains(err.Error(), "Dirty database") {
+			log.Printf("⚠️ Detected dirty database state, attempting to force version 1...")
+			// Try to force to version 1 and then run migrations again
+			if forceErr := m.Force(1); forceErr != nil {
+				log.Printf("❌ Failed to force version: %v", forceErr)
+				return fmt.Errorf("failed to run migrations: %w", err)
+			}
+			log.Printf("✅ Forced version, retrying migrations...")
+			if retryErr := m.Up(); retryErr != nil && retryErr != migrate.ErrNoChange {
+				return fmt.Errorf("failed to run migrations after force: %w", retryErr)
+			}
+		} else {
+			return fmt.Errorf("failed to run migrations: %w", err)
+		}
 	}
 
 	if err == migrate.ErrNoChange {

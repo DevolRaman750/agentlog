@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: registry.digitalocean.com/resourceloop/agentlog/backend:latest
+          image: registry.digitalocean.com/resourceloop/agentlog/backend:ac95978-20250730-135812
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
@@ -39,4 +39,4 @@ spec:
             initialDelaySeconds: 15
             periodSeconds: 20
       imagePullSecrets:
-        - name: do-registry 
+        - name: umi-backend 

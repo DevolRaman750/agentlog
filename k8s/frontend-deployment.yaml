@@ -17,9 +17,9 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: registry.digitalocean.com/resourceloop/agentlog/frontend:latest
+          image: registry.digitalocean.com/resourceloop/agentlog/frontend:ac95978-20250730-135812
           imagePullPolicy: Always
           ports:
             - containerPort: 80
       imagePullSecrets:
-        - name: do-registry 
+        - name: umi-backend 

@@ -2,7 +2,10 @@
 
 This folder is **excluded from version control** via `.gitignore` so you can safely place real secret manifests here without the risk of committing them.
 
-1. Create your secret manifest (e.g. `backend-secrets.yaml`) with the sensitive key-value pairs required by the application. Example:
+## Required Secrets
+
+### Backend Secrets (`backend-secrets.yaml`)
+Contains sensitive configuration for the backend application:
 
 ```yaml
 apiVersion: v1
@@ -12,15 +15,46 @@ metadata:
   namespace: agentlog
 type: Opaque
 stringData:
-  DB_URL: mysql://user:password@tcp(mysql:3306)/agentlog
-  GEMINI_API_KEY: <your_api_key>
-  JWT_SECRET: <change-me>
+  DB_URL: "mysql://user:password@tcp(mysql-host:3306)/agentlog"
+  JWT_SECRET: "your-secure-jwt-secret"
+  API_ENCRYPTION_KEY: "your-32-character-encryption-key"
+  GEMINI_API_KEY: "your-gemini-api-key"
 ```
 
-2. Apply it to the cluster:
+### MySQL Secrets (`mysql-secret.yaml`)
+Contains database connection credentials:
 
-```bash
-kubectl apply -f k8s/secrets/backend-secrets.yaml
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secret
+  namespace: agentlog
+type: Opaque
+stringData:
+  mysql-database: "agentlog"
+  mysql-host: "your-mysql-host.com"
+  mysql-password: "your-mysql-password"
+  mysql-port: "25060"
+  mysql-user: "your-mysql-username"
 ```
 
-Keep all actual secret YAML files inside this directory so they stay out of git history. 
+## Setup Instructions
+
+1. Copy the example files:
+   ```bash
+   cp backend-secrets.yaml.example backend-secrets.yaml
+   cp mysql-secret.yaml.example mysql-secret.yaml
+   ```
+
+2. Edit the files and replace placeholder values with real secrets
+
+3. Apply to the cluster:
+   ```bash
+   kubectl apply -f k8s/secrets/backend-secrets.yaml
+   kubectl apply -f k8s/secrets/mysql-secret.yaml
+   ```
+
+## Security Migration
+
+All sensitive values have been moved from `k8s/configmap.yaml` to proper Secret resources for better security. The ConfigMap now only contains non-sensitive configuration values. 

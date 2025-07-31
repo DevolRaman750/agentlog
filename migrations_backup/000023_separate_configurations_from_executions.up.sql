@@ -55,3 +55,4 @@ ALTER TABLE api_configurations DROP COLUMN execution_run_id;
 -- Add indexes for better performance
 CREATE INDEX idx_execution_configurations_run ON execution_configurations(execution_run_id);
 CREATE INDEX idx_execution_configurations_config ON execution_configurations(configuration_id);
+ 

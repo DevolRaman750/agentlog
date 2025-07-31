@@ -5,4 +5,5 @@ metadata:
   namespace: agentlog
 data:
   PORT: "8080"
-  # Add other non-sensitive variables here 
+  # Add other non-sensitive variables here
+  # Sensitive values (DB_URL, JWT_SECRET, API_ENCRYPTION_KEY, etc.) are now in agentlog-backend-secrets Secret 

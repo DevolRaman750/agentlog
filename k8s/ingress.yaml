@@ -4,14 +4,27 @@ metadata:
   name: agentlog
   namespace: agentlog
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/proxy-body-size: "10m"
 spec:
   ingressClassName: nginx
   rules:
-    - host: agentlog.example.com
+    - host: agentlog.scalebase.io
       http:
         paths:
+          - path: /health
+            pathType: Exact
+            backend:
+              service:
+                name: agentlog-backend
+                port:
+                  number: 80
+          - path: /test
+            pathType: Exact
+            backend:
+              service:
+                name: agentlog-backend
+                port:
+                  number: 80
           - path: /api
             pathType: Prefix
             backend:
@@ -28,5 +41,5 @@ spec:
                   number: 80
   tls:
     - hosts:
-        - agentlog.example.com
+        - agentlog.scalebase.io
       secretName: agentlog-tls 

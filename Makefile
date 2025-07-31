@@ -4,7 +4,10 @@
 	coverage coverage-backend coverage-frontend coverage-gaps coverage-gaps-backend coverage-gaps-frontend coverage-templates \
 	coverage-backend-detailed coverage-frontend-detailed coverage-view coverage-clean coverage-badge \
 	test-all test-quick test-smoke test-comprehensive test-performance test-integration \
-	test-ci test-ci-fast test-pre-commit test-release test-debug test-clean test-load test-stress test-setup test-validate test-report test-full-report
+	test-ci test-ci-fast test-pre-commit test-release test-debug test-clean test-load test-stress test-setup test-validate test-report test-full-report \
+	docker-build-backend docker-build-frontend docker-build-all docker-push-backend docker-push-frontend docker-push-all docker-deploy \
+	k8s-deploy k8s-update-images k8s-force-update-images k8s-restart k8s-wait k8s-status k8s-pods k8s-endpoints k8s-logs-backend k8s-logs-frontend k8s-delete \
+	deploy-all deploy-quick deploy-backend deploy-frontend
 
 # Setup the entire project (backend + frontend)
 setup: install-deps generate-db frontend-setup
@@ -31,19 +34,19 @@ init-db:
 
 # Run database migrations using golang-migrate
 migrate:
-	migrate -path migrations -database "mysql://root:Password123!@tcp(localhost:3306)/gogent" up
+	migrate -path migrations -database "mysql://root:Password123!@tcp(localhost:3306)/gogent?multiStatements=true" up
 
 # Show migration status
 migrate-status:
-	migrate -path migrations -database "mysql://root:Password123!@tcp(localhost:3306)/gogent" version
+	migrate -path migrations -database "mysql://root:Password123!@tcp(localhost:3306)/gogent?multiStatements=true" version
 
 # Force migration version (use when dirty)
 migrate-force:
-	migrate -path migrations -database "mysql://root:Password123!@tcp(localhost:3306)/gogent" force $(VERSION)
+	migrate -path migrations -database "mysql://root:Password123!@tcp(localhost:3306)/gogent?multiStatements=true" force $(VERSION)
 
 # Reset database migrations
 migrate-reset:
-	migrate -path migrations -database "mysql://root:Password123!@tcp(localhost:3306)/gogent" drop -f
+	migrate -path migrations -database "mysql://root:Password123!@tcp(localhost:3306)/gogent?multiStatements=true" drop -f
 
 # Build migration tool
 build-migrate:
@@ -72,15 +75,15 @@ IMAGE_TAG := $(GIT_HASH)-$(TIMESTAMP)
 
 # Build backend Docker image
 docker-build-backend: ## Build backend Docker image
-	@echo "🐳 Building backend Docker image..."
-	docker build -f Dockerfile.backend -t $(BACKEND_IMAGE):$(IMAGE_TAG) .
+	@echo "🐳 Building backend Docker image for amd64 architecture..."
+	docker buildx build --platform linux/amd64 --load -f Dockerfile.backend -t $(BACKEND_IMAGE):$(IMAGE_TAG) .
 	docker tag $(BACKEND_IMAGE):$(IMAGE_TAG) $(BACKEND_IMAGE):latest
 	@echo "✅ Backend image built: $(BACKEND_IMAGE):$(IMAGE_TAG)"
 
 # Build frontend Docker image  
 docker-build-frontend: ## Build frontend Docker image
-	@echo "🐳 Building frontend Docker image..."
-	cd frontend && docker build -t $(FRONTEND_IMAGE):$(IMAGE_TAG) .
+	@echo "🐳 Building frontend Docker image for amd64 architecture..."
+	docker buildx build --platform linux/amd64 --load -t $(FRONTEND_IMAGE):$(IMAGE_TAG) frontend/
 	docker tag $(FRONTEND_IMAGE):$(IMAGE_TAG) $(FRONTEND_IMAGE):latest
 	@echo "✅ Frontend image built: $(FRONTEND_IMAGE):$(IMAGE_TAG)"
 
@@ -91,14 +94,14 @@ docker-build-all: docker-build-backend docker-build-frontend ## Build both backe
 # Push backend Docker image
 docker-push-backend: ## Push backend Docker image to registry
 	@echo "📤 Pushing backend image to registry..."
-	docker push $(BACKEND_IMAGE):$(IMAGE_TAG)
+	docker buildx build --platform linux/amd64 --no-cache --push -f Dockerfile.backend -t $(BACKEND_IMAGE):$(IMAGE_TAG) .
 	docker push $(BACKEND_IMAGE):latest
 	@echo "✅ Backend image pushed: $(BACKEND_IMAGE):$(IMAGE_TAG)"
 
 # Push frontend Docker image
 docker-push-frontend: ## Push frontend Docker image to registry
 	@echo "📤 Pushing frontend image to registry..."
-	docker push $(FRONTEND_IMAGE):$(IMAGE_TAG)
+	docker buildx build --platform linux/amd64 --no-cache --push -t $(FRONTEND_IMAGE):$(IMAGE_TAG) frontend/
 	docker push $(FRONTEND_IMAGE):latest
 	@echo "✅ Frontend image pushed: $(FRONTEND_IMAGE):$(IMAGE_TAG)"
 
@@ -132,8 +135,29 @@ k8s-update-images: ## Update K8s deployment files with new image tags
 # Deploy to Kubernetes
 k8s-deploy: ## Deploy to Kubernetes cluster
 	@echo "🚀 Deploying to Kubernetes..."
-	cd k8s && ./deploy.sh
+	kubectl apply -f k8s/configmap.yaml
+	kubectl apply -f k8s/secrets/ || echo "⚠️  Secrets may already exist"
+	kubectl apply -f k8s/backend-deployment.yaml
+	kubectl apply -f k8s/backend-service.yaml
+	kubectl apply -f k8s/frontend-deployment.yaml
+	kubectl apply -f k8s/frontend-service.yaml
+	kubectl apply -f k8s/ingress.yaml
+	kubectl apply -f k8s/certificate.yaml || echo "⚠️  Certificate may already exist"
 	@echo "✅ Kubernetes deployment complete!"
+
+# Force update deployments with new image tags (without restarting)
+k8s-force-update-images: ## Force update K8s deployments with new image tags
+	@echo "🔄 Force updating Kubernetes deployments with new images..."
+	@echo "Backend image: $(BACKEND_IMAGE):$(IMAGE_TAG)"
+	@echo "Frontend image: $(FRONTEND_IMAGE):$(IMAGE_TAG)"
+	
+	# Force update backend deployment image
+	kubectl set image deployment/agentlog-backend backend=$(BACKEND_IMAGE):$(IMAGE_TAG) -n agentlog
+	
+	# Force update frontend deployment image  
+	kubectl set image deployment/agentlog-frontend frontend=$(FRONTEND_IMAGE):$(IMAGE_TAG) -n agentlog
+	
+	@echo "✅ Deployments updated with new images!"
 
 # Restart deployments to pick up new images
 k8s-restart: ## Restart Kubernetes deployments to pick up new images
@@ -172,10 +196,39 @@ k8s-logs-backend: ## Show backend logs
 k8s-logs-frontend: ## Show frontend logs  
 	kubectl logs -f deployment/agentlog-frontend -n agentlog
 
+# Quick status check
+k8s-pods: ## Show pod status
+	kubectl get pods -n agentlog
+
+# Show services and ingress
+k8s-endpoints: ## Show services and ingress endpoints
+	@echo "📊 Services:"
+	kubectl get services -n agentlog
+	@echo ""
+	@echo "🌐 Ingress:"
+	kubectl get ingress -n agentlog
+	@echo ""
+	@echo "🔗 Access URLs:"
+	@echo "   Frontend: https://agentlog.scalebase.io"
+	@echo "   Backend Health: https://agentlog.scalebase.io/health"
+	@echo "   Backend API: https://agentlog.scalebase.io/api/*"
+
+# Delete all Kubernetes resources
+k8s-delete: ## Delete all Kubernetes resources
+	@echo "🗑️  Deleting Kubernetes resources..."
+	kubectl delete -f k8s/certificate.yaml || echo "⚠️  Certificate not found"
+	kubectl delete -f k8s/ingress.yaml || echo "⚠️  Ingress not found"
+	kubectl delete -f k8s/frontend-service.yaml || echo "⚠️  Frontend service not found"
+	kubectl delete -f k8s/frontend-deployment.yaml || echo "⚠️  Frontend deployment not found"
+	kubectl delete -f k8s/backend-service.yaml || echo "⚠️  Backend service not found"
+	kubectl delete -f k8s/backend-deployment.yaml || echo "⚠️  Backend deployment not found"
+	kubectl delete -f k8s/configmap.yaml || echo "⚠️  ConfigMap not found"
+	@echo "✅ Kubernetes resources deleted!"
+
 # ==================== COMPLETE DEPLOYMENT WORKFLOW ====================
 
-# Complete deployment: build, push, update K8s, deploy, and restart
-deploy-all: docker-deploy k8s-update-images k8s-deploy k8s-restart k8s-wait ## Complete deployment workflow
+# Complete deployment: build, push, update K8s, deploy, and wait
+deploy-all: docker-deploy k8s-force-update-images k8s-wait ## Complete deployment workflow with forced image updates
 	@echo "🎉 Complete deployment finished!"
 	@echo "📝 Deployed:"
 	@echo "   Backend: $(BACKEND_IMAGE):$(IMAGE_TAG)"
@@ -183,8 +236,27 @@ deploy-all: docker-deploy k8s-update-images k8s-deploy k8s-restart k8s-wait ## C
 	@echo ""
 	@echo "🔍 Check status:"
 	@echo "   make k8s-status"
+	@echo "   make k8s-endpoints"
 	@echo "   make k8s-logs-backend"
 	@echo "   make k8s-logs-frontend"
+
+# Quick deployment (assumes images are already built) - now with forced updates
+deploy-quick: k8s-force-update-images k8s-wait ## Quick deployment with forced image updates
+	@echo "⚡ Quick deployment complete!"
+
+# Build and deploy backend only - with forced update
+deploy-backend: docker-build-backend docker-push-backend ## Build and deploy backend only with forced update
+	@echo "🔧 Updating backend deployment with new image..."
+	kubectl set image deployment/agentlog-backend backend=$(BACKEND_IMAGE):$(IMAGE_TAG) -n agentlog
+	kubectl rollout status deployment/agentlog-backend -n agentlog --timeout=300s
+	@echo "🔧 Backend deployment complete!"
+
+# Build and deploy frontend only - with forced update
+deploy-frontend: docker-build-frontend docker-push-frontend ## Build and deploy frontend only with forced update
+	@echo "🎨 Updating frontend deployment with new image..."
+	kubectl set image deployment/agentlog-frontend frontend=$(FRONTEND_IMAGE):$(IMAGE_TAG) -n agentlog
+	kubectl rollout status deployment/agentlog-frontend -n agentlog --timeout=300s
+	@echo "🎨 Frontend deployment complete!"
 
 # Backend Testing Commands
 # ========================
@@ -766,7 +838,35 @@ commands:
 	@echo "  run-api                # Real API + database demo"
 	@echo "  run-db                 # Database demo"
 	@echo "  build                  # Build backend binary"
-	@echo "  run-tests              # Run backend tests
+	@echo "  run-tests              # Run backend tests"
+	@echo ""
+	@echo "🐳 Docker Commands:"
+	@echo "  docker-build-backend   # Build backend Docker image"
+	@echo "  docker-build-frontend  # Build frontend Docker image (amd64)"
+	@echo "  docker-build-all       # Build both Docker images"
+	@echo "  docker-push-backend    # Push backend image to registry"
+	@echo "  docker-push-frontend   # Push frontend image to registry"
+	@echo "  docker-push-all        # Push both images to registry"
+	@echo "  docker-deploy          # Build and push all images"
+	@echo ""
+	@echo "☸️  Kubernetes Commands:"
+	@echo "  k8s-deploy             # Deploy to Kubernetes cluster"
+	@echo "  k8s-update-images      # Update deployment files with new image tags"
+	@echo "  k8s-force-update-images # Force update live deployments with new image tags"
+	@echo "  k8s-restart            # Restart deployments"
+	@echo "  k8s-wait               # Wait for deployments to be ready"
+	@echo "  k8s-status             # Show deployment status"
+	@echo "  k8s-pods               # Show pod status"
+	@echo "  k8s-endpoints          # Show services and ingress"
+	@echo "  k8s-logs-backend       # Show backend logs"
+	@echo "  k8s-logs-frontend      # Show frontend logs"
+	@echo "  k8s-delete             # Delete all Kubernetes resources"
+	@echo ""
+	@echo "🚀 Complete Deployment:"
+	@echo "  deploy-all             # Complete deployment workflow"
+	@echo "  deploy-quick           # Quick deployment (no build)"
+	@echo "  deploy-backend         # Build and deploy backend only"
+	@echo "  deploy-frontend        # Build and deploy frontend only"
 	@echo ""
 	@echo "📋 Testing Commands:"
 	@echo "  Backend Tests:"

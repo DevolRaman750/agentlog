@@ -96,7 +96,7 @@ DELETE FROM api_configurations
 WHERE id = ? AND user_id = ?;
 
 -- name: CountAPIConfigurationsByUser :one
-SELECT COUNT(*) FROM api_configurations WHERE user_id = ?;
+SELECT COUNT(*) FROM api_configurations WHERE user_id = ?; 
 
 -- Execution Configuration Mapping Queries
 
