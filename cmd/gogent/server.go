@@ -1455,6 +1455,92 @@ func (s *Server) databaseTableDataHandler(w http.ResponseWriter, r *http.Request
 				"totalRows": len(rows),
 			}
 
+		case "execution_logs":
+			// Query execution logs for user's execution runs
+			query := `
+				SELECT el.id, el.execution_run_id, el.configuration_id, el.request_id,
+				       el.log_level, el.log_category, el.message, 
+				       COALESCE(el.details, JSON_OBJECT()) as details,
+				       el.timestamp, el.sequence_number, el.duration_ms
+				FROM execution_logs el
+				INNER JOIN execution_runs er ON el.execution_run_id = er.id
+				WHERE er.user_id = ?
+				ORDER BY el.timestamp DESC
+				LIMIT ?
+			`
+
+			dbRows, err := s.client.GetDB().QueryContext(context.Background(), query, userID, limit)
+			if err != nil {
+				log.Printf("Error querying execution_logs: %v", err)
+				http.Error(w, "Database query failed", http.StatusInternalServerError)
+				return
+			}
+			defer dbRows.Close()
+
+			var rows [][]interface{}
+			for dbRows.Next() {
+				var id, executionRunID, logLevel, logCategory, message string
+				var configurationID, requestID sql.NullString
+				var details []byte
+				var timestamp time.Time
+				var sequenceNumber, durationMs sql.NullInt32
+
+				err := dbRows.Scan(&id, &executionRunID, &configurationID, &requestID,
+					&logLevel, &logCategory, &message, &details, &timestamp,
+					&sequenceNumber, &durationMs)
+				if err != nil {
+					log.Printf("Error scanning execution_logs row: %v", err)
+					continue
+				}
+
+				// Format nullable values
+				configIDStr := ""
+				if configurationID.Valid {
+					configIDStr = configurationID.String
+				}
+				requestIDStr := ""
+				if requestID.Valid {
+					requestIDStr = requestID.String
+				}
+				seqNumStr := ""
+				if sequenceNumber.Valid {
+					seqNumStr = fmt.Sprintf("%d", sequenceNumber.Int32)
+				}
+				durationStr := ""
+				if durationMs.Valid {
+					durationStr = fmt.Sprintf("%d ms", durationMs.Int32)
+				}
+
+				// Truncate long message for display
+				messageDisplay := message
+				if len(messageDisplay) > 100 {
+					messageDisplay = messageDisplay[:100] + "..."
+				}
+
+				// Truncate details for display
+				detailsStr := string(details)
+				if len(detailsStr) > 100 {
+					detailsStr = detailsStr[:100] + "..."
+				}
+
+				row := []interface{}{
+					id, executionRunID, configIDStr, requestIDStr, logLevel,
+					logCategory, messageDisplay, detailsStr, timestamp.Format(time.RFC3339),
+					seqNumStr, durationStr,
+				}
+				rows = append(rows, row)
+			}
+
+			tableData = map[string]interface{}{
+				"tableName": "execution_logs",
+				"columns": []string{
+					"id", "execution_run_id", "configuration_id", "request_id", "log_level",
+					"log_category", "message", "details", "timestamp", "sequence_number", "duration_ms",
+				},
+				"rows":      rows,
+				"totalRows": len(rows),
+			}
+
 		default:
 			// For other tables, return a placeholder
 			tableData = map[string]interface{}{

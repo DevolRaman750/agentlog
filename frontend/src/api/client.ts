@@ -249,6 +249,24 @@ class GoGentAPI {
     }
   }
 
+  // Get execution logs for debugging and monitoring
+  async getExecutionLogs(limit: number = 100, offset: number = 0): Promise<ApiResponse<DatabaseTable>> {
+    try {
+      const response: AxiosResponse<DatabaseTable> = await this.api.get('/api/database/tables/execution_logs', {
+        params: { limit, offset },
+      });
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to fetch execution logs',
+      };
+    }
+  }
+
   // Get configurations
   async getConfigurations(executionRunId?: string): Promise<ApiResponse<APIConfiguration[]>> {
     try {

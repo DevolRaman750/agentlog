@@ -338,6 +338,36 @@ class GoGentGRPCAPI {
     }
   }
 
+  // Get execution logs for debugging and monitoring
+  async getExecutionLogs(limit: number = 100, offset: number = 0): Promise<ApiResponse<DatabaseTable>> {
+    // Note: gRPC client uses the REST API endpoint for database operations
+    // since database table operations are typically done via REST
+    try {
+      const response = await fetch(`${this.baseURL}/api/database/tables/execution_logs?limit=${limit}&offset=${offset}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.authToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        data: data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to fetch execution logs',
+      };
+    }
+  }
+
   // Get configurations
   async getConfigurations(executionRunId?: string): Promise<ApiResponse<APIConfiguration[]>> {
     try {
