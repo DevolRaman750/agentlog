@@ -1842,7 +1842,13 @@ func (s *Server) executionFlowGraphHandler(w http.ResponseWriter, r *http.Reques
 	// Extract user ID for authorization
 	userID, err := s.getUserID(r)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		log.Printf("❌ Failed to get user ID from context for execution flow endpoint")
+		log.Printf("   Request path: %s", r.URL.Path)
+		log.Printf("   Request method: %s", r.Method)
+		log.Printf("   Auth header present: %v", r.Header.Get("Authorization") != "")
+		log.Printf("   Context keys: %+v", r.Context())
+		log.Printf("   Error: %v", err)
+		http.Error(w, "Unauthorized - user context not found", http.StatusUnauthorized)
 		return
 	}
 
