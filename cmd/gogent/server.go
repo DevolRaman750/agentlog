@@ -1541,6 +1541,90 @@ func (s *Server) databaseTableDataHandler(w http.ResponseWriter, r *http.Request
 				"totalRows": len(rows),
 			}
 
+		case "function_definitions":
+			// Query function definitions (both user and system functions)
+			query := `
+				SELECT fd.id, fd.user_id, fd.name, fd.display_name, fd.function_group,
+				       fd.description, fd.endpoint_url, fd.http_method, 
+				       fd.is_active, fd.is_system_resource, fd.created_at, fd.updated_at
+				FROM function_definitions fd
+				WHERE (fd.user_id = ? OR fd.user_id = 'system') AND fd.is_active = true
+				ORDER BY fd.display_name ASC
+				LIMIT ?
+			`
+
+			dbRows, err := s.client.GetDB().QueryContext(context.Background(), query, userID, limit)
+			if err != nil {
+				log.Printf("Error querying function_definitions: %v", err)
+				http.Error(w, "Database query failed", http.StatusInternalServerError)
+				return
+			}
+			defer dbRows.Close()
+
+			var rows [][]interface{}
+			for dbRows.Next() {
+				var id, userID, name, displayName, functionGroup string
+				var description, endpointURL, httpMethod sql.NullString
+				var isActive, isSystemResource sql.NullBool
+				var createdAt, updatedAt time.Time
+
+				err := dbRows.Scan(&id, &userID, &name, &displayName, &functionGroup,
+					&description, &endpointURL, &httpMethod, &isActive, &isSystemResource,
+					&createdAt, &updatedAt)
+				if err != nil {
+					log.Printf("Error scanning function_definitions row: %v", err)
+					continue
+				}
+
+				// Format nullable values
+				descStr := ""
+				if description.Valid {
+					descStr = description.String
+					if len(descStr) > 80 {
+						descStr = descStr[:80] + "..."
+					}
+				}
+				endpointStr := ""
+				if endpointURL.Valid {
+					endpointStr = endpointURL.String
+				}
+				methodStr := ""
+				if httpMethod.Valid {
+					methodStr = httpMethod.String
+				}
+				activeStr := "false"
+				if isActive.Valid && isActive.Bool {
+					activeStr = "true"
+				}
+				systemStr := "false"
+				if isSystemResource.Valid && isSystemResource.Bool {
+					systemStr = "true"
+				}
+
+				// Determine the owner type
+				ownerType := "user"
+				if userID == "system" {
+					ownerType = "system"
+				}
+
+				row := []interface{}{
+					id, ownerType, name, displayName, functionGroup, descStr,
+					endpointStr, methodStr, activeStr, systemStr,
+					createdAt.Format(time.RFC3339), updatedAt.Format(time.RFC3339),
+				}
+				rows = append(rows, row)
+			}
+
+			tableData = map[string]interface{}{
+				"tableName": "function_definitions",
+				"columns": []string{
+					"id", "owner_type", "name", "display_name", "function_group", "description",
+					"endpoint_url", "http_method", "is_active", "is_system_resource", "created_at", "updated_at",
+				},
+				"rows":      rows,
+				"totalRows": len(rows),
+			}
+
 		default:
 			// For other tables, return a placeholder
 			tableData = map[string]interface{}{

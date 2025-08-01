@@ -501,4 +501,50 @@ describe('API Integration Tests', () => {
       }
     });
   });
+
+  describe('Database Operations', () => {
+    test('should fetch function definitions table data', async () => {
+      const response = await goGentAPI.getFunctionDefinitions(10, 0);
+      
+      expect(response.success).toBe(true);
+      if (response.success && response.data) {
+        expect(response.data.tableName).toBe('function_definitions');
+        expect(response.data.columns).toBeInstanceOf(Array);
+        expect(response.data.rows).toBeInstanceOf(Array);
+        expect(response.data.totalRows).toBeGreaterThanOrEqual(0);
+        
+        // Check that we have the expected columns
+        const expectedColumns = [
+          'id', 'owner_type', 'name', 'display_name', 'function_group', 'description',
+          'endpoint_url', 'http_method', 'is_active', 'is_system_resource', 'created_at', 'updated_at'
+        ];
+        expectedColumns.forEach(column => {
+          expect(response.data!.columns).toContain(column);
+        });
+        
+        console.log('✅ Function definitions fetched:', response.data.totalRows, 'functions');
+        
+        // If there are functions, verify row structure
+        if (response.data.rows.length > 0) {
+          const firstRow = response.data.rows[0];
+          expect(firstRow).toHaveLength(response.data.columns.length);
+          console.log('📝 Sample function:', firstRow[3]); // display_name
+        }
+      }
+    }, 15000);
+
+    test('should fetch execution logs table data', async () => {
+      const response = await goGentAPI.getExecutionLogs(10, 0);
+      
+      expect(response.success).toBe(true);
+      if (response.success && response.data) {
+        expect(response.data.tableName).toBe('execution_logs');
+        expect(response.data.columns).toBeInstanceOf(Array);
+        expect(response.data.rows).toBeInstanceOf(Array);
+        expect(response.data.totalRows).toBeGreaterThanOrEqual(0);
+        
+        console.log('✅ Execution logs fetched:', response.data.totalRows, 'logs');
+      }
+    }, 15000);
+  });
 }); 
