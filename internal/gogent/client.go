@@ -738,7 +738,7 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 
 	// Add function calling instruction if tools are available
 	if len(config.Tools) > 0 {
-		functionInstruction := "You MUST use the available function tools to answer questions. When a user asks for information that can be obtained through these functions, you are REQUIRED to call the appropriate function. Do not respond with text saying you cannot access information - instead, call the function immediately. The functions are fully implemented and working."
+		functionInstruction := "You have access to function tools that can help answer specific questions. Use these functions when the user's request requires information or actions that these tools can provide. Only call functions when they are relevant to the user's specific request."
 		finalPrompt = functionInstruction + "\n\n" + finalPrompt
 		log.Printf("🔧 Added function calling instruction to prompt")
 	}
@@ -4924,7 +4924,7 @@ func (c *Client) GetExecutionResult(ctx context.Context, userID string, executio
 		log.Printf("✅ Added function tool: %s", funcDef.Name)
 	}
 
-	// Build configurations map and add function tools to each configuration
+	// Build configurations map - function tools are managed at execution level, not per configuration
 	configs := make(map[string]*types.APIConfiguration)
 	for _, row := range configRows {
 		config := &types.APIConfiguration{
@@ -4933,7 +4933,8 @@ func (c *Client) GetExecutionResult(ctx context.Context, userID string, executio
 			ModelName:     row.ModelName,
 			SystemPrompt:  row.SystemPrompt.String,
 			CreatedAt:     row.CreatedAt.Time,
-			Tools:         functionTools, // Add the function tools to each configuration
+			// NOTE: Tools are not added here to prevent contamination between executions
+			// Functions are managed at the execution run level and added dynamically during execution
 		}
 
 		// Parse nullable fields
