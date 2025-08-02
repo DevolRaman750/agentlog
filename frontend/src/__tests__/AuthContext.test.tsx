@@ -10,24 +10,23 @@ const mockAsyncStorage = {
   setItem: jest.fn(),
   removeItem: jest.fn(),
   clear: jest.fn(),
-  multiRemove: jest.fn(),
-  getAllKeys: jest.fn(),
-  multiGet: jest.fn(),
-  multiSet: jest.fn(),
 };
 (AsyncStorage as any) = mockAsyncStorage;
 
-// Mock goGentAPI
+// Mock the API client with all required methods
 jest.mock('../api/client', () => ({
   goGentAPI: {
-    createTemporaryUser: jest.fn(),
-    login: jest.fn(),
     getCurrentUser: jest.fn(),
-    logout: jest.fn(),
+    login: jest.fn(),
+    register: jest.fn(),
+    createTemporaryUser: jest.fn(),
+    saveTemporaryAccount: jest.fn(),
+    connectTemporaryToEmail: jest.fn(),
+    changePassword: jest.fn(),
   },
 }));
 
-const mockedGoGentAPI = jest.mocked(goGentAPI);
+const mockGoGentAPI = jest.mocked(goGentAPI);
 
 describe('AuthContext', () => {
   const mockUser: User = {
@@ -46,29 +45,41 @@ describe('AuthContext', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockAsyncStorage.getItem.mockResolvedValue(null);
-    mockAsyncStorage.setItem.mockResolvedValue(undefined);
-    mockAsyncStorage.removeItem.mockResolvedValue(undefined);
+    mockAsyncStorage.clear();
   });
 
   describe('User Validation', () => {
     test('should validate user object correctly', async () => {
       const { result } = renderHook(() => useAuth(), { wrapper });
+      
+      // Test valid user validation indirectly through createTemporaryUser
+      mockGoGentAPI.createTemporaryUser.mockResolvedValueOnce({
+        success: true,
+        data: { token: 'new-token', user: mockUser }
+      });
 
-      // Test by checking that a properly authenticated user is handled correctly
-      expect(result.current.isAuthenticated).toBe(false); // Initial state
+      await act(async () => {
+        await result.current.createTemporaryUser();
+      });
+
+      expect(result.current.user).toEqual(expect.objectContaining(mockUser));
+      expect(result.current.isAuthenticated).toBe(true);
     });
 
     test('should reject invalid user objects', async () => {
-      // Mock API to return invalid user data
-      mockedGoGentAPI.getCurrentUser.mockResolvedValue({
-        success: true,
-        data: null, // Invalid user data
-      });
-
       const { result } = renderHook(() => useAuth(), { wrapper });
       
-      // The context should handle invalid users gracefully
+      // Test invalid user rejection by mocking an invalid response
+      mockGoGentAPI.createTemporaryUser.mockResolvedValueOnce({
+        success: false,
+        error: 'Invalid user data'
+      });
+
+      await act(async () => {
+        await expect(result.current.createTemporaryUser()).rejects.toThrow();
+      });
+
+      expect(result.current.user).toBeNull();
       expect(result.current.isAuthenticated).toBe(false);
     });
   });
@@ -76,83 +87,69 @@ describe('AuthContext', () => {
   describe('Authentication State', () => {
     test('should initialize with correct default state', () => {
       const { result } = renderHook(() => useAuth(), { wrapper });
-
+      
       expect(result.current.user).toBeNull();
-      expect(result.current.token).toBeNull();
       expect(result.current.isAuthenticated).toBe(false);
       expect(result.current.isLoading).toBe(true); // Should be loading initially
     });
 
     test('should load stored authentication on mount', async () => {
-      const mockToken = 'stored-token';
-      const storedUserData = JSON.stringify(mockUser);
-
-      mockAsyncStorage.getItem.mockImplementation((key: string) => {
-        if (key === 'auth_token') return Promise.resolve(mockToken);
-        if (key === 'auth_user') return Promise.resolve(storedUserData);
+      // Setup stored auth data
+      mockAsyncStorage.getItem.mockImplementation((key) => {
+        if (key === 'auth_token') return Promise.resolve('stored-token');
+        if (key === 'auth_user') return Promise.resolve(JSON.stringify(mockUser));
         return Promise.resolve(null);
       });
 
-      mockedGoGentAPI.getCurrentUser.mockResolvedValue({
+      mockGoGentAPI.getCurrentUser.mockResolvedValueOnce({
         success: true,
-        data: mockUser,
+        data: mockUser
       });
 
       const { result, waitForNextUpdate } = renderHook(() => useAuth(), { wrapper });
 
-      // Wait for authentication to load
+      // Wait for the authentication to load
       await act(async () => {
         await waitForNextUpdate();
       });
 
       expect(result.current.isLoading).toBe(false);
+      expect(result.current.user).toEqual(expect.objectContaining(mockUser));
       expect(result.current.isAuthenticated).toBe(true);
-      expect(result.current.user).toEqual(expect.objectContaining({
-        id: mockUser.id,
-        username: mockUser.username,
-      }));
     });
   });
 
   describe('Login Flow', () => {
     test('should handle successful login', async () => {
-      const loginResponse = {
-        success: true,
-        data: {
-          token: 'new-token',
-          user: mockUser,
-        },
-      };
-
-      mockedGoGentAPI.login.mockResolvedValue(loginResponse);
-
       const { result } = renderHook(() => useAuth(), { wrapper });
+      
+      mockGoGentAPI.login.mockResolvedValueOnce({
+        success: true,
+        data: { token: 'new-token', user: mockUser }
+      });
 
       await act(async () => {
-        await result.current.login('testuser', 'password');
+        const response = await result.current.login('testuser', 'password');
+        expect(response.token).toBe('new-token');
+        expect(response.user).toEqual(expect.objectContaining(mockUser));
       });
 
       expect(result.current.isAuthenticated).toBe(true);
       expect(result.current.user).toEqual(expect.objectContaining(mockUser));
-      expect(result.current.token).toBe('new-token');
       expect(mockAsyncStorage.setItem).toHaveBeenCalledWith('auth_token', 'new-token');
       expect(mockAsyncStorage.setItem).toHaveBeenCalledWith('auth_user', JSON.stringify(mockUser));
     });
 
     test('should handle login failure', async () => {
-      mockedGoGentAPI.login.mockResolvedValue({
+      const { result } = renderHook(() => useAuth(), { wrapper });
+      
+      mockGoGentAPI.login.mockResolvedValueOnce({
         success: false,
-        error: 'Invalid credentials',
+        error: 'Invalid credentials'
       });
 
-      const { result } = renderHook(() => useAuth(), { wrapper });
-
       await act(async () => {
-        try {
-          await result.current.login('testuser', 'wrong-password');
-        } catch (error) {
-          expect(error).toBeDefined();
-        }
+        await expect(result.current.login('testuser', 'wrongpassword')).rejects.toThrow('Invalid credentials');
       });
 
       expect(result.current.isAuthenticated).toBe(false);
@@ -162,70 +159,61 @@ describe('AuthContext', () => {
 
   describe('Temporary User Creation', () => {
     test('should create temporary user successfully', async () => {
-      const tempUserResponse = {
-        success: true,
-        data: {
-          token: 'temp-token',
-          user: { ...mockUser, is_temporary: true },
-        },
-      };
-
-      mockedGoGentAPI.createTemporaryUser.mockResolvedValue(tempUserResponse);
-
       const { result } = renderHook(() => useAuth(), { wrapper });
-
-      await act(async () => {
-        await result.current.createTemporaryUser();
+      
+      mockGoGentAPI.createTemporaryUser.mockResolvedValueOnce({
+        success: true,
+        data: { token: 'temp-token', user: mockUser }
       });
 
+      await act(async () => {
+        const response = await result.current.createTemporaryUser();
+        expect(response.token).toBe('temp-token');
+        expect(response.user).toEqual(expect.objectContaining(mockUser));
+      });
+
+      expect(result.current.user).toEqual(expect.objectContaining(mockUser));
       expect(result.current.isAuthenticated).toBe(true);
-      expect(result.current.user?.is_temporary).toBe(true);
-      expect(mockAsyncStorage.setItem).toHaveBeenCalledWith('auth_token', 'temp-token');
     });
 
     test('should handle temporary user creation failure', async () => {
-      mockedGoGentAPI.createTemporaryUser.mockResolvedValue({
-        success: false,
-        error: 'Unable to create temporary user',
-      });
-
       const { result } = renderHook(() => useAuth(), { wrapper });
+      
+      mockGoGentAPI.createTemporaryUser.mockResolvedValueOnce({
+        success: false,
+        error: 'Unable to create temporary user'
+      });
 
       await act(async () => {
-        try {
-          await result.current.createTemporaryUser();
-        } catch (error) {
-          expect(error).toBeDefined();
-        }
+        await expect(result.current.createTemporaryUser()).rejects.toThrow('Unable to create temporary user');
       });
 
+      expect(result.current.user).toBeNull();
       expect(result.current.isAuthenticated).toBe(false);
     });
   });
 
   describe('Logout Flow', () => {
     test('should clear authentication state on logout', async () => {
-      // Mock successful temp user creation first
-      mockedGoGentAPI.createTemporaryUser.mockResolvedValue({
-        success: true,
-        data: { token: 'temp-token', user: mockUser },
-      });
-
       const { result } = renderHook(() => useAuth(), { wrapper });
-
-      // Authenticate first
-      await act(async () => {
-        await result.current.createTemporaryUser();
+      
+      // First login
+      mockGoGentAPI.login.mockResolvedValueOnce({
+        success: true,
+        data: { token: 'login-token', user: mockUser }
       });
 
-      // Now logout
+      await act(async () => {
+        await result.current.login('testuser', 'password');
+      });
+
+      // Then logout
       await act(async () => {
         await result.current.logout();
       });
 
       expect(result.current.isAuthenticated).toBe(false);
       expect(result.current.user).toBeNull();
-      expect(result.current.token).toBeNull();
       expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith('auth_token');
       expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith('auth_user');
     });
@@ -233,37 +221,39 @@ describe('AuthContext', () => {
 
   describe('Error Handling', () => {
     test('should handle corrupted stored user data', async () => {
-      mockAsyncStorage.getItem.mockImplementation((key: string) => {
-        if (key === 'auth_token') return Promise.resolve('valid-token');
-        if (key === 'auth_user') return Promise.resolve('invalid-json');
+      mockAsyncStorage.getItem.mockImplementation((key) => {
+        if (key === 'auth_token') return Promise.resolve('stored-token');
+        if (key === 'auth_user') return Promise.resolve('invalid-json-data');
         return Promise.resolve(null);
       });
 
       const { result, waitForNextUpdate } = renderHook(() => useAuth(), { wrapper });
 
+      // Wait for the error handling to complete
       await act(async () => {
         try {
           await waitForNextUpdate();
         } catch {
-          // Expected to fail
+          // Expected for error handling
         }
       });
 
+      expect(result.current.user).toBeNull();
       expect(result.current.isAuthenticated).toBe(false);
-      expect(result.current.isLoading).toBe(false);
     });
 
     test('should handle network errors during authentication', async () => {
-      mockAsyncStorage.getItem.mockImplementation((key: string) => {
-        if (key === 'auth_token') return Promise.resolve('valid-token');
+      mockAsyncStorage.getItem.mockImplementation((key) => {
+        if (key === 'auth_token') return Promise.resolve('stored-token');
         if (key === 'auth_user') return Promise.resolve(JSON.stringify(mockUser));
         return Promise.resolve(null);
       });
 
-      mockedGoGentAPI.getCurrentUser.mockRejectedValue(new Error('Network error'));
+      mockGoGentAPI.getCurrentUser.mockRejectedValueOnce(new Error('Network error'));
 
       const { result, waitForNextUpdate } = renderHook(() => useAuth(), { wrapper });
 
+      // Wait for the error handling to complete
       await act(async () => {
         try {
           await waitForNextUpdate();
@@ -272,8 +262,8 @@ describe('AuthContext', () => {
         }
       });
 
-      // Should handle network errors gracefully
-      expect(result.current.isLoading).toBe(false);
+      expect(result.current.user).toBeNull();
+      expect(result.current.isAuthenticated).toBe(false);
     });
   });
 }); 

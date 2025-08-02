@@ -312,7 +312,7 @@ export function AppProvider({ children }: AppProviderProps) {
   // Test connection when app starts and when backend URL changes
   useEffect(() => {
     const initializeConnection = async () => {
-      console.log('🔌 Initializing app connection...');
+      // console.log('🔌 Initializing app connection...');
       goGentAPI.updateBaseURL(state.config.backendUrl);
       
       try {
