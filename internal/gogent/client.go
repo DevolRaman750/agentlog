@@ -47,6 +47,9 @@ type Client struct {
 	currentConfigID       *string
 	currentRequestID      *string
 
+	// Sequence number counter for flow events
+	sequenceCounter int
+
 	// Refactored components
 	codeAnalyzer      *code_analysis.Analyzer
 	directoryAnalyzer *github.DirectoryAnalyzer
@@ -323,7 +326,7 @@ func (c *Client) ExecuteMultiVariation(ctx context.Context, userID string, reque
 		})
 
 	// Log flow event for execution start
-	c.logExecutionFlowEvent("prompt_start", 0, "success", nil, map[string]interface{}{
+	c.logExecutionFlowEvent("prompt_start", c.getNextSequenceNumber(), "success", nil, map[string]interface{}{
 		"executionName": request.ExecutionRunName,
 		"basePrompt":    request.BasePrompt,
 		"configCount":   len(request.Configurations),
@@ -589,8 +592,31 @@ func (c *Client) executeSingleVariation(ctx context.Context, userID string, exec
 		return nil, fmt.Errorf("failed to log API request: %w", err)
 	}
 
+	// Set request context for flow event logging
+	// Save current context to restore later
+	prevExecutionRunID := c.currentExecutionRunID
+	prevConfigID := c.currentConfigID
+	prevRequestID := c.currentRequestID
+
+	c.setExecutionContext(&executionRunID, &actualConfigID, &apiRequest.ID)
+	defer func() {
+		// Restore previous context instead of clearing completely
+		c.setExecutionContext(prevExecutionRunID, prevConfigID, prevRequestID)
+	}()
+
+	// Log API request start flow event
+	c.logExecutionFlowEvent("api_request_start", c.getNextSequenceNumber(), "pending", nil, map[string]interface{}{
+		"requestId":       apiRequest.ID,
+		"configurationId": actualConfigID,
+		"promptLength":    len(prompt),
+		"contextLength":   len(context),
+		"requestType":     string(apiRequest.RequestType),
+	}, nil, nil)
+
 	// Execute the actual Gemini API call
 	apiResponse, err := c.callGeminiAPI(ctx, config, apiRequest)
+	apiCallDuration := int32(time.Since(startTime).Milliseconds())
+
 	if err != nil {
 		// Log error response
 		apiResponse = &types.APIResponse{
@@ -598,9 +624,25 @@ func (c *Client) executeSingleVariation(ctx context.Context, userID string, exec
 			RequestID:      apiRequest.ID,
 			ResponseStatus: types.ResponseStatusError,
 			ErrorMessage:   err.Error(),
-			ResponseTimeMs: int32(time.Since(startTime).Milliseconds()),
+			ResponseTimeMs: apiCallDuration,
 			CreatedAt:      time.Now(),
 		}
+
+		// Log API request error flow event
+		errorMsg := err.Error()
+		c.logExecutionFlowEvent("api_request_end", c.getNextSequenceNumber(), "error", nil, map[string]interface{}{
+			"requestId":      apiRequest.ID,
+			"responseStatus": string(apiResponse.ResponseStatus),
+			"errorMessage":   errorMsg,
+		}, &apiCallDuration, &errorMsg)
+	} else {
+		// Log successful API request end flow event
+		c.logExecutionFlowEvent("api_request_end", c.getNextSequenceNumber(), "success", nil, map[string]interface{}{
+			"requestId":      apiRequest.ID,
+			"responseStatus": string(apiResponse.ResponseStatus),
+			"responseLength": len(apiResponse.ResponseText),
+			"finishReason":   apiResponse.FinishReason,
+		}, &apiCallDuration, nil)
 	}
 
 	// Log response
@@ -722,7 +764,7 @@ func sanitizePropertySchema(prop map[string]interface{}) map[string]interface{} 
 		if allowedFields[key] {
 			sanitized[key] = value
 		} else {
-			log.Printf("🚫 Removing unsupported field '%s' from function parameter schema", key)
+			// log.Printf("🚫 Removing unsupported field '%s' from function parameter schema", key)
 		}
 	}
 
@@ -739,16 +781,30 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 	}
 	log.Printf("🚀 REST API CALLED - Model: '%s', API Key: %s...", config.ModelName, geminiApiKey[:10])
 
+	// Log Gemini API call start flow event
+	c.logExecutionFlowEvent("gemini_api_call_start", c.getNextSequenceNumber(), "pending", nil, map[string]interface{}{
+		"modelName":    config.ModelName,
+		"temperature":  config.Temperature,
+		"maxTokens":    config.MaxTokens,
+		"apiKeyPrefix": geminiApiKey[:10],
+	}, nil, nil)
+
 	if config.ModelName == "" {
 		log.Printf("❌ ERROR: Model name is empty!")
+		errorMsg := "Model name is empty"
+		callDuration := int32(time.Since(startTime).Milliseconds())
+		c.logExecutionFlowEvent("gemini_api_call_end", c.getNextSequenceNumber(), "error", nil, map[string]interface{}{
+			"errorType": "configuration_error",
+		}, &callDuration, &errorMsg)
+
 		return &types.APIResponse{
 			ID:             uuid.New().String(),
 			RequestID:      request.ID,
 			ResponseStatus: types.ResponseStatusError,
-			ErrorMessage:   "Model name is empty",
-			ResponseTimeMs: int32(time.Since(startTime).Milliseconds()),
+			ErrorMessage:   errorMsg,
+			ResponseTimeMs: callDuration,
 			CreatedAt:      time.Now(),
-		}, nil
+		}, fmt.Errorf("model name is empty")
 	}
 
 	// Use the API key from session keys
@@ -1111,6 +1167,19 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 		response.FunctionCallResponse = functionCallResponse
 	}
 
+	// Log successful Gemini API call end flow event
+	callDuration := int32(time.Since(startTime).Milliseconds())
+	functionCallsCount := 0
+	if functionCallResponse != nil {
+		functionCallsCount = 1 // At least one function call was made
+	}
+	c.logExecutionFlowEvent("gemini_api_call_end", c.getNextSequenceNumber(), "success", nil, map[string]interface{}{
+		"responseLength":     len(responseText),
+		"finishReason":       finishReason,
+		"usageTokens":        response.UsageMetadata,
+		"functionCallsCount": functionCallsCount,
+	}, &callDuration, nil)
+
 	return response, nil
 }
 
@@ -1125,7 +1194,7 @@ func (c *Client) executeFunctionCall(ctx context.Context, functionName string, a
 
 	// Log function call start flow event
 	functionCallID := uuid.New().String()
-	sequenceNum := 1000 // Use high sequence numbers for function calls to differentiate from config executions
+	sequenceNum := c.getNextSequenceNumber()
 	c.logExecutionFlowEvent("function_call_start", sequenceNum, "pending", nil, map[string]interface{}{
 		"functionName":   functionName,
 		"arguments":      args,
@@ -1158,12 +1227,12 @@ func (c *Client) executeFunctionCall(ctx context.Context, functionName string, a
 
 		if err != nil {
 			errorMsg := err.Error()
-			c.logExecutionFlowEvent("function_call_end", sequenceNum+1, "error", nil, map[string]interface{}{
+			c.logExecutionFlowEvent("function_call_end", c.getNextSequenceNumber(), "error", nil, map[string]interface{}{
 				"functionName":   functionName,
 				"functionCallId": functionCallID,
 			}, &executionTimeMs, &errorMsg)
 		} else {
-			c.logExecutionFlowEvent("function_call_end", sequenceNum+1, "success", nil, map[string]interface{}{
+			c.logExecutionFlowEvent("function_call_end", c.getNextSequenceNumber(), "success", nil, map[string]interface{}{
 				"functionName":   functionName,
 				"functionCallId": functionCallID,
 				"resultSize":     len(fmt.Sprintf("%v", result)),
@@ -1185,7 +1254,7 @@ func (c *Client) executeFunctionCall(ctx context.Context, functionName string, a
 		// Log function call end with validation error
 		executionTimeMs := int32(time.Since(startTime).Milliseconds())
 		errorMsg := err.Error()
-		c.logExecutionFlowEvent("function_call_end", sequenceNum+1, "error", nil, map[string]interface{}{
+		c.logExecutionFlowEvent("function_call_end", c.getNextSequenceNumber(), "error", nil, map[string]interface{}{
 			"functionName":   functionName,
 			"functionCallId": functionCallID,
 			"errorType":      "validation_error",
@@ -1207,7 +1276,7 @@ func (c *Client) executeFunctionCall(ctx context.Context, functionName string, a
 
 		// Log function call end with execution error
 		errorMsg := err.Error()
-		c.logExecutionFlowEvent("function_call_end", sequenceNum+1, "error", nil, map[string]interface{}{
+		c.logExecutionFlowEvent("function_call_end", c.getNextSequenceNumber(), "error", nil, map[string]interface{}{
 			"functionName":   functionName,
 			"functionCallId": functionCallID,
 			"errorType":      "execution_error",
@@ -1223,7 +1292,7 @@ func (c *Client) executeFunctionCall(ctx context.Context, functionName string, a
 		})
 
 	// Log successful function call end
-	c.logExecutionFlowEvent("function_call_end", sequenceNum+1, "success", nil, map[string]interface{}{
+	c.logExecutionFlowEvent("function_call_end", c.getNextSequenceNumber(), "success", nil, map[string]interface{}{
 		"functionName":   functionName,
 		"functionCallId": functionCallID,
 		"resultSize":     len(fmt.Sprintf("%v", result)),
@@ -4407,6 +4476,18 @@ func min(a, b int) int {
 	return b
 }
 
+// getMapKeys returns the keys of a map as a slice of strings for logging purposes
+func getMapKeys(m map[string]interface{}) []string {
+	if m == nil {
+		return []string{}
+	}
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
 // compareResults compares multiple variation results
 func (c *Client) compareResults(ctx context.Context, result *types.ExecutionResult) (*types.ComparisonResult, error) {
 	// Enhanced comparison implementation with multiple metrics
@@ -5102,8 +5183,9 @@ func (c *Client) GetExecutionResult(ctx context.Context, userID string, executio
 			ModelName:     row.ModelName,
 			SystemPrompt:  row.SystemPrompt.String,
 			CreatedAt:     row.CreatedAt.Time,
-			// NOTE: Tools are not added here to prevent contamination between executions
-			// Functions are managed at the execution run level and added dynamically during execution
+			// Add function tools to each configuration for display purposes
+			// Even though tools are managed at execution level, each config should show the same tools
+			Tools: functionTools,
 		}
 
 		// Parse nullable fields
@@ -5478,8 +5560,8 @@ func (c *Client) logExecutionFlowEvent(eventType string, sequenceNumber int, sta
 	query := `
 		INSERT INTO execution_flow_events (
 			id, execution_run_id, request_id, event_type, sequence_number, 
-			parent_event_id, event_data, duration_ms, status, error_message
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			parent_event_id, event_data, duration_ms, status, error_message, created_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
 	`
 
 	var errorVal sql.NullString
@@ -5635,6 +5717,16 @@ func (c *Client) clearExecutionContext() {
 	c.currentExecutionRunID = nil
 	c.currentConfigID = nil
 	c.currentRequestID = nil
+	c.sequenceCounter = 0 // Reset sequence counter
+}
+
+// getNextSequenceNumber returns the next unique sequence number for flow events
+func (c *Client) getNextSequenceNumber() int {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	c.sequenceCounter++
+	return c.sequenceCounter
 }
 
 // LogFunctionCall logs function call details to the database
@@ -5884,6 +5976,232 @@ func (c *Client) GetExecutionFlowGraph(ctx context.Context, userID, executionRun
 	return flowGraph, nil
 }
 
+// GetExecutionLogsByConfiguration retrieves execution logs filtered by configuration ID
+func (c *Client) GetExecutionLogsByConfiguration(ctx context.Context, executionRunID, configurationID string) ([]types.ExecutionLog, error) {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
+	log.Printf("🔍 Getting execution logs for execution run: %s, configuration: %s", executionRunID, configurationID)
+
+	// Use the existing sqlc query for logs by configuration
+	dbLogs, err := c.queries.GetExecutionLogsByConfiguration(ctx, db.GetExecutionLogsByConfigurationParams{
+		ExecutionRunID:  executionRunID,
+		ConfigurationID: sql.NullString{String: configurationID, Valid: true},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get execution logs by configuration: %w", err)
+	}
+
+	// Convert database logs to types.ExecutionLog
+	logs := make([]types.ExecutionLog, 0, len(dbLogs))
+	for _, dbLog := range dbLogs {
+		log := types.ExecutionLog{
+			ID:             dbLog.ID,
+			ExecutionRunID: dbLog.ExecutionRunID,
+			LogLevel:       types.LogLevel(dbLog.LogLevel.String),
+			LogCategory:    types.LogCategory(dbLog.LogCategory.String),
+			Message:        dbLog.Message,
+			Timestamp:      dbLog.Timestamp.Time,
+		}
+
+		if dbLog.ConfigurationID.Valid {
+			log.ConfigurationID = &dbLog.ConfigurationID.String
+		}
+		if dbLog.RequestID.Valid {
+			log.RequestID = &dbLog.RequestID.String
+		}
+
+		logs = append(logs, log)
+	}
+
+	log.Printf("✅ Found %d execution logs for configuration %s", len(logs), configurationID)
+	return logs, nil
+}
+
+// GetExecutionFlowGraphByConfiguration retrieves the execution flow graph filtered by configuration ID
+func (c *Client) GetExecutionFlowGraphByConfiguration(ctx context.Context, userID, executionRunID, configurationID string) (*types.ExecutionFlowGraph, error) {
+	log.Printf("🔍 Getting execution flow graph for execution run: %s, configuration: %s, user: %s", executionRunID, configurationID, userID)
+
+	// First verify the execution run belongs to the user
+	executionRun, err := c.GetExecutionRun(ctx, userID, executionRunID)
+	if err != nil {
+		return nil, fmt.Errorf("execution run not found or access denied: %w", err)
+	}
+
+	// Get execution flow events filtered by configuration (through request_id)
+	events, err := c.getExecutionFlowEventsByConfiguration(ctx, executionRunID, configurationID)
+	if err != nil {
+		log.Printf("⚠️ Failed to get execution flow events by configuration: %v", err)
+		events = []types.ExecutionFlowEvent{} // Continue with empty events
+	}
+
+	// Get function calls for this execution run filtered by configuration
+	functionCalls, err := c.getFunctionCallsByConfiguration(ctx, executionRunID, configurationID)
+	if err != nil {
+		log.Printf("⚠️ Failed to get function calls by configuration: %v", err)
+		functionCalls = []types.FunctionCall{} // Continue with empty function calls
+	}
+
+	// Get execution stats (not filtered by configuration for now)
+	stats, err := c.getExecutionStats(ctx, executionRunID)
+	if err != nil {
+		log.Printf("⚠️ Failed to get execution stats: %v", err)
+		// Continue without stats
+	}
+
+	// Generate graph YAML (simplified for now)
+	graphYAML := c.generateGraphYAML(executionRun, events, functionCalls)
+
+	flowGraph := &types.ExecutionFlowGraph{
+		ExecutionRunID: executionRunID,
+		Events:         events,
+		FunctionCalls:  functionCalls,
+		Stats:          stats,
+		GraphYAML:      graphYAML,
+	}
+
+	log.Printf("✅ Generated execution flow graph for configuration %s with %d events, %d function calls", configurationID, len(events), len(functionCalls))
+	return flowGraph, nil
+}
+
+// getExecutionFlowEventsByConfiguration retrieves execution flow events filtered by configuration (through request_id)
+func (c *Client) getExecutionFlowEventsByConfiguration(ctx context.Context, executionRunID, configurationID string) ([]types.ExecutionFlowEvent, error) {
+	query := `
+		SELECT e.id, e.execution_run_id, e.request_id, e.event_type, e.sequence_number, 
+		       e.parent_event_id, e.event_data, e.duration_ms, e.status, e.error_message, e.created_at
+		FROM execution_flow_events e
+		INNER JOIN api_requests r ON e.request_id = r.id
+		WHERE e.execution_run_id = ? AND r.configuration_id = ?
+		ORDER BY e.created_at ASC, e.sequence_number ASC, e.id ASC
+	`
+
+	rows, err := c.db.QueryContext(ctx, query, executionRunID, configurationID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query execution flow events by configuration: %w", err)
+	}
+	defer rows.Close()
+
+	var events []types.ExecutionFlowEvent
+	for rows.Next() {
+		var event types.ExecutionFlowEvent
+		var requestID, parentEventID, errorMessage sql.NullString
+		var eventDataJSON sql.NullString
+		var durationMs sql.NullInt32
+
+		err := rows.Scan(
+			&event.ID,
+			&event.ExecutionRunID,
+			&requestID,
+			&event.EventType,
+			&event.SequenceNumber,
+			&parentEventID,
+			&eventDataJSON,
+			&durationMs,
+			&event.Status,
+			&errorMessage,
+			&event.CreatedAt,
+		)
+		if err != nil {
+			log.Printf("⚠️ Failed to scan execution flow event: %v", err)
+			continue
+		}
+
+		// Handle nullable fields
+		if requestID.Valid {
+			event.RequestID = &requestID.String
+		}
+		if parentEventID.Valid {
+			event.ParentEventID = &parentEventID.String
+		}
+		if errorMessage.Valid {
+			event.ErrorMessage = &errorMessage.String
+		}
+		if durationMs.Valid {
+			event.DurationMs = &durationMs.Int32
+		}
+
+		// Parse event data JSON
+		if eventDataJSON.Valid && eventDataJSON.String != "" {
+			var eventData map[string]interface{}
+			if err := json.Unmarshal([]byte(eventDataJSON.String), &eventData); err != nil {
+				log.Printf("⚠️ Failed to parse event data JSON for event %s: %v", event.ID, err)
+			} else {
+				event.EventData = eventData
+			}
+		}
+
+		events = append(events, event)
+	}
+
+	return events, rows.Err()
+}
+
+// getFunctionCallsByConfiguration retrieves function calls filtered by configuration (through request_id)
+func (c *Client) getFunctionCallsByConfiguration(ctx context.Context, executionRunID, configurationID string) ([]types.FunctionCall, error) {
+	query := `
+		SELECT f.id, f.request_id, f.function_name, f.function_arguments, f.function_response, 
+		       f.execution_status, f.error_details, f.created_at
+		FROM function_calls f
+		INNER JOIN api_requests r ON f.request_id = r.id
+		WHERE r.execution_run_id = ? AND r.configuration_id = ?
+		ORDER BY f.created_at ASC
+	`
+
+	rows, err := c.db.QueryContext(ctx, query, executionRunID, configurationID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query function calls by configuration: %w", err)
+	}
+	defer rows.Close()
+
+	var functionCalls []types.FunctionCall
+	for rows.Next() {
+		var call types.FunctionCall
+		var functionArgs, functionResponse, errorDetails sql.NullString
+
+		err := rows.Scan(
+			&call.ID,
+			&call.RequestID,
+			&call.FunctionName,
+			&functionArgs,
+			&functionResponse,
+			&call.ExecutionStatus,
+			&errorDetails,
+			&call.CreatedAt,
+		)
+		if err != nil {
+			log.Printf("⚠️ Failed to scan function call: %v", err)
+			continue
+		}
+
+		// Handle nullable JSON fields
+		if functionArgs.Valid && functionArgs.String != "" {
+			var args map[string]interface{}
+			if err := json.Unmarshal([]byte(functionArgs.String), &args); err != nil {
+				log.Printf("⚠️ Failed to parse function args JSON for call %s: %v", call.ID, err)
+			} else {
+				call.FunctionArgs = args
+			}
+		}
+
+		if functionResponse.Valid && functionResponse.String != "" {
+			var response map[string]interface{}
+			if err := json.Unmarshal([]byte(functionResponse.String), &response); err != nil {
+				log.Printf("⚠️ Failed to parse function response JSON for call %s: %v", call.ID, err)
+			} else {
+				call.FunctionResponse = response
+			}
+		}
+
+		if errorDetails.Valid {
+			call.ErrorDetails = errorDetails.String
+		}
+
+		functionCalls = append(functionCalls, call)
+	}
+
+	return functionCalls, rows.Err()
+}
+
 // getExecutionFlowEvents retrieves all execution flow events for an execution run
 func (c *Client) getExecutionFlowEvents(ctx context.Context, executionRunID string) ([]types.ExecutionFlowEvent, error) {
 	query := `
@@ -5891,7 +6209,7 @@ func (c *Client) getExecutionFlowEvents(ctx context.Context, executionRunID stri
 		       parent_event_id, event_data, duration_ms, status, error_message, created_at
 		FROM execution_flow_events 
 		WHERE execution_run_id = ?
-		ORDER BY sequence_number ASC, created_at ASC
+		ORDER BY created_at ASC, sequence_number ASC, id ASC
 	`
 
 	rows, err := c.db.QueryContext(ctx, query, executionRunID)

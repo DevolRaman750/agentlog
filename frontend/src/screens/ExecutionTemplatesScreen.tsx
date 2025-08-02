@@ -87,7 +87,7 @@ const ExecutionTemplatesScreen: React.FC = () => {
     context: '',
     enableFunctionCalling: true,
     tags: '',
-    modelName: 'gemini-1.5-flash', // Default model
+    modelName: '', // Will be set to first available configuration
   });
 
   const [selectedFunctions, setSelectedFunctions] = useState<string[]>([]);
@@ -147,6 +147,8 @@ const ExecutionTemplatesScreen: React.FC = () => {
     const params = route.params as any;
     if (params?.createFromExecution) {
       const templateData = params.createFromExecution;
+      console.log('🔄 Processing createFromExecution params:', templateData);
+      
       setFormData({
         name: templateData.name || '',
         description: templateData.description || '',
@@ -154,17 +156,35 @@ const ExecutionTemplatesScreen: React.FC = () => {
         context: templateData.context || '',
         enableFunctionCalling: templateData.enableFunctionCalling || true,
         tags: Array.isArray(templateData.tags) ? templateData.tags.join(', ') : '',
-        modelName: templateData.modelName || 'gemini-1.5-flash',
+        modelName: templateData.modelName || (configurations.length > 0 ? configurations[0].id || '' : ''),
       });
       
-      // Set selected functions if provided
-      if (templateData.functions && Array.isArray(templateData.functions)) {
+      // Set selected functions using functionIds array
+      if (templateData.functionIds && Array.isArray(templateData.functionIds)) {
+        console.log('✅ Setting selected functions from functionIds:', templateData.functionIds);
+        setSelectedFunctions(templateData.functionIds);
+      } else if (templateData.functions && Array.isArray(templateData.functions)) {
+        // Fallback for old format (functions array)
+        console.log('🔄 Using fallback functions format:', templateData.functions);
         setSelectedFunctions(templateData.functions.map((f: any) => f.id || f.name));
+      } else {
+        console.log('ℹ️ No functions provided in template data');
+        setSelectedFunctions([]);
       }
       
       setShowCreateModal(true);
     }
-  }, [route.params]);
+  }, [route.params, configurations]);
+
+  // Set default configuration when configurations load
+  useEffect(() => {
+    if (configurations.length > 0 && !formData.modelName) {
+      setFormData(prev => ({
+        ...prev,
+        modelName: configurations[0].id || ''
+      }));
+    }
+  }, [configurations, formData.modelName]);
 
   const fetchAvailableFunctions = async () => {
     try {
@@ -381,7 +401,7 @@ const ExecutionTemplatesScreen: React.FC = () => {
       context: '',
       enableFunctionCalling: true,
       tags: '',
-      modelName: 'gemini-1.5-flash',
+      modelName: configurations.length > 0 ? configurations[0].id || '' : '',
     });
     setParameters([]);
     setSelectedFunctions([]);
@@ -420,7 +440,7 @@ const ExecutionTemplatesScreen: React.FC = () => {
       context: (template as any).contextTemplate || template.context || '',
       enableFunctionCalling: template.enableFunctionCalling,
       tags: template.tags && Array.isArray(template.tags) ? template.tags.join(', ') : '',
-      modelName: template.modelName || 'gemini-1.5-flash',
+      modelName: template.modelName || (configurations.length > 0 ? configurations[0].id || '' : ''),
     });
     
     // Populate function selections
@@ -544,7 +564,7 @@ const ExecutionTemplatesScreen: React.FC = () => {
       context: (template as any).contextTemplate || template.context || '',
       enableFunctionCalling: template.enableFunctionCalling,
       tags: template.tags && Array.isArray(template.tags) ? template.tags.join(', ') : '',
-      modelName: template.modelName || 'gemini-1.5-flash',
+      modelName: template.modelName || (configurations.length > 0 ? configurations[0].id || '' : ''),
     });
     
     // Populate function selections
@@ -947,40 +967,47 @@ const ExecutionTemplatesScreen: React.FC = () => {
               </View>
               
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>AI Model</Text>
-                <Text style={styles.inputDescription}>Choose the AI model for this template</Text>
+                <Text style={styles.inputLabel}>AI Configuration</Text>
+                <Text style={styles.inputDescription}>Choose which AI configuration to use for this template</Text>
                 <View style={styles.modelSelector}>
-                  {['gemini-1.5-flash', 'gemini-1.5-pro'].map((model) => (
-                    <TouchableOpacity
-                      key={model}
-                      style={[
-                        styles.modelOption,
-                        formData.modelName === model && styles.modelOptionSelected
-                      ]}
-                      onPress={isViewMode ? undefined : () => setFormData({...formData, modelName: model})}
-                      disabled={isViewMode}
-                    >
-                      <View style={styles.modelOptionContent}>
-                        <Text style={[
-                          styles.modelOptionText,
-                          formData.modelName === model && styles.modelOptionTextSelected
-                        ]}>
-                          {model === 'gemini-1.5-flash' ? 'Gemini 1.5 Flash' : 'Gemini 1.5 Pro'}
-                        </Text>
-                        <Text style={[
-                          styles.modelOptionDescription,
-                          formData.modelName === model && styles.modelOptionDescriptionSelected
-                        ]}>
-                          {model === 'gemini-1.5-flash' 
-                            ? 'Fast responses, cost-effective' 
-                            : 'More capable, higher quality'}
-                        </Text>
-                      </View>
-                      {formData.modelName === model && (
-                        <Ionicons name="checkmark-circle" size={20} color="#007AFF" />
-                      )}
-                    </TouchableOpacity>
-                  ))}
+                  {configurations.length === 0 ? (
+                    <View style={styles.emptyConfigurationsMessage}>
+                      <Ionicons name="warning-outline" size={20} color="#FF9500" />
+                      <Text style={styles.emptyConfigurationsText}>
+                        No configurations available. Please create at least one AI configuration in the Configure tab.
+                      </Text>
+                    </View>
+                  ) : (
+                    configurations.map((config) => (
+                      <TouchableOpacity
+                        key={config.id || Math.random().toString()}
+                        style={[
+                          styles.modelOption,
+                          formData.modelName === (config.id || '') && styles.modelOptionSelected
+                        ]}
+                        onPress={isViewMode ? undefined : () => setFormData({...formData, modelName: config.id || ''})}
+                        disabled={isViewMode}
+                      >
+                        <View style={styles.modelOptionContent}>
+                          <Text style={[
+                            styles.modelOptionText,
+                            formData.modelName === (config.id || '') && styles.modelOptionTextSelected
+                          ]}>
+                            {config.variationName || 'Unnamed Configuration'}
+                          </Text>
+                          <Text style={[
+                            styles.modelOptionDescription,
+                            formData.modelName === (config.id || '') && styles.modelOptionDescriptionSelected
+                          ]}>
+                            {config.modelName} • {config.systemPrompt ? config.systemPrompt.substring(0, 50) + '...' : 'No system prompt'}
+                          </Text>
+                        </View>
+                        {formData.modelName === (config.id || '') && (
+                          <Ionicons name="checkmark-circle" size={20} color="#007AFF" />
+                        )}
+                      </TouchableOpacity>
+                    ))
+                  )}
                 </View>
               </View>
               
@@ -1751,6 +1778,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#8E8E93',
     fontWeight: '600',
+  },
+  // Empty configurations styles
+  emptyConfigurationsMessage: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#FFF8E1',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FFB300',
+  },
+  emptyConfigurationsText: {
+    fontSize: 14,
+    color: '#E65100',
+    marginLeft: 8,
+    flex: 1,
+    lineHeight: 18,
   },
 });
 

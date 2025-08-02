@@ -256,6 +256,11 @@ const HistoryScreen: React.FC = () => {
       const response = await goGentAPI.getExecutionRun(run.id);
       console.log('📋 API response:', response);
       
+      // Get available functions to map function names to IDs
+      const functionsResponse = await goGentAPI.getFunctions();
+      const availableFunctions = functionsResponse.success && functionsResponse.data ? functionsResponse.data : [];
+      console.log('📋 Available functions for mapping:', availableFunctions.map(f => ({ id: f.id, name: f.name })));
+      
       let templateData = {
         name: `Template: ${run.name}`,
         description: `Generated from execution: ${run.description || run.name}`,
@@ -264,7 +269,7 @@ const HistoryScreen: React.FC = () => {
         enableFunctionCalling: run.enableFunctionCalling || false,
         tags: ['generated', 'from-execution'],
         modelName: 'gemini-1.5-flash', // Default fallback
-        functions: [] as any[],
+        functionIds: [] as string[], // Changed to functionIds array for proper mapping
       };
 
       // Extract model and functions from execution results if available
@@ -278,29 +283,39 @@ const HistoryScreen: React.FC = () => {
           console.log('🤖 Model found:', templateData.modelName);
         }
         
-        // Extract unique functions from all function calls
-        const functionMap = new Map();
+        // Extract unique function names from all function calls
+        const usedFunctionNames = new Set<string>();
         results?.forEach(result => {
           if (result.functionCalls && result.functionCalls.length > 0) {
             result.functionCalls.forEach(functionCall => {
               const funcName = functionCall.functionName;
-              if (funcName && !functionMap.has(funcName)) {
-                functionMap.set(funcName, {
-                  id: functionCall.id || funcName,
-                  name: funcName,
-                  displayName: funcName,
-                });
-                console.log('⚙️ Function found:', funcName);
+              if (funcName) {
+                usedFunctionNames.add(funcName);
+                console.log('⚙️ Function found in execution:', funcName);
               }
             });
           }
         });
         
-        templateData.functions = Array.from(functionMap.values());
+        // Map function names to actual function IDs from available functions
+        const mappedFunctionIds: string[] = [];
+        usedFunctionNames.forEach(functionName => {
+          const matchingFunction = availableFunctions.find(f => f.name === functionName);
+          if (matchingFunction) {
+            mappedFunctionIds.push(matchingFunction.id);
+            console.log(`✅ Mapped function "${functionName}" -> ID: ${matchingFunction.id}`);
+          } else {
+            console.warn(`⚠️ Could not find function definition for "${functionName}"`);
+          }
+        });
+        
+        templateData.functionIds = mappedFunctionIds;
         console.log('📊 Template data prepared:', { 
-          functionsCount: templateData.functions.length,
+          functionIdsCount: templateData.functionIds.length,
+          functionIds: templateData.functionIds,
           model: templateData.modelName,
-          hasPrompt: !!templateData.prompt
+          hasPrompt: !!templateData.prompt,
+          hasContext: !!templateData.context
         });
       } else {
         console.warn('⚠️ Failed to get execution data:', response.error);

@@ -10,6 +10,7 @@ import {
   DatabaseTable,
   AppConfig,
   FunctionDefinition,
+  ExecutionLog,
 } from '../types';
 import { User } from '../context/AuthContext';
 import { secureStorage } from '../utils/secureStorage';
@@ -229,6 +230,38 @@ class GoGentAPI {
       return {
         success: false,
         error: error.response?.data?.error || error.message || 'Failed to fetch execution run',
+      };
+    }
+  }
+
+  // Get execution logs filtered by configuration
+  async getExecutionLogsByConfiguration(executionRunId: string, configurationId: string): Promise<ApiResponse<ExecutionLog[]>> {
+    try {
+      const response: AxiosResponse<ExecutionLog[]> = await this.api.get(`/api/execution-logs/${executionRunId}/${configurationId}`);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to fetch execution logs by configuration',
+      };
+    }
+  }
+
+  // Get execution flow graph filtered by configuration
+  async getExecutionFlowGraphByConfiguration(executionRunId: string, configurationId: string): Promise<ApiResponse<any>> {
+    try {
+      const response: AxiosResponse<any> = await this.api.get(`/api/execution-flow-by-config/${executionRunId}/${configurationId}`);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to fetch execution flow graph by configuration',
       };
     }
   }

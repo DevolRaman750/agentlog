@@ -17,7 +17,12 @@ WHERE execution_run_id = ?
 ORDER BY timestamp ASC;
 
 -- name: GetExecutionLogsByConfiguration :many
-SELECT * FROM execution_logs 
+SELECT 
+    id, execution_run_id, configuration_id, request_id,
+    log_level, log_category, message, 
+    COALESCE(details, JSON_OBJECT()) as details,
+    timestamp
+FROM execution_logs 
 WHERE execution_run_id = ? AND configuration_id = ?
 ORDER BY timestamp ASC;
 

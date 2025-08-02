@@ -62,12 +62,14 @@ export interface ExecutionFlowGraphProps {
   executionRunId: string;
   visible: boolean;
   onClose: () => void;
+  configurationId?: string; // Optional - if provided, filter flow data by this configuration
 }
 
 const ExecutionFlowGraph: React.FC<ExecutionFlowGraphProps> = ({
   executionRunId,
   visible,
   onClose,
+  configurationId,
 }) => {
   const [flowData, setFlowData] = useState<ExecutionFlowGraph | null>(null);
   const [loading, setLoading] = useState(false);
@@ -83,14 +85,17 @@ const ExecutionFlowGraph: React.FC<ExecutionFlowGraphProps> = ({
     if (visible && executionRunId) {
       fetchExecutionFlowData();
     }
-  }, [visible, executionRunId]);
+  }, [visible, executionRunId, configurationId]);
 
   const fetchExecutionFlowData = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await goGentAPI.getExecutionFlowGraph(executionRunId);
+      const response = configurationId 
+        ? await goGentAPI.getExecutionFlowGraphByConfiguration(executionRunId, configurationId)
+        : await goGentAPI.getExecutionFlowGraph(executionRunId);
+      
       if (response.success && response.data) {
         const data: ExecutionFlowGraph = response.data;
         setFlowData(data);
@@ -199,6 +204,12 @@ const ExecutionFlowGraph: React.FC<ExecutionFlowGraphProps> = ({
 
   const processedEvents = buildEventHierarchy(flowData?.events || []);
   
+  // Count function call events from the events array
+  const functionCallEventsCount = (flowData?.events || []).filter(event => 
+    event.eventType === 'function_call_start' || 
+    event.eventType === 'function_call_end'
+  ).length;
+  
   const filteredEvents = showFunctionCallsOnly 
     ? processedEvents.filter(eventOrGroup => {
         if (Array.isArray(eventOrGroup)) {
@@ -274,7 +285,7 @@ const ExecutionFlowGraph: React.FC<ExecutionFlowGraphProps> = ({
             styles.filterButtonText,
             showFunctionCallsOnly && styles.activeFilterButtonText
           ]}>
-            Function Calls Only ({flowData?.functionCalls?.length || 0})
+            Function Calls Only ({functionCallEventsCount})
           </Text>
         </TouchableOpacity>
       </View>

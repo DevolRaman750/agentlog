@@ -15,7 +15,7 @@ type Config struct {
 // DefaultConfig returns a default configuration for code analysis
 func DefaultConfig() *Config {
 	return &Config{
-		MaxFileSizeBytes: 50000, // 50KB
+		MaxFileSizeBytes: 500000, // 500KB - increased for larger source files
 		SupportedExtensions: map[string]bool{
 			".go":    true,
 			".js":    true,

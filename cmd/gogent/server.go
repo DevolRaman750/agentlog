@@ -1910,6 +1910,10 @@ func runServer() {
 	// Execution flow graph endpoints
 	http.HandleFunc("/api/execution-flow/", server.enableCORS(authMiddleware(server.executionFlowGraphHandler)))
 
+	// Configuration-specific logs and flow endpoints
+	http.HandleFunc("/api/execution-logs/", server.enableCORS(authMiddleware(server.executionLogsHandler)))
+	http.HandleFunc("/api/execution-flow-by-config/", server.enableCORS(authMiddleware(server.executionFlowByConfigHandler)))
+
 	// Protected configuration management endpoints
 	http.HandleFunc("/api/configurations", server.enableCORS(authMiddleware(server.configurationsHandler)))
 	http.HandleFunc("/api/configurations/", server.enableCORS(authMiddleware(server.configurationByIDHandler)))
@@ -2099,6 +2103,121 @@ func (s *Server) executionFlowGraphHandler(w http.ResponseWriter, r *http.Reques
 	flowGraph, err := s.client.GetExecutionFlowGraph(context.Background(), userID, executionRunID)
 	if err != nil {
 		log.Printf("❌ Failed to get execution flow graph: %v", err)
+		http.Error(w, fmt.Sprintf("Failed to get execution flow graph: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	if flowGraph == nil {
+		http.Error(w, "Execution run not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(flowGraph)
+}
+
+// executionLogsHandler handles requests for execution logs filtered by configuration
+func (s *Server) executionLogsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Extract user ID for authorization
+	userID, err := s.getUserID(r)
+	if err != nil {
+		log.Printf("❌ Failed to get user ID from context for execution logs endpoint")
+		http.Error(w, "Unauthorized - user context not found", http.StatusUnauthorized)
+		return
+	}
+
+	// Extract execution run ID and configuration ID from URL path
+	// URL format: /api/execution-logs/{execution-run-id}/{configuration-id}
+	path := r.URL.Path
+	logsPrefix := "/api/execution-logs/"
+	if !strings.HasPrefix(path, logsPrefix) {
+		http.Error(w, "Invalid execution logs endpoint", http.StatusBadRequest)
+		return
+	}
+
+	pathParts := strings.Split(path[len(logsPrefix):], "/")
+	if len(pathParts) != 2 || pathParts[0] == "" || pathParts[1] == "" {
+		http.Error(w, "Both execution run ID and configuration ID required", http.StatusBadRequest)
+		return
+	}
+
+	executionRunID := pathParts[0]
+	configurationID := pathParts[1]
+
+	log.Printf("🔍 Getting execution logs for execution run: %s, configuration: %s, user: %s", executionRunID, configurationID, userID)
+
+	// First verify the execution run belongs to the user
+	_, err = s.client.GetExecutionRun(context.Background(), userID, executionRunID)
+	if err != nil {
+		log.Printf("❌ Execution run not found or access denied: %v", err)
+		http.Error(w, "Execution run not found or access denied", http.StatusNotFound)
+		return
+	}
+
+	// Get execution logs filtered by configuration
+	logs, err := s.client.GetExecutionLogsByConfiguration(context.Background(), executionRunID, configurationID)
+	if err != nil {
+		log.Printf("❌ Failed to get execution logs by configuration: %v", err)
+		http.Error(w, fmt.Sprintf("Failed to get execution logs: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(logs)
+}
+
+// executionFlowByConfigHandler handles requests for execution flow graph data filtered by configuration
+func (s *Server) executionFlowByConfigHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Extract user ID for authorization
+	userID, err := s.getUserID(r)
+	if err != nil {
+		log.Printf("❌ Failed to get user ID from context for execution flow by config endpoint")
+		http.Error(w, "Unauthorized - user context not found", http.StatusUnauthorized)
+		return
+	}
+
+	// Extract execution run ID and configuration ID from URL path
+	// URL format: /api/execution-flow-by-config/{execution-run-id}/{configuration-id}
+	path := r.URL.Path
+	flowPrefix := "/api/execution-flow-by-config/"
+	if !strings.HasPrefix(path, flowPrefix) {
+		http.Error(w, "Invalid execution flow by config endpoint", http.StatusBadRequest)
+		return
+	}
+
+	pathParts := strings.Split(path[len(flowPrefix):], "/")
+	if len(pathParts) != 2 || pathParts[0] == "" || pathParts[1] == "" {
+		http.Error(w, "Both execution run ID and configuration ID required", http.StatusBadRequest)
+		return
+	}
+
+	executionRunID := pathParts[0]
+	configurationID := pathParts[1]
+
+	log.Printf("🔍 Getting execution flow graph for execution run: %s, configuration: %s, user: %s", executionRunID, configurationID, userID)
+
+	// First verify the execution run belongs to the user
+	_, err = s.client.GetExecutionRun(context.Background(), userID, executionRunID)
+	if err != nil {
+		log.Printf("❌ Execution run not found or access denied: %v", err)
+		http.Error(w, "Execution run not found or access denied", http.StatusNotFound)
+		return
+	}
+
+	// Get execution flow data filtered by configuration
+	flowGraph, err := s.client.GetExecutionFlowGraphByConfiguration(context.Background(), userID, executionRunID, configurationID)
+	if err != nil {
+		log.Printf("❌ Failed to get execution flow graph by configuration: %v", err)
 		http.Error(w, fmt.Sprintf("Failed to get execution flow graph: %v", err), http.StatusInternalServerError)
 		return
 	}

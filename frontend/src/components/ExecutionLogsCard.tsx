@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, FlatList, Modal, Clipboard } from 'react-native';
 import {
   ExecutionLog,
@@ -6,14 +6,16 @@ import {
   LogCategory,
   ExecutionResult,
 } from '../types';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@expo/vector-icons';
 import { AlertAPI } from './CustomAlert';
+import { goGentAPI } from '../api/client';
 
 export interface ExecutionLogsCardProps {
   executionResult: ExecutionResult;
   onClose: () => void;
   onReExecute: (data: any) => void;
   visible: boolean;
+  configurationId?: string; // Optional - if provided, filter logs by this configuration
 }
 
 const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({ 
@@ -21,17 +23,46 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
   visible,
   onClose,
   onReExecute,
+  configurationId,
 }) => {
   const [expandedLog, setExpandedLog] = useState<string | null>(null);
   const [levelFilter, setLevelFilter] = useState<LogLevel | 'ALL'>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<LogCategory | 'ALL'>('ALL');
   const [expandedConfigurations, setExpandedConfigurations] = useState<Set<string>>(new Set());
+  const [configFilteredLogs, setConfigFilteredLogs] = useState<ExecutionLog[] | null>(null);
+  const [isLoadingFilteredLogs, setIsLoadingFilteredLogs] = useState(false);
+  const [filtersExpanded, setFiltersExpanded] = useState(true); // Start expanded by default for better discoverability
+
+  // Fetch logs filtered by configuration when configurationId is provided
+  useEffect(() => {
+    if (visible && configurationId) {
+      setIsLoadingFilteredLogs(true);
+      goGentAPI.getExecutionLogsByConfiguration(executionResult.executionRun.id, configurationId)
+        .then((response) => {
+          if (response.success && response.data) {
+            setConfigFilteredLogs(response.data);
+          } else {
+            console.warn('Failed to fetch filtered logs:', response.error);
+            setConfigFilteredLogs([]); // Use empty array as fallback
+          }
+        })
+        .catch((error) => {
+          console.error('Error fetching filtered logs:', error);
+          setConfigFilteredLogs([]); // Use empty array as fallback
+        })
+        .finally(() => {
+          setIsLoadingFilteredLogs(false);
+        });
+    } else {
+      setConfigFilteredLogs(null); // Reset when not filtering by config
+    }
+  }, [visible, configurationId, executionResult.executionRun.id]);
 
   if (!visible) {
     return null;
   }
 
-  const logs = executionResult.logs || [];
+  const logs = configFilteredLogs || executionResult.logs || [];
 
   // Expand all configuration sections by default
   React.useEffect(() => {
@@ -196,71 +227,129 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
       return acc;
     }, {} as Record<LogCategory, number>);
 
+    const totalLogs = logs.length;
+    const filteredCount = filteredLogs.length;
+    const activeFilters = [
+      levelFilter !== 'ALL' ? levelFilter : null,
+      categoryFilter !== 'ALL' ? categoryFilter : null
+    ].filter(Boolean);
+
     return (
       <View style={styles.filtersContainer}>
-        {/* Log Level Filters */}
-        <View style={styles.filterSection}>
-          <Text style={styles.filterSectionTitle}>Log Levels:</Text>
-          <View style={styles.statsContainer}>
-            {Object.entries(levelStats).map(([level, count]) => (
-              <TouchableOpacity 
-                key={level} 
-                style={[
-                  styles.statPill, 
-                  levelFilter === level && styles.activeFilterPill,
-                  { borderColor: getLogLevelColor(level as LogLevel) }
-                ]}
-                onPress={() => setLevelFilter(level as LogLevel)}
-              >
-                <Text style={[
-                  styles.statText, 
-                  { color: getLogLevelColor(level as LogLevel) },
-                  levelFilter === level && styles.activeStatText
-                ]}>
-                  {level}: {count}
-                </Text>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity 
-              style={[styles.statPill, levelFilter === 'ALL' && styles.activeFilterPill]}
-              onPress={() => setLevelFilter('ALL')}
-            >
-              <Text style={[styles.statText, levelFilter === 'ALL' && styles.activeStatText]}>ALL</Text>
-            </TouchableOpacity>
+        {/* Collapsible Header */}
+        <TouchableOpacity 
+          style={styles.filtersHeader} 
+          onPress={() => setFiltersExpanded(!filtersExpanded)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.filtersHeaderContent}>
+            <Text style={styles.filtersHeaderTitle}>
+              Filters {activeFilters.length > 0 && `(${activeFilters.length} active)`}
+            </Text>
+            <View style={styles.filtersHeaderStats}>
+              <Text style={styles.filtersHeaderSubtitle}>
+                {filteredCount} of {totalLogs} logs
+              </Text>
+              {activeFilters.length > 0 && (
+                <View style={styles.activeFiltersCompact}>
+                  {activeFilters.map((filter, index) => (
+                    <View key={filter} style={styles.activeFilterChip}>
+                      <Text style={styles.activeFilterChipText}>{filter}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
           </View>
-        </View>
+          <Ionicons 
+            name={filtersExpanded ? "chevron-up" : "chevron-down"} 
+            size={20} 
+            color="#666" 
+          />
+        </TouchableOpacity>
 
-        {/* Category Filters */}
-        <View style={styles.filterSection}>
-          <Text style={styles.filterSectionTitle}>Categories:</Text>
-          <View style={styles.statsContainer}>
-            {Object.entries(categoryStats).map(([category, count]) => (
+        {/* Expandable Filter Section */}
+        {filtersExpanded && (
+          <View style={styles.filtersExpandedContent}>
+            {/* Log Level Filters */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Log Levels:</Text>
+              <View style={styles.statsContainer}>
+                {Object.entries(levelStats).map(([level, count]) => (
+                  <TouchableOpacity 
+                    key={level} 
+                    style={[
+                      styles.statPill, 
+                      levelFilter === level && styles.activeFilterPill,
+                      { borderColor: getLogLevelColor(level as LogLevel) }
+                    ]}
+                    onPress={() => setLevelFilter(level as LogLevel)}
+                  >
+                    <Text style={[
+                      styles.statText, 
+                      { color: getLogLevelColor(level as LogLevel) },
+                      levelFilter === level && styles.activeStatText
+                    ]}>
+                      {level}: {count}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity 
+                  style={[styles.statPill, levelFilter === 'ALL' && styles.activeFilterPill]}
+                  onPress={() => setLevelFilter('ALL')}
+                >
+                  <Text style={[styles.statText, levelFilter === 'ALL' && styles.activeStatText]}>ALL</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Category Filters */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Categories:</Text>
+              <View style={styles.statsContainer}>
+                {Object.entries(categoryStats).map(([category, count]) => (
+                  <TouchableOpacity 
+                    key={category} 
+                    style={[
+                      styles.statPill, 
+                      categoryFilter === category && styles.activeFilterPill,
+                      { borderColor: getCategoryColor(category as LogCategory) }
+                    ]}
+                    onPress={() => setCategoryFilter(category as LogCategory)}
+                  >
+                    <Text style={[
+                      styles.statText, 
+                      { color: getCategoryColor(category as LogCategory) },
+                      categoryFilter === category && styles.activeStatText
+                    ]}>
+                      {category}: {count}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity 
+                  style={[styles.statPill, categoryFilter === 'ALL' && styles.activeFilterPill]}
+                  onPress={() => setCategoryFilter('ALL')}
+                >
+                  <Text style={[styles.statText, categoryFilter === 'ALL' && styles.activeStatText]}>ALL</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Clear Filters Button */}
+            {activeFilters.length > 0 && (
               <TouchableOpacity 
-                key={category} 
-                style={[
-                  styles.statPill, 
-                  categoryFilter === category && styles.activeFilterPill,
-                  { borderColor: getCategoryColor(category as LogCategory) }
-                ]}
-                onPress={() => setCategoryFilter(category as LogCategory)}
+                style={styles.clearFiltersButton}
+                onPress={() => {
+                  setLevelFilter('ALL');
+                  setCategoryFilter('ALL');
+                }}
               >
-                <Text style={[
-                  styles.statText, 
-                  { color: getCategoryColor(category as LogCategory) },
-                  categoryFilter === category && styles.activeStatText
-                ]}>
-                  {category}: {count}
-                </Text>
+                <Ionicons name="refresh" size={16} color="#FF3B30" />
+                <Text style={styles.clearFiltersText}>Clear All Filters</Text>
               </TouchableOpacity>
-            ))}
-            <TouchableOpacity 
-              style={[styles.statPill, categoryFilter === 'ALL' && styles.activeFilterPill]}
-              onPress={() => setCategoryFilter('ALL')}
-            >
-              <Text style={[styles.statText, categoryFilter === 'ALL' && styles.activeStatText]}>ALL</Text>
-            </TouchableOpacity>
+            )}
           </View>
-        </View>
+        )}
       </View>
     );
   };
@@ -771,6 +860,71 @@ const styles = StyleSheet.create({
   configurationLogs: {
     paddingHorizontal: 12,
     paddingBottom: 8,
+  },
+  // New styles for filters
+  filtersHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#F8F9FA',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+  },
+  filtersHeaderContent: {
+    flex: 1,
+  },
+  filtersHeaderTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1D1D1F',
+    marginBottom: 4,
+  },
+  filtersHeaderStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  filtersHeaderSubtitle: {
+    fontSize: 12,
+    color: '#8E8E93',
+    fontWeight: '500',
+  },
+  activeFiltersCompact: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  activeFilterChip: {
+    backgroundColor: '#E0E0E0',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  activeFilterChipText: {
+    fontSize: 11,
+    color: '#374151',
+    fontWeight: '600',
+  },
+  filtersExpandedContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: '#F8F9FA',
+  },
+  clearFiltersButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFE0E0',
+    borderRadius: 8,
+    paddingVertical: 10,
+    marginTop: 12,
+  },
+  clearFiltersText: {
+    color: '#FF3B30',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 8,
   },
 });
 

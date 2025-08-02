@@ -14,6 +14,7 @@ import { ExecutionResult, VariationResult } from '../types';
 import { formatConfigId } from '../utils/comparisonUtils';
 import ExecutionLogsCard from './ExecutionLogsCard';
 import ExecutionFlowGraph from './ExecutionFlowGraph';
+import ExecutionComparisonChart from './ExecutionComparisonChart';
 import { AlertAPI } from './CustomAlert';
 
 interface ExecutionResultsViewerProps {
@@ -35,6 +36,8 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
 }) => {
   const [showExecutionLogs, setShowExecutionLogs] = useState(false);
   const [showExecutionFlowGraph, setShowExecutionFlowGraph] = useState(false);
+  const [showDetailedComparison, setShowDetailedComparison] = useState(false);
+  const [selectedConfigurationId, setSelectedConfigurationId] = useState<string | undefined>(undefined);
   // Initialize with all result indices expanded by default
   const [expandedResults, setExpandedResults] = useState<Set<number>>(() => {
     const initialExpanded = new Set<number>();
@@ -189,13 +192,24 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
   };
 
   const renderComparisonAnalysis = () => {
-    if (!executionResult.comparison) return null;
+    if (!executionResult.comparison && (!executionResult.results || executionResult.results.length <= 1)) return null;
 
     return (
       <View style={styles.comparisonSection}>
-        <Text style={styles.sectionTitle}>🏆 Comparison Analysis</Text>
+        <View style={styles.comparisonHeader}>
+          <Text style={styles.sectionTitle}>🏆 Comparison Analysis</Text>
+          
+          {/* Detailed Comparison Button */}
+          <TouchableOpacity 
+            style={styles.detailedComparisonButton}
+            onPress={() => setShowDetailedComparison(true)}
+          >
+            <Ionicons name="analytics" size={18} color="#FFF" />
+            <Text style={styles.detailedComparisonButtonText}>Detailed Analysis</Text>
+          </TouchableOpacity>
+        </View>
         
-        {executionResult.comparison.bestConfigurationId ? (
+        {executionResult.comparison?.bestConfigurationId ? (
           <View style={styles.comparisonCard}>
             <View style={styles.bestConfigHeader}>
               <Ionicons name="trophy" size={24} color="#FFD700" />
@@ -222,10 +236,53 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
                 </View>
               )}
             </View>
+
+            {/* Quick Metrics Preview */}
+            {executionResult.comparison.configurationScores && (
+              <View style={styles.quickMetricsPreview}>
+                <Text style={styles.quickMetricsTitle}>Quick Metrics:</Text>
+                <View style={styles.quickMetricsGrid}>
+                  {executionResult.results.map((result) => {
+                    const scores = executionResult.comparison!.configurationScores![result.configuration.id] || {};
+                    const isBest = result.configuration.id === executionResult.comparison!.bestConfigurationId;
+                    
+                    return (
+                      <View key={result.configuration.id} style={[styles.quickMetricCard, isBest && styles.bestQuickMetricCard]}>
+                        <Text style={[styles.quickMetricName, isBest && styles.bestQuickMetricText]}>
+                          {result.configuration.variationName}
+                        </Text>
+                        <View style={styles.quickMetricStats}>
+                          <Text style={styles.quickMetricStat}>
+                            {result.executionTime}ms
+                          </Text>
+                          {result.response.usageMetadata && (
+                            <Text style={styles.quickMetricStat}>
+                              {result.response.usageMetadata.totalTokens || result.response.usageMetadata.total_tokens || 'N/A'} tokens
+                            </Text>
+                          )}
+                          {scores.overall_score && (
+                            <Text style={[styles.quickMetricScore, isBest && styles.bestQuickMetricScore]}>
+                              {Math.round(scores.overall_score * 100)}%
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
           </View>
         ) : (
-          <View style={styles.noComparisonCard}>
-            <Text style={styles.noComparisonText}>No best configuration determined</Text>
+          <View style={styles.comparisonCard}>
+            <View style={styles.noComparisonHeader}>
+              <Ionicons name="analytics-outline" size={24} color="#666" />
+              <Text style={styles.noComparisonTitle}>Multiple Configurations Detected</Text>
+            </View>
+            <Text style={styles.noComparisonText}>
+              {executionResult.results?.length || 0} configurations executed. 
+              Use detailed analysis to compare performance metrics.
+            </Text>
           </View>
         )}
       </View>
@@ -358,6 +415,31 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
                       ))}
                     </View>
                   )}
+                  
+                  {/* Per-configuration action buttons */}
+                  <View style={styles.configActionButtons}>
+                    <TouchableOpacity
+                      style={styles.configActionButton}
+                      onPress={() => {
+                        setSelectedConfigurationId(result.configuration.id);
+                        setShowExecutionLogs(true);
+                      }}
+                    >
+                      <Ionicons name="document-text" size={16} color="#007AFF" />
+                      <Text style={styles.configActionButtonText}>View Logs</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity
+                      style={styles.configActionButton}
+                      onPress={() => {
+                        setSelectedConfigurationId(result.configuration.id);
+                        setShowExecutionFlowGraph(true);
+                      }}
+                    >
+                      <Ionicons name="git-network" size={16} color="#007AFF" />
+                      <Text style={styles.configActionButtonText}>Flow Graph</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               )}
             </View>
@@ -369,28 +451,6 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
 
   const renderActionButtons = () => (
     <View style={styles.actionButtons}>
-      {executionResult.logs && executionResult.logs.length > 0 && (
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => setShowExecutionLogs(true)}
-        >
-          <Ionicons name="document-text" size={20} color="#007AFF" />
-          <Text style={styles.actionButtonText}>
-            View Logs ({executionResult.logs.length})
-          </Text>
-        </TouchableOpacity>
-      )}
-      
-      <TouchableOpacity
-        style={styles.actionButton}
-        onPress={() => setShowExecutionFlowGraph(true)}
-      >
-        <Ionicons name="git-network" size={20} color="#007AFF" />
-        <Text style={styles.actionButtonText}>
-          Flow Graph
-        </Text>
-      </TouchableOpacity>
-      
       {showReExecuteButton && onReExecute && (
         <TouchableOpacity
           style={[styles.actionButton, styles.reExecuteButton]}
@@ -427,6 +487,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
             visible={showExecutionLogs}
             onClose={() => setShowExecutionLogs(false)}
             onReExecute={onReExecute || (() => {})}
+            configurationId={selectedConfigurationId}
           />
         )}
         
@@ -437,7 +498,32 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
               executionRunId={executionResult.executionRun.id}
               visible={showExecutionFlowGraph}
               onClose={() => setShowExecutionFlowGraph(false)}
+              configurationId={selectedConfigurationId}
             />
+          </Modal>
+        )}
+
+        {/* Detailed Comparison Modal */}
+        {showDetailedComparison && (
+          <Modal visible={showDetailedComparison} animationType="slide" presentationStyle="pageSheet">
+            <View style={styles.modalContainer}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Detailed Configuration Comparison</Text>
+                <TouchableOpacity 
+                  style={styles.modalCloseButton}
+                  onPress={() => setShowDetailedComparison(false)}
+                >
+                  <Ionicons name="close" size={24} color="#666" />
+                </TouchableOpacity>
+              </View>
+              <ExecutionComparisonChart
+                executionResult={executionResult}
+                visible={showDetailedComparison}
+                onConfigurationSelect={(configId) => {
+                  setSelectedConfigurationId(configId);
+                }}
+              />
+            </View>
           </Modal>
         )}
       </View>
@@ -464,6 +550,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
             visible={showExecutionLogs}
             onClose={() => setShowExecutionLogs(false)}
             onReExecute={onReExecute || (() => {})}
+            configurationId={selectedConfigurationId}
           />
         )}
         
@@ -474,7 +561,32 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
               executionRunId={executionResult.executionRun.id}
               visible={showExecutionFlowGraph}
               onClose={() => setShowExecutionFlowGraph(false)}
+              configurationId={selectedConfigurationId}
             />
+          </Modal>
+        )}
+
+        {/* Detailed Comparison Modal */}
+        {showDetailedComparison && (
+          <Modal visible={showDetailedComparison} animationType="slide" presentationStyle="pageSheet">
+            <View style={styles.modalContainer}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Detailed Configuration Comparison</Text>
+                <TouchableOpacity 
+                  style={styles.modalCloseButton}
+                  onPress={() => setShowDetailedComparison(false)}
+                >
+                  <Ionicons name="close" size={24} color="#666" />
+                </TouchableOpacity>
+              </View>
+              <ExecutionComparisonChart
+                executionResult={executionResult}
+                visible={showDetailedComparison}
+                onConfigurationSelect={(configId) => {
+                  setSelectedConfigurationId(configId);
+                }}
+              />
+            </View>
           </Modal>
         )}
       </View>
@@ -601,6 +713,26 @@ const styles = StyleSheet.create({
   comparisonSection: {
     marginBottom: 24,
   },
+  comparisonHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  detailedComparisonButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2196F3',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 8,
+  },
+  detailedComparisonButtonText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   comparisonCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
@@ -666,6 +798,88 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#8E8E93',
     fontStyle: 'italic',
+  },
+  noComparisonHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 12,
+  },
+  noComparisonTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  quickMetricsPreview: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+  },
+  quickMetricsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 12,
+  },
+  quickMetricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  quickMetricCard: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    padding: 12,
+    flex: 1,
+    minWidth: 150,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  bestQuickMetricCard: {
+    backgroundColor: '#E8F5E8',
+    borderColor: '#4CAF50',
+  },
+  quickMetricName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  bestQuickMetricText: {
+    color: '#4CAF50',
+  },
+  quickMetricStats: {
+    gap: 4,
+  },
+  quickMetricStat: {
+    fontSize: 12,
+    color: '#666',
+  },
+  quickMetricScore: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#2196F3',
+  },
+  bestQuickMetricScore: {
+    color: '#4CAF50',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+    backgroundColor: '#FFF',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  modalCloseButton: {
+    padding: 8,
   },
   resultsSection: {
     marginBottom: 24,
@@ -868,6 +1082,31 @@ const styles = StyleSheet.create({
   },
   reExecuteButtonText: {
     color: '#FFFFFF',
+  },
+  configActionButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F2F2F7',
+  },
+  configActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    padding: 12,
+    flex: 1,
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+  configActionButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#007AFF',
+    marginLeft: 6,
   },
 });
 

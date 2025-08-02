@@ -201,6 +201,27 @@ const ExecuteScreen: React.FC = () => {
     updateField('selectedFunctions', newSelection);
   };
 
+  const toggleCategorySelection = (categoryTitle: string) => {
+    const categoryFunctions = groupedFunctions.find(group => group.title === categoryTitle)?.data || [];
+    const categoryFunctionIds = categoryFunctions.map(func => func.id);
+    const currentSelection = formState.selectedFunctions;
+    
+    // Check if all functions in this category are selected
+    const allCategorySelected = categoryFunctionIds.every(id => currentSelection.includes(id));
+    
+    let newSelection;
+    if (allCategorySelected) {
+      // Deselect all functions in this category
+      newSelection = currentSelection.filter(id => !categoryFunctionIds.includes(id));
+    } else {
+      // Select all functions in this category
+      const functionsToAdd = categoryFunctionIds.filter(id => !currentSelection.includes(id));
+      newSelection = [...currentSelection, ...functionsToAdd];
+    }
+    
+    updateField('selectedFunctions', newSelection);
+  };
+
   const handleReExecute = (reExecutionData: any) => {
     // Update form state with the re-execution data
     updateField('executionName', reExecutionData.executionRunName);
@@ -497,51 +518,82 @@ const ExecuteScreen: React.FC = () => {
         </View>
 
         <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
-          {groupedFunctions.map((group) => (
-            <View key={group.title} style={styles.functionGroupContainer}>
-              <Text style={styles.functionGroupTitle}>{group.title}</Text>
-              {group.data.map((func) => {
-                const isSelected = formState.selectedFunctions.includes(func.id);
-                return (
-                  <TouchableOpacity
-                    key={func.id}
-                    style={[
-                      styles.functionCard,
-                      isSelected && styles.functionCardSelected
-                    ]}
-                    onPress={() => toggleFunctionSelection(func.id)}
-                  >
-                    <View style={styles.functionHeader}>
-                      <View style={styles.functionInfo}>
-                        <Text style={styles.functionDisplayName}>{func.displayName || func.name}</Text>
-                        <Text style={styles.functionDescription} numberOfLines={2}>
-                          {func.description}
-                        </Text>
-                        {func.requiredApiKeys && func.requiredApiKeys.length > 0 && (
-                          <View style={styles.functionMeta}>
-                            <View style={styles.metaItem}>
-                              <Ionicons name="key" size={14} color="#FF9500" />
-                              <Text style={styles.metaValue}>
-                                Requires: {func.requiredApiKeys.join(', ')} API key{func.requiredApiKeys.length > 1 ? 's' : ''}
-                              </Text>
+          {groupedFunctions.map((group) => {
+            const categoryFunctionIds = group.data.map(func => func.id);
+            const selectedInCategory = categoryFunctionIds.filter(id => formState.selectedFunctions.includes(id));
+            const allCategorySelected = categoryFunctionIds.length > 0 && selectedInCategory.length === categoryFunctionIds.length;
+            const someCategorySelected = selectedInCategory.length > 0 && selectedInCategory.length < categoryFunctionIds.length;
+            
+            return (
+              <View key={group.title} style={styles.functionGroupContainer}>
+                <TouchableOpacity
+                  style={styles.functionGroupHeader}
+                  onPress={() => toggleCategorySelection(group.title)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.functionGroupTitleContainer}>
+                    <Text style={styles.functionGroupTitle}>{group.title}</Text>
+                    <Text style={styles.functionGroupCount}>
+                      {selectedInCategory.length}/{categoryFunctionIds.length} selected
+                    </Text>
+                  </View>
+                  <View style={[
+                    styles.categorySelectionCheckbox,
+                    allCategorySelected && styles.categorySelectionCheckboxSelected,
+                    someCategorySelected && styles.categorySelectionCheckboxPartial
+                  ]}>
+                    {allCategorySelected && (
+                      <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                    )}
+                    {someCategorySelected && (
+                      <Ionicons name="remove" size={16} color="#007AFF" />
+                    )}
+                  </View>
+                </TouchableOpacity>
+                
+                {group.data.map((func) => {
+                  const isSelected = formState.selectedFunctions.includes(func.id);
+                  return (
+                    <TouchableOpacity
+                      key={func.id}
+                      style={[
+                        styles.functionCard,
+                        isSelected && styles.functionCardSelected
+                      ]}
+                      onPress={() => toggleFunctionSelection(func.id)}
+                    >
+                      <View style={styles.functionHeader}>
+                        <View style={styles.functionInfo}>
+                          <Text style={styles.functionDisplayName}>{func.displayName || func.name}</Text>
+                          <Text style={styles.functionDescription} numberOfLines={2}>
+                            {func.description}
+                          </Text>
+                          {func.requiredApiKeys && func.requiredApiKeys.length > 0 && (
+                            <View style={styles.functionMeta}>
+                              <View style={styles.metaItem}>
+                                <Ionicons name="key" size={14} color="#FF9500" />
+                                <Text style={styles.metaValue}>
+                                  Requires: {func.requiredApiKeys.join(', ')} API key{func.requiredApiKeys.length > 1 ? 's' : ''}
+                                </Text>
+                              </View>
                             </View>
-                          </View>
-                        )}
+                          )}
+                        </View>
+                        <View style={[
+                          styles.selectionCheckbox,
+                          isSelected && styles.selectionCheckboxSelected
+                        ]}>
+                          {isSelected && (
+                            <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+                          )}
+                        </View>
                       </View>
-                      <View style={[
-                        styles.selectionCheckbox,
-                        isSelected && styles.selectionCheckboxSelected
-                      ]}>
-                        {isSelected && (
-                          <Ionicons name="checkmark" size={20} color="#FFFFFF" />
-                        )}
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          ))}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            );
+          })}
         </ScrollView>
       </View>
     </Modal>
@@ -1128,13 +1180,11 @@ const styles = StyleSheet.create({
    functionGroupContainer: {
      marginBottom: 24,
    },
-     functionGroupTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 12,
-    paddingLeft: 4,
-  },
+         functionGroupTitle: {
+   fontSize: 16,
+   fontWeight: '600',
+   color: '#000000',
+ },
   // Primary prompt styles
   primaryField: {
     borderWidth: 2,
@@ -1228,6 +1278,45 @@ const styles = StyleSheet.create({
   compactTextArea: {
     minHeight: 60,
     textAlignVertical: 'top',
+  },
+  // Category selection styles
+  functionGroupHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+  functionGroupTitleContainer: {
+    flex: 1,
+  },
+  functionGroupCount: {
+    fontSize: 12,
+    color: '#6B6B6B',
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  categorySelectionCheckbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#E5E5EA',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  categorySelectionCheckboxSelected: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  categorySelectionCheckboxPartial: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#007AFF',
   },
 });
 
