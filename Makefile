@@ -5,6 +5,7 @@
 	coverage-backend-detailed coverage-frontend-detailed coverage-view coverage-clean coverage-badge \
 	test-all test-quick test-smoke test-comprehensive test-performance test-integration \
 	test-ci test-ci-fast test-pre-commit test-release test-debug test-clean test-load test-stress test-setup test-validate test-report test-full-report \
+	start-test-server kill-server kill-frontend \
 	docker-build-backend docker-build-frontend docker-build-all docker-push-backend docker-push-frontend docker-push-all docker-deploy \
 	k8s-deploy k8s-update-images k8s-force-update-images k8s-restart k8s-wait k8s-status k8s-pods k8s-endpoints k8s-logs-backend k8s-logs-frontend k8s-delete \
 	deploy-all deploy-quick deploy-backend deploy-frontend
@@ -334,53 +335,62 @@ frontend-test-responsive:
 # ===========================
 
 # Comprehensive coverage analysis (backend + frontend + gaps)
-coverage:
+coverage: start-test-server
 	@echo "📊 Running comprehensive coverage analysis..."
 	./scripts/coverage-analysis.sh
+	@$(MAKE) kill-server
 
 # Backend-only coverage analysis
-coverage-backend:
+coverage-backend: start-test-server
 	@echo "📊 Running backend coverage analysis..."
 	./scripts/coverage-analysis.sh --backend-only
+	@$(MAKE) kill-server
 
 # Frontend-only coverage analysis
-coverage-frontend:
+coverage-frontend: start-test-server
 	@echo "📊 Running frontend coverage analysis..."
 	./scripts/coverage-analysis.sh --frontend-only
+	@$(MAKE) kill-server
 
 # Analyze coverage gaps and provide recommendations
-coverage-gaps:
+coverage-gaps: start-test-server
 	@echo "🔍 Analyzing coverage gaps..."
 	./scripts/coverage-gaps-finder.sh
+	@$(MAKE) kill-server
 
 # Analyze backend coverage gaps only
-coverage-gaps-backend:
+coverage-gaps-backend: start-test-server
 	@echo "🔍 Analyzing backend coverage gaps..."
 	./scripts/coverage-gaps-finder.sh --backend-only
+	@$(MAKE) kill-server
 
 # Analyze frontend coverage gaps only
-coverage-gaps-frontend:
+coverage-gaps-frontend: start-test-server
 	@echo "🔍 Analyzing frontend coverage gaps..."
 	./scripts/coverage-gaps-finder.sh --frontend-only
+	@$(MAKE) kill-server
 
 # Create test templates for missing coverage
-coverage-templates:
+coverage-templates: start-test-server
 	@echo "📝 Creating test templates..."
 	./scripts/coverage-gaps-finder.sh --templates-only
+	@$(MAKE) kill-server
 
 # Enhanced backend coverage with detailed reporting
-coverage-backend-detailed:
+coverage-backend-detailed: start-test-server
 	@echo "📊 Running detailed backend coverage analysis..."
 	go test -coverprofile=coverage.out -covermode=atomic ./...
 	go tool cover -html=coverage.out -o coverage.html
 	go tool cover -func=coverage.out | sort -k3 -nr
 	@echo "📂 Coverage report: coverage.html"
+	@$(MAKE) kill-server
 
 # Enhanced frontend coverage with detailed reporting
-coverage-frontend-detailed:
+coverage-frontend-detailed: start-test-server
 	@echo "📊 Running detailed frontend coverage analysis..."
 	cd frontend && yarn test --coverage --watchAll=false --coverageReporters=json,html,text,lcov
 	@echo "📂 Coverage report: frontend/coverage/index.html"
+	@$(MAKE) kill-server
 
 # Open coverage reports in browser (macOS)
 coverage-view:
