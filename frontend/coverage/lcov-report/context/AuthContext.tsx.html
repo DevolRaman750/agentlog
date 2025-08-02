@@ -32,7 +32,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/140</span>
+                <span class='fraction'>0/125</span>
             </div>
         
             
@@ -608,7 +608,8 @@
 <a name='L543'></a><a href='#L543'>543</a>
 <a name='L544'></a><a href='#L544'>544</a>
 <a name='L545'></a><a href='#L545'>545</a>
-<a name='L546'></a><a href='#L546'>546</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L546'></a><a href='#L546'>546</a>
+<a name='L547'></a><a href='#L547'>547</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -764,6 +765,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -1153,35 +1155,35 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import React, { createContext, useContext, useReducer, useEffect } from 'react';</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import React, { createContext, useContext, useReducer, useEffect, useState } from 'react';</span>
 <span class="cstat-no" title="statement not covered" >import AsyncStorage from '@react-native-async-storage/async-storage';</span>
 <span class="cstat-no" title="statement not covered" >import { goGentAPI } from '../api/client';</span>
 &nbsp;
 // Utility function to validate user objects
 const isValidUser = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(u</span>ser: any): user is User =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >  if (!user || typeof user !== 'object') {</span>
+<span class="cstat-no" title="statement not covered" >  <span class="missing-if-branch" title="if path not taken" >I</span>if (!user || typeof user !== 'object') {</span>
 <span class="cstat-no" title="statement not covered" >    console.log('❌ User validation failed: not an object', user);</span>
 <span class="cstat-no" title="statement not covered" >    return false;</span>
   }
   
   // Required fields
-<span class="cstat-no" title="statement not covered" >  if (typeof user.id !== 'string' || user.id.length === 0) {</span>
+<span class="cstat-no" title="statement not covered" >  <span class="missing-if-branch" title="if path not taken" >I</span>if (typeof user.id !== 'string' || user.id.length === 0) {</span>
 <span class="cstat-no" title="statement not covered" >    console.log('❌ User validation failed: invalid id', user.id);</span>
 <span class="cstat-no" title="statement not covered" >    return false;</span>
   }
   
-<span class="cstat-no" title="statement not covered" >  if (typeof user.username !== 'string' || user.username.length === 0) {</span>
+<span class="cstat-no" title="statement not covered" >  <span class="missing-if-branch" title="if path not taken" >I</span>if (typeof user.username !== 'string' || user.username.length === 0) {</span>
 <span class="cstat-no" title="statement not covered" >    console.log('❌ User validation failed: invalid username', user.username);</span>
 <span class="cstat-no" title="statement not covered" >    return false;</span>
   }
   
   // Optional fields with defaults
-<span class="cstat-no" title="statement not covered" >  if (user.email_verified !== undefined &amp;&amp; typeof user.email_verified !== 'boolean') {</span>
+<span class="cstat-no" title="statement not covered" >  <span class="missing-if-branch" title="if path not taken" >I</span>if (user.email_verified !== undefined &amp;&amp; typeof user.email_verified !== 'boolean') {</span>
 <span class="cstat-no" title="statement not covered" >    console.log('❌ User validation failed: invalid email_verified', user.email_verified);</span>
 <span class="cstat-no" title="statement not covered" >    return false;</span>
   }
   
-<span class="cstat-no" title="statement not covered" >  if (user.is_temporary !== undefined &amp;&amp; typeof user.is_temporary !== 'boolean') {</span>
+<span class="cstat-no" title="statement not covered" >  <span class="missing-if-branch" title="if path not taken" >I</span>if (user.is_temporary !== undefined &amp;&amp; typeof user.is_temporary !== 'boolean') {</span>
 <span class="cstat-no" title="statement not covered" >    console.log('❌ User validation failed: invalid is_temporary', user.is_temporary);</span>
 <span class="cstat-no" title="statement not covered" >    return false;</span>
   }
@@ -1301,14 +1303,15 @@ export const <span class="cstat-no" title="statement not covered" >AuthProvider:
         }
         
         // Validate that stored user data is complete
-<span class="cstat-no" title="statement not covered" >        if (!isValidUser(user)) {</span>
+<span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (!isValidUser(user)) {</span>
 <span class="cstat-no" title="statement not covered" >          console.warn('🔒 Corrupted user data in storage:', user);</span>
 <span class="cstat-no" title="statement not covered" >          throw new Error('Corrupted stored user data');</span>
         }
         
-        // Validate the stored token with the server
+        // Validate the stored token with the server - but only if not already authenticated
 <span class="cstat-no" title="statement not covered" >        try {</span>
 <span class="cstat-no" title="statement not covered" >          dispatch({ type: 'SET_TOKEN', payload: token });</span>
+          
           const currentUser = <span class="cstat-no" title="statement not covered" >await getCurrentUser();</span>
           
 <span class="cstat-no" title="statement not covered" >          if (currentUser &amp;&amp; isValidUser(currentUser)) {</span>
@@ -1406,7 +1409,7 @@ export const <span class="cstat-no" title="statement not covered" >AuthProvider:
         const { token, user } = <span class="cstat-no" title="statement not covered" >response.data;</span>
         
         // Validate user data before storing
-<span class="cstat-no" title="statement not covered" >        if (!isValidUser(user)) {</span>
+<span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (!isValidUser(user)) {</span>
 <span class="cstat-no" title="statement not covered" >          console.warn('🔒 Invalid user data received from login:', user);</span>
 <span class="cstat-no" title="statement not covered" >          throw new Error('Invalid user data received from server');</span>
         }
@@ -1452,7 +1455,7 @@ export const <span class="cstat-no" title="statement not covered" >AuthProvider:
         const { token, user } = <span class="cstat-no" title="statement not covered" >response.data;</span>
         
         // Validate user data before storing
-<span class="cstat-no" title="statement not covered" >        if (!isValidUser(user)) {</span>
+<span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (!isValidUser(user)) {</span>
 <span class="cstat-no" title="statement not covered" >          console.warn('🔒 Invalid user data received from register:', user);</span>
 <span class="cstat-no" title="statement not covered" >          throw new Error('Invalid user data received from server');</span>
         }
@@ -1483,7 +1486,7 @@ export const <span class="cstat-no" title="statement not covered" >AuthProvider:
         const { token, user } = <span class="cstat-no" title="statement not covered" >response.data;</span>
         
         // Validate user data before storing
-<span class="cstat-no" title="statement not covered" >        if (!isValidUser(user)) {</span>
+<span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (!isValidUser(user)) {</span>
 <span class="cstat-no" title="statement not covered" >          console.warn('🔒 Invalid user data received from createTemporaryUser:', user);</span>
 <span class="cstat-no" title="statement not covered" >          throw new Error('Invalid user data received from server');</span>
         }
@@ -1527,7 +1530,7 @@ export const <span class="cstat-no" title="statement not covered" >AuthProvider:
         const user = <span class="cstat-no" title="statement not covered" >response.data.user;</span>
         
         // Validate user data before storing
-<span class="cstat-no" title="statement not covered" >        if (!isValidUser(user)) {</span>
+<span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (!isValidUser(user)) {</span>
 <span class="cstat-no" title="statement not covered" >          console.warn('🔒 Invalid user data received from saveTemporaryAccount:', user);</span>
 <span class="cstat-no" title="statement not covered" >          throw new Error('Invalid user data received from server');</span>
         }
@@ -1552,7 +1555,7 @@ export const <span class="cstat-no" title="statement not covered" >AuthProvider:
 <span class="cstat-no" title="statement not covered" >    try {</span>
       const token = <span class="cstat-no" title="statement not covered" >await AsyncStorage.getItem('auth_token');</span>
       
-<span class="cstat-no" title="statement not covered" >      if (!token) {</span>
+<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (!token) {</span>
 <span class="cstat-no" title="statement not covered" >        return null;</span>
       }
       
@@ -1564,7 +1567,7 @@ export const <span class="cstat-no" title="statement not covered" >AuthProvider:
         let user = <span class="cstat-no" title="statement not covered" >response.data;</span>
         
         // If server returns {user: {...}}, extract the user object
-<span class="cstat-no" title="statement not covered" >        if (user &amp;&amp; typeof user === 'object' &amp;&amp; (user as any).user &amp;&amp; !user.id) {</span>
+<span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (user &amp;&amp; typeof user === 'object' &amp;&amp; (user as any).user &amp;&amp; !user.id) {</span>
 <span class="cstat-no" title="statement not covered" >          console.log('📦 Extracting nested user object from server response');</span>
 <span class="cstat-no" title="statement not covered" >          user = (user as any).user;</span>
         }
@@ -1578,7 +1581,7 @@ export const <span class="cstat-no" title="statement not covered" >AuthProvider:
         });
         
         // Validate that user data is complete
-<span class="cstat-no" title="statement not covered" >        if (!isValidUser(user)) {</span>
+<span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (!isValidUser(user)) {</span>
 <span class="cstat-no" title="statement not covered" >          console.warn('🔒 Incomplete user data received from server:', user);</span>
 <span class="cstat-no" title="statement not covered" >          return null;</span>
         }
@@ -1629,7 +1632,7 @@ export const <span class="cstat-no" title="statement not covered" >AuthProvider:
         const { token, user } = <span class="cstat-no" title="statement not covered" >response.data;</span>
         
         // Validate user data before storing
-<span class="cstat-no" title="statement not covered" >        if (!isValidUser(user)) {</span>
+<span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (!isValidUser(user)) {</span>
 <span class="cstat-no" title="statement not covered" >          console.warn('🔒 Invalid user data received from connectTemporaryToEmail:', user);</span>
 <span class="cstat-no" title="statement not covered" >          throw new Error('Invalid user data received from server');</span>
         }
@@ -1694,7 +1697,7 @@ export const <span class="cstat-no" title="statement not covered" >AuthProvider:
 // Hook to use auth context
 export const <span class="cstat-no" title="statement not covered" >useAuth = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>): AuthContextType =</span>&gt; {</span>
   const context = <span class="cstat-no" title="statement not covered" >useContext(AuthContext);</span>
-<span class="cstat-no" title="statement not covered" >  if (context === undefined) {</span>
+<span class="cstat-no" title="statement not covered" >  <span class="missing-if-branch" title="if path not taken" >I</span>if (context === undefined) {</span>
 <span class="cstat-no" title="statement not covered" >    throw new Error('useAuth must be used within an AuthProvider');</span>
   }
 <span class="cstat-no" title="statement not covered" >  return context;</span>
@@ -1705,7 +1708,7 @@ export const <span class="cstat-no" title="statement not covered" >useAuth = <sp
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-07-31T18:51:46.077Z
+                at 2025-08-02T00:23:18.952Z
             </div>
         <script src="../prettify.js"></script>
         <script>

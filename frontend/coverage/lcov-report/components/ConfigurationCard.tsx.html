@@ -32,7 +32,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/38</span>
+                <span class='fraction'>0/30</span>
             </div>
         
             
@@ -766,7 +766,7 @@ const ConfigurationCard: React.FC&lt;ConfigurationCardProps&gt; = <span class="c
   const ownership = <span class="cstat-no" title="statement not covered" >getResourceOwnership(configuration, user?.id);</span>
 &nbsp;
   const handleEdit = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >() =</span>&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    if (!ownership.canEdit) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!ownership.canEdit) {</span>
 <span class="cstat-no" title="statement not covered" >      showToast('warning', 'Cannot Edit', 'This is a system configuration and cannot be modified. You can duplicate it to create your own version.', {</span>
         action: {
           label: 'Duplicate Instead',
@@ -784,7 +784,7 @@ const ConfigurationCard: React.FC&lt;ConfigurationCardProps&gt; = <span class="c
 <span class="cstat-no" title="statement not covered" >    console.log('🔐 Card ownership check:', ownership);</span>
 <span class="cstat-no" title="statement not covered" >    console.log('📋 Configuration data:', configuration);</span>
     
-<span class="cstat-no" title="statement not covered" >    if (!ownership.canDelete) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!ownership.canDelete) {</span>
 <span class="cstat-no" title="statement not covered" >      console.warn('🚫 ConfigurationCard: Cannot delete - permission denied');</span>
 <span class="cstat-no" title="statement not covered" >      showWarning('Cannot Delete', 'This is a system configuration and cannot be deleted.');</span>
 <span class="cstat-no" title="statement not covered" >      return;</span>
@@ -816,16 +816,16 @@ const ConfigurationCard: React.FC&lt;ConfigurationCardProps&gt; = <span class="c
   };
 &nbsp;
   const getTemperatureColor = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(t</span>emperature?: number) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    if (!temperature) <span class="cstat-no" title="statement not covered" >return '#8E8E93';</span></span>
-<span class="cstat-no" title="statement not covered" >    if (temperature &lt;= 0.3) <span class="cstat-no" title="statement not covered" >return '#34C759'; </span></span>// Green for conservative
-<span class="cstat-no" title="statement not covered" >    if (temperature &lt;= 0.7) <span class="cstat-no" title="statement not covered" >return '#FF9500'; </span></span>// Orange for balanced
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!temperature) <span class="cstat-no" title="statement not covered" >return '#8E8E93';</span></span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (temperature &lt;= 0.3) <span class="cstat-no" title="statement not covered" >return '#34C759'; </span></span>// Green for conservative
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (temperature &lt;= 0.7) <span class="cstat-no" title="statement not covered" >return '#FF9500'; </span></span>// Orange for balanced
 <span class="cstat-no" title="statement not covered" >    return '#FF3B30'; </span>// Red for creative
   };
 &nbsp;
   const getTemperatureLabel = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(t</span>emperature?: number) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    if (!temperature) <span class="cstat-no" title="statement not covered" >return 'Default';</span></span>
-<span class="cstat-no" title="statement not covered" >    if (temperature &lt;= 0.3) <span class="cstat-no" title="statement not covered" >return 'Conservative';</span></span>
-<span class="cstat-no" title="statement not covered" >    if (temperature &lt;= 0.7) <span class="cstat-no" title="statement not covered" >return 'Balanced';</span></span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!temperature) <span class="cstat-no" title="statement not covered" >return 'Default';</span></span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (temperature &lt;= 0.3) <span class="cstat-no" title="statement not covered" >return 'Conservative';</span></span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (temperature &lt;= 0.7) <span class="cstat-no" title="statement not covered" >return 'Balanced';</span></span>
 <span class="cstat-no" title="statement not covered" >    return 'Creative';</span>
   };
 &nbsp;
@@ -1090,7 +1090,7 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-07-31T18:51:46.077Z
+                at 2025-08-02T00:23:18.952Z
             </div>
         <script src="../prettify.js"></script>
         <script>

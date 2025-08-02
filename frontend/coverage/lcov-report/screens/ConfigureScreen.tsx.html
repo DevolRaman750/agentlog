@@ -25,14 +25,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/249</span>
+                <span class='fraction'>0/250</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/155</span>
+                <span class='fraction'>0/139</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/241</span>
+                <span class='fraction'>0/242</span>
             </div>
         
             
@@ -1487,7 +1487,11 @@
 <a name='L1422'></a><a href='#L1422'>1422</a>
 <a name='L1423'></a><a href='#L1423'>1423</a>
 <a name='L1424'></a><a href='#L1424'>1424</a>
-<a name='L1425'></a><a href='#L1425'>1425</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L1425'></a><a href='#L1425'>1425</a>
+<a name='L1426'></a><a href='#L1426'>1426</a>
+<a name='L1427'></a><a href='#L1427'>1427</a>
+<a name='L1428'></a><a href='#L1428'>1428</a>
+<a name='L1429'></a><a href='#L1429'>1429</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1517,6 +1521,7 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -2358,8 +2363,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -2378,6 +2383,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -2436,6 +2442,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -2935,12 +2943,13 @@
 <span class="cstat-no" title="statement not covered" >import { useToast } from '../context/ToastContext';</span>
 <span class="cstat-no" title="statement not covered" >import ConfigurationCard from '../components/ConfigurationCard';</span>
 <span class="cstat-no" title="statement not covered" >import { SessionManager } from '../components/SessionManager';</span>
-<span class="cstat-no" title="statement not covered" >import { containerStyles } from '../styles/containers';</span>
+<span class="cstat-no" title="statement not covered" >import { containerStyles, webInputStyles } from '../styles/containers';</span>
 <span class="cstat-no" title="statement not covered" >import LoadingScreen from '../components/LoadingScreen';</span>
 <span class="cstat-no" title="statement not covered" >import { CustomAlert, AlertAPI, AlertButton } from '../components/CustomAlert';</span>
 <span class="cstat-no" title="statement not covered" >import ModelSelector, { SUPPORTED_MODELS } from '../components/ModelSelector';</span>
 <span class="cstat-no" title="statement not covered" >import { APIConfiguration, getResourceOwnership } from '../types';</span>
 <span class="cstat-no" title="statement not covered" >import { debugAuthState, clearAllAuthData, createTestUser } from '../utils/debugAuth';</span>
+<span class="cstat-no" title="statement not covered" >import TextEditor from '../components/TextEditor';</span>
 &nbsp;
 const { width } = <span class="cstat-no" title="statement not covered" >Dimensions.get('window');</span>
 &nbsp;
@@ -3041,7 +3050,7 @@ const ConfigureScreen: React.FC = <span class="cstat-no" title="statement not co
   const { showSuccess, showError, showWarning, showInfo, showToast } = <span class="cstat-no" title="statement not covered" >useToast();</span>
 &nbsp;
   // Show loading screen while auth is loading
-<span class="cstat-no" title="statement not covered" >  if (authLoading) {</span>
+<span class="cstat-no" title="statement not covered" >  <span class="missing-if-branch" title="if path not taken" >I</span>if (authLoading) {</span>
 <span class="cstat-no" title="statement not covered" >    return &lt;LoadingScreen message="Loading configuration..." /&gt;;</span>
   }
   const [apiKey, setApiKey] = <span class="cstat-no" title="statement not covered" >useState(state.config.geminiApiKey || '');</span>
@@ -3065,7 +3074,7 @@ const ConfigureScreen: React.FC = <span class="cstat-no" title="statement not co
     : 'Disconnected';
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  useEffect(<span class="fstat-no" title="function not covered" >() =</span>&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    if (state.error) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (state.error) {</span>
 <span class="cstat-no" title="statement not covered" >      AlertAPI.alert('Error', state.error, [</span>
         { text: 'OK', onPress: clearError }
       ]);
@@ -3403,7 +3412,7 @@ const ConfigureScreen: React.FC = <span class="cstat-no" title="statement not co
 &nbsp;
   const handleEditConfiguration = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(c</span>onfig: APIConfiguration) =&gt; {</span>
     const ownership = <span class="cstat-no" title="statement not covered" >getResourceOwnership(config, user?.id);</span>
-<span class="cstat-no" title="statement not covered" >    if (!ownership.canEdit) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!ownership.canEdit) {</span>
 <span class="cstat-no" title="statement not covered" >      showWarning('Permission Denied', 'You cannot edit this configuration.');</span>
 <span class="cstat-no" title="statement not covered" >      return;</span>
     }
@@ -3418,7 +3427,7 @@ const ConfigureScreen: React.FC = <span class="cstat-no" title="statement not co
     const config = <span class="cstat-no" title="statement not covered" >state.configurations.find(<span class="fstat-no" title="function not covered" >c </span>=&gt; <span class="cstat-no" title="statement not covered" >c.id === configId)</span>;</span>
 <span class="cstat-no" title="statement not covered" >    console.log('📋 Found configuration:', config);</span>
     
-<span class="cstat-no" title="statement not covered" >    if (!config) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!config) {</span>
 <span class="cstat-no" title="statement not covered" >      console.error('❌ Configuration not found for ID:', configId);</span>
 <span class="cstat-no" title="statement not covered" >      showError('Error', 'Configuration not found.');</span>
 <span class="cstat-no" title="statement not covered" >      return;</span>
@@ -3427,7 +3436,7 @@ const ConfigureScreen: React.FC = <span class="cstat-no" title="statement not co
     const ownership = <span class="cstat-no" title="statement not covered" >getResourceOwnership(config, user?.id);</span>
 <span class="cstat-no" title="statement not covered" >    console.log('🔐 Ownership check:', ownership, 'User ID:', user?.id, 'Config User ID:', config.userId);</span>
     
-<span class="cstat-no" title="statement not covered" >    if (!ownership.canDelete) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!ownership.canDelete) {</span>
 <span class="cstat-no" title="statement not covered" >      console.warn('🚫 Cannot delete - permission denied');</span>
 <span class="cstat-no" title="statement not covered" >      showWarning('Permission Denied', 'You cannot delete this configuration.');</span>
 <span class="cstat-no" title="statement not covered" >      return;</span>
@@ -3483,7 +3492,7 @@ const ConfigureScreen: React.FC = <span class="cstat-no" title="statement not co
 <span class="cstat-no" title="statement not covered" >    if (result) {</span>
 <span class="cstat-no" title="statement not covered" >      showSuccess('Test User Created', `Created test user: ${result.user.username}`);</span>
       // Reload the page to refresh auth state
-<span class="cstat-no" title="statement not covered" >      if (typeof window !== 'undefined') {</span>
+<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (typeof window !== 'undefined') {</span>
 <span class="cstat-no" title="statement not covered" >        window.location.reload();</span>
       }
     } else {
@@ -3638,7 +3647,7 @@ const NewConfigurationFormModal: React.FC&lt;{
 &nbsp;
   // Helper functions for numeric validation
   const validateTemperature = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(t</span>ext: string): { isValid: boolean; value: number } =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    if (text.trim() === '') {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (text.trim() === '') {</span>
 <span class="cstat-no" title="statement not covered" >      return { isValid: false, value: 0.5 }; </span>// Default fallback
     }
     const num = <span class="cstat-no" title="statement not covered" >parseFloat(text);</span>
@@ -3647,7 +3656,7 @@ const NewConfigurationFormModal: React.FC&lt;{
   };
 &nbsp;
   const validateMaxTokens = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(t</span>ext: string): { isValid: boolean; value: number } =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    if (text.trim() === '') {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (text.trim() === '') {</span>
 <span class="cstat-no" title="statement not covered" >      return { isValid: false, value: 500 }; </span>// Default fallback
     }
     const num = <span class="cstat-no" title="statement not covered" >parseInt(text);</span>
@@ -3659,7 +3668,7 @@ const NewConfigurationFormModal: React.FC&lt;{
 <span class="cstat-no" title="statement not covered" >    setTemperatureText(text);</span>
     const validation = <span class="cstat-no" title="statement not covered" >validateTemperature(text);</span>
 <span class="cstat-no" title="statement not covered" >    setTemperatureValid(validation.isValid || text.trim() === ''); </span>// Allow empty during editing
-<span class="cstat-no" title="statement not covered" >    if (validation.isValid) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (validation.isValid) {</span>
 <span class="cstat-no" title="statement not covered" >      setFormData(<span class="fstat-no" title="function not covered" >prev </span>=&gt; (<span class="cstat-no" title="statement not covered" >{ ...prev, temperature: validation.value })</span>);</span>
     }
   };
@@ -3668,13 +3677,13 @@ const NewConfigurationFormModal: React.FC&lt;{
 <span class="cstat-no" title="statement not covered" >    setMaxTokensText(text);</span>
     const validation = <span class="cstat-no" title="statement not covered" >validateMaxTokens(text);</span>
 <span class="cstat-no" title="statement not covered" >    setMaxTokensValid(validation.isValid || text.trim() === ''); </span>// Allow empty during editing
-<span class="cstat-no" title="statement not covered" >    if (validation.isValid) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (validation.isValid) {</span>
 <span class="cstat-no" title="statement not covered" >      setFormData(<span class="fstat-no" title="function not covered" >prev </span>=&gt; (<span class="cstat-no" title="statement not covered" >{ ...prev, maxTokens: validation.value })</span>);</span>
     }
   };
 &nbsp;
   const handleSave = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >async </span>() =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    if (!formData.variationName.trim()) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!formData.variationName.trim()) {</span>
 <span class="cstat-no" title="statement not covered" >      showError('Missing Name', 'Please enter a variation name');</span>
 <span class="cstat-no" title="statement not covered" >      return;</span>
     }
@@ -3683,12 +3692,12 @@ const NewConfigurationFormModal: React.FC&lt;{
     const tempValidation = <span class="cstat-no" title="statement not covered" >validateTemperature(temperatureText);</span>
     const tokensValidation = <span class="cstat-no" title="statement not covered" >validateMaxTokens(maxTokensText);</span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    if (!tempValidation.isValid) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!tempValidation.isValid) {</span>
 <span class="cstat-no" title="statement not covered" >      showError('Invalid Temperature', 'Temperature must be a number between 0.0 and 1.0');</span>
 <span class="cstat-no" title="statement not covered" >      return;</span>
     }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    if (!tokensValidation.isValid) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!tokensValidation.isValid) {</span>
 <span class="cstat-no" title="statement not covered" >      showError('Invalid Max Tokens', 'Max Tokens must be a number between 1 and 8192');</span>
 <span class="cstat-no" title="statement not covered" >      return;</span>
     }
@@ -3713,7 +3722,7 @@ const NewConfigurationFormModal: React.FC&lt;{
           };
 &nbsp;
         const success = <span class="cstat-no" title="statement not covered" >await updateConfiguration(updatedConfig);</span>
-<span class="cstat-no" title="statement not covered" >        if (success) {</span>
+<span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (success) {</span>
 <span class="cstat-no" title="statement not covered" >          showSuccess('Configuration Updated', 'Configuration updated successfully!');</span>
 <span class="cstat-no" title="statement not covered" >          onClose();</span>
         }
@@ -3779,16 +3788,17 @@ const NewConfigurationFormModal: React.FC&lt;{
               onModelChange={<span class="fstat-no" title="function not covered" >(m</span>odelName) =&gt; <span class="cstat-no" title="statement not covered" >setFormData(<span class="fstat-no" title="function not covered" >prev </span>=&gt; (<span class="cstat-no" title="statement not covered" >{ ...prev, modelName })</span>)}</span>
             /&gt;
             
-            &lt;Text style={styles.inputLabel}&gt;System Prompt&lt;/Text&gt;
-            &lt;TextInput
-              style={[styles.input, styles.textArea]}
+            &lt;TextEditor
+              label="🤖 System Prompt"
               value={formData.systemPrompt}
               onChangeText={<span class="fstat-no" title="function not covered" >(t</span>ext) =&gt; <span class="cstat-no" title="statement not covered" >setFormData(<span class="fstat-no" title="function not covered" >prev </span>=&gt; (<span class="cstat-no" title="statement not covered" >{ ...prev, systemPrompt: text })</span>)}</span>
               placeholder="Enter system prompt (optional)..."
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-              returnKeyType="done"
+              minHeight={120}
+              maxHeight={300}
+              allowFullscreen={true}
+              showCharacterCount={true}
+              showWordCount={true}
+              showLineNumbers={false}
             /&gt;
             
             &lt;Text style={styles.inputLabel}&gt;Temperature (0.0 - 1.0)&lt;/Text&gt;
@@ -3802,7 +3812,7 @@ const NewConfigurationFormModal: React.FC&lt;{
                 onChangeText={handleTemperatureChange}
                 onBlur={<span class="fstat-no" title="function not covered" >() =</span>&gt; {
                   // Auto-fix empty or invalid values on blur
-<span class="cstat-no" title="statement not covered" >                  if (!temperatureText.trim() || !temperatureValid) {</span>
+<span class="cstat-no" title="statement not covered" >                  <span class="missing-if-branch" title="if path not taken" >I</span>if (!temperatureText.trim() || !temperatureValid) {</span>
                     const validation = <span class="cstat-no" title="statement not covered" >validateTemperature(temperatureText);</span>
 <span class="cstat-no" title="statement not covered" >                    setTemperatureText(validation.value.toString());</span>
 <span class="cstat-no" title="statement not covered" >                    setTemperatureValid(true);</span>
@@ -3830,7 +3840,7 @@ const NewConfigurationFormModal: React.FC&lt;{
                 onChangeText={handleMaxTokensChange}
                 onBlur={<span class="fstat-no" title="function not covered" >() =</span>&gt; {
                   // Auto-fix empty or invalid values on blur
-<span class="cstat-no" title="statement not covered" >                  if (!maxTokensText.trim() || !maxTokensValid) {</span>
+<span class="cstat-no" title="statement not covered" >                  <span class="missing-if-branch" title="if path not taken" >I</span>if (!maxTokensText.trim() || !maxTokensValid) {</span>
                     const validation = <span class="cstat-no" title="statement not covered" >validateMaxTokens(maxTokensText);</span>
 <span class="cstat-no" title="statement not covered" >                    setMaxTokensText(validation.value.toString());</span>
 <span class="cstat-no" title="statement not covered" >                    setMaxTokensValid(true);</span>
@@ -3961,6 +3971,7 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
     padding: 12,
     fontSize: 14,
     backgroundColor: '#FFFFFF',
+    ...webInputStyles,
   },
   disabledInput: {
     backgroundColor: '#F2F2F7',
@@ -4025,6 +4036,7 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
     padding: 12,
     fontSize: 14,
     backgroundColor: '#FFFFFF',
+    ...webInputStyles,
   },
   textArea: {
     height: 100,
@@ -4342,7 +4354,7 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-07-31T18:51:46.077Z
+                at 2025-08-02T00:23:18.952Z
             </div>
         <script src="../prettify.js"></script>
         <script>

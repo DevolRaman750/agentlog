@@ -32,7 +32,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/46</span>
+                <span class='fraction'>0/34</span>
             </div>
         
             
@@ -835,7 +835,7 @@ class SecureApiKeyStorage {
       const decrypted = <span class="cstat-no" title="statement not covered" >bytes.toString(CryptoJS.enc.Utf8);</span>
       
       // If decryption results in empty string, the key was wrong or data is corrupted
-<span class="cstat-no" title="statement not covered" >      if (!decrypted || decrypted.trim() === '') {</span>
+<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (!decrypted || decrypted.trim() === '') {</span>
 <span class="cstat-no" title="statement not covered" >        console.warn('Decryption resulted in empty data - likely corrupted or wrong key');</span>
 <span class="cstat-no" title="statement not covered" >        return '';</span>
       }
@@ -864,7 +864,7 @@ class SecureApiKeyStorage {
 <span class="fstat-no" title="function not covered" >  async </span>loadApiKeys(): Promise&lt;SessionApiKeys&gt; {
 <span class="cstat-no" title="statement not covered" >    try {</span>
       const encryptedData = <span class="cstat-no" title="statement not covered" >await AsyncStorage.getItem(this.STORAGE_KEY);</span>
-<span class="cstat-no" title="statement not covered" >      if (!encryptedData) {</span>
+<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (!encryptedData) {</span>
 <span class="cstat-no" title="statement not covered" >        console.log('📭 No API keys found in storage');</span>
 <span class="cstat-no" title="statement not covered" >        return {};</span>
       }
@@ -872,7 +872,7 @@ class SecureApiKeyStorage {
       const decryptedData = <span class="cstat-no" title="statement not covered" >this.decrypt(encryptedData);</span>
       
       // Check if decryption failed or returned empty data
-<span class="cstat-no" title="statement not covered" >      if (!decryptedData || decryptedData.trim() === '') {</span>
+<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (!decryptedData || decryptedData.trim() === '') {</span>
 <span class="cstat-no" title="statement not covered" >        console.warn('🔄 Decryption failed - clearing corrupted storage and starting fresh');</span>
 <span class="cstat-no" title="statement not covered" >        await AsyncStorage.removeItem(this.STORAGE_KEY);</span>
 <span class="cstat-no" title="statement not covered" >        return {};</span>
@@ -941,19 +941,19 @@ class SecureApiKeyStorage {
   // Validate API key format
 <span class="fstat-no" title="function not covered" >  validateApiKey(</span>keyName: string, value: string): { isValid: boolean; error?: string } {
     const validation = <span class="cstat-no" title="statement not covered" >API_KEY_VALIDATIONS[keyName];</span>
-<span class="cstat-no" title="statement not covered" >    if (!validation) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!validation) {</span>
 <span class="cstat-no" title="statement not covered" >      return { isValid: true }; </span>// No validation rules defined
     }
 &nbsp;
     // Check if required and empty
-<span class="cstat-no" title="statement not covered" >    if (validation.required &amp;&amp; (!value || value.trim() === '')) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (validation.required &amp;&amp; (!value || value.trim() === '')) {</span>
 <span class="cstat-no" title="statement not covered" >      return { isValid: false, error: validation.errorMessage };</span>
     }
 &nbsp;
     // Check pattern if provided
-<span class="cstat-no" title="statement not covered" >    if (validation.pattern &amp;&amp; value) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (validation.pattern &amp;&amp; value) {</span>
       const regex = <span class="cstat-no" title="statement not covered" >new RegExp(validation.pattern);</span>
-<span class="cstat-no" title="statement not covered" >      if (!regex.test(value)) {</span>
+<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (!regex.test(value)) {</span>
 <span class="cstat-no" title="statement not covered" >        return { isValid: false, error: validation.errorMessage };</span>
       }
     }
@@ -968,7 +968,7 @@ class SecureApiKeyStorage {
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    for (const keyName of requiredKeys) {</span>
       const keyValue = <span class="cstat-no" title="statement not covered" >currentKeys[keyName as keyof SessionApiKeys];</span>
-<span class="cstat-no" title="statement not covered" >      if (!keyValue || keyValue.trim() === '') {</span>
+<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (!keyValue || keyValue.trim() === '') {</span>
 <span class="cstat-no" title="statement not covered" >        missingKeys.push(keyName);</span>
       }
     }
@@ -985,7 +985,7 @@ class SecureApiKeyStorage {
     const missingKeys: { keyName: string; description: string; required: boolean }[] = <span class="cstat-no" title="statement not covered" >[];</span>
 &nbsp;
     // Always check Gemini API key
-<span class="cstat-no" title="statement not covered" >    if (!currentKeys.geminiApiKey || currentKeys.geminiApiKey.trim() === '') {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!currentKeys.geminiApiKey || currentKeys.geminiApiKey.trim() === '') {</span>
 <span class="cstat-no" title="statement not covered" >      missingKeys.push({</span>
         keyName: 'geminiApiKey',
         description: API_KEY_VALIDATIONS.geminiApiKey.description,
@@ -994,12 +994,12 @@ class SecureApiKeyStorage {
     }
 &nbsp;
     // Check function-specific API keys if function calling is enabled
-<span class="cstat-no" title="statement not covered" >    if (enableFunctionCalling) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (enableFunctionCalling) {</span>
 <span class="cstat-no" title="statement not covered" >      for (const functionName of selectedFunctions) {</span>
         const functionMissingKeys = <span class="cstat-no" title="statement not covered" >this.getMissingApiKeys(functionName, currentKeys);</span>
 <span class="cstat-no" title="statement not covered" >        for (const keyName of functionMissingKeys) {</span>
           const validation = <span class="cstat-no" title="statement not covered" >API_KEY_VALIDATIONS[keyName];</span>
-<span class="cstat-no" title="statement not covered" >          if (validation &amp;&amp; !missingKeys.find(<span class="fstat-no" title="function not covered" >mk </span>=&gt; <span class="cstat-no" title="statement not covered" >mk.keyName === keyName)</span>) {</span>
+<span class="cstat-no" title="statement not covered" >          <span class="missing-if-branch" title="if path not taken" >I</span>if (validation &amp;&amp; !missingKeys.find(<span class="fstat-no" title="function not covered" >mk </span>=&gt; <span class="cstat-no" title="statement not covered" >mk.keyName === keyName)</span>) {</span>
 <span class="cstat-no" title="statement not covered" >            missingKeys.push({</span>
               keyName,
               description: validation.description,
@@ -1048,7 +1048,7 @@ class HeaderEncryption {
       const bytes = <span class="cstat-no" title="statement not covered" >CryptoJS.AES.decrypt(encryptedData, this.SHARED_SECRET_KEY);</span>
       const decrypted = <span class="cstat-no" title="statement not covered" >bytes.toString(CryptoJS.enc.Utf8);</span>
       
-<span class="cstat-no" title="statement not covered" >      if (!decrypted || decrypted.trim() === '') {</span>
+<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (!decrypted || decrypted.trim() === '') {</span>
 <span class="cstat-no" title="statement not covered" >        throw new Error('Decryption failed - invalid key or corrupted data');</span>
       }
       
@@ -1078,7 +1078,7 @@ export const <span class="cstat-no" title="statement not covered" >getRequiredAp
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-07-31T18:51:46.012Z
+                at 2025-08-02T00:23:18.900Z
             </div>
         <script src="../prettify.js"></script>
         <script>

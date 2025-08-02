@@ -25,14 +25,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/103</span>
+                <span class='fraction'>0/104</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/61</span>
+                <span class='fraction'>0/55</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/98</span>
+                <span class='fraction'>0/99</span>
             </div>
         
             
@@ -796,7 +796,9 @@
 <a name='L731'></a><a href='#L731'>731</a>
 <a name='L732'></a><a href='#L732'>732</a>
 <a name='L733'></a><a href='#L733'>733</a>
-<a name='L734'></a><a href='#L734'>734</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L734'></a><a href='#L734'>734</a>
+<a name='L735'></a><a href='#L735'>735</a>
+<a name='L736'></a><a href='#L736'>736</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -811,6 +813,7 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -824,6 +827,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1544,6 +1548,7 @@
 <span class="cstat-no" title="statement not covered" >import { useAuth } from '../context/AuthContext';</span>
 <span class="cstat-no" title="statement not covered" >import { secureStorage, API_KEY_VALIDATIONS, FUNCTION_API_KEY_REQUIREMENTS } from '../utils/secureStorage';</span>
 <span class="cstat-no" title="statement not covered" >import { AlertAPI } from '../components/CustomAlert';</span>
+<span class="cstat-no" title="statement not covered" >import { webInputStyles } from '../styles/containers';</span>
 &nbsp;
 interface ApiKeyStatus {
   name: string;
@@ -1701,6 +1706,7 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
     borderWidth: 1,
     borderColor: '#E1E5E9',
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    ...webInputStyles,
   },
   editActions: {
     flexDirection: 'row',
@@ -1936,7 +1942,7 @@ const ApiKeysScreen: React.FC = <span class="cstat-no" title="statement not cove
 &nbsp;
   // Group API keys by their group
   const groupedApiKeys = <span class="cstat-no" title="statement not covered" >apiKeyStatuses.reduce(<span class="fstat-no" title="function not covered" >(a</span>cc, keyStatus) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    if (!acc[keyStatus.group]) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!acc[keyStatus.group]) {</span>
 <span class="cstat-no" title="statement not covered" >      acc[keyStatus.group] = [];</span>
     }
 <span class="cstat-no" title="statement not covered" >    acc[keyStatus.group].push(keyStatus);</span>
@@ -1980,18 +1986,18 @@ const ApiKeysScreen: React.FC = <span class="cstat-no" title="statement not cove
   };
 &nbsp;
   const handleSaveKey = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >async </span>() =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    if (!editingKey) <span class="cstat-no" title="statement not covered" >return;</span></span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!editingKey) <span class="cstat-no" title="statement not covered" >return;</span></span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    try {</span>
       const trimmedValue = <span class="cstat-no" title="statement not covered" >editingValue.trim();</span>
       
 <span class="cstat-no" title="statement not covered" >      if (trimmedValue) {</span>
         // Skip validation for Neo4j URL, validate all other keys
-<span class="cstat-no" title="statement not covered" >        if (editingKey !== 'neo4jUrl') {</span>
+<span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (editingKey !== 'neo4jUrl') {</span>
           const validationResult = <span class="cstat-no" title="statement not covered" >secureStorage.validateApiKey(editingKey as keyof typeof API_KEY_INFO, trimmedValue);</span>
           const isValid = <span class="cstat-no" title="statement not covered" >typeof validationResult === 'boolean' ? validationResult : validationResult.isValid;</span>
           
-<span class="cstat-no" title="statement not covered" >          if (!isValid) {</span>
+<span class="cstat-no" title="statement not covered" >          <span class="missing-if-branch" title="if path not taken" >I</span>if (!isValid) {</span>
 <span class="cstat-no" title="statement not covered" >            AlertAPI.alert(</span>
               'Invalid API Key',
               `The ${API_KEY_INFO[editingKey as keyof typeof API_KEY_INFO]?.displayName} format appears to be invalid. Please check and try again.`
@@ -2169,7 +2175,7 @@ const ApiKeysScreen: React.FC = <span class="cstat-no" title="statement not cove
     );
   };
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  if (isLoading) {</span>
+<span class="cstat-no" title="statement not covered" >  <span class="missing-if-branch" title="if path not taken" >I</span>if (isLoading) {</span>
 <span class="cstat-no" title="statement not covered" >    return (</span>
       &lt;View style={styles.loadingContainer}&gt;
         &lt;ActivityIndicator size="large" color="#007AFF" /&gt;
@@ -2208,7 +2214,7 @@ const ApiKeysScreen: React.FC = <span class="cstat-no" title="statement not cove
       &lt;View style={styles.keysSection}&gt;
         {Object.entries(groupedApiKeys).map(<span class="fstat-no" title="function not covered" >([</span>groupName, keys]) =&gt; {
           const groupInfo = <span class="cstat-no" title="statement not covered" >GROUP_INFO[groupName as keyof typeof GROUP_INFO];</span>
-<span class="cstat-no" title="statement not covered" >          if (!groupInfo || keys.length === 0) <span class="cstat-no" title="statement not covered" >return null;</span></span>
+<span class="cstat-no" title="statement not covered" >          <span class="missing-if-branch" title="if path not taken" >I</span>if (!groupInfo || keys.length === 0) <span class="cstat-no" title="statement not covered" >return null;</span></span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >          return (</span>
             &lt;View key={groupName} style={styles.groupContainer}&gt;
@@ -2269,7 +2275,7 @@ const ApiKeysScreen: React.FC = <span class="cstat-no" title="statement not cove
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-07-31T18:51:46.077Z
+                at 2025-08-02T00:23:18.952Z
             </div>
         <script src="../prettify.js"></script>
         <script>

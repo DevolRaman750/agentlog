@@ -25,14 +25,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/282</span>
+                <span class='fraction'>0/291</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/104</span>
+                <span class='fraction'>0/91</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/280</span>
+                <span class='fraction'>0/289</span>
             </div>
         
             
@@ -780,7 +780,22 @@
 <a name='L715'></a><a href='#L715'>715</a>
 <a name='L716'></a><a href='#L716'>716</a>
 <a name='L717'></a><a href='#L717'>717</a>
-<a name='L718'></a><a href='#L718'>718</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L718'></a><a href='#L718'>718</a>
+<a name='L719'></a><a href='#L719'>719</a>
+<a name='L720'></a><a href='#L720'>720</a>
+<a name='L721'></a><a href='#L721'>721</a>
+<a name='L722'></a><a href='#L722'>722</a>
+<a name='L723'></a><a href='#L723'>723</a>
+<a name='L724'></a><a href='#L724'>724</a>
+<a name='L725'></a><a href='#L725'>725</a>
+<a name='L726'></a><a href='#L726'>726</a>
+<a name='L727'></a><a href='#L727'>727</a>
+<a name='L728'></a><a href='#L728'>728</a>
+<a name='L729'></a><a href='#L729'>729</a>
+<a name='L730'></a><a href='#L730'>730</a>
+<a name='L731'></a><a href='#L731'>731</a>
+<a name='L732'></a><a href='#L732'>732</a>
+<a name='L733'></a><a href='#L733'>733</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1114,6 +1129,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -1160,10 +1178,22 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -1554,7 +1584,7 @@ const getBackendUrl = <span class="cstat-no" title="statement not covered" ><spa
 <span class="cstat-no" title="statement not covered" >  console.log('  Constants.manifest2:', Constants.manifest2);</span>
 <span class="cstat-no" title="statement not covered" >  console.log('  expoConfig?.extra:', expoConfig?.extra);</span>
   
-<span class="cstat-no" title="statement not covered" >  if (expoConfig?.extra?.backendUrl) {</span>
+<span class="cstat-no" title="statement not covered" >  <span class="missing-if-branch" title="if path not taken" >I</span>if (expoConfig?.extra?.backendUrl) {</span>
 <span class="cstat-no" title="statement not covered" >    console.log('🎯 Using backend URL from Expo config:', expoConfig.extra.backendUrl);</span>
 <span class="cstat-no" title="statement not covered" >    console.log('🌟 Environment:', expoConfig.extra.environment);</span>
 <span class="cstat-no" title="statement not covered" >    console.log('🏭 Is Production:', expoConfig.extra.isProduction);</span>
@@ -1567,19 +1597,19 @@ const getBackendUrl = <span class="cstat-no" title="statement not covered" ><spa
 <span class="cstat-no" title="statement not covered" >  console.log('  typeof process:', typeof process);</span>
   
   // Check if we're running in production (deployed environment)
-<span class="cstat-no" title="statement not covered" >  if (typeof window !== 'undefined') {</span>
+<span class="cstat-no" title="statement not covered" >  <span class="missing-if-branch" title="if path not taken" >I</span>if (typeof window !== 'undefined' &amp;&amp; window.location) {</span>
     // In web environment, check the current hostname
     const hostname = <span class="cstat-no" title="statement not covered" >window.location.hostname;</span>
 <span class="cstat-no" title="statement not covered" >    console.log('  window.location.hostname:', hostname);</span>
     
     // If we're on the production domain, use the production backend
-<span class="cstat-no" title="statement not covered" >    if (hostname === 'agentlog.scalebase.io') {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (hostname === 'agentlog.scalebase.io') {</span>
 <span class="cstat-no" title="statement not covered" >      console.log('  🎯 Detected production environment (agentlog.scalebase.io)');</span>
 <span class="cstat-no" title="statement not covered" >      return 'https://agentlog.scalebase.io';</span>
     }
     
     // If we're on localhost in browser, use localhost backend
-<span class="cstat-no" title="statement not covered" >    if (hostname === 'localhost' || hostname === '127.0.0.1') {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (hostname === 'localhost' || hostname === '127.0.0.1') {</span>
 <span class="cstat-no" title="statement not covered" >      console.log('  🎯 Detected localhost development environment');</span>
 <span class="cstat-no" title="statement not covered" >      return 'http://localhost:8080';</span>
     }
@@ -1590,10 +1620,10 @@ const getBackendUrl = <span class="cstat-no" title="statement not covered" ><spa
   }
   
   // For React Native (mobile), check if we have process.env available
-<span class="cstat-no" title="statement not covered" >  if (typeof process !== 'undefined' &amp;&amp; process.env) {</span>
+<span class="cstat-no" title="statement not covered" >  <span class="missing-if-branch" title="if path not taken" >I</span>if (typeof process !== 'undefined' &amp;&amp; process.env) {</span>
 <span class="cstat-no" title="statement not covered" >    console.log('  process.env.NODE_ENV:', process.env.NODE_ENV);</span>
     // Check for NODE_ENV or other environment indicators
-<span class="cstat-no" title="statement not covered" >    if (process.env.NODE_ENV === 'production') {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (process.env.NODE_ENV === 'production') {</span>
 <span class="cstat-no" title="statement not covered" >      console.log('  🎯 Detected NODE_ENV=production');</span>
 <span class="cstat-no" title="statement not covered" >      return 'https://agentlog.scalebase.io';</span>
     }
@@ -1785,7 +1815,7 @@ interface AppProviderProps {
         } 
       });
       
-<span class="cstat-no" title="statement not covered" >      if (!response.success) {</span>
+<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (!response.success) {</span>
 <span class="cstat-no" title="statement not covered" >        throw new Error(response.error || 'Connection test failed');</span>
       }
     } catch (error) {
@@ -1818,7 +1848,7 @@ interface AppProviderProps {
 <span class="cstat-no" title="statement not covered" >        await testConnection();</span>
 <span class="cstat-no" title="statement not covered" >        console.log('✅ App connected to backend on startup');</span>
         // Load configurations when connection is established AND user is authenticated
-<span class="cstat-no" title="statement not covered" >        if (user) {</span>
+<span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (user) {</span>
 <span class="cstat-no" title="statement not covered" >          loadConfigurations();</span>
         }
       } catch (error) {
@@ -1829,19 +1859,22 @@ interface AppProviderProps {
 <span class="cstat-no" title="statement not covered" >    initializeConnection();</span>
   }, [state.config.backendUrl, testConnection, user]);
 &nbsp;
-  // Load configurations when user becomes authenticated
+  // Load configurations when user becomes authenticated - but only once per user
+  const [loadedConfigForUserId, setLoadedConfigForUserId] = <span class="cstat-no" title="statement not covered" >useState&lt;string | null&gt;(null);</span>
+  
 <span class="cstat-no" title="statement not covered" >  useEffect(<span class="fstat-no" title="function not covered" >() =</span>&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    if (user &amp;&amp; state.isConnected) {</span>
-<span class="cstat-no" title="statement not covered" >      console.log('👤 User authenticated, loading configurations');</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (user &amp;&amp; state.isConnected &amp;&amp; user.id !== loadedConfigForUserId) {</span>
+<span class="cstat-no" title="statement not covered" >      console.log('👤 User authenticated, loading configurations for:', user.id);</span>
 <span class="cstat-no" title="statement not covered" >      loadConfigurations();</span>
+<span class="cstat-no" title="statement not covered" >      setLoadedConfigForUserId(user.id);</span>
     }
-  }, [user, state.isConnected]);
+  }, [user?.id, state.isConnected, loadedConfigForUserId]);
 &nbsp;
   // Load saved configuration from AsyncStorage
   const loadSavedConfig = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >async </span>() =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >    try {</span>
       const savedConfig = <span class="cstat-no" title="statement not covered" >await AsyncStorage.getItem('appConfig');</span>
-<span class="cstat-no" title="statement not covered" >      if (savedConfig) {</span>
+<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (savedConfig) {</span>
         const config = <span class="cstat-no" title="statement not covered" >JSON.parse(savedConfig) as AppConfig;</span>
         // Merge with initial state to ensure all fields exist
         const mergedConfig = <span class="cstat-no" title="statement not covered" >{ ...initialState.config, ...config };</span>
@@ -1879,9 +1912,21 @@ interface AppProviderProps {
       
 <span class="cstat-no" title="statement not covered" >      console.log('💾 Adding configuration for user:', user?.id, 'Config:', newConfig.variationName);</span>
       
-      const updatedConfigs = <span class="cstat-no" title="statement not covered" >[...state.configurations, newConfig];</span>
-<span class="cstat-no" title="statement not covered" >      dispatch({ type: 'ADD_CONFIGURATION', payload: newConfig });</span>
+      // Save to backend first (like updateConfiguration does)
+      const response = <span class="cstat-no" title="statement not covered" >await goGentAPI.saveConfiguration(newConfig);</span>
+<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (!response.success) {</span>
+<span class="cstat-no" title="statement not covered" >        console.error('Backend save failed:', response.error);</span>
+<span class="cstat-no" title="statement not covered" >        dispatch({ type: 'SET_ERROR', payload: response.error || 'Failed to save configuration to server' });</span>
+<span class="cstat-no" title="statement not covered" >        return;</span>
+      }
+      
+      // Update local state only after successful backend save
+      const savedConfig = <span class="cstat-no" title="statement not covered" >response.data || newConfig;</span>
+      const updatedConfigs = <span class="cstat-no" title="statement not covered" >[...state.configurations, savedConfig];</span>
+<span class="cstat-no" title="statement not covered" >      dispatch({ type: 'ADD_CONFIGURATION', payload: savedConfig });</span>
 <span class="cstat-no" title="statement not covered" >      await AsyncStorage.setItem('configurations', JSON.stringify(updatedConfigs));</span>
+      
+<span class="cstat-no" title="statement not covered" >      console.log('✅ Configuration saved to backend and local storage:', savedConfig.variationName);</span>
     } catch (error) {
 <span class="cstat-no" title="statement not covered" >      console.error('Failed to add configuration:', error);</span>
 <span class="cstat-no" title="statement not covered" >      dispatch({ type: 'SET_ERROR', payload: 'Failed to save configuration' });</span>
@@ -1892,7 +1937,7 @@ interface AppProviderProps {
   const updateConfiguration = <span class="cstat-no" title="statement not covered" >useCallback(<span class="fstat-no" title="function not covered" >async </span>(config: APIConfiguration): Promise&lt;boolean&gt; =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >    try {</span>
       // Prevent updating system configurations
-<span class="cstat-no" title="statement not covered" >      if (config.isSystemResource) {</span>
+<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (config.isSystemResource) {</span>
 <span class="cstat-no" title="statement not covered" >        console.warn('🔒 Cannot update system configuration:', config.variationName);</span>
 <span class="cstat-no" title="statement not covered" >        dispatch({ type: 'SET_ERROR', payload: 'Cannot modify system configurations' });</span>
 <span class="cstat-no" title="statement not covered" >        return false;</span>
@@ -1902,7 +1947,7 @@ interface AppProviderProps {
 &nbsp;
       // Try to update on backend first
       const response = <span class="cstat-no" title="statement not covered" >await goGentAPI.updateConfiguration(config);</span>
-<span class="cstat-no" title="statement not covered" >      if (!response.success) {</span>
+<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (!response.success) {</span>
 <span class="cstat-no" title="statement not covered" >        console.error('Backend update failed:', response.error);</span>
 <span class="cstat-no" title="statement not covered" >        dispatch({ type: 'SET_ERROR', payload: response.error || 'Failed to update configuration on server' });</span>
 <span class="cstat-no" title="statement not covered" >        return false;</span>
@@ -1933,13 +1978,13 @@ interface AppProviderProps {
       const configToDelete = <span class="cstat-no" title="statement not covered" >state.configurations.find(<span class="fstat-no" title="function not covered" >c </span>=&gt; <span class="cstat-no" title="statement not covered" >c.id === id)</span>;</span>
 <span class="cstat-no" title="statement not covered" >      console.log('📋 AppContext found config:', configToDelete);</span>
       
-<span class="cstat-no" title="statement not covered" >      if (configToDelete?.isSystemResource) {</span>
+<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (configToDelete?.isSystemResource) {</span>
 <span class="cstat-no" title="statement not covered" >        console.warn('🔒 Cannot delete system configuration:', configToDelete.variationName);</span>
 <span class="cstat-no" title="statement not covered" >        dispatch({ type: 'SET_ERROR', payload: 'Cannot delete system configurations' });</span>
 <span class="cstat-no" title="statement not covered" >        return false;</span>
       }
       
-<span class="cstat-no" title="statement not covered" >      if (!configToDelete) {</span>
+<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (!configToDelete) {</span>
 <span class="cstat-no" title="statement not covered" >        console.warn('🔍 Configuration not found:', id);</span>
 <span class="cstat-no" title="statement not covered" >        dispatch({ type: 'SET_ERROR', payload: 'Configuration not found' });</span>
 <span class="cstat-no" title="statement not covered" >        return false;</span>
@@ -1952,7 +1997,7 @@ interface AppProviderProps {
       const response = <span class="cstat-no" title="statement not covered" >await goGentAPI.deleteConfiguration(id);</span>
 <span class="cstat-no" title="statement not covered" >      console.log('📤 AppContext: API response:', response);</span>
       
-<span class="cstat-no" title="statement not covered" >      if (!response.success) {</span>
+<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (!response.success) {</span>
 <span class="cstat-no" title="statement not covered" >        console.error('❌ Backend delete failed:', response.error);</span>
 <span class="cstat-no" title="statement not covered" >        dispatch({ type: 'SET_ERROR', payload: response.error || 'Failed to delete configuration from server' });</span>
 <span class="cstat-no" title="statement not covered" >        return false;</span>
@@ -1976,12 +2021,12 @@ interface AppProviderProps {
   // Simple configuration loading from backend
   const loadConfigurations = <span class="cstat-no" title="statement not covered" >useCallback(<span class="fstat-no" title="function not covered" >async </span>() =&gt; {</span>
     // Don't load if no user is authenticated or already loading
-<span class="cstat-no" title="statement not covered" >    if (!user) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!user) {</span>
 <span class="cstat-no" title="statement not covered" >      console.log('⏭️ Skipping configuration load - no authenticated user');</span>
 <span class="cstat-no" title="statement not covered" >      return;</span>
     }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    if (isLoadingConfigs) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (isLoadingConfigs) {</span>
 <span class="cstat-no" title="statement not covered" >      console.log('⏭️ Skipping configuration load - already loading');</span>
 <span class="cstat-no" title="statement not covered" >      return;</span>
     }
@@ -2132,17 +2177,17 @@ interface AppProviderProps {
 <span class="cstat-no" title="statement not covered" >    try {</span>
 <span class="cstat-no" title="statement not covered" >      dispatch({ type: 'SET_LOADING', payload: true });</span>
       
-<span class="cstat-no" title="statement not covered" >      if (sessionData.appConfig) {</span>
+<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (sessionData.appConfig) {</span>
 <span class="cstat-no" title="statement not covered" >        await AsyncStorage.setItem('appConfig', JSON.stringify(sessionData.appConfig));</span>
 <span class="cstat-no" title="statement not covered" >        dispatch({ type: 'SET_CONFIG', payload: sessionData.appConfig });</span>
       }
       
-<span class="cstat-no" title="statement not covered" >      if (sessionData.configurations) {</span>
+<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (sessionData.configurations) {</span>
 <span class="cstat-no" title="statement not covered" >        await AsyncStorage.setItem('configurations', JSON.stringify(sessionData.configurations));</span>
 <span class="cstat-no" title="statement not covered" >        dispatch({ type: 'SET_CONFIGURATIONS', payload: sessionData.configurations });</span>
       }
       
-<span class="cstat-no" title="statement not covered" >      if (sessionData.recentExecutions) {</span>
+<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (sessionData.recentExecutions) {</span>
 <span class="cstat-no" title="statement not covered" >        await AsyncStorage.setItem('recentExecutions', JSON.stringify(sessionData.recentExecutions));</span>
 <span class="cstat-no" title="statement not covered" >        dispatch({ type: 'SET_RECENT_EXECUTIONS', payload: sessionData.recentExecutions });</span>
       }
@@ -2208,7 +2253,7 @@ interface AppProviderProps {
 // Hook to use the context
 <span class="cstat-no" title="statement not covered" >export function <span class="fstat-no" title="function not covered" >u</span>seApp(</span>) {
   const context = <span class="cstat-no" title="statement not covered" >useContext(AppContext);</span>
-<span class="cstat-no" title="statement not covered" >  if (context === undefined) {</span>
+<span class="cstat-no" title="statement not covered" >  <span class="missing-if-branch" title="if path not taken" >I</span>if (context === undefined) {</span>
 <span class="cstat-no" title="statement not covered" >    throw new Error('useApp must be used within an AppProvider');</span>
   }
 <span class="cstat-no" title="statement not covered" >  return context;</span>
@@ -2221,7 +2266,7 @@ interface AppProviderProps {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-07-31T18:51:46.012Z
+                at 2025-08-02T00:23:18.900Z
             </div>
         <script src="../prettify.js"></script>
         <script>

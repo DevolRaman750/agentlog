@@ -32,7 +32,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/25</span>
+                <span class='fraction'>0/18</span>
             </div>
         
             
@@ -280,13 +280,13 @@ export const <span class="cstat-no" title="statement not covered" >isBestConfigu
   configurationId: string,
   comparison?: ComparisonResult
 ): boolean =&gt; {
-<span class="cstat-no" title="statement not covered" >  if (!comparison || !comparison.bestConfigurationId || !configurationId) {</span>
+<span class="cstat-no" title="statement not covered" >  <span class="missing-if-branch" title="if path not taken" >I</span>if (!comparison || !comparison.bestConfigurationId || !configurationId) {</span>
 <span class="cstat-no" title="statement not covered" >    return false;</span>
   }
   
   const isMatch = <span class="cstat-no" title="statement not covered" >comparison.bestConfigurationId === configurationId;</span>
   
-<span class="cstat-no" title="statement not covered" >  if (isMatch) {</span>
+<span class="cstat-no" title="statement not covered" >  <span class="missing-if-branch" title="if path not taken" >I</span>if (isMatch) {</span>
 <span class="cstat-no" title="statement not covered" >    console.log(`✅ Best configuration match: ${configurationId}`);</span>
   }
   
@@ -300,7 +300,7 @@ export const <span class="cstat-no" title="statement not covered" >getBestConfig
   results: ConfigurationResult[],
   comparison?: ComparisonResult
 ): ConfigurationResult | null =&gt; {
-<span class="cstat-no" title="statement not covered" >  if (!comparison || !comparison.bestConfigurationId || !results.length) {</span>
+<span class="cstat-no" title="statement not covered" >  <span class="missing-if-branch" title="if path not taken" >I</span>if (!comparison || !comparison.bestConfigurationId || !results.length) {</span>
 <span class="cstat-no" title="statement not covered" >    return null;</span>
   }
   
@@ -322,8 +322,8 @@ export const <span class="cstat-no" title="statement not covered" >getBestConfig
  * Formats configuration ID for display (truncated with ellipsis)
  */
 export const <span class="cstat-no" title="statement not covered" >formatConfigId = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>c</span>onfigId?: string, length: number = <span class="branch-0 cbranch-no" title="branch not covered" >8)</span>: string =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >  if (!configId) <span class="cstat-no" title="statement not covered" >return 'N/A';</span></span>
-<span class="cstat-no" title="statement not covered" >  if (configId.length &lt;= length) <span class="cstat-no" title="statement not covered" >return configId;</span></span>
+<span class="cstat-no" title="statement not covered" >  <span class="missing-if-branch" title="if path not taken" >I</span>if (!configId) <span class="cstat-no" title="statement not covered" >return 'N/A';</span></span>
+<span class="cstat-no" title="statement not covered" >  <span class="missing-if-branch" title="if path not taken" >I</span>if (configId.length &lt;= length) <span class="cstat-no" title="statement not covered" >return configId;</span></span>
 <span class="cstat-no" title="statement not covered" >  return `${configId.substring(0, length)}...`;</span>
 };
 &nbsp;
@@ -343,10 +343,10 @@ export const <span class="cstat-no" title="statement not covered" >debugComparis
 <span class="cstat-no" title="statement not covered" >  console.log('Best configuration ID:', comparison?.bestConfigurationId);</span>
 <span class="cstat-no" title="statement not covered" >  console.log('Comparison available:', !!comparison);</span>
   
-<span class="cstat-no" title="statement not covered" >  if (comparison?.bestConfigurationId) {</span>
+<span class="cstat-no" title="statement not covered" >  <span class="missing-if-branch" title="if path not taken" >I</span>if (comparison?.bestConfigurationId) {</span>
     const match = <span class="cstat-no" title="statement not covered" >results.find(<span class="fstat-no" title="function not covered" >r </span>=&gt; <span class="cstat-no" title="statement not covered" >r.configuration.id === comparison.bestConfigurationId)</span>;</span>
 <span class="cstat-no" title="statement not covered" >    console.log('Best config match found:', !!match);</span>
-<span class="cstat-no" title="statement not covered" >    if (match) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (match) {</span>
 <span class="cstat-no" title="statement not covered" >      console.log('Best config name:', match.configuration.variationName);</span>
     }
   }
@@ -358,7 +358,7 @@ export const <span class="cstat-no" title="statement not covered" >debugComparis
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-07-31T18:51:46.012Z
+                at 2025-08-02T00:23:18.900Z
             </div>
         <script src="../prettify.js"></script>
         <script>

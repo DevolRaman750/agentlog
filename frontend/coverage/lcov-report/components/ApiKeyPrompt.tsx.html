@@ -32,7 +32,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/59</span>
+                <span class='fraction'>0/53</span>
             </div>
         
             
@@ -876,7 +876,7 @@ export const <span class="cstat-no" title="statement not covered" >ApiKeyPrompt:
 &nbsp;
   // Reset state when modal becomes visible
 <span class="cstat-no" title="statement not covered" >  React.useEffect(<span class="fstat-no" title="function not covered" >() =</span>&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    if (visible) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (visible) {</span>
 <span class="cstat-no" title="statement not covered" >      setApiKeyValues({});</span>
 <span class="cstat-no" title="statement not covered" >      setValidationErrors({});</span>
 <span class="cstat-no" title="statement not covered" >      setIsLoading(false);</span>
@@ -887,7 +887,7 @@ export const <span class="cstat-no" title="statement not covered" >ApiKeyPrompt:
 <span class="cstat-no" title="statement not covered" >    setApiKeyValues(<span class="fstat-no" title="function not covered" >prev </span>=&gt; (<span class="cstat-no" title="statement not covered" >{ ...prev, [keyName]: value })</span>);</span>
     
     // Clear validation error when user starts typing
-<span class="cstat-no" title="statement not covered" >    if (validationErrors[keyName]) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (validationErrors[keyName]) {</span>
 <span class="cstat-no" title="statement not covered" >      setValidationErrors(<span class="fstat-no" title="function not covered" >prev </span>=&gt; {</span>
         const newErrors = <span class="cstat-no" title="statement not covered" >{ ...prev };</span>
 <span class="cstat-no" title="statement not covered" >        delete newErrors[keyName];</span>
@@ -904,7 +904,7 @@ export const <span class="cstat-no" title="statement not covered" >ApiKeyPrompt:
       const value = <span class="cstat-no" title="statement not covered" >apiKeyValues[missingKey.keyName] || '';</span>
       const validation = <span class="cstat-no" title="statement not covered" >secureStorage.validateApiKey(missingKey.keyName, value);</span>
       
-<span class="cstat-no" title="statement not covered" >      if (!validation.isValid) {</span>
+<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (!validation.isValid) {</span>
 <span class="cstat-no" title="statement not covered" >        errors[missingKey.keyName] = validation.error || 'Invalid value';</span>
 <span class="cstat-no" title="statement not covered" >        hasErrors = true;</span>
       }
@@ -915,7 +915,7 @@ export const <span class="cstat-no" title="statement not covered" >ApiKeyPrompt:
   };
 &nbsp;
   const handleSave = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >async </span>() =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    if (!validateInputs()) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!validateInputs()) {</span>
 <span class="cstat-no" title="statement not covered" >      return;</span>
     }
 &nbsp;
@@ -924,7 +924,7 @@ export const <span class="cstat-no" title="statement not covered" >ApiKeyPrompt:
       // Save each API key
 <span class="cstat-no" title="statement not covered" >      for (const missingKey of missingKeys) {</span>
         const value = <span class="cstat-no" title="statement not covered" >apiKeyValues[missingKey.keyName];</span>
-<span class="cstat-no" title="statement not covered" >        if (value &amp;&amp; value.trim()) {</span>
+<span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (value &amp;&amp; value.trim()) {</span>
 <span class="cstat-no" title="statement not covered" >          await secureStorage.updateApiKey(missingKey.keyName as keyof SessionApiKeys, value.trim());</span>
         }
       }
@@ -955,7 +955,7 @@ export const <span class="cstat-no" title="statement not covered" >ApiKeyPrompt:
 &nbsp;
   const getInputPlaceholder = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(k</span>eyName: string): string =&gt; {</span>
     const validation = <span class="cstat-no" title="statement not covered" >getApiKeyValidation(keyName);</span>
-<span class="cstat-no" title="statement not covered" >    if (!validation) <span class="cstat-no" title="statement not covered" >return 'Enter value...';</span></span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!validation) <span class="cstat-no" title="statement not covered" >return 'Enter value...';</span></span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    switch (keyName) {</span>
       case 'geminiApiKey':
@@ -1225,7 +1225,7 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-07-31T18:51:46.077Z
+                at 2025-08-02T00:23:18.952Z
             </div>
         <script src="../prettify.js"></script>
         <script>

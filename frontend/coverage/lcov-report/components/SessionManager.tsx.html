@@ -32,7 +32,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/91</span>
+                <span class='fraction'>0/78</span>
             </div>
         
             
@@ -1543,9 +1543,9 @@ export const <span class="cstat-no" title="statement not covered" >SessionManage
       let lastActivity = <span class="cstat-no" title="statement not covered" >null;</span>
 <span class="cstat-no" title="statement not covered" >      try {</span>
         const recentExecutions = <span class="cstat-no" title="statement not covered" >await AsyncStorage.getItem('recentExecutions');</span>
-<span class="cstat-no" title="statement not covered" >        if (recentExecutions) {</span>
+<span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (recentExecutions) {</span>
           const executions = <span class="cstat-no" title="statement not covered" >JSON.parse(recentExecutions);</span>
-<span class="cstat-no" title="statement not covered" >          if (executions.length &gt; 0) {</span>
+<span class="cstat-no" title="statement not covered" >          <span class="missing-if-branch" title="if path not taken" >I</span>if (executions.length &gt; 0) {</span>
 <span class="cstat-no" title="statement not covered" >            lastActivity = executions[0].createdAt;</span>
           }
         }
@@ -1569,7 +1569,7 @@ export const <span class="cstat-no" title="statement not covered" >SessionManage
   };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  useEffect(<span class="fstat-no" title="function not covered" >() =</span>&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    if (visible) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (visible) {</span>
 <span class="cstat-no" title="statement not covered" >      loadSessionInfo();</span>
     }
   }, [visible, user, isAuthenticated]);
@@ -1582,25 +1582,25 @@ export const <span class="cstat-no" title="statement not covered" >SessionManage
       // Find potentially stale keys (development/testing artifacts)
       const potentiallyStaleKeys = <span class="cstat-no" title="statement not covered" >allKeys.filter(<span class="fstat-no" title="function not covered" >key </span>=&gt; {</span>
         // Remove old temp passwords that might be orphaned
-<span class="cstat-no" title="statement not covered" >        if (key.includes('temp_password') &amp;&amp; key !== 'temp_password') <span class="cstat-no" title="statement not covered" >return true;</span></span>
+<span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (key.includes('temp_password') &amp;&amp; key !== 'temp_password') <span class="cstat-no" title="statement not covered" >return true;</span></span>
         
         // Remove keys that look like duplicates or test data
-<span class="cstat-no" title="statement not covered" >        if (key.includes('test_') || key.includes('debug_') || key.includes('dev_')) <span class="cstat-no" title="statement not covered" >return true;</span></span>
+<span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (key.includes('test_') || key.includes('debug_') || key.includes('dev_')) <span class="cstat-no" title="statement not covered" >return true;</span></span>
         
         // Remove expo/react-native development keys that might accumulate
-<span class="cstat-no" title="statement not covered" >        if (key.includes('Expo') || key.includes('RCT') || key.includes('ReactNative')) <span class="cstat-no" title="statement not covered" >return true;</span></span>
+<span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (key.includes('Expo') || key.includes('RCT') || key.includes('ReactNative')) <span class="cstat-no" title="statement not covered" >return true;</span></span>
         
         // Remove Metro bundler keys that can accumulate during development
-<span class="cstat-no" title="statement not covered" >        if (key.includes('metro') || key.includes('bundler') || key.includes('cache')) <span class="cstat-no" title="statement not covered" >return true;</span></span>
+<span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (key.includes('metro') || key.includes('bundler') || key.includes('cache')) <span class="cstat-no" title="statement not covered" >return true;</span></span>
         
         // Remove any keys that look like UUIDs but aren't our current auth
-<span class="cstat-no" title="statement not covered" >        if (/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(key)) <span class="cstat-no" title="statement not covered" >return true;</span></span>
+<span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(key)) <span class="cstat-no" title="statement not covered" >return true;</span></span>
         
         // Remove any keys with timestamps that are old (older than 24 hours)
-<span class="cstat-no" title="statement not covered" >        if (key.includes('_timestamp_') || key.includes('_ts_')) {</span>
+<span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (key.includes('_timestamp_') || key.includes('_ts_')) {</span>
 <span class="cstat-no" title="statement not covered" >          try {</span>
             const timestampMatch = <span class="cstat-no" title="statement not covered" >key.match(/(\d{13})/);</span>
-<span class="cstat-no" title="statement not covered" >            if (timestampMatch) {</span>
+<span class="cstat-no" title="statement not covered" >            <span class="missing-if-branch" title="if path not taken" >I</span>if (timestampMatch) {</span>
               const timestamp = <span class="cstat-no" title="statement not covered" >parseInt(timestampMatch[1]);</span>
               const dayAgo = <span class="cstat-no" title="statement not covered" >Date.now() - (24 * 60 * 60 * 1000);</span>
 <span class="cstat-no" title="statement not covered" >              return timestamp &lt; dayAgo;</span>
@@ -1656,7 +1656,7 @@ export const <span class="cstat-no" title="statement not covered" >SessionManage
 <span class="cstat-no" title="statement not covered" >              console.log('✅ Session data cleared successfully');</span>
               
               // Logout user if authenticated
-<span class="cstat-no" title="statement not covered" >              if (isAuthenticated) {</span>
+<span class="cstat-no" title="statement not covered" >              <span class="missing-if-branch" title="if path not taken" >I</span>if (isAuthenticated) {</span>
 <span class="cstat-no" title="statement not covered" >                console.log('📞 Calling logout()...');</span>
 <span class="cstat-no" title="statement not covered" >                await logout();</span>
 <span class="cstat-no" title="statement not covered" >                console.log('✅ User logged out');</span>
@@ -1725,7 +1725,7 @@ export const <span class="cstat-no" title="statement not covered" >SessionManage
   };
 &nbsp;
   const getUserStatusInfo = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >() =</span>&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    if (!user) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!user) {</span>
 <span class="cstat-no" title="statement not covered" >      return {</span>
         icon: 'person-outline',
         color: '#8E8E93',
@@ -1734,7 +1734,7 @@ export const <span class="cstat-no" title="statement not covered" >SessionManage
       };
     }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    if (user.is_temporary) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (user.is_temporary) {</span>
 <span class="cstat-no" title="statement not covered" >      return {</span>
         icon: 'time-outline' as any,
         color: '#FF9500',
@@ -2134,7 +2134,7 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-07-31T18:51:46.077Z
+                at 2025-08-02T00:23:18.952Z
             </div>
         <script src="../prettify.js"></script>
         <script>

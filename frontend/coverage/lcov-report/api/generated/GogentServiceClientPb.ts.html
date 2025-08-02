@@ -32,7 +32,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/154</span>
+                <span class='fraction'>0/127</span>
             </div>
         
             
@@ -2330,8 +2330,8 @@
 <span class="fstat-no" title="function not covered" >  constructor (h</span>ostname: string,
                credentials?: null | { [index: string]: string; },
                options?: null | { [index: string]: any; }) {
-<span class="cstat-no" title="statement not covered" >    if (!options) <span class="cstat-no" title="statement not covered" >options = {};</span></span>
-<span class="cstat-no" title="statement not covered" >    if (!credentials) <span class="cstat-no" title="statement not covered" >credentials = {};</span></span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!options) <span class="cstat-no" title="statement not covered" >options = {};</span></span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!credentials) <span class="cstat-no" title="statement not covered" >credentials = {};</span></span>
 <span class="cstat-no" title="statement not covered" >    options['format'] = 'binary';</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    this.client_ = new grpcWeb.GrpcWebClientBase(options);</span>
@@ -2366,7 +2366,7 @@
     metadata?: grpcWeb.Metadata | null,
     callback?: (err: grpcWeb.RpcError,
                response: gogent_pb.LoginResponse) =&gt; void) {
-<span class="cstat-no" title="statement not covered" >    if (callback !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (callback !== undefined) {</span>
 <span class="cstat-no" title="statement not covered" >      return this.client_.rpcCall(</span>
         this.hostname_ +
           '/gogent.GogentService/Login',
@@ -2409,7 +2409,7 @@
     metadata?: grpcWeb.Metadata | null,
     callback?: (err: grpcWeb.RpcError,
                response: gogent_pb.RegisterResponse) =&gt; void) {
-<span class="cstat-no" title="statement not covered" >    if (callback !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (callback !== undefined) {</span>
 <span class="cstat-no" title="statement not covered" >      return this.client_.rpcCall(</span>
         this.hostname_ +
           '/gogent.GogentService/Register',
@@ -2452,7 +2452,7 @@
     metadata?: grpcWeb.Metadata | null,
     callback?: (err: grpcWeb.RpcError,
                response: gogent_pb.CreateTemporaryUserResponse) =&gt; void) {
-<span class="cstat-no" title="statement not covered" >    if (callback !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (callback !== undefined) {</span>
 <span class="cstat-no" title="statement not covered" >      return this.client_.rpcCall(</span>
         this.hostname_ +
           '/gogent.GogentService/CreateTemporaryUser',
@@ -2495,7 +2495,7 @@
     metadata?: grpcWeb.Metadata | null,
     callback?: (err: grpcWeb.RpcError,
                response: gogent_pb.SaveTemporaryAccountResponse) =&gt; void) {
-<span class="cstat-no" title="statement not covered" >    if (callback !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (callback !== undefined) {</span>
 <span class="cstat-no" title="statement not covered" >      return this.client_.rpcCall(</span>
         this.hostname_ +
           '/gogent.GogentService/SaveTemporaryAccount',
@@ -2538,7 +2538,7 @@
     metadata?: grpcWeb.Metadata | null,
     callback?: (err: grpcWeb.RpcError,
                response: gogent_pb.VerifyEmailResponse) =&gt; void) {
-<span class="cstat-no" title="statement not covered" >    if (callback !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (callback !== undefined) {</span>
 <span class="cstat-no" title="statement not covered" >      return this.client_.rpcCall(</span>
         this.hostname_ +
           '/gogent.GogentService/VerifyEmail',
@@ -2581,7 +2581,7 @@
     metadata?: grpcWeb.Metadata | null,
     callback?: (err: grpcWeb.RpcError,
                response: gogent_pb.GetCurrentUserResponse) =&gt; void) {
-<span class="cstat-no" title="statement not covered" >    if (callback !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (callback !== undefined) {</span>
 <span class="cstat-no" title="statement not covered" >      return this.client_.rpcCall(</span>
         this.hostname_ +
           '/gogent.GogentService/GetCurrentUser',
@@ -2624,7 +2624,7 @@
     metadata?: grpcWeb.Metadata | null,
     callback?: (err: grpcWeb.RpcError,
                response: gogent_pb.ExecuteResponse) =&gt; void) {
-<span class="cstat-no" title="statement not covered" >    if (callback !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (callback !== undefined) {</span>
 <span class="cstat-no" title="statement not covered" >      return this.client_.rpcCall(</span>
         this.hostname_ +
           '/gogent.GogentService/Execute',
@@ -2667,7 +2667,7 @@
     metadata?: grpcWeb.Metadata | null,
     callback?: (err: grpcWeb.RpcError,
                response: gogent_pb.GetExecutionStatusResponse) =&gt; void) {
-<span class="cstat-no" title="statement not covered" >    if (callback !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (callback !== undefined) {</span>
 <span class="cstat-no" title="statement not covered" >      return this.client_.rpcCall(</span>
         this.hostname_ +
           '/gogent.GogentService/GetExecutionStatus',
@@ -2710,7 +2710,7 @@
     metadata?: grpcWeb.Metadata | null,
     callback?: (err: grpcWeb.RpcError,
                response: gogent_pb.GetExecutionResultResponse) =&gt; void) {
-<span class="cstat-no" title="statement not covered" >    if (callback !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (callback !== undefined) {</span>
 <span class="cstat-no" title="statement not covered" >      return this.client_.rpcCall(</span>
         this.hostname_ +
           '/gogent.GogentService/GetExecutionResult',
@@ -2753,7 +2753,7 @@
     metadata?: grpcWeb.Metadata | null,
     callback?: (err: grpcWeb.RpcError,
                response: gogent_pb.ListExecutionRunsResponse) =&gt; void) {
-<span class="cstat-no" title="statement not covered" >    if (callback !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (callback !== undefined) {</span>
 <span class="cstat-no" title="statement not covered" >      return this.client_.rpcCall(</span>
         this.hostname_ +
           '/gogent.GogentService/ListExecutionRuns',
@@ -2796,7 +2796,7 @@
     metadata?: grpcWeb.Metadata | null,
     callback?: (err: grpcWeb.RpcError,
                response: gogent_pb.DeleteExecutionRunResponse) =&gt; void) {
-<span class="cstat-no" title="statement not covered" >    if (callback !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (callback !== undefined) {</span>
 <span class="cstat-no" title="statement not covered" >      return this.client_.rpcCall(</span>
         this.hostname_ +
           '/gogent.GogentService/DeleteExecutionRun',
@@ -2839,7 +2839,7 @@
     metadata?: grpcWeb.Metadata | null,
     callback?: (err: grpcWeb.RpcError,
                response: gogent_pb.ListConfigurationsResponse) =&gt; void) {
-<span class="cstat-no" title="statement not covered" >    if (callback !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (callback !== undefined) {</span>
 <span class="cstat-no" title="statement not covered" >      return this.client_.rpcCall(</span>
         this.hostname_ +
           '/gogent.GogentService/ListConfigurations',
@@ -2882,7 +2882,7 @@
     metadata?: grpcWeb.Metadata | null,
     callback?: (err: grpcWeb.RpcError,
                response: gogent_pb.CreateConfigurationResponse) =&gt; void) {
-<span class="cstat-no" title="statement not covered" >    if (callback !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (callback !== undefined) {</span>
 <span class="cstat-no" title="statement not covered" >      return this.client_.rpcCall(</span>
         this.hostname_ +
           '/gogent.GogentService/CreateConfiguration',
@@ -2925,7 +2925,7 @@
     metadata?: grpcWeb.Metadata | null,
     callback?: (err: grpcWeb.RpcError,
                response: gogent_pb.UpdateConfigurationResponse) =&gt; void) {
-<span class="cstat-no" title="statement not covered" >    if (callback !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (callback !== undefined) {</span>
 <span class="cstat-no" title="statement not covered" >      return this.client_.rpcCall(</span>
         this.hostname_ +
           '/gogent.GogentService/UpdateConfiguration',
@@ -2968,7 +2968,7 @@
     metadata?: grpcWeb.Metadata | null,
     callback?: (err: grpcWeb.RpcError,
                response: gogent_pb.DeleteConfigurationResponse) =&gt; void) {
-<span class="cstat-no" title="statement not covered" >    if (callback !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (callback !== undefined) {</span>
 <span class="cstat-no" title="statement not covered" >      return this.client_.rpcCall(</span>
         this.hostname_ +
           '/gogent.GogentService/DeleteConfiguration',
@@ -3011,7 +3011,7 @@
     metadata?: grpcWeb.Metadata | null,
     callback?: (err: grpcWeb.RpcError,
                response: gogent_pb.ListFunctionsResponse) =&gt; void) {
-<span class="cstat-no" title="statement not covered" >    if (callback !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (callback !== undefined) {</span>
 <span class="cstat-no" title="statement not covered" >      return this.client_.rpcCall(</span>
         this.hostname_ +
           '/gogent.GogentService/ListFunctions',
@@ -3054,7 +3054,7 @@
     metadata?: grpcWeb.Metadata | null,
     callback?: (err: grpcWeb.RpcError,
                response: gogent_pb.GetFunctionResponse) =&gt; void) {
-<span class="cstat-no" title="statement not covered" >    if (callback !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (callback !== undefined) {</span>
 <span class="cstat-no" title="statement not covered" >      return this.client_.rpcCall(</span>
         this.hostname_ +
           '/gogent.GogentService/GetFunction',
@@ -3097,7 +3097,7 @@
     metadata?: grpcWeb.Metadata | null,
     callback?: (err: grpcWeb.RpcError,
                response: gogent_pb.CreateFunctionResponse) =&gt; void) {
-<span class="cstat-no" title="statement not covered" >    if (callback !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (callback !== undefined) {</span>
 <span class="cstat-no" title="statement not covered" >      return this.client_.rpcCall(</span>
         this.hostname_ +
           '/gogent.GogentService/CreateFunction',
@@ -3140,7 +3140,7 @@
     metadata?: grpcWeb.Metadata | null,
     callback?: (err: grpcWeb.RpcError,
                response: gogent_pb.UpdateFunctionResponse) =&gt; void) {
-<span class="cstat-no" title="statement not covered" >    if (callback !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (callback !== undefined) {</span>
 <span class="cstat-no" title="statement not covered" >      return this.client_.rpcCall(</span>
         this.hostname_ +
           '/gogent.GogentService/UpdateFunction',
@@ -3183,7 +3183,7 @@
     metadata?: grpcWeb.Metadata | null,
     callback?: (err: grpcWeb.RpcError,
                response: gogent_pb.DeleteFunctionResponse) =&gt; void) {
-<span class="cstat-no" title="statement not covered" >    if (callback !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (callback !== undefined) {</span>
 <span class="cstat-no" title="statement not covered" >      return this.client_.rpcCall(</span>
         this.hostname_ +
           '/gogent.GogentService/DeleteFunction',
@@ -3226,7 +3226,7 @@
     metadata?: grpcWeb.Metadata | null,
     callback?: (err: grpcWeb.RpcError,
                response: gogent_pb.TestFunctionResponse) =&gt; void) {
-<span class="cstat-no" title="statement not covered" >    if (callback !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (callback !== undefined) {</span>
 <span class="cstat-no" title="statement not covered" >      return this.client_.rpcCall(</span>
         this.hostname_ +
           '/gogent.GogentService/TestFunction',
@@ -3269,7 +3269,7 @@
     metadata?: grpcWeb.Metadata | null,
     callback?: (err: grpcWeb.RpcError,
                response: gogent_pb.GetDatabaseStatsResponse) =&gt; void) {
-<span class="cstat-no" title="statement not covered" >    if (callback !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (callback !== undefined) {</span>
 <span class="cstat-no" title="statement not covered" >      return this.client_.rpcCall(</span>
         this.hostname_ +
           '/gogent.GogentService/GetDatabaseStats',
@@ -3312,7 +3312,7 @@
     metadata?: grpcWeb.Metadata | null,
     callback?: (err: grpcWeb.RpcError,
                response: gogent_pb.ListDatabaseTablesResponse) =&gt; void) {
-<span class="cstat-no" title="statement not covered" >    if (callback !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (callback !== undefined) {</span>
 <span class="cstat-no" title="statement not covered" >      return this.client_.rpcCall(</span>
         this.hostname_ +
           '/gogent.GogentService/ListDatabaseTables',
@@ -3355,7 +3355,7 @@
     metadata?: grpcWeb.Metadata | null,
     callback?: (err: grpcWeb.RpcError,
                response: gogent_pb.GetTableDataResponse) =&gt; void) {
-<span class="cstat-no" title="statement not covered" >    if (callback !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (callback !== undefined) {</span>
 <span class="cstat-no" title="statement not covered" >      return this.client_.rpcCall(</span>
         this.hostname_ +
           '/gogent.GogentService/GetTableData',
@@ -3398,7 +3398,7 @@
     metadata?: grpcWeb.Metadata | null,
     callback?: (err: grpcWeb.RpcError,
                response: gogent_pb.HealthResponse) =&gt; void) {
-<span class="cstat-no" title="statement not covered" >    if (callback !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (callback !== undefined) {</span>
 <span class="cstat-no" title="statement not covered" >      return this.client_.rpcCall(</span>
         this.hostname_ +
           '/gogent.GogentService/Health',
@@ -3424,7 +3424,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-07-31T18:51:46.077Z
+                at 2025-08-02T00:23:18.952Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
