@@ -567,19 +567,49 @@ const HistoryScreen: React.FC = () => {
     );
   };
 
+  const getPromptPreview = (executionRun: ExecutionRun): string | null => {
+    // Now that the backend includes basePrompt, we can show the actual prompt
+    const prompt = executionRun.basePrompt;
+    
+    if (!prompt || prompt.trim() === '') {
+      return null; // Don't show anything if no real prompt data
+    }
+    
+    // Return first 40 characters with ellipsis if longer
+    if (prompt.length > 40) {
+      return prompt.substring(0, 40) + '...';
+    }
+    return prompt;
+  };
+
   const renderHistoryList = () => (
     <FlatList
       data={state.recentExecutions}
       keyExtractor={(item) => item.id}
-      renderItem={({ item }) => (
-        <ExecutionRunCard
-          key={item.id}
-          executionRun={item}
-          onPress={handleRunPress}
-          onDelete={handleDeleteRun}
-          onReExecute={handleReExecute}
-        />
-      )}
+             renderItem={({ item }) => {
+         const promptPreview = getPromptPreview(item);
+         
+         return (
+           <View style={styles.executionListItem}>
+             <ExecutionRunCard
+               key={item.id}
+               executionRun={item}
+               onPress={handleRunPress}
+               onDelete={handleDeleteRun}
+               onReExecute={handleReExecute}
+             />
+             {promptPreview && (
+               <View style={styles.promptPreviewInList}>
+                 <View style={styles.promptPreviewHeader}>
+                   <Ionicons name="chatbubble-ellipses" size={12} color="#8E8E93" />
+                   <Text style={styles.promptPreviewLabelInList}>Prompt:</Text>
+                 </View>
+                 <Text style={styles.promptPreviewTextInList}>{promptPreview}</Text>
+               </View>
+             )}
+           </View>
+         );
+       }}
       refreshControl={
         <RefreshControl
           refreshing={isRefreshing}
@@ -618,14 +648,29 @@ const HistoryScreen: React.FC = () => {
         <FlatList
           data={state.recentExecutions}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <ExecutionRunCard
-              executionRun={item}
-              onPress={() => handleRunPress(item)}
-              onDelete={() => handleDeleteRun(item.id)}
-              onReExecute={() => handleReExecute(item)}
-            />
-          )}
+          renderItem={({ item }) => {
+            const promptPreview = getPromptPreview(item);
+            
+            return (
+              <View style={styles.executionListItem}>
+                <ExecutionRunCard
+                  executionRun={item}
+                  onPress={() => handleRunPress(item)}
+                  onDelete={() => handleDeleteRun(item.id)}
+                  onReExecute={() => handleReExecute(item)}
+                />
+                {promptPreview && (
+                  <View style={styles.promptPreviewInList}>
+                    <View style={styles.promptPreviewHeader}>
+                      <Ionicons name="chatbubble-ellipses" size={12} color="#8E8E93" />
+                      <Text style={styles.promptPreviewLabelInList}>Prompt:</Text>
+                    </View>
+                    <Text style={styles.promptPreviewTextInList}>{promptPreview}</Text>
+                  </View>
+                )}
+              </View>
+            );
+          }}
           contentContainerStyle={[styles.listContainer, { paddingBottom: 100 }]}
           showsVerticalScrollIndicator={false}
           refreshControl={
@@ -1340,6 +1385,38 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#000000',
+  },
+  executionListItem: {
+    marginBottom: 8,
+  },
+  promptPreviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    gap: 4,
+  },
+  promptPreviewInList: {
+    backgroundColor: '#F8F9FA',
+    marginHorizontal: 16,
+    marginTop: -8,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+  },
+  promptPreviewLabelInList: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#8E8E93',
+    textTransform: 'uppercase',
+  },
+  promptPreviewTextInList: {
+    fontSize: 13,
+    color: '#1D1D1F',
+    lineHeight: 18,
+    fontStyle: 'italic',
   },
 });
 

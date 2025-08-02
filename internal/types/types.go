@@ -67,6 +67,8 @@ type ExecutionRun struct {
 	ID                    string    `json:"id"`
 	Name                  string    `json:"name"`
 	Description           string    `json:"description,omitempty"`
+	BasePrompt            string    `json:"basePrompt,omitempty"`
+	ContextPrompt         string    `json:"contextPrompt,omitempty"`
 	EnableFunctionCalling bool      `json:"enableFunctionCalling"`
 	Status                string    `json:"status"` // pending, running, completed, failed
 	ErrorMessage          string    `json:"errorMessage,omitempty"`

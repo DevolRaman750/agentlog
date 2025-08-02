@@ -4945,10 +4945,22 @@ func (c *Client) ListExecutionRuns(ctx context.Context, userID string, limit, of
 			description = row.Description.String
 		}
 
+		basePrompt := ""
+		if row.BasePrompt.Valid {
+			basePrompt = row.BasePrompt.String
+		}
+
+		contextPrompt := ""
+		if row.ContextPrompt.Valid {
+			contextPrompt = row.ContextPrompt.String
+		}
+
 		executionRun := &types.ExecutionRun{
 			ID:                    row.ID,
 			Name:                  row.Name,
 			Description:           description,
+			BasePrompt:            basePrompt,
+			ContextPrompt:         contextPrompt,
 			EnableFunctionCalling: row.EnableFunctionCalling,
 			Status:                "completed", // Default status for existing records
 			ErrorMessage:          "",
@@ -4979,10 +4991,22 @@ func (c *Client) GetExecutionRun(ctx context.Context, userID string, id string) 
 		description = row.Description.String
 	}
 
+	basePrompt := ""
+	if row.BasePrompt.Valid {
+		basePrompt = row.BasePrompt.String
+	}
+
+	contextPrompt := ""
+	if row.ContextPrompt.Valid {
+		contextPrompt = row.ContextPrompt.String
+	}
+
 	return &types.ExecutionRun{
 		ID:                    row.ID,
 		Name:                  row.Name,
 		Description:           description,
+		BasePrompt:            basePrompt,
+		ContextPrompt:         contextPrompt,
 		EnableFunctionCalling: row.EnableFunctionCalling,
 		Status:                "completed", // Default status for existing records
 		ErrorMessage:          "",
