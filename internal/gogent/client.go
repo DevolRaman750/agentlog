@@ -322,6 +322,13 @@ func (c *Client) ExecuteMultiVariation(ctx context.Context, userID string, reque
 			"configurationsCount":   len(request.Configurations),
 		})
 
+	// Log flow event for execution start
+	c.logExecutionFlowEvent("prompt_start", 0, "success", nil, map[string]interface{}{
+		"executionName": request.ExecutionRunName,
+		"basePrompt":    request.BasePrompt,
+		"configCount":   len(request.Configurations),
+	}, nil, nil)
+
 	if request.EnableFunctionCalling {
 		for i, tool := range request.FunctionTools {
 			c.logExecutionEvent(types.LogLevelDebug, types.LogCategorySetup,
@@ -420,14 +427,38 @@ func (c *Client) ExecuteMultiVariation(ctx context.Context, userID string, reque
 		c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryExecution,
 			fmt.Sprintf("Executing variation: %s", config.VariationName), nil)
 
+		// Log AI model call start
+		sequenceNum := i + 1
+		c.logExecutionFlowEvent("ai_model_call", sequenceNum, "pending", nil, map[string]interface{}{
+			"configurationName": config.VariationName,
+			"modelName":         config.ModelName,
+		}, nil, nil)
+
+		startTime := time.Now()
 		variationResult, err := c.executeSingleVariation(ctx, userID, executionRun.ID, &config, request.BasePrompt, request.Context)
+		executionTimeMs := int32(time.Since(startTime).Milliseconds())
+
 		if err != nil {
 			c.logExecutionEvent(types.LogLevelError, types.LogCategoryError,
 				fmt.Sprintf("Variation failed: %s - %v", config.VariationName, err), nil)
+
+			// Log AI response with error
+			errorMsg := err.Error()
+			c.logExecutionFlowEvent("ai_response", sequenceNum, "error", nil, map[string]interface{}{
+				"configurationName": config.VariationName,
+			}, &executionTimeMs, &errorMsg)
+
 			result.ErrorCount++
 		} else {
 			c.logExecutionEvent(types.LogLevelSuccess, types.LogCategoryExecution,
 				fmt.Sprintf("Variation completed: %s", config.VariationName), nil)
+
+			// Log successful AI response
+			c.logExecutionFlowEvent("ai_response", sequenceNum, "success", nil, map[string]interface{}{
+				"configurationName": config.VariationName,
+				"responseLength":    len(variationResult.Response.ResponseText),
+			}, &executionTimeMs, nil)
+
 			result.SuccessCount++
 		}
 
@@ -466,6 +497,14 @@ func (c *Client) ExecuteMultiVariation(ctx context.Context, userID string, reque
 			"successCount": result.SuccessCount,
 			"errorCount":   result.ErrorCount,
 		})
+
+	// Log execution complete flow event
+	totalTimeMs := int32(result.TotalTime)
+	c.logExecutionFlowEvent("execution_complete", len(request.Configurations)+1, "success", nil, map[string]interface{}{
+		"successCount": result.SuccessCount,
+		"errorCount":   result.ErrorCount,
+		"totalTime":    result.TotalTime,
+	}, &totalTimeMs, nil)
 
 	// Always perform comparison for better user experience
 	c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryExecution,
@@ -736,13 +775,6 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 		finalPrompt = config.SystemPrompt + "\n\n" + prompt
 	}
 
-	// Add function calling instruction if tools are available
-	if len(config.Tools) > 0 {
-		functionInstruction := "You have access to function tools that can help answer specific questions. Use these functions when the user's request requires information or actions that these tools can provide. Only call functions when they are relevant to the user's specific request."
-		finalPrompt = functionInstruction + "\n\n" + finalPrompt
-		log.Printf("🔧 Added function calling instruction to prompt")
-	}
-
 	log.Printf("REST API - Final prompt: %s", finalPrompt[:min(100, len(finalPrompt))])
 
 	requestBody := map[string]interface{}{
@@ -755,14 +787,40 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 		},
 	}
 
-	// Add generation config if specified
+	// Add system instruction for function calling reliability if tools are available
+	if len(config.Tools) > 0 {
+		// Use system instruction as recommended by Gemini docs for reliable function calling
+		systemInstruction := "You are a helpful assistant with access to function tools. When responding to user questions, you MUST use the available functions when they are relevant to answering the question. Always provide complete, helpful responses based on the function results. Do not mention function calls in your response - just provide the information naturally."
+		requestBody["systemInstruction"] = map[string]interface{}{
+			"parts": []map[string]interface{}{
+				{"text": systemInstruction},
+			},
+		}
+		log.Printf("🔧 Added system instruction for function calling reliability")
+	}
+
+	// Add generation config - ALWAYS respect user's configuration
 	generationConfig := make(map[string]interface{})
+
+	// Use user's configured values first, with safe defaults only if not set
 	if config.Temperature != nil {
 		generationConfig["temperature"] = *config.Temperature
+		log.Printf("🔧 Using user-configured temperature: %v", *config.Temperature)
+	} else if len(config.Tools) > 0 {
+		// Only suggest lower temperature if user hasn't set one and we have tools
+		generationConfig["temperature"] = 0.1
+		log.Printf("🔧 Using default low temperature (0.1) for function calling - user can override in config")
 	}
+
 	if config.MaxTokens != nil {
 		generationConfig["maxOutputTokens"] = *config.MaxTokens
+		log.Printf("🔧 Using user-configured maxTokens: %v", *config.MaxTokens)
+	} else if len(config.Tools) > 0 {
+		// Only suggest higher token limit if user hasn't set one and we have tools
+		generationConfig["maxOutputTokens"] = 8192
+		log.Printf("🔧 Using default high token limit (8192) for function calling - user can override in config")
 	}
+
 	if config.TopP != nil {
 		generationConfig["topP"] = *config.TopP
 	}
@@ -797,15 +855,22 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 		}
 		requestBody["tools"] = tools
 
-		// Use AUTO mode as recommended by Gemini docs - let the model decide when to call functions
+		// Use ANY mode to force function calling when we have specific tasks that require tool usage
+		// This is recommended for cases where we definitely want the AI to use available functions
+		toolConfigMode := "ANY" // Force function calling for better reliability
+		if len(config.Tools) == 1 {
+			// When we have specific single-purpose tools (like GitHub functions), force their usage
+			toolConfigMode = "ANY"
+		}
+
 		requestBody["toolConfig"] = map[string]interface{}{
 			"functionCallingConfig": map[string]interface{}{
-				"mode": "AUTO",
+				"mode": toolConfigMode,
 			},
 		}
 
 		log.Printf("🔧 Final tools in request body: %+v", tools)
-		log.Printf("🔧 Added toolConfig with mode: AUTO (following Gemini best practices)")
+		log.Printf("🔧 Added toolConfig with mode: %s (forcing function usage for reliability)", toolConfigMode)
 	} else {
 		log.Printf("⚠️  No tools provided to Gemini API call")
 	}
@@ -1058,6 +1123,17 @@ func (c *Client) executeFunctionCall(ctx context.Context, functionName string, a
 			"args":         args,
 		})
 
+	// Log function call start flow event
+	functionCallID := uuid.New().String()
+	sequenceNum := 1000 // Use high sequence numbers for function calls to differentiate from config executions
+	c.logExecutionFlowEvent("function_call_start", sequenceNum, "pending", nil, map[string]interface{}{
+		"functionName":   functionName,
+		"arguments":      args,
+		"functionCallId": functionCallID,
+	}, nil, nil)
+
+	startTime := time.Now()
+
 	// Normalize common argument aliases (e.g. node_label → label)
 	switch functionName {
 	case "neo4j_node_lookup":
@@ -1077,7 +1153,24 @@ func (c *Client) executeFunctionCall(ctx context.Context, functionName string, a
 				"error": err.Error(),
 			})
 		// Fall back to legacy hardcoded function handling
-		return c.executeLegacyFunction(ctx, functionName, args)
+		result, err := c.executeLegacyFunction(ctx, functionName, args)
+		executionTimeMs := int32(time.Since(startTime).Milliseconds())
+
+		if err != nil {
+			errorMsg := err.Error()
+			c.logExecutionFlowEvent("function_call_end", sequenceNum+1, "error", nil, map[string]interface{}{
+				"functionName":   functionName,
+				"functionCallId": functionCallID,
+			}, &executionTimeMs, &errorMsg)
+		} else {
+			c.logExecutionFlowEvent("function_call_end", sequenceNum+1, "success", nil, map[string]interface{}{
+				"functionName":   functionName,
+				"functionCallId": functionCallID,
+				"resultSize":     len(fmt.Sprintf("%v", result)),
+			}, &executionTimeMs, nil)
+		}
+
+		return result, err
 	}
 
 	// Validate parameters against stored schema
@@ -1088,17 +1181,38 @@ func (c *Client) executeFunctionCall(ctx context.Context, functionName string, a
 				"error": err.Error(),
 				"args":  args,
 			})
+
+		// Log function call end with validation error
+		executionTimeMs := int32(time.Since(startTime).Milliseconds())
+		errorMsg := err.Error()
+		c.logExecutionFlowEvent("function_call_end", sequenceNum+1, "error", nil, map[string]interface{}{
+			"functionName":   functionName,
+			"functionCallId": functionCallID,
+			"errorType":      "validation_error",
+		}, &executionTimeMs, &errorMsg)
+
 		return nil, fmt.Errorf("parameter validation failed: %w", err)
 	}
 
 	// Execute function based on method type
 	result, err := c.executeDynamicFunction(ctx, funcDef, args)
+	executionTimeMs := int32(time.Since(startTime).Milliseconds())
+
 	if err != nil {
 		c.logExecutionEvent(types.LogLevelError, types.LogCategoryFunctionCall,
 			fmt.Sprintf("Function execution failed for %s: %v", functionName, err),
 			map[string]interface{}{
 				"error": err.Error(),
 			})
+
+		// Log function call end with execution error
+		errorMsg := err.Error()
+		c.logExecutionFlowEvent("function_call_end", sequenceNum+1, "error", nil, map[string]interface{}{
+			"functionName":   functionName,
+			"functionCallId": functionCallID,
+			"errorType":      "execution_error",
+		}, &executionTimeMs, &errorMsg)
+
 		return nil, err
 	}
 
@@ -1107,6 +1221,13 @@ func (c *Client) executeFunctionCall(ctx context.Context, functionName string, a
 		map[string]interface{}{
 			"result_size": len(fmt.Sprintf("%v", result)),
 		})
+
+	// Log successful function call end
+	c.logExecutionFlowEvent("function_call_end", sequenceNum+1, "success", nil, map[string]interface{}{
+		"functionName":   functionName,
+		"functionCallId": functionCallID,
+		"resultSize":     len(fmt.Sprintf("%v", result)),
+	}, &executionTimeMs, nil)
 
 	return result, nil
 }
@@ -1266,16 +1387,40 @@ func (c *Client) sendConversationToGeminiForIteration(ctx context.Context, confi
 		"contents": conversationHistory,
 	}
 
-	// Add generation config
+	// Add generation config - ALWAYS respect user's configuration
 	generationConfig := make(map[string]interface{})
+
+	// Use user's configured values first, with safe defaults only if not set
 	if config.Temperature != nil {
 		generationConfig["temperature"] = *config.Temperature
+		log.Printf("🔧 Using user-configured temperature: %v", *config.Temperature)
+	} else if len(config.Tools) > 0 {
+		// Only suggest lower temperature if user hasn't set one and we have tools
+		generationConfig["temperature"] = 0.1
+		log.Printf("🔧 Using default low temperature (0.1) for function calling - user can override in config")
 	}
+
 	if config.MaxTokens != nil {
 		generationConfig["maxOutputTokens"] = *config.MaxTokens
+		log.Printf("🔧 Using user-configured maxTokens: %v", *config.MaxTokens)
+	} else if len(config.Tools) > 0 {
+		// Only suggest higher token limit if user hasn't set one and we have tools
+		generationConfig["maxOutputTokens"] = 8192
+		log.Printf("🔧 Using default high token limit (8192) for function calling - user can override in config")
 	}
+
 	if len(generationConfig) > 0 {
 		requestBody["generationConfig"] = generationConfig
+	}
+
+	// Add system instruction for function calling reliability
+	if len(config.Tools) > 0 {
+		systemInstruction := "You are a helpful assistant with access to function tools. When responding to user questions, you MUST use the available functions when they are relevant to answering the question. Always provide complete, helpful responses based on the function results. Do not mention function calls in your response - just provide the information naturally."
+		requestBody["systemInstruction"] = map[string]interface{}{
+			"parts": []map[string]interface{}{
+				{"text": systemInstruction},
+			},
+		}
 	}
 
 	// Include tools to allow more function calls (using same pattern as existing code)
@@ -5277,6 +5422,72 @@ func (c *Client) logExecutionEvent(level types.LogLevel, category types.LogCateg
 	}
 }
 
+// logExecutionFlowEvent logs a flow event for execution graph visualization
+func (c *Client) logExecutionFlowEvent(eventType string, sequenceNumber int, status string, parentEventID *string, eventData map[string]interface{}, durationMs *int32, errorMessage *string) {
+	// Only log flow events if we have an active execution
+	if c.currentExecutionRunID == nil {
+		log.Printf("⚠️ Cannot log flow event '%s' - no active execution context set", eventType)
+		return
+	}
+
+	log.Printf("🔧 Attempting to log flow event: %s (seq: %d, status: %s, executionID: %s)", eventType, sequenceNumber, status, *c.currentExecutionRunID)
+
+	ctx := context.Background()
+	eventID := uuid.New().String()
+
+	var eventDataJSON json.RawMessage
+	if eventData != nil {
+		if eventDataBytes, err := json.Marshal(eventData); err == nil {
+			eventDataJSON = eventDataBytes
+		}
+	}
+
+	var requestID, parentID sql.NullString
+	if c.currentRequestID != nil {
+		requestID = sql.NullString{String: *c.currentRequestID, Valid: true}
+	}
+	if parentEventID != nil {
+		parentID = sql.NullString{String: *parentEventID, Valid: true}
+	}
+
+	// Create the flow event using a direct SQL query since we don't have sqlc queries for this yet
+	query := `
+		INSERT INTO execution_flow_events (
+			id, execution_run_id, request_id, event_type, sequence_number, 
+			parent_event_id, event_data, duration_ms, status, error_message
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`
+
+	var errorVal sql.NullString
+	var durationMsVal sql.NullInt32
+
+	if durationMs != nil {
+		durationMsVal = sql.NullInt32{Int32: *durationMs, Valid: true}
+	}
+	if errorMessage != nil {
+		errorVal = sql.NullString{String: *errorMessage, Valid: true}
+	}
+
+	_, err := c.db.ExecContext(ctx, query,
+		eventID,
+		*c.currentExecutionRunID,
+		requestID,
+		eventType,
+		sequenceNumber,
+		parentID,
+		eventDataJSON,
+		durationMsVal,
+		status,
+		errorVal,
+	)
+
+	if err != nil {
+		log.Printf("❌ Failed to store execution flow event: %v", err)
+	} else {
+		log.Printf("✅ Logged flow event: %s (seq: %d, status: %s)", eventType, sequenceNumber, status)
+	}
+}
+
 // getLogEmoji returns appropriate emoji for log level and category
 func (c *Client) getLogEmoji(level types.LogLevel, category types.LogCategory) string {
 	switch level {
@@ -5381,10 +5592,22 @@ func (c *Client) setExecutionContext(executionRunID, configID, requestID *string
 	c.currentExecutionRunID = executionRunID
 	c.currentConfigID = configID
 	c.currentRequestID = requestID
+
+	if executionRunID != nil {
+		log.Printf("🎯 Execution context set: executionRunID=%s", *executionRunID)
+	} else {
+		log.Printf("⚠️ Execution context set with nil executionRunID")
+	}
 }
 
 // clearExecutionContext clears the execution context
 func (c *Client) clearExecutionContext() {
+	if c.currentExecutionRunID != nil {
+		log.Printf("🧹 Clearing execution context for executionRunID=%s", *c.currentExecutionRunID)
+	} else {
+		log.Printf("🧹 Clearing execution context (was already nil)")
+	}
+
 	c.currentExecutionRunID = nil
 	c.currentConfigID = nil
 	c.currentRequestID = nil

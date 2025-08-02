@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ExecutionResult, VariationResult } from '../types';
 import { formatConfigId } from '../utils/comparisonUtils';
 import ExecutionLogsCard from './ExecutionLogsCard';
+import ExecutionFlowGraph from './ExecutionFlowGraph';
 import { AlertAPI } from './CustomAlert';
 
 interface ExecutionResultsViewerProps {
@@ -33,6 +34,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
   embedded = false,
 }) => {
   const [showExecutionLogs, setShowExecutionLogs] = useState(false);
+  const [showExecutionFlowGraph, setShowExecutionFlowGraph] = useState(false);
   // Initialize with all result indices expanded by default
   const [expandedResults, setExpandedResults] = useState<Set<number>>(() => {
     const initialExpanded = new Set<number>();
@@ -379,6 +381,16 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
         </TouchableOpacity>
       )}
       
+      <TouchableOpacity
+        style={styles.actionButton}
+        onPress={() => setShowExecutionFlowGraph(true)}
+      >
+        <Ionicons name="git-network" size={20} color="#007AFF" />
+        <Text style={styles.actionButtonText}>
+          Flow Graph
+        </Text>
+      </TouchableOpacity>
+      
       {showReExecuteButton && onReExecute && (
         <TouchableOpacity
           style={[styles.actionButton, styles.reExecuteButton]}
@@ -417,6 +429,17 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
             onReExecute={onReExecute || (() => {})}
           />
         )}
+        
+        {/* Execution Flow Graph Modal */}
+        {showExecutionFlowGraph && (
+          <Modal visible={showExecutionFlowGraph} animationType="slide" presentationStyle="pageSheet">
+            <ExecutionFlowGraph
+              executionRunId={executionResult.executionRun.id}
+              visible={showExecutionFlowGraph}
+              onClose={() => setShowExecutionFlowGraph(false)}
+            />
+          </Modal>
+        )}
       </View>
     );
   }
@@ -442,6 +465,17 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
             onClose={() => setShowExecutionLogs(false)}
             onReExecute={onReExecute || (() => {})}
           />
+        )}
+        
+        {/* Execution Flow Graph Modal */}
+        {showExecutionFlowGraph && (
+          <Modal visible={showExecutionFlowGraph} animationType="slide" presentationStyle="pageSheet">
+            <ExecutionFlowGraph
+              executionRunId={executionResult.executionRun.id}
+              visible={showExecutionFlowGraph}
+              onClose={() => setShowExecutionFlowGraph(false)}
+            />
+          </Modal>
         )}
       </View>
     </Modal>

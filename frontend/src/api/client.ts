@@ -802,6 +802,22 @@ class GoGentAPI {
       };
     }
   }
+
+  // Get execution flow graph
+  async getExecutionFlowGraph(executionRunId: string): Promise<ApiResponse<any>> {
+    try {
+      const response: AxiosResponse = await this.api.get(`/api/execution-flow/${executionRunId}`);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to get execution flow graph',
+      };
+    }
+  }
 }
 
 // Create singleton instance
