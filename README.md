@@ -1,6 +1,6 @@
 # agentlog - AI Multi-Variation Execution Platform with Interface Architecture
 
-live demo:  agentlog.scalebase.io
+live demo:  https://agentlog.scalebase.io
 
 agentlog is a Go platform that wraps AI APIs (starting with Google Gemini) with multi-variation execution, database logging, and use case-specific implementations. It enables you to run the same AI prompt with different configurations, compare results, and implement domain-specific AI solutions like procurement management, legal analysis, and more.
 
