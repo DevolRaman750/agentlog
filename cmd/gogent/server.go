@@ -16,6 +16,7 @@ import (
 	"gogent/internal/auth"
 	"gogent/internal/db"
 	"gogent/internal/gogent"
+	"gogent/internal/templates"
 	"gogent/internal/types"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -24,12 +25,13 @@ import (
 
 // Server represents our HTTP server
 type Server struct {
-	client         *gogent.Client
-	config         *types.GeminiClientConfig
-	executions     map[string]*ExecutionStatus
-	executionMutex sync.RWMutex
-	authService    *auth.AuthService
-	authHandlers   *auth.AuthHandlers
+	client              *gogent.Client
+	config              *types.GeminiClientConfig
+	executions          map[string]*ExecutionStatus
+	executionMutex      sync.RWMutex
+	authService         *auth.AuthService
+	authHandlers        *auth.AuthHandlers
+	templateIntegration *templates.TemplateIntegration
 }
 
 // ExecutionStatus tracks the status of an async execution
@@ -40,6 +42,36 @@ type ExecutionStatus struct {
 	ErrorMessage       string     `json:"errorMessage,omitempty"`
 	StartTime          time.Time  `json:"startTime"`
 	EndTime            *time.Time `json:"endTime,omitempty"`
+}
+
+// ExecutionEngineAdapter adapts the gogent client to the templates.ExecutionEngine interface
+type ExecutionEngineAdapter struct {
+	client *gogent.Client
+}
+
+// StartExecution implements the ExecutionEngine interface for templates
+func (e *ExecutionEngineAdapter) StartExecution(request *types.MultiExecutionRequest, useMock bool, sessionApiKeys map[string]string) (string, *types.ExecutionRun, error) {
+	ctx := context.Background()
+
+	// For template execution, we use a system user ID
+	// Since templates have their own authentication mechanism
+	systemUserID := "template-system"
+
+	// Execute the request
+	result, err := e.client.ExecuteMultiVariation(ctx, systemUserID, request)
+	if err != nil {
+		return "", nil, err
+	}
+
+	// Return the execution ID and the execution run from the result
+	return result.ExecutionRun.ID, &result.ExecutionRun, nil
+}
+
+// GetExecutionStatus implements the ExecutionEngine interface
+func (e *ExecutionEngineAdapter) GetExecutionStatus(executionID string) (string, string, *time.Time, *time.Time, *types.ExecutionResult, error) {
+	// This is a simplified implementation
+	// In a real implementation, you might query the database for execution status
+	return executionID, "completed", nil, nil, nil, nil
 }
 
 // NewServer creates a new HTTP server
@@ -73,12 +105,19 @@ func NewServer() (*Server, error) {
 	authService := auth.NewAuthService(client.GetDB(), jwtSecret)
 	authHandlers := auth.NewAuthHandlers(authService)
 
+	// Create execution engine adapter
+	executionEngine := &ExecutionEngineAdapter{client: client}
+
+	// Create template integration
+	templateIntegration := templates.NewTemplateIntegration(client.GetDB(), authService, executionEngine)
+
 	return &Server{
-		client:       client,
-		config:       config,
-		executions:   make(map[string]*ExecutionStatus),
-		authService:  authService,
-		authHandlers: authHandlers,
+		client:              client,
+		config:              config,
+		executions:          make(map[string]*ExecutionStatus),
+		authService:         authService,
+		authHandlers:        authHandlers,
+		templateIntegration: templateIntegration,
 	}, nil
 }
 
@@ -1880,6 +1919,20 @@ func runServer() {
 	http.HandleFunc("/api/database/tables/", server.enableCORS(authMiddleware(server.databaseTableDataHandler))) // Specific table data
 	http.HandleFunc("/api/database/tables", server.enableCORS(authMiddleware(server.databaseTablesHandler)))     // List tables
 
+	// Register execution template routes
+	mux := http.NewServeMux()
+	server.templateIntegration.RegisterRoutes(mux, func(h http.HandlerFunc) http.HandlerFunc {
+		return server.enableCORS(authMiddleware(h))
+	})
+
+	// Convert ServeMux routes to http.HandleFunc registrations
+	http.Handle("/api/templates", server.enableCORS(mux.ServeHTTP))
+	http.Handle("/api/templates/", server.enableCORS(mux.ServeHTTP))
+	http.Handle("/api/public/templates/", server.enableCORS(mux.ServeHTTP))
+
+	// Start background tasks for templates
+	go server.templateIntegration.StartBackgroundTasks()
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -1902,6 +1955,9 @@ func runServer() {
 	fmt.Printf("   POST /api/functions/test/{id} - Test function execution (🔐 Protected)\n")
 	fmt.Printf("   GET  /api/database/stats - Database statistics (🔐 Protected)\n")
 	fmt.Printf("   GET  /api/database/tables - Database tables (🔐 Protected)\n")
+	fmt.Printf("   GET  /api/templates - List execution templates (🔐 Protected)\n")
+	fmt.Printf("   POST /api/templates - Create execution template (🔐 Protected)\n")
+	fmt.Printf("   POST /api/public/templates/{id}/execute - Execute template via token (🌐 Public)\n")
 	fmt.Printf("💡 Use X-Use-Mock: true header for mock responses\n")
 	fmt.Printf("🔑 Set GEMINI_API_KEY in config.env for real API calls\n")
 	fmt.Printf("🔐 Most endpoints now require authentication\n")
@@ -2158,6 +2214,7 @@ func (s *Server) listFunctions(w http.ResponseWriter, r *http.Request) {
 
 	for rows.Next() {
 		var dbFunction db.FunctionDefinition
+		var fallbackData sql.NullString
 
 		err := rows.Scan(
 			&dbFunction.ID,
@@ -2178,7 +2235,7 @@ func (s *Server) listFunctions(w http.ResponseWriter, r *http.Request) {
 			&dbFunction.ApiKeyValidation,
 			&dbFunction.QueryTemplate,
 			&dbFunction.ResultTransformer,
-			&dbFunction.FallbackData,
+			&fallbackData,
 			&dbFunction.CreatedAt,
 			&dbFunction.UpdatedAt,
 		)
@@ -2237,8 +2294,11 @@ func (s *Server) listFunctions(w http.ResponseWriter, r *http.Request) {
 			log.Printf("⚠️ Failed to parse auth config for %s: %v", function.Name, err)
 		}
 
-		if err := json.Unmarshal(dbFunction.FallbackData, &function.FallbackData); err != nil {
-			log.Printf("⚠️ Failed to parse fallback data for %s: %v", function.Name, err)
+		// Handle FallbackData - check for NULL values first
+		if fallbackData.Valid && len(fallbackData.String) > 0 {
+			if err := json.Unmarshal([]byte(fallbackData.String), &function.FallbackData); err != nil {
+				log.Printf("⚠️ Failed to parse fallback data for %s: %v", function.Name, err)
+			}
 		}
 
 		// Handle RequiredApiKeys and ApiKeyValidation JSON fields

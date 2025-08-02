@@ -20,6 +20,8 @@ export default function App() {
         'Execute': 'Execute - GoGent AI Platform',
         'Configure': 'Configure - GoGent AI Platform',
         'Functions': 'Functions - GoGent AI Platform',
+        'Templates': 'Templates - GoGent AI Platform',
+        'Execution Templates': 'Execution Templates - GoGent AI Platform',
         'API Keys': 'API Keys - GoGent AI Platform',
         'History': 'History - GoGent AI Platform',
         'Database': 'Database - GoGent AI Platform',

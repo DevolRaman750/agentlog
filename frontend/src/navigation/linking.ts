@@ -17,8 +17,8 @@ export const linking: LinkingOptions<TabParamList> = {
         path: '/functions',
         exact: true,
       },
-      Templates: {
-        path: '/templates',
+      'Execution Templates': {
+        path: '/execution-templates',
         exact: true,
       },
       'API Keys': {
@@ -42,7 +42,7 @@ export const linking: LinkingOptions<TabParamList> = {
         exact: true,
       },
     },
-    initialRouteName: 'Execute',
+    initialRouteName: 'Account', // Default fallback, will be overridden by getInitialRouteName
   },
   // Handle initial URL
   getInitialURL: async () => {
@@ -84,7 +84,7 @@ export const getInitialRouteName = (isAuthenticated: boolean, isLoading: boolean
       '/execute': 'Execute',
       '/configure': 'Configure',
       '/functions': 'Functions',
-      '/templates': 'Templates',
+      '/execution-templates': 'Execution Templates',
       '/api-keys': 'API Keys',
       '/history': 'History',
       '/database': 'Database',
@@ -98,13 +98,13 @@ export const getInitialRouteName = (isAuthenticated: boolean, isLoading: boolean
       return routeName;
     }
     
-    // Handle root path "/" - default to Execute for now during loading
+    // Handle root path "/" - default to Account during loading (we don't know auth status yet)
     if (path === '/' || path === '') {
-      return 'Execute';
+      return 'Account';
     }
     
-    // For unknown paths, default to Execute during loading
-    return 'Execute';
+    // For unknown paths, default to Account during loading
+    return 'Account';
   }
 
   // Once auth has loaded, make proper routing decisions
@@ -116,7 +116,7 @@ export const getInitialRouteName = (isAuthenticated: boolean, isLoading: boolean
       '/execute': 'Execute',
       '/configure': 'Configure',
       '/functions': 'Functions',
-      '/templates': 'Templates',
+      '/execution-templates': 'Execution Templates',
       '/api-keys': 'API Keys',
       '/history': 'History',
       '/database': 'Database',
@@ -131,14 +131,20 @@ export const getInitialRouteName = (isAuthenticated: boolean, isLoading: boolean
       return routeName;
     }
     
-    // Handle root path "/" - always default to Execute
+    // Handle root path "/" - redirect based on authentication status
     if (path === '/' || path === '') {
-      const defaultPath = '/execute';
-      window.history.replaceState({}, '', defaultPath);
-      return 'Execute';
+      if (isAuthenticated) {
+        const defaultPath = '/execute';
+        window.history.replaceState({}, '', defaultPath);
+        return 'Execute';
+      } else {
+        const defaultPath = '/account';
+        window.history.replaceState({}, '', defaultPath);
+        return 'Account';
+      }
     }
   }
 
-  // Default initial route is always Execute
-  return 'Execute';
+  // Default initial route based on authentication status
+  return isAuthenticated ? 'Execute' : 'Account';
 }; 

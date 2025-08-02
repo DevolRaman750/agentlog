@@ -179,16 +179,19 @@ export interface ScreenProps {
 }
 
 export interface TabParamList {
+  Execute: undefined;
   Configure: undefined;
   Functions: undefined;
-  Templates: undefined;
-  Execute: undefined;
+  'Execution Templates': undefined;
+  'API Keys': undefined;
   History: undefined;
   Database: undefined;
-  'API Keys': undefined;
-  Auth: undefined;
   Account: undefined;
   More: undefined;
+  TemplateTokenManager: {
+    templateId: string;
+    templateName: string;
+  };
 }
 
 // UI Component types
@@ -210,6 +213,7 @@ export interface ExecutionRunCardProps {
   onPress: (run: ExecutionRun) => void;
   onDelete: (id: string) => void;
   onReExecute: (run: ExecutionRun) => void;
+  onCreateTemplate: (run: ExecutionRun) => void;
 }
 
 // Database view types

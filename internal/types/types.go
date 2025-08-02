@@ -424,6 +424,180 @@ type PerformanceMetrics struct {
 	CreatedAt           time.Time          `json:"created_at"`
 }
 
+// =============================================================================
+// EXECUTION TEMPLATES
+// =============================================================================
+
+// ExecutionTemplate represents a reusable execution template with parameters
+type ExecutionTemplate struct {
+	ID                      string                       `json:"id"`
+	UserID                  string                       `json:"userId"`
+	Name                    string                       `json:"name"`
+	Description             string                       `json:"description,omitempty"`
+	TemplatePrompt          string                       `json:"templatePrompt"`
+	ContextTemplate         string                       `json:"contextTemplate,omitempty"`
+	EnableFunctionCalling   bool                         `json:"enableFunctionCalling"`
+	IsActive                bool                         `json:"isActive"`
+	IsPublic                bool                         `json:"isPublic"`
+	Category                string                       `json:"category"`
+	Tags                    map[string]interface{}       `json:"tags,omitempty"`
+	ExecutionTimeoutSeconds int                          `json:"executionTimeoutSeconds"`
+	RateLimitPerHour        int                          `json:"rateLimitPerHour"`
+	RateLimitPerDay         int                          `json:"rateLimitPerDay"`
+	RateLimitBurst          int                          `json:"rateLimitBurst"`
+	TotalExecutions         int                          `json:"totalExecutions"`
+	LastExecutedAt          *time.Time                   `json:"lastExecutedAt,omitempty"`
+	CreatedAt               time.Time                    `json:"createdAt"`
+	UpdatedAt               time.Time                    `json:"updatedAt"`
+	Parameters              []ExecutionTemplateParameter `json:"parameters,omitempty"`
+	AuthTokens              []ExecutionTemplateAuthToken `json:"authTokens,omitempty"`
+	FunctionIds             []string                     `json:"functionIds,omitempty"` // Associated function IDs
+}
+
+// ExecutionTemplateParameter represents a parameter definition for templates
+type ExecutionTemplateParameter struct {
+	ID                string                 `json:"id"`
+	TemplateID        string                 `json:"templateId"`
+	ParameterName     string                 `json:"parameterName"`
+	ParameterType     string                 `json:"parameterType"` // string, number, boolean, array, object
+	Description       string                 `json:"description,omitempty"`
+	DefaultValue      string                 `json:"defaultValue,omitempty"`
+	IsRequired        bool                   `json:"isRequired"`
+	ValidationRules   map[string]interface{} `json:"validationRules,omitempty"`
+	AllowedValues     map[string]interface{} `json:"allowedValues,omitempty"`
+	AllowSQLKeywords  bool                   `json:"allowSqlKeywords"`
+	AllowSpecialChars bool                   `json:"allowSpecialChars"`
+	SanitizeHTML      bool                   `json:"sanitizeHtml"`
+	DisplayOrder      int                    `json:"displayOrder"`
+	UIComponent       string                 `json:"uiComponent"` // text, textarea, select, etc.
+	PlaceholderText   string                 `json:"placeholderText,omitempty"`
+	HelpText          string                 `json:"helpText,omitempty"`
+	CreatedAt         time.Time              `json:"createdAt"`
+	UpdatedAt         time.Time              `json:"updatedAt"`
+}
+
+// ExecutionTemplateAuthToken represents authentication tokens for public API access
+type ExecutionTemplateAuthToken struct {
+	ID                     string                 `json:"id"`
+	TemplateID             string                 `json:"templateId"`
+	UserID                 string                 `json:"userId"`
+	TokenValue             string                 `json:"tokenValue"`
+	TokenName              string                 `json:"tokenName"`
+	Description            string                 `json:"description,omitempty"`
+	IsActive               bool                   `json:"isActive"`
+	ExpiresAt              *time.Time             `json:"expiresAt,omitempty"`
+	CustomRateLimitPerHour *int                   `json:"customRateLimitPerHour,omitempty"`
+	CustomRateLimitPerDay  *int                   `json:"customRateLimitPerDay,omitempty"`
+	CustomRateLimitBurst   *int                   `json:"customRateLimitBurst,omitempty"`
+	TotalUses              int                    `json:"totalUses"`
+	LastUsedAt             *time.Time             `json:"lastUsedAt,omitempty"`
+	LastUsedIP             *string                `json:"lastUsedIp,omitempty"` // Fixed to handle NULL values
+	AllowedOrigins         map[string]interface{} `json:"allowedOrigins,omitempty"`
+	AllowedIPs             map[string]interface{} `json:"allowedIps,omitempty"`
+	CreatedAt              time.Time              `json:"createdAt"`
+	UpdatedAt              time.Time              `json:"updatedAt"`
+}
+
+// ExecutionTemplateVersion represents a version snapshot for history tracking
+type ExecutionTemplateVersion struct {
+	ID                    string                       `json:"id"`
+	TemplateID            string                       `json:"templateId"`
+	VersionNumber         int                          `json:"versionNumber"`
+	UserID                string                       `json:"userId"`
+	Name                  string                       `json:"name"`
+	Description           string                       `json:"description,omitempty"`
+	TemplatePrompt        string                       `json:"templatePrompt"`
+	ContextTemplate       string                       `json:"contextTemplate,omitempty"`
+	EnableFunctionCalling bool                         `json:"enableFunctionCalling"`
+	Category              string                       `json:"category"`
+	Tags                  map[string]interface{}       `json:"tags,omitempty"`
+	RateLimitPerHour      int                          `json:"rateLimitPerHour"`
+	RateLimitPerDay       int                          `json:"rateLimitPerDay"`
+	RateLimitBurst        int                          `json:"rateLimitBurst"`
+	ChangeSummary         string                       `json:"changeSummary,omitempty"`
+	ChangeType            string                       `json:"changeType"` // create, update, restore
+	IsCurrentVersion      bool                         `json:"isCurrentVersion"`
+	CreatedAt             time.Time                    `json:"createdAt"`
+	Parameters            []ExecutionTemplateParameter `json:"parameters,omitempty"`
+}
+
+// ExecutionTemplateExecution represents an execution record for audit trail
+type ExecutionTemplateExecution struct {
+	ID                 string                 `json:"id"`
+	TemplateID         string                 `json:"templateId"`
+	TemplateVersionID  *string                `json:"templateVersionId,omitempty"`
+	AuthTokenID        *string                `json:"authTokenId,omitempty"`
+	ExecutionRunID     *string                `json:"executionRunId,omitempty"`
+	ParametersProvided map[string]interface{} `json:"parametersProvided"`
+	ResolvedPrompt     string                 `json:"resolvedPrompt"`
+	ResolvedContext    string                 `json:"resolvedContext,omitempty"`
+	RequestIP          string                 `json:"requestIp,omitempty"`
+	UserAgent          string                 `json:"userAgent,omitempty"`
+	Referer            string                 `json:"referer,omitempty"`
+	Status             string                 `json:"status"` // pending, running, completed, failed, rate_limited
+	ErrorMessage       string                 `json:"errorMessage,omitempty"`
+	ExecutionTimeMs    *int                   `json:"executionTimeMs,omitempty"`
+	CreatedAt          time.Time              `json:"createdAt"`
+	CompletedAt        *time.Time             `json:"completedAt,omitempty"`
+}
+
+// ExecutionTemplateAnalytics represents analytics data for templates
+type ExecutionTemplateAnalytics struct {
+	TemplateID             string                 `json:"templateId"`
+	TotalExecutions        int                    `json:"totalExecutions"`
+	SuccessfulExecutions   int                    `json:"successfulExecutions"`
+	FailedExecutions       int                    `json:"failedExecutions"`
+	RateLimitedExecutions  int                    `json:"rateLimitedExecutions"`
+	AverageExecutionTimeMs float64                `json:"averageExecutionTimeMs"`
+	UsageByDay             map[string]interface{} `json:"usageByDay,omitempty"`
+	TopParameters          map[string]interface{} `json:"topParameters,omitempty"`
+	ErrorBreakdown         map[string]interface{} `json:"errorBreakdown,omitempty"`
+}
+
+// TemplateParameterValidationError represents a parameter validation error
+type TemplateParameterValidationError struct {
+	ParameterName string `json:"parameterName"`
+	ErrorType     string `json:"errorType"`
+	ErrorMessage  string `json:"errorMessage"`
+	ProvidedValue string `json:"providedValue,omitempty"`
+}
+
+// TemplateExecutionRequest represents a request to execute a template
+type TemplateExecutionRequest struct {
+	TemplateID string                 `json:"templateId"`
+	AuthToken  string                 `json:"authToken"`
+	Parameters map[string]interface{} `json:"parameters"`
+	ClientIP   string                 `json:"clientIp,omitempty"`
+	UserAgent  string                 `json:"userAgent,omitempty"`
+	Referer    string                 `json:"referer,omitempty"`
+}
+
+// TemplateExecutionResponse represents the response from template execution
+type TemplateExecutionResponse struct {
+	ExecutionID         string        `json:"executionId"`
+	TemplateExecutionID string        `json:"templateExecutionId"`
+	ExecutionRun        *ExecutionRun `json:"executionRun,omitempty"`
+	Message             string        `json:"message"`
+	RateLimited         bool          `json:"rateLimited"`
+	RateLimitRemaining  int           `json:"rateLimitRemaining"`
+	RateLimitResetAt    *time.Time    `json:"rateLimitResetAt,omitempty"`
+}
+
+// RateLimitWindow represents a rate limiting time window
+type RateLimitWindow struct {
+	ID                   string     `json:"id"`
+	TemplateID           string     `json:"templateId"`
+	AuthTokenID          *string    `json:"authTokenId,omitempty"`
+	WindowStart          time.Time  `json:"windowStart"`
+	WindowType           string     `json:"windowType"` // hour, day, burst
+	RequestCount         int        `json:"requestCount"`
+	LastRequestAt        *time.Time `json:"lastRequestAt,omitempty"`
+	PlatformLimitHit     bool       `json:"platformLimitHit"`
+	PlatformLimitResetAt *time.Time `json:"platformLimitResetAt,omitempty"`
+	CreatedAt            time.Time  `json:"createdAt"`
+	UpdatedAt            time.Time  `json:"updatedAt"`
+}
+
 // ToJSON converts any struct to JSON string for database storage
 func ToJSON(v interface{}) (string, error) {
 	bytes, err := json.Marshal(v)

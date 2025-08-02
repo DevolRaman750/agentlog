@@ -248,6 +248,98 @@ const HistoryScreen: React.FC = () => {
     }
   };
 
+    const handleCreateTemplate = async (run: ExecutionRun) => {
+    try {
+      console.log('🔄 Starting template creation for run:', run.id, run.name);
+      
+      // Get detailed execution data to extract functions and model info
+      const response = await goGentAPI.getExecutionRun(run.id);
+      console.log('📋 API response:', response);
+      
+      let templateData = {
+        name: `Template: ${run.name}`,
+        description: `Generated from execution: ${run.description || run.name}`,
+        prompt: run.basePrompt || '',
+        context: run.contextPrompt || '',
+        enableFunctionCalling: run.enableFunctionCalling || false,
+        tags: ['generated', 'from-execution'],
+        modelName: 'gemini-1.5-flash', // Default fallback
+        functions: [] as any[],
+      };
+
+      // Extract model and functions from execution results if available
+      if (response.success && response.data) {
+        const { executionRun, results } = response.data;
+        console.log('✅ Execution data retrieved:', { executionRun: !!executionRun, resultsCount: results?.length });
+        
+        // Try to get model name from first result configuration
+        if (results && results.length > 0 && results[0].configuration?.modelName) {
+          templateData.modelName = results[0].configuration.modelName;
+          console.log('🤖 Model found:', templateData.modelName);
+        }
+        
+        // Extract unique functions from all function calls
+        const functionMap = new Map();
+        results?.forEach(result => {
+          if (result.functionCalls && result.functionCalls.length > 0) {
+            result.functionCalls.forEach(functionCall => {
+              const funcName = functionCall.functionName;
+              if (funcName && !functionMap.has(funcName)) {
+                functionMap.set(funcName, {
+                  id: functionCall.id || funcName,
+                  name: funcName,
+                  displayName: funcName,
+                });
+                console.log('⚙️ Function found:', funcName);
+              }
+            });
+          }
+        });
+        
+        templateData.functions = Array.from(functionMap.values());
+        console.log('📊 Template data prepared:', { 
+          functionsCount: templateData.functions.length,
+          model: templateData.modelName,
+          hasPrompt: !!templateData.prompt
+        });
+      } else {
+        console.warn('⚠️ Failed to get execution data:', response.error);
+      }
+
+      console.log('🚨 About to show AlertAPI dialog...');
+      
+      // Navigate to Execution Templates screen with pre-filled data
+      AlertAPI.alert(
+        'Create Template from Execution',
+        `Create a new execution template based on "${run.name}"?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Create Template',
+            style: 'default',
+            onPress: () => {
+              console.log('🔄 Creating template from execution with data:', templateData);
+              // Navigate to Execution Templates screen
+              (navigation as any).navigate('Execution Templates', {
+                createFromExecution: templateData
+              });
+            }
+          }
+        ]
+      );
+      
+      console.log('✅ AlertAPI.alert called successfully');
+      
+    } catch (error) {
+      console.error('❌ Error in handleCreateTemplate:', error);
+      AlertAPI.alert(
+        'Error',
+        'Failed to create template from execution. Please try again.',
+        [{ text: 'OK', style: 'default' }]
+      );
+    }
+  };
+
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
       <Ionicons name="time-outline" size={64} color="#C7C7CC" />
@@ -591,13 +683,14 @@ const HistoryScreen: React.FC = () => {
          
          return (
            <View style={styles.executionListItem}>
-             <ExecutionRunCard
-               key={item.id}
-               executionRun={item}
-               onPress={handleRunPress}
-               onDelete={handleDeleteRun}
-               onReExecute={handleReExecute}
-             />
+                         <ExecutionRunCard
+              key={item.id}
+              executionRun={item}
+              onPress={handleRunPress}
+              onDelete={handleDeleteRun}
+              onReExecute={handleReExecute}
+              onCreateTemplate={handleCreateTemplate}
+            />
              {promptPreview && (
                <View style={styles.promptPreviewInList}>
                  <View style={styles.promptPreviewHeader}>
@@ -658,6 +751,7 @@ const HistoryScreen: React.FC = () => {
                   onPress={() => handleRunPress(item)}
                   onDelete={() => handleDeleteRun(item.id)}
                   onReExecute={() => handleReExecute(item)}
+                  onCreateTemplate={() => handleCreateTemplate(item)}
                 />
                 {promptPreview && (
                   <View style={styles.promptPreviewInList}>

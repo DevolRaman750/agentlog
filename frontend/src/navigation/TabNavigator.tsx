@@ -12,12 +12,13 @@ import { getInitialRouteName } from './linking';
 // Import screens
 import ConfigureScreen from '../screens/ConfigureScreen';
 import FunctionScreen from '../screens/FunctionScreen';
-import TemplateLibraryScreen from '../screens/TemplateLibraryScreen';
+import ExecutionTemplatesScreen from '../screens/ExecutionTemplatesScreen';
 import ExecuteScreen from '../screens/ExecuteScreen';
 import HistoryScreen from '../screens/HistoryScreen';
 import DatabaseScreen from '../screens/DatabaseScreen';
 import AuthScreen from '../screens/AuthScreen';
 import ApiKeysScreen from '../screens/ApiKeysScreen';
+import TemplateTokenManagerScreen from '../screens/TemplateTokenManagerScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -40,7 +41,7 @@ const MobileNavigationDropdown: React.FC = () => {
     { name: 'Execute', title: 'Execute', icon: 'play-circle-outline', iconFocused: 'play-circle', component: ExecuteScreen },
     { name: 'Configure', title: 'Configure', icon: 'settings-outline', iconFocused: 'settings', component: ConfigureScreen },
     { name: 'Functions', title: 'Functions', icon: 'code-slash-outline', iconFocused: 'code-slash', component: FunctionScreen },
-    { name: 'Templates', title: 'Templates', icon: 'library-outline', iconFocused: 'library', component: TemplateLibraryScreen },
+    { name: 'Execution Templates', title: 'Execution Templates', icon: 'document-text-outline', iconFocused: 'document-text', component: ExecutionTemplatesScreen },
     { name: 'API Keys', title: 'API Keys', icon: 'key-outline', iconFocused: 'key', component: ApiKeysScreen },
     { name: 'History', title: 'History', icon: 'time-outline', iconFocused: 'time', component: HistoryScreen },
     { name: 'Database', title: 'Database', icon: 'server-outline', iconFocused: 'server', component: DatabaseScreen },
@@ -184,8 +185,6 @@ const TabNavigator = () => {
             iconName = focused ? 'settings' : 'settings-outline';
           } else if (route.name === 'Functions') {
             iconName = focused ? 'code-slash' : 'code-slash-outline';
-          } else if (route.name === 'Templates') {
-            iconName = focused ? 'library' : 'library-outline';
           } else if (route.name === 'API Keys') {
             iconName = focused ? 'key' : 'key-outline';
           } else if (route.name === 'History') {
@@ -201,15 +200,15 @@ const TabNavigator = () => {
         tabBarActiveTintColor: '#007AFF',
         tabBarInactiveTintColor: 'gray',
         headerShown: false,
-        // Hide tab bar on desktop/tablet (sidebar) or very narrow mobile (dropdown)
-        tabBarStyle: (isSidebarLayout || showMobileDropdown) ? { display: 'none' } : styles.tabBar,
+        // Always hide tab bar - only show sidebar or hamburger menu
+        tabBarStyle: { display: 'none' },
       })}
     >
       {/* All screens are always available - individual screens handle authentication */}
       <Tab.Screen name="Execute" component={withResponsiveLayout(ExecuteScreen)} />
       <Tab.Screen name="Configure" component={withResponsiveLayout(ConfigureScreen)} />
       <Tab.Screen name="Functions" component={withResponsiveLayout(FunctionScreen)} />
-      <Tab.Screen name="Templates" component={withResponsiveLayout(TemplateLibraryScreen)} />
+      <Tab.Screen name="Execution Templates" component={withResponsiveLayout(ExecutionTemplatesScreen)} />
       <Tab.Screen name="API Keys" component={withResponsiveLayout(ApiKeysScreen)} />
       <Tab.Screen name="History" component={withResponsiveLayout(HistoryScreen)} />
       <Tab.Screen name="Database" component={withResponsiveLayout(DatabaseScreen)} />
@@ -234,14 +233,7 @@ const styles = StyleSheet.create({
   mobileContent: {
     flex: 1,
   },
-  tabBar: {
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-    height: 60,
-    paddingBottom: 8,
-    paddingTop: 8,
-  },
+  // Removed tabBar styles since bottom tabs are no longer used
   
   // Mobile dropdown styles
   dropdownHeader: {

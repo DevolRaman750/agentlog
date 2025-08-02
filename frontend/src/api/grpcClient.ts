@@ -343,11 +343,12 @@ class GoGentGRPCAPI {
     // Note: gRPC client uses the REST API endpoint for database operations
     // since database table operations are typically done via REST
     try {
+      const authToken = await AsyncStorage.getItem('auth_token');
       const response = await fetch(`${this.baseURL}/api/database/tables/execution_logs?limit=${limit}&offset=${offset}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.authToken}`,
+          'Authorization': `Bearer ${authToken}`,
         },
       });
 
@@ -373,11 +374,12 @@ class GoGentGRPCAPI {
     // Note: gRPC client uses the REST API endpoint for database operations
     // since database table operations are typically done via REST
     try {
+      const authToken = await AsyncStorage.getItem('auth_token');
       const response = await fetch(`${this.baseURL}/api/database/tables/function_definitions?limit=${limit}&offset=${offset}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.authToken}`,
+          'Authorization': `Bearer ${authToken}`,
         },
       });
 

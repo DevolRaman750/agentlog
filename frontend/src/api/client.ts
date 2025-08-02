@@ -818,6 +818,121 @@ class GoGentAPI {
       };
     }
   }
+
+  // Template management methods
+  async getTemplates(): Promise<ApiResponse<{ templates: any[] }>> {
+    try {
+      const response: AxiosResponse = await this.api.get('/api/templates?include_tokens=true');
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (getTemplates):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to fetch templates',
+      };
+    }
+  }
+
+  async createTemplate(templateData: any): Promise<ApiResponse<any>> {
+    try {
+      const response: AxiosResponse = await this.api.post('/api/templates', templateData);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (createTemplate):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to create template',
+      };
+    }
+  }
+
+  async deleteTemplate(templateId: string): Promise<ApiResponse<{ message: string }>> {
+    try {
+      const response: AxiosResponse = await this.api.delete(`/api/templates/${templateId}`);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (deleteTemplate):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to delete template',
+      };
+    }
+  }
+
+  async updateTemplate(templateId: string, templateData: any): Promise<ApiResponse<any>> {
+    try {
+      const response: AxiosResponse = await this.api.put(`/api/templates/${templateId}`, templateData);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (updateTemplate):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to update template',
+      };
+    }
+  }
+
+  async createTemplateToken(templateId: string, tokenData: any): Promise<ApiResponse<any>> {
+    try {
+      const response: AxiosResponse = await this.api.post(`/api/templates/${templateId}/tokens`, tokenData);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (createTemplateToken):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to create template token',
+      };
+    }
+  }
+
+  async deleteTemplateToken(templateId: string, tokenId: string): Promise<ApiResponse<{ message: string }>> {
+    try {
+      const response: AxiosResponse = await this.api.delete(`/api/templates/${templateId}/tokens/${tokenId}`);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (deleteTemplateToken):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to delete template token',
+      };
+    }
+  }
+
+  async executeTemplate(templateId: string, parameters: Record<string, any>): Promise<ApiResponse<{ executionRun: { id: string; name: string; status: string }; message: string }>> {
+    try {
+      const response: AxiosResponse = await this.api.post(`/api/templates/${templateId}/execute`, {
+        parameters
+      });
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (executeTemplate):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to execute template',
+      };
+    }
+  }
 }
 
 // Create singleton instance

@@ -7,6 +7,7 @@ import ExecuteScreen from '../screens/ExecuteScreen';
 import HistoryScreen from '../screens/HistoryScreen';
 import DatabaseScreen from '../screens/DatabaseScreen';
 import AuthScreen from '../screens/AuthScreen';
+import TemplateTokenManagerScreen from '../screens/TemplateTokenManagerScreen';
 import ApiKeysScreen from '../screens/ApiKeysScreen';
 import { ResponsiveNavigation } from '../components/ResponsiveNavigation';
 import { useAuth } from '../context/AuthContext';
@@ -70,10 +71,11 @@ const StableApiKeysScreen = createStableScreenWithNavigation(ApiKeysScreen);
 const StableHistoryScreen = createStableScreenWithNavigation(HistoryScreen);
 const StableDatabaseScreen = createStableScreenWithNavigation(DatabaseScreen);
 const StableAuthScreen = createStableScreenWithNavigation(AuthScreen);
+const StableTemplateTokenManagerScreen = createStableScreenWithNavigation(TemplateTokenManagerScreen);
 
 const ResponsiveTabNavigator = () => {
   const { isAuthenticated, isLoading } = useAuth();
-  const { isSidebarLayout, isTabletLayout, isMobileLayout, isNarrowMobile, screenWidth, screenHeight } = useResponsive();
+  const { isSidebarLayout, showMobileDropdown, screenWidth, screenHeight } = useResponsive();
 
   // Memoize the context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({
@@ -101,9 +103,10 @@ const ResponsiveTabNavigator = () => {
         '/account': 'Account',
         '/more': 'More',
       };
-      return pathToRoute[path] || 'Execute';
+      return pathToRoute[path] || 'Account';
     }
-    return 'Execute'; // Always default to Execute
+    // Default based on authentication status
+    return isAuthenticated ? 'Execute' : 'Account';
   };
 
   return (
@@ -140,6 +143,14 @@ const ResponsiveTabNavigator = () => {
         <Stack.Screen 
           name="Account" 
           component={StableAuthScreen} 
+        />
+        <Stack.Screen 
+          name="TemplateTokenManager" 
+          component={StableTemplateTokenManagerScreen}
+          options={{
+            headerShown: false,
+            presentation: 'modal'
+          }}
         />
       </Stack.Navigator>
     </ResponsiveLayoutContext.Provider>

@@ -17,7 +17,8 @@ const ResponsiveContext = createContext<ResponsiveContextType>({
 
 // Breakpoints
 const DESKTOP_BREAKPOINT = 768;
-const MOBILE_DROPDOWN_BREAKPOINT = 600;
+// Remove the separate mobile dropdown breakpoint - now all non-desktop screens use dropdown
+// const MOBILE_DROPDOWN_BREAKPOINT = 600;
 
 export const ResponsiveProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [dimensions, setDimensions] = useState(() => {
@@ -42,10 +43,10 @@ export const ResponsiveProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         // Check if layout flags will change
         const currentLayout = dimensionsRef.current.width >= DESKTOP_BREAKPOINT;
         const newLayout = window.width >= DESKTOP_BREAKPOINT;
-        const currentDropdown = dimensionsRef.current.width < MOBILE_DROPDOWN_BREAKPOINT;
-        const newDropdown = window.width < MOBILE_DROPDOWN_BREAKPOINT;
+        // const currentDropdown = dimensionsRef.current.width < MOBILE_DROPDOWN_BREAKPOINT;
+        // const newDropdown = window.width < MOBILE_DROPDOWN_BREAKPOINT;
         
-        const layoutWillChange = currentLayout !== newLayout || currentDropdown !== newDropdown;
+        const layoutWillChange = currentLayout !== newLayout; // Removed dropdown check
         
         // Only update if layout flags will change (real responsive breakpoints)
         if (layoutWillChange) {
@@ -66,7 +67,7 @@ export const ResponsiveProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     screenWidth: dimensions.width,
     screenHeight: dimensions.height,
     isSidebarLayout: dimensions.width >= DESKTOP_BREAKPOINT,
-    showMobileDropdown: dimensions.width < MOBILE_DROPDOWN_BREAKPOINT,
+    showMobileDropdown: dimensions.width < DESKTOP_BREAKPOINT, // Changed to DESKTOP_BREAKPOINT
   }), [dimensions.width, dimensions.height]);
 
   return (

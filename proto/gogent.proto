@@ -503,6 +503,326 @@ message ComparisonConfig {
 }
 
 // =============================================================================
+// EXECUTION TEMPLATES
+// =============================================================================
+
+// Execution template definition
+message ExecutionTemplate {
+  string id = 1;
+  string user_id = 2;
+  string name = 3;
+  string description = 4;
+  string template_prompt = 5;
+  string context_template = 6;
+  bool enable_function_calling = 7;
+  bool is_active = 8;
+  bool is_public = 9;
+  string category = 10;
+  google.protobuf.Struct tags = 11;
+  int32 execution_timeout_seconds = 12;
+  
+  // Rate limiting configuration
+  int32 rate_limit_per_hour = 13;
+  int32 rate_limit_per_day = 14;
+  int32 rate_limit_burst = 15;
+  
+  // Usage tracking
+  int32 total_executions = 16;
+  google.protobuf.Timestamp last_executed_at = 17;
+  
+  google.protobuf.Timestamp created_at = 18;
+  google.protobuf.Timestamp updated_at = 19;
+  
+  // Populated from joins
+  repeated ExecutionTemplateParameter parameters = 20;
+  repeated ExecutionTemplateAuthToken auth_tokens = 21;
+}
+
+// Template parameter definition
+message ExecutionTemplateParameter {
+  string id = 1;
+  string template_id = 2;
+  string parameter_name = 3;
+  string parameter_type = 4; // string, number, boolean, array, object
+  string description = 5;
+  string default_value = 6;
+  bool is_required = 7;
+  google.protobuf.Struct validation_rules = 8;
+  google.protobuf.Struct allowed_values = 9;
+  bool allow_sql_keywords = 10;
+  bool allow_special_chars = 11;
+  bool sanitize_html = 12;
+  int32 display_order = 13;
+  string ui_component = 14; // text, textarea, select, etc.
+  string placeholder_text = 15;
+  string help_text = 16;
+  google.protobuf.Timestamp created_at = 17;
+  google.protobuf.Timestamp updated_at = 18;
+}
+
+// Authentication token for public API access
+message ExecutionTemplateAuthToken {
+  string id = 1;
+  string template_id = 2;
+  string user_id = 3;
+  string token_value = 4;
+  string token_name = 5;
+  string description = 6;
+  bool is_active = 7;
+  google.protobuf.Timestamp expires_at = 8;
+  
+  // Rate limiting overrides
+  int32 custom_rate_limit_per_hour = 9;
+  int32 custom_rate_limit_per_day = 10;
+  int32 custom_rate_limit_burst = 11;
+  
+  // Usage tracking
+  int32 total_uses = 12;
+  google.protobuf.Timestamp last_used_at = 13;
+  string last_used_ip = 14;
+  
+  // Security
+  google.protobuf.Struct allowed_origins = 15;
+  google.protobuf.Struct allowed_ips = 16;
+  
+  google.protobuf.Timestamp created_at = 17;
+  google.protobuf.Timestamp updated_at = 18;
+}
+
+// Template version for history tracking
+message ExecutionTemplateVersion {
+  string id = 1;
+  string template_id = 2;
+  int32 version_number = 3;
+  string user_id = 4;
+  string name = 5;
+  string description = 6;
+  string template_prompt = 7;
+  string context_template = 8;
+  bool enable_function_calling = 9;
+  string category = 10;
+  google.protobuf.Struct tags = 11;
+  int32 rate_limit_per_hour = 12;
+  int32 rate_limit_per_day = 13;
+  int32 rate_limit_burst = 14;
+  string change_summary = 15;
+  string change_type = 16; // create, update, restore
+  bool is_current_version = 17;
+  google.protobuf.Timestamp created_at = 18;
+  repeated ExecutionTemplateParameter parameters = 19;
+}
+
+// Template execution record
+message ExecutionTemplateExecution {
+  string id = 1;
+  string template_id = 2;
+  string template_version_id = 3;
+  string auth_token_id = 4;
+  string execution_run_id = 5;
+  google.protobuf.Struct parameters_provided = 6;
+  string resolved_prompt = 7;
+  string resolved_context = 8;
+  string request_ip = 9;
+  string user_agent = 10;
+  string referer = 11;
+  string status = 12; // pending, running, completed, failed, rate_limited
+  string error_message = 13;
+  int32 execution_time_ms = 14;
+  google.protobuf.Timestamp created_at = 15;
+  google.protobuf.Timestamp completed_at = 16;
+}
+
+// Template analytics
+message ExecutionTemplateAnalytics {
+  string template_id = 1;
+  int32 total_executions = 2;
+  int32 successful_executions = 3;
+  int32 failed_executions = 4;
+  int32 rate_limited_executions = 5;
+  double average_execution_time_ms = 6;
+  google.protobuf.Struct usage_by_day = 7;
+  google.protobuf.Struct top_parameters = 8;
+  google.protobuf.Struct error_breakdown = 9;
+}
+
+// =============================================================================
+// EXECUTION TEMPLATE REQUESTS & RESPONSES
+// =============================================================================
+
+// List execution templates
+message ListExecutionTemplatesRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+  string category = 3;
+  bool include_public = 4;
+  bool include_inactive = 5;
+}
+
+message ListExecutionTemplatesResponse {
+  repeated ExecutionTemplate templates = 1;
+  int32 total_count = 2;
+}
+
+// Get execution template by ID
+message GetExecutionTemplateRequest {
+  string id = 1;
+  bool include_parameters = 2;
+  bool include_tokens = 3;
+}
+
+message GetExecutionTemplateResponse {
+  ExecutionTemplate template = 1;
+}
+
+// Create execution template
+message CreateExecutionTemplateRequest {
+  ExecutionTemplate template = 1;
+  repeated ExecutionTemplateParameter parameters = 2;
+}
+
+message CreateExecutionTemplateResponse {
+  ExecutionTemplate template = 1;
+}
+
+// Update execution template
+message UpdateExecutionTemplateRequest {
+  string id = 1;
+  ExecutionTemplate template = 2;
+  repeated ExecutionTemplateParameter parameters = 3;
+  string change_summary = 4;
+}
+
+message UpdateExecutionTemplateResponse {
+  ExecutionTemplate template = 1;
+  ExecutionTemplateVersion version = 2;
+}
+
+// Delete execution template
+message DeleteExecutionTemplateRequest {
+  string id = 1;
+}
+
+message DeleteExecutionTemplateResponse {
+  string message = 1;
+}
+
+// Execute template (public API)
+message ExecuteTemplateRequest {
+  string template_id = 1;
+  string auth_token = 2; // Required for public API
+  google.protobuf.Struct parameters = 3;
+  string client_ip = 4; // Set by server
+  string user_agent = 5; // Set by server
+  string referer = 6; // Set by server
+}
+
+message ExecuteTemplateResponse {
+  string execution_id = 1;
+  string template_execution_id = 2;
+  ExecutionRun execution_run = 3;
+  string message = 4;
+  bool rate_limited = 5;
+  int32 rate_limit_remaining = 6;
+  google.protobuf.Timestamp rate_limit_reset_at = 7;
+}
+
+// Get template execution status
+message GetTemplateExecutionStatusRequest {
+  string template_execution_id = 1;
+  string auth_token = 2; // Required for public API
+}
+
+message GetTemplateExecutionStatusResponse {
+  ExecutionTemplateExecution execution = 1;
+  ExecutionResult result = 2; // Only when completed
+}
+
+// Template version management
+message GetTemplateVersionsRequest {
+  string template_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message GetTemplateVersionsResponse {
+  repeated ExecutionTemplateVersion versions = 1;
+  int32 total_count = 2;
+}
+
+message RestoreTemplateVersionRequest {
+  string template_id = 1;
+  int32 version_number = 2;
+  string change_summary = 3;
+}
+
+message RestoreTemplateVersionResponse {
+  ExecutionTemplate template = 1;
+  ExecutionTemplateVersion new_version = 2;
+}
+
+// Auth token management
+message CreateTemplateAuthTokenRequest {
+  string template_id = 1;
+  ExecutionTemplateAuthToken token = 2;
+}
+
+message CreateTemplateAuthTokenResponse {
+  ExecutionTemplateAuthToken token = 1;
+}
+
+message ListTemplateAuthTokensRequest {
+  string template_id = 1;
+  bool include_inactive = 2;
+}
+
+message ListTemplateAuthTokensResponse {
+  repeated ExecutionTemplateAuthToken tokens = 1;
+}
+
+message UpdateTemplateAuthTokenRequest {
+  string token_id = 1;
+  ExecutionTemplateAuthToken token = 2;
+}
+
+message UpdateTemplateAuthTokenResponse {
+  ExecutionTemplateAuthToken token = 1;
+}
+
+message DeleteTemplateAuthTokenRequest {
+  string token_id = 1;
+}
+
+message DeleteTemplateAuthTokenResponse {
+  string message = 1;
+}
+
+// Template analytics
+message GetTemplateAnalyticsRequest {
+  string template_id = 1;
+  google.protobuf.Timestamp start_date = 2;
+  google.protobuf.Timestamp end_date = 3;
+}
+
+message GetTemplateAnalyticsResponse {
+  ExecutionTemplateAnalytics analytics = 1;
+}
+
+// Template execution history
+message GetTemplateExecutionHistoryRequest {
+  string template_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+  string status_filter = 4;
+  google.protobuf.Timestamp start_date = 5;
+  google.protobuf.Timestamp end_date = 6;
+}
+
+message GetTemplateExecutionHistoryResponse {
+  repeated ExecutionTemplateExecution executions = 1;
+  int32 total_count = 2;
+}
+
+// =============================================================================
 // GRPC SERVICE DEFINITIONS
 // =============================================================================
 
@@ -544,4 +864,29 @@ service GogentService {
 
   // Health & System
   rpc Health(HealthRequest) returns (HealthResponse);
+
+  // Execution Template Management (Authenticated Users)
+  rpc ListExecutionTemplates(ListExecutionTemplatesRequest) returns (ListExecutionTemplatesResponse);
+  rpc GetExecutionTemplate(GetExecutionTemplateRequest) returns (GetExecutionTemplateResponse);
+  rpc CreateExecutionTemplate(CreateExecutionTemplateRequest) returns (CreateExecutionTemplateResponse);
+  rpc UpdateExecutionTemplate(UpdateExecutionTemplateRequest) returns (UpdateExecutionTemplateResponse);
+  rpc DeleteExecutionTemplate(DeleteExecutionTemplateRequest) returns (DeleteExecutionTemplateResponse);
+
+  // Template Execution (Public API with token auth)
+  rpc ExecuteTemplate(ExecuteTemplateRequest) returns (ExecuteTemplateResponse);
+  rpc GetTemplateExecutionStatus(GetTemplateExecutionStatusRequest) returns (GetTemplateExecutionStatusResponse);
+
+  // Template Version Management
+  rpc GetTemplateVersions(GetTemplateVersionsRequest) returns (GetTemplateVersionsResponse);
+  rpc RestoreTemplateVersion(RestoreTemplateVersionRequest) returns (RestoreTemplateVersionResponse);
+
+  // Template Auth Token Management
+  rpc CreateTemplateAuthToken(CreateTemplateAuthTokenRequest) returns (CreateTemplateAuthTokenResponse);
+  rpc ListTemplateAuthTokens(ListTemplateAuthTokensRequest) returns (ListTemplateAuthTokensResponse);
+  rpc UpdateTemplateAuthToken(UpdateTemplateAuthTokenRequest) returns (UpdateTemplateAuthTokenResponse);
+  rpc DeleteTemplateAuthToken(DeleteTemplateAuthTokenRequest) returns (DeleteTemplateAuthTokenResponse);
+
+  // Template Analytics & History
+  rpc GetTemplateAnalytics(GetTemplateAnalyticsRequest) returns (GetTemplateAnalyticsResponse);
+  rpc GetTemplateExecutionHistory(GetTemplateExecutionHistoryRequest) returns (GetTemplateExecutionHistoryResponse);
 } 

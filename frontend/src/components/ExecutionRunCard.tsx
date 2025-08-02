@@ -14,6 +14,7 @@ const ExecutionRunCard: React.FC<ExecutionRunCardProps> = ({
   onPress,
   onDelete,
   onReExecute,
+  onCreateTemplate,
 }) => {
   const handleDelete = () => {
     AlertAPI.alert(
@@ -87,6 +88,14 @@ const ExecutionRunCard: React.FC<ExecutionRunCardProps> = ({
         </View>
 
         <View style={styles.actionsContainer}>
+          <TouchableOpacity
+            style={styles.createTemplateButton}
+            onPress={() => onCreateTemplate(executionRun)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="document-text-outline" size={20} color="#34C759" />
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.reExecuteButton}
             onPress={() => onReExecute(executionRun)}
@@ -199,6 +208,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  createTemplateButton: {
+    padding: 8,
+    borderRadius: 6,
+    backgroundColor: '#F0FDF4',
   },
   reExecuteButton: {
     padding: 8,

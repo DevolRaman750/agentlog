@@ -25,7 +25,7 @@
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro",
-      "output": "static",
+      "output": "single",
       "lang": "en",
       "customHeaders": [
         {
@@ -50,6 +50,9 @@
       "eas": {
         "projectId": "YOUR_EAS_PROJECT_ID"
       }
-    }
+    },
+    "plugins": [
+      "expo-router"
+    ]
   }
-} 
+}

@@ -95,7 +95,7 @@ const TextEditorExample: React.FC = () => {
           showCharacterCount={true}
           showWordCount={false}
           showLineNumbers={true}
-          language="javascript"
+          language="json"
         />
       </View>
 

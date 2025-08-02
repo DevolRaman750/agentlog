@@ -29,6 +29,7 @@ import ModelSelector, { SUPPORTED_MODELS } from '../components/ModelSelector';
 import { APIConfiguration, getResourceOwnership } from '../types';
 import { debugAuthState, clearAllAuthData, createTestUser } from '../utils/debugAuth';
 import TextEditor from '../components/TextEditor';
+import ParameterSlider from '../components/ParameterSlider';
 
 const { width } = Dimensions.get('window');
 
@@ -712,54 +713,7 @@ const NewConfigurationFormModal: React.FC<{
     maxTokens: editingConfig?.maxTokens || 500,
   });
 
-  // Separate string states for numeric inputs to allow proper editing
-  const [temperatureText, setTemperatureText] = useState(
-    editingConfig?.temperature?.toString() || '0.5'
-  );
-  const [maxTokensText, setMaxTokensText] = useState(
-    editingConfig?.maxTokens?.toString() || '500'
-  );
-
-  // Validation states
-  const [temperatureValid, setTemperatureValid] = useState(true);
-  const [maxTokensValid, setMaxTokensValid] = useState(true);
-
-  // Helper functions for numeric validation
-  const validateTemperature = (text: string): { isValid: boolean; value: number } => {
-    if (text.trim() === '') {
-      return { isValid: false, value: 0.5 }; // Default fallback
-    }
-    const num = parseFloat(text);
-    const isValid = !isNaN(num) && num >= 0 && num <= 1;
-    return { isValid, value: isValid ? num : 0.5 };
-  };
-
-  const validateMaxTokens = (text: string): { isValid: boolean; value: number } => {
-    if (text.trim() === '') {
-      return { isValid: false, value: 500 }; // Default fallback
-    }
-    const num = parseInt(text);
-    const isValid = !isNaN(num) && num >= 1 && num <= 8192; // Reasonable limits
-    return { isValid, value: isValid ? num : 500 };
-  };
-
-  const handleTemperatureChange = (text: string) => {
-    setTemperatureText(text);
-    const validation = validateTemperature(text);
-    setTemperatureValid(validation.isValid || text.trim() === ''); // Allow empty during editing
-    if (validation.isValid) {
-      setFormData(prev => ({ ...prev, temperature: validation.value }));
-    }
-  };
-
-  const handleMaxTokensChange = (text: string) => {
-    setMaxTokensText(text);
-    const validation = validateMaxTokens(text);
-    setMaxTokensValid(validation.isValid || text.trim() === ''); // Allow empty during editing
-    if (validation.isValid) {
-      setFormData(prev => ({ ...prev, maxTokens: validation.value }));
-    }
-  };
+  // Temperature and max tokens are now handled by the ParameterSlider components
 
   const handleSave = async () => {
     if (!formData.variationName.trim()) {
@@ -767,26 +721,8 @@ const NewConfigurationFormModal: React.FC<{
       return;
     }
 
-    // Validate numeric inputs before saving
-    const tempValidation = validateTemperature(temperatureText);
-    const tokensValidation = validateMaxTokens(maxTokensText);
-
-    if (!tempValidation.isValid) {
-      showError('Invalid Temperature', 'Temperature must be a number between 0.0 and 1.0');
-      return;
-    }
-
-    if (!tokensValidation.isValid) {
-      showError('Invalid Max Tokens', 'Max Tokens must be a number between 1 and 8192');
-      return;
-    }
-
-    // Update form data with validated values
-    const finalFormData = {
-      ...formData,
-      temperature: tempValidation.value,
-      maxTokens: tokensValidation.value,
-    };
+    // Values are already validated by the ParameterSlider components
+    const finalFormData = formData;
 
           try {
         if (isEditing && editingConfig) {
@@ -880,61 +816,68 @@ const NewConfigurationFormModal: React.FC<{
               showLineNumbers={false}
             />
             
-            <Text style={styles.inputLabel}>Temperature (0.0 - 1.0)</Text>
-            <View style={styles.numericInputContainer}>
-              <TextInput
-                style={[
-                  styles.input,
-                  !temperatureValid && styles.inputError
-                ]}
-                value={temperatureText}
-                onChangeText={handleTemperatureChange}
-                onBlur={() => {
-                  // Auto-fix empty or invalid values on blur
-                  if (!temperatureText.trim() || !temperatureValid) {
-                    const validation = validateTemperature(temperatureText);
-                    setTemperatureText(validation.value.toString());
-                    setTemperatureValid(true);
-                    setFormData(prev => ({ ...prev, temperature: validation.value }));
-                  }
-                }}
-                placeholder="0.5"
-                keyboardType="decimal-pad"
-                returnKeyType="next"
-                selectTextOnFocus={true}
-              />
-              {!temperatureValid && temperatureText.trim() !== '' && (
-                <Text style={styles.errorText}>Must be between 0.0 and 1.0</Text>
-              )}
-            </View>
+            <ParameterSlider
+              label="Temperature"
+              value={formData.temperature}
+              onValueChange={(newValue) => {
+                setFormData(prev => ({ ...prev, temperature: newValue }));
+              }}
+              min={0}
+              max={1}
+              step={0.1}
+              presets={[
+                { label: 'Precise', value: 0.1, description: 'Very focused and deterministic', useCase: 'Facts and analysis' },
+                { label: 'Factual', value: 0.3, description: 'Balanced and reliable', useCase: 'General questions' },
+                { label: 'Balanced', value: 0.5, description: 'Good mix of accuracy and creativity', useCase: 'Most use cases' },
+                { label: 'Creative', value: 0.7, description: 'More varied and imaginative', useCase: 'Writing and brainstorming' },
+                { label: 'Wild', value: 0.9, description: 'Very creative and unpredictable', useCase: 'Creative writing' },
+              ]}
+              helpInfo={{
+                title: 'Temperature Control',
+                description: 'Temperature controls the randomness and creativity of AI responses. It affects how the model selects words and phrases when generating text.',
+                lowValue: 'More predictable, focused, and consistent responses',
+                highValue: 'More creative, varied, and sometimes unpredictable responses',
+                recommendations: [
+                  { task: 'Data Analysis & Facts', range: '0.0 - 0.3', description: 'Use low temperature for factual questions, data analysis, and when you need consistent, reliable answers.' },
+                  { task: 'General Q&A', range: '0.3 - 0.5', description: 'Balanced approach for most everyday questions and tasks.' },
+                  { task: 'Creative Writing', range: '0.5 - 0.8', description: 'Higher temperature for stories, poems, and creative content generation.' },
+                  { task: 'Brainstorming', range: '0.6 - 0.9', description: 'High temperature for generating diverse ideas and creative solutions.' },
+                  { task: 'Code Generation', range: '0.1 - 0.4', description: 'Lower temperature for programming tasks to ensure syntax accuracy.' },
+                ]
+              }}
+            />
             
-            <Text style={styles.inputLabel}>Max Tokens (1 - 8192)</Text>
-            <View style={styles.numericInputContainer}>
-              <TextInput
-                style={[
-                  styles.input,
-                  !maxTokensValid && styles.inputError
-                ]}
-                value={maxTokensText}
-                onChangeText={handleMaxTokensChange}
-                onBlur={() => {
-                  // Auto-fix empty or invalid values on blur
-                  if (!maxTokensText.trim() || !maxTokensValid) {
-                    const validation = validateMaxTokens(maxTokensText);
-                    setMaxTokensText(validation.value.toString());
-                    setMaxTokensValid(true);
-                    setFormData(prev => ({ ...prev, maxTokens: validation.value }));
-                  }
-                }}
-                placeholder="500"
-                keyboardType="number-pad"
-                returnKeyType="done"
-                selectTextOnFocus={true}
-              />
-              {!maxTokensValid && maxTokensText.trim() !== '' && (
-                <Text style={styles.errorText}>Must be between 1 and 8192</Text>
-              )}
-            </View>
+            <ParameterSlider
+              label="Max Tokens"
+              value={formData.maxTokens}
+              onValueChange={(newValue) => {
+                setFormData(prev => ({ ...prev, maxTokens: newValue }));
+              }}
+              min={50}
+              max={4000}
+              step={50}
+              presets={[
+                { label: 'Short', value: 150, description: 'Brief responses', useCase: 'Quick answers' },
+                { label: 'Standard', value: 500, description: 'Balanced length responses', useCase: 'Most use cases' },
+                { label: 'Detailed', value: 1000, description: 'Comprehensive responses', useCase: 'Explanations' },
+                { label: 'Long-form', value: 2000, description: 'Extended content', useCase: 'Essays and articles' },
+                { label: 'Maximum', value: 4000, description: 'Very long responses', useCase: 'Reports and analysis' },
+              ]}
+              helpInfo={{
+                title: 'Maximum Tokens',
+                description: 'Tokens are pieces of words that the AI uses to understand and generate text. This setting controls the maximum length of responses you\'ll receive.',
+                lowValue: 'Shorter, more concise responses',
+                highValue: 'Longer, more detailed responses (but uses more API credits)',
+                recommendations: [
+                  { task: 'Quick Q&A', range: '50 - 300', description: 'Perfect for brief answers, definitions, and simple questions.' },
+                  { task: 'General Chat', range: '300 - 800', description: 'Good balance for most conversations and explanations.' },
+                  { task: 'Detailed Explanations', range: '800 - 1500', description: 'For complex topics that need thorough coverage.' },
+                  { task: 'Content Creation', range: '1500 - 3000', description: 'Essays, articles, and comprehensive content.' },
+                  { task: 'Code Generation', range: '500 - 2000', description: 'Depends on complexity - simple functions to full applications.' },
+                  { task: 'Data Analysis', range: '1000 - 4000', description: 'Detailed analysis and reporting on datasets.' },
+                ]
+              }}
+            />
           </ScrollView>
           
           <View style={styles.modalFooter}>

@@ -19,31 +19,46 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	GogentService_Login_FullMethodName                = "/gogent.GogentService/Login"
-	GogentService_Register_FullMethodName             = "/gogent.GogentService/Register"
-	GogentService_CreateTemporaryUser_FullMethodName  = "/gogent.GogentService/CreateTemporaryUser"
-	GogentService_SaveTemporaryAccount_FullMethodName = "/gogent.GogentService/SaveTemporaryAccount"
-	GogentService_VerifyEmail_FullMethodName          = "/gogent.GogentService/VerifyEmail"
-	GogentService_GetCurrentUser_FullMethodName       = "/gogent.GogentService/GetCurrentUser"
-	GogentService_Execute_FullMethodName              = "/gogent.GogentService/Execute"
-	GogentService_GetExecutionStatus_FullMethodName   = "/gogent.GogentService/GetExecutionStatus"
-	GogentService_GetExecutionResult_FullMethodName   = "/gogent.GogentService/GetExecutionResult"
-	GogentService_ListExecutionRuns_FullMethodName    = "/gogent.GogentService/ListExecutionRuns"
-	GogentService_DeleteExecutionRun_FullMethodName   = "/gogent.GogentService/DeleteExecutionRun"
-	GogentService_ListConfigurations_FullMethodName   = "/gogent.GogentService/ListConfigurations"
-	GogentService_CreateConfiguration_FullMethodName  = "/gogent.GogentService/CreateConfiguration"
-	GogentService_UpdateConfiguration_FullMethodName  = "/gogent.GogentService/UpdateConfiguration"
-	GogentService_DeleteConfiguration_FullMethodName  = "/gogent.GogentService/DeleteConfiguration"
-	GogentService_ListFunctions_FullMethodName        = "/gogent.GogentService/ListFunctions"
-	GogentService_GetFunction_FullMethodName          = "/gogent.GogentService/GetFunction"
-	GogentService_CreateFunction_FullMethodName       = "/gogent.GogentService/CreateFunction"
-	GogentService_UpdateFunction_FullMethodName       = "/gogent.GogentService/UpdateFunction"
-	GogentService_DeleteFunction_FullMethodName       = "/gogent.GogentService/DeleteFunction"
-	GogentService_TestFunction_FullMethodName         = "/gogent.GogentService/TestFunction"
-	GogentService_GetDatabaseStats_FullMethodName     = "/gogent.GogentService/GetDatabaseStats"
-	GogentService_ListDatabaseTables_FullMethodName   = "/gogent.GogentService/ListDatabaseTables"
-	GogentService_GetTableData_FullMethodName         = "/gogent.GogentService/GetTableData"
-	GogentService_Health_FullMethodName               = "/gogent.GogentService/Health"
+	GogentService_Login_FullMethodName                       = "/gogent.GogentService/Login"
+	GogentService_Register_FullMethodName                    = "/gogent.GogentService/Register"
+	GogentService_CreateTemporaryUser_FullMethodName         = "/gogent.GogentService/CreateTemporaryUser"
+	GogentService_SaveTemporaryAccount_FullMethodName        = "/gogent.GogentService/SaveTemporaryAccount"
+	GogentService_VerifyEmail_FullMethodName                 = "/gogent.GogentService/VerifyEmail"
+	GogentService_GetCurrentUser_FullMethodName              = "/gogent.GogentService/GetCurrentUser"
+	GogentService_Execute_FullMethodName                     = "/gogent.GogentService/Execute"
+	GogentService_GetExecutionStatus_FullMethodName          = "/gogent.GogentService/GetExecutionStatus"
+	GogentService_GetExecutionResult_FullMethodName          = "/gogent.GogentService/GetExecutionResult"
+	GogentService_ListExecutionRuns_FullMethodName           = "/gogent.GogentService/ListExecutionRuns"
+	GogentService_DeleteExecutionRun_FullMethodName          = "/gogent.GogentService/DeleteExecutionRun"
+	GogentService_ListConfigurations_FullMethodName          = "/gogent.GogentService/ListConfigurations"
+	GogentService_CreateConfiguration_FullMethodName         = "/gogent.GogentService/CreateConfiguration"
+	GogentService_UpdateConfiguration_FullMethodName         = "/gogent.GogentService/UpdateConfiguration"
+	GogentService_DeleteConfiguration_FullMethodName         = "/gogent.GogentService/DeleteConfiguration"
+	GogentService_ListFunctions_FullMethodName               = "/gogent.GogentService/ListFunctions"
+	GogentService_GetFunction_FullMethodName                 = "/gogent.GogentService/GetFunction"
+	GogentService_CreateFunction_FullMethodName              = "/gogent.GogentService/CreateFunction"
+	GogentService_UpdateFunction_FullMethodName              = "/gogent.GogentService/UpdateFunction"
+	GogentService_DeleteFunction_FullMethodName              = "/gogent.GogentService/DeleteFunction"
+	GogentService_TestFunction_FullMethodName                = "/gogent.GogentService/TestFunction"
+	GogentService_GetDatabaseStats_FullMethodName            = "/gogent.GogentService/GetDatabaseStats"
+	GogentService_ListDatabaseTables_FullMethodName          = "/gogent.GogentService/ListDatabaseTables"
+	GogentService_GetTableData_FullMethodName                = "/gogent.GogentService/GetTableData"
+	GogentService_Health_FullMethodName                      = "/gogent.GogentService/Health"
+	GogentService_ListExecutionTemplates_FullMethodName      = "/gogent.GogentService/ListExecutionTemplates"
+	GogentService_GetExecutionTemplate_FullMethodName        = "/gogent.GogentService/GetExecutionTemplate"
+	GogentService_CreateExecutionTemplate_FullMethodName     = "/gogent.GogentService/CreateExecutionTemplate"
+	GogentService_UpdateExecutionTemplate_FullMethodName     = "/gogent.GogentService/UpdateExecutionTemplate"
+	GogentService_DeleteExecutionTemplate_FullMethodName     = "/gogent.GogentService/DeleteExecutionTemplate"
+	GogentService_ExecuteTemplate_FullMethodName             = "/gogent.GogentService/ExecuteTemplate"
+	GogentService_GetTemplateExecutionStatus_FullMethodName  = "/gogent.GogentService/GetTemplateExecutionStatus"
+	GogentService_GetTemplateVersions_FullMethodName         = "/gogent.GogentService/GetTemplateVersions"
+	GogentService_RestoreTemplateVersion_FullMethodName      = "/gogent.GogentService/RestoreTemplateVersion"
+	GogentService_CreateTemplateAuthToken_FullMethodName     = "/gogent.GogentService/CreateTemplateAuthToken"
+	GogentService_ListTemplateAuthTokens_FullMethodName      = "/gogent.GogentService/ListTemplateAuthTokens"
+	GogentService_UpdateTemplateAuthToken_FullMethodName     = "/gogent.GogentService/UpdateTemplateAuthToken"
+	GogentService_DeleteTemplateAuthToken_FullMethodName     = "/gogent.GogentService/DeleteTemplateAuthToken"
+	GogentService_GetTemplateAnalytics_FullMethodName        = "/gogent.GogentService/GetTemplateAnalytics"
+	GogentService_GetTemplateExecutionHistory_FullMethodName = "/gogent.GogentService/GetTemplateExecutionHistory"
 )
 
 // GogentServiceClient is the client API for GogentService service.
@@ -83,6 +98,26 @@ type GogentServiceClient interface {
 	GetTableData(ctx context.Context, in *GetTableDataRequest, opts ...grpc.CallOption) (*GetTableDataResponse, error)
 	// Health & System
 	Health(ctx context.Context, in *HealthRequest, opts ...grpc.CallOption) (*HealthResponse, error)
+	// Execution Template Management (Authenticated Users)
+	ListExecutionTemplates(ctx context.Context, in *ListExecutionTemplatesRequest, opts ...grpc.CallOption) (*ListExecutionTemplatesResponse, error)
+	GetExecutionTemplate(ctx context.Context, in *GetExecutionTemplateRequest, opts ...grpc.CallOption) (*GetExecutionTemplateResponse, error)
+	CreateExecutionTemplate(ctx context.Context, in *CreateExecutionTemplateRequest, opts ...grpc.CallOption) (*CreateExecutionTemplateResponse, error)
+	UpdateExecutionTemplate(ctx context.Context, in *UpdateExecutionTemplateRequest, opts ...grpc.CallOption) (*UpdateExecutionTemplateResponse, error)
+	DeleteExecutionTemplate(ctx context.Context, in *DeleteExecutionTemplateRequest, opts ...grpc.CallOption) (*DeleteExecutionTemplateResponse, error)
+	// Template Execution (Public API with token auth)
+	ExecuteTemplate(ctx context.Context, in *ExecuteTemplateRequest, opts ...grpc.CallOption) (*ExecuteTemplateResponse, error)
+	GetTemplateExecutionStatus(ctx context.Context, in *GetTemplateExecutionStatusRequest, opts ...grpc.CallOption) (*GetTemplateExecutionStatusResponse, error)
+	// Template Version Management
+	GetTemplateVersions(ctx context.Context, in *GetTemplateVersionsRequest, opts ...grpc.CallOption) (*GetTemplateVersionsResponse, error)
+	RestoreTemplateVersion(ctx context.Context, in *RestoreTemplateVersionRequest, opts ...grpc.CallOption) (*RestoreTemplateVersionResponse, error)
+	// Template Auth Token Management
+	CreateTemplateAuthToken(ctx context.Context, in *CreateTemplateAuthTokenRequest, opts ...grpc.CallOption) (*CreateTemplateAuthTokenResponse, error)
+	ListTemplateAuthTokens(ctx context.Context, in *ListTemplateAuthTokensRequest, opts ...grpc.CallOption) (*ListTemplateAuthTokensResponse, error)
+	UpdateTemplateAuthToken(ctx context.Context, in *UpdateTemplateAuthTokenRequest, opts ...grpc.CallOption) (*UpdateTemplateAuthTokenResponse, error)
+	DeleteTemplateAuthToken(ctx context.Context, in *DeleteTemplateAuthTokenRequest, opts ...grpc.CallOption) (*DeleteTemplateAuthTokenResponse, error)
+	// Template Analytics & History
+	GetTemplateAnalytics(ctx context.Context, in *GetTemplateAnalyticsRequest, opts ...grpc.CallOption) (*GetTemplateAnalyticsResponse, error)
+	GetTemplateExecutionHistory(ctx context.Context, in *GetTemplateExecutionHistoryRequest, opts ...grpc.CallOption) (*GetTemplateExecutionHistoryResponse, error)
 }
 
 type gogentServiceClient struct {
@@ -343,6 +378,156 @@ func (c *gogentServiceClient) Health(ctx context.Context, in *HealthRequest, opt
 	return out, nil
 }
 
+func (c *gogentServiceClient) ListExecutionTemplates(ctx context.Context, in *ListExecutionTemplatesRequest, opts ...grpc.CallOption) (*ListExecutionTemplatesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListExecutionTemplatesResponse)
+	err := c.cc.Invoke(ctx, GogentService_ListExecutionTemplates_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gogentServiceClient) GetExecutionTemplate(ctx context.Context, in *GetExecutionTemplateRequest, opts ...grpc.CallOption) (*GetExecutionTemplateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetExecutionTemplateResponse)
+	err := c.cc.Invoke(ctx, GogentService_GetExecutionTemplate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gogentServiceClient) CreateExecutionTemplate(ctx context.Context, in *CreateExecutionTemplateRequest, opts ...grpc.CallOption) (*CreateExecutionTemplateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateExecutionTemplateResponse)
+	err := c.cc.Invoke(ctx, GogentService_CreateExecutionTemplate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gogentServiceClient) UpdateExecutionTemplate(ctx context.Context, in *UpdateExecutionTemplateRequest, opts ...grpc.CallOption) (*UpdateExecutionTemplateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateExecutionTemplateResponse)
+	err := c.cc.Invoke(ctx, GogentService_UpdateExecutionTemplate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gogentServiceClient) DeleteExecutionTemplate(ctx context.Context, in *DeleteExecutionTemplateRequest, opts ...grpc.CallOption) (*DeleteExecutionTemplateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteExecutionTemplateResponse)
+	err := c.cc.Invoke(ctx, GogentService_DeleteExecutionTemplate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gogentServiceClient) ExecuteTemplate(ctx context.Context, in *ExecuteTemplateRequest, opts ...grpc.CallOption) (*ExecuteTemplateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ExecuteTemplateResponse)
+	err := c.cc.Invoke(ctx, GogentService_ExecuteTemplate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gogentServiceClient) GetTemplateExecutionStatus(ctx context.Context, in *GetTemplateExecutionStatusRequest, opts ...grpc.CallOption) (*GetTemplateExecutionStatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetTemplateExecutionStatusResponse)
+	err := c.cc.Invoke(ctx, GogentService_GetTemplateExecutionStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gogentServiceClient) GetTemplateVersions(ctx context.Context, in *GetTemplateVersionsRequest, opts ...grpc.CallOption) (*GetTemplateVersionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetTemplateVersionsResponse)
+	err := c.cc.Invoke(ctx, GogentService_GetTemplateVersions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gogentServiceClient) RestoreTemplateVersion(ctx context.Context, in *RestoreTemplateVersionRequest, opts ...grpc.CallOption) (*RestoreTemplateVersionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RestoreTemplateVersionResponse)
+	err := c.cc.Invoke(ctx, GogentService_RestoreTemplateVersion_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gogentServiceClient) CreateTemplateAuthToken(ctx context.Context, in *CreateTemplateAuthTokenRequest, opts ...grpc.CallOption) (*CreateTemplateAuthTokenResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateTemplateAuthTokenResponse)
+	err := c.cc.Invoke(ctx, GogentService_CreateTemplateAuthToken_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gogentServiceClient) ListTemplateAuthTokens(ctx context.Context, in *ListTemplateAuthTokensRequest, opts ...grpc.CallOption) (*ListTemplateAuthTokensResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListTemplateAuthTokensResponse)
+	err := c.cc.Invoke(ctx, GogentService_ListTemplateAuthTokens_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gogentServiceClient) UpdateTemplateAuthToken(ctx context.Context, in *UpdateTemplateAuthTokenRequest, opts ...grpc.CallOption) (*UpdateTemplateAuthTokenResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateTemplateAuthTokenResponse)
+	err := c.cc.Invoke(ctx, GogentService_UpdateTemplateAuthToken_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gogentServiceClient) DeleteTemplateAuthToken(ctx context.Context, in *DeleteTemplateAuthTokenRequest, opts ...grpc.CallOption) (*DeleteTemplateAuthTokenResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteTemplateAuthTokenResponse)
+	err := c.cc.Invoke(ctx, GogentService_DeleteTemplateAuthToken_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gogentServiceClient) GetTemplateAnalytics(ctx context.Context, in *GetTemplateAnalyticsRequest, opts ...grpc.CallOption) (*GetTemplateAnalyticsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetTemplateAnalyticsResponse)
+	err := c.cc.Invoke(ctx, GogentService_GetTemplateAnalytics_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gogentServiceClient) GetTemplateExecutionHistory(ctx context.Context, in *GetTemplateExecutionHistoryRequest, opts ...grpc.CallOption) (*GetTemplateExecutionHistoryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetTemplateExecutionHistoryResponse)
+	err := c.cc.Invoke(ctx, GogentService_GetTemplateExecutionHistory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GogentServiceServer is the server API for GogentService service.
 // All implementations must embed UnimplementedGogentServiceServer
 // for forward compatibility.
@@ -380,6 +565,26 @@ type GogentServiceServer interface {
 	GetTableData(context.Context, *GetTableDataRequest) (*GetTableDataResponse, error)
 	// Health & System
 	Health(context.Context, *HealthRequest) (*HealthResponse, error)
+	// Execution Template Management (Authenticated Users)
+	ListExecutionTemplates(context.Context, *ListExecutionTemplatesRequest) (*ListExecutionTemplatesResponse, error)
+	GetExecutionTemplate(context.Context, *GetExecutionTemplateRequest) (*GetExecutionTemplateResponse, error)
+	CreateExecutionTemplate(context.Context, *CreateExecutionTemplateRequest) (*CreateExecutionTemplateResponse, error)
+	UpdateExecutionTemplate(context.Context, *UpdateExecutionTemplateRequest) (*UpdateExecutionTemplateResponse, error)
+	DeleteExecutionTemplate(context.Context, *DeleteExecutionTemplateRequest) (*DeleteExecutionTemplateResponse, error)
+	// Template Execution (Public API with token auth)
+	ExecuteTemplate(context.Context, *ExecuteTemplateRequest) (*ExecuteTemplateResponse, error)
+	GetTemplateExecutionStatus(context.Context, *GetTemplateExecutionStatusRequest) (*GetTemplateExecutionStatusResponse, error)
+	// Template Version Management
+	GetTemplateVersions(context.Context, *GetTemplateVersionsRequest) (*GetTemplateVersionsResponse, error)
+	RestoreTemplateVersion(context.Context, *RestoreTemplateVersionRequest) (*RestoreTemplateVersionResponse, error)
+	// Template Auth Token Management
+	CreateTemplateAuthToken(context.Context, *CreateTemplateAuthTokenRequest) (*CreateTemplateAuthTokenResponse, error)
+	ListTemplateAuthTokens(context.Context, *ListTemplateAuthTokensRequest) (*ListTemplateAuthTokensResponse, error)
+	UpdateTemplateAuthToken(context.Context, *UpdateTemplateAuthTokenRequest) (*UpdateTemplateAuthTokenResponse, error)
+	DeleteTemplateAuthToken(context.Context, *DeleteTemplateAuthTokenRequest) (*DeleteTemplateAuthTokenResponse, error)
+	// Template Analytics & History
+	GetTemplateAnalytics(context.Context, *GetTemplateAnalyticsRequest) (*GetTemplateAnalyticsResponse, error)
+	GetTemplateExecutionHistory(context.Context, *GetTemplateExecutionHistoryRequest) (*GetTemplateExecutionHistoryResponse, error)
 	mustEmbedUnimplementedGogentServiceServer()
 }
 
@@ -464,6 +669,51 @@ func (UnimplementedGogentServiceServer) GetTableData(context.Context, *GetTableD
 }
 func (UnimplementedGogentServiceServer) Health(context.Context, *HealthRequest) (*HealthResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Health not implemented")
+}
+func (UnimplementedGogentServiceServer) ListExecutionTemplates(context.Context, *ListExecutionTemplatesRequest) (*ListExecutionTemplatesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListExecutionTemplates not implemented")
+}
+func (UnimplementedGogentServiceServer) GetExecutionTemplate(context.Context, *GetExecutionTemplateRequest) (*GetExecutionTemplateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetExecutionTemplate not implemented")
+}
+func (UnimplementedGogentServiceServer) CreateExecutionTemplate(context.Context, *CreateExecutionTemplateRequest) (*CreateExecutionTemplateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateExecutionTemplate not implemented")
+}
+func (UnimplementedGogentServiceServer) UpdateExecutionTemplate(context.Context, *UpdateExecutionTemplateRequest) (*UpdateExecutionTemplateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateExecutionTemplate not implemented")
+}
+func (UnimplementedGogentServiceServer) DeleteExecutionTemplate(context.Context, *DeleteExecutionTemplateRequest) (*DeleteExecutionTemplateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteExecutionTemplate not implemented")
+}
+func (UnimplementedGogentServiceServer) ExecuteTemplate(context.Context, *ExecuteTemplateRequest) (*ExecuteTemplateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ExecuteTemplate not implemented")
+}
+func (UnimplementedGogentServiceServer) GetTemplateExecutionStatus(context.Context, *GetTemplateExecutionStatusRequest) (*GetTemplateExecutionStatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTemplateExecutionStatus not implemented")
+}
+func (UnimplementedGogentServiceServer) GetTemplateVersions(context.Context, *GetTemplateVersionsRequest) (*GetTemplateVersionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTemplateVersions not implemented")
+}
+func (UnimplementedGogentServiceServer) RestoreTemplateVersion(context.Context, *RestoreTemplateVersionRequest) (*RestoreTemplateVersionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RestoreTemplateVersion not implemented")
+}
+func (UnimplementedGogentServiceServer) CreateTemplateAuthToken(context.Context, *CreateTemplateAuthTokenRequest) (*CreateTemplateAuthTokenResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateTemplateAuthToken not implemented")
+}
+func (UnimplementedGogentServiceServer) ListTemplateAuthTokens(context.Context, *ListTemplateAuthTokensRequest) (*ListTemplateAuthTokensResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListTemplateAuthTokens not implemented")
+}
+func (UnimplementedGogentServiceServer) UpdateTemplateAuthToken(context.Context, *UpdateTemplateAuthTokenRequest) (*UpdateTemplateAuthTokenResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateTemplateAuthToken not implemented")
+}
+func (UnimplementedGogentServiceServer) DeleteTemplateAuthToken(context.Context, *DeleteTemplateAuthTokenRequest) (*DeleteTemplateAuthTokenResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteTemplateAuthToken not implemented")
+}
+func (UnimplementedGogentServiceServer) GetTemplateAnalytics(context.Context, *GetTemplateAnalyticsRequest) (*GetTemplateAnalyticsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTemplateAnalytics not implemented")
+}
+func (UnimplementedGogentServiceServer) GetTemplateExecutionHistory(context.Context, *GetTemplateExecutionHistoryRequest) (*GetTemplateExecutionHistoryResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTemplateExecutionHistory not implemented")
 }
 func (UnimplementedGogentServiceServer) mustEmbedUnimplementedGogentServiceServer() {}
 func (UnimplementedGogentServiceServer) testEmbeddedByValue()                       {}
@@ -936,6 +1186,276 @@ func _GogentService_Health_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GogentService_ListExecutionTemplates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListExecutionTemplatesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GogentServiceServer).ListExecutionTemplates(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GogentService_ListExecutionTemplates_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GogentServiceServer).ListExecutionTemplates(ctx, req.(*ListExecutionTemplatesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GogentService_GetExecutionTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetExecutionTemplateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GogentServiceServer).GetExecutionTemplate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GogentService_GetExecutionTemplate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GogentServiceServer).GetExecutionTemplate(ctx, req.(*GetExecutionTemplateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GogentService_CreateExecutionTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateExecutionTemplateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GogentServiceServer).CreateExecutionTemplate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GogentService_CreateExecutionTemplate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GogentServiceServer).CreateExecutionTemplate(ctx, req.(*CreateExecutionTemplateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GogentService_UpdateExecutionTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateExecutionTemplateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GogentServiceServer).UpdateExecutionTemplate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GogentService_UpdateExecutionTemplate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GogentServiceServer).UpdateExecutionTemplate(ctx, req.(*UpdateExecutionTemplateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GogentService_DeleteExecutionTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteExecutionTemplateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GogentServiceServer).DeleteExecutionTemplate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GogentService_DeleteExecutionTemplate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GogentServiceServer).DeleteExecutionTemplate(ctx, req.(*DeleteExecutionTemplateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GogentService_ExecuteTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExecuteTemplateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GogentServiceServer).ExecuteTemplate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GogentService_ExecuteTemplate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GogentServiceServer).ExecuteTemplate(ctx, req.(*ExecuteTemplateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GogentService_GetTemplateExecutionStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTemplateExecutionStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GogentServiceServer).GetTemplateExecutionStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GogentService_GetTemplateExecutionStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GogentServiceServer).GetTemplateExecutionStatus(ctx, req.(*GetTemplateExecutionStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GogentService_GetTemplateVersions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTemplateVersionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GogentServiceServer).GetTemplateVersions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GogentService_GetTemplateVersions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GogentServiceServer).GetTemplateVersions(ctx, req.(*GetTemplateVersionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GogentService_RestoreTemplateVersion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RestoreTemplateVersionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GogentServiceServer).RestoreTemplateVersion(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GogentService_RestoreTemplateVersion_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GogentServiceServer).RestoreTemplateVersion(ctx, req.(*RestoreTemplateVersionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GogentService_CreateTemplateAuthToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateTemplateAuthTokenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GogentServiceServer).CreateTemplateAuthToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GogentService_CreateTemplateAuthToken_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GogentServiceServer).CreateTemplateAuthToken(ctx, req.(*CreateTemplateAuthTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GogentService_ListTemplateAuthTokens_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListTemplateAuthTokensRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GogentServiceServer).ListTemplateAuthTokens(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GogentService_ListTemplateAuthTokens_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GogentServiceServer).ListTemplateAuthTokens(ctx, req.(*ListTemplateAuthTokensRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GogentService_UpdateTemplateAuthToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateTemplateAuthTokenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GogentServiceServer).UpdateTemplateAuthToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GogentService_UpdateTemplateAuthToken_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GogentServiceServer).UpdateTemplateAuthToken(ctx, req.(*UpdateTemplateAuthTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GogentService_DeleteTemplateAuthToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteTemplateAuthTokenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GogentServiceServer).DeleteTemplateAuthToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GogentService_DeleteTemplateAuthToken_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GogentServiceServer).DeleteTemplateAuthToken(ctx, req.(*DeleteTemplateAuthTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GogentService_GetTemplateAnalytics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTemplateAnalyticsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GogentServiceServer).GetTemplateAnalytics(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GogentService_GetTemplateAnalytics_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GogentServiceServer).GetTemplateAnalytics(ctx, req.(*GetTemplateAnalyticsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GogentService_GetTemplateExecutionHistory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTemplateExecutionHistoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GogentServiceServer).GetTemplateExecutionHistory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GogentService_GetTemplateExecutionHistory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GogentServiceServer).GetTemplateExecutionHistory(ctx, req.(*GetTemplateExecutionHistoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GogentService_ServiceDesc is the grpc.ServiceDesc for GogentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1042,6 +1562,66 @@ var GogentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Health",
 			Handler:    _GogentService_Health_Handler,
+		},
+		{
+			MethodName: "ListExecutionTemplates",
+			Handler:    _GogentService_ListExecutionTemplates_Handler,
+		},
+		{
+			MethodName: "GetExecutionTemplate",
+			Handler:    _GogentService_GetExecutionTemplate_Handler,
+		},
+		{
+			MethodName: "CreateExecutionTemplate",
+			Handler:    _GogentService_CreateExecutionTemplate_Handler,
+		},
+		{
+			MethodName: "UpdateExecutionTemplate",
+			Handler:    _GogentService_UpdateExecutionTemplate_Handler,
+		},
+		{
+			MethodName: "DeleteExecutionTemplate",
+			Handler:    _GogentService_DeleteExecutionTemplate_Handler,
+		},
+		{
+			MethodName: "ExecuteTemplate",
+			Handler:    _GogentService_ExecuteTemplate_Handler,
+		},
+		{
+			MethodName: "GetTemplateExecutionStatus",
+			Handler:    _GogentService_GetTemplateExecutionStatus_Handler,
+		},
+		{
+			MethodName: "GetTemplateVersions",
+			Handler:    _GogentService_GetTemplateVersions_Handler,
+		},
+		{
+			MethodName: "RestoreTemplateVersion",
+			Handler:    _GogentService_RestoreTemplateVersion_Handler,
+		},
+		{
+			MethodName: "CreateTemplateAuthToken",
+			Handler:    _GogentService_CreateTemplateAuthToken_Handler,
+		},
+		{
+			MethodName: "ListTemplateAuthTokens",
+			Handler:    _GogentService_ListTemplateAuthTokens_Handler,
+		},
+		{
+			MethodName: "UpdateTemplateAuthToken",
+			Handler:    _GogentService_UpdateTemplateAuthToken_Handler,
+		},
+		{
+			MethodName: "DeleteTemplateAuthToken",
+			Handler:    _GogentService_DeleteTemplateAuthToken_Handler,
+		},
+		{
+			MethodName: "GetTemplateAnalytics",
+			Handler:    _GogentService_GetTemplateAnalytics_Handler,
+		},
+		{
+			MethodName: "GetTemplateExecutionHistory",
+			Handler:    _GogentService_GetTemplateExecutionHistory_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

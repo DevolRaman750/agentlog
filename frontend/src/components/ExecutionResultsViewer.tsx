@@ -352,7 +352,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
                         <View key={funcIndex} style={styles.functionCall}>
                           <Text style={styles.functionName}>{funcCall.functionName}</Text>
                           <Text style={styles.functionResult} numberOfLines={2}>
-                            {typeof funcCall.result === 'string' ? funcCall.result : JSON.stringify(funcCall.result)}
+                            {typeof funcCall.functionResponse === 'string' ? funcCall.functionResponse : JSON.stringify(funcCall.functionResponse || {})}
                           </Text>
                         </View>
                       ))}

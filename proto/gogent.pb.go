@@ -4119,6 +4119,2709 @@ func (x *ComparisonConfig) GetCustomRules() []string {
 	return nil
 }
 
+// Execution template definition
+type ExecutionTemplate struct {
+	state                   protoimpl.MessageState `protogen:"open.v1"`
+	Id                      string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	UserId                  string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Name                    string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Description             string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+	TemplatePrompt          string                 `protobuf:"bytes,5,opt,name=template_prompt,json=templatePrompt,proto3" json:"template_prompt,omitempty"`
+	ContextTemplate         string                 `protobuf:"bytes,6,opt,name=context_template,json=contextTemplate,proto3" json:"context_template,omitempty"`
+	EnableFunctionCalling   bool                   `protobuf:"varint,7,opt,name=enable_function_calling,json=enableFunctionCalling,proto3" json:"enable_function_calling,omitempty"`
+	IsActive                bool                   `protobuf:"varint,8,opt,name=is_active,json=isActive,proto3" json:"is_active,omitempty"`
+	IsPublic                bool                   `protobuf:"varint,9,opt,name=is_public,json=isPublic,proto3" json:"is_public,omitempty"`
+	Category                string                 `protobuf:"bytes,10,opt,name=category,proto3" json:"category,omitempty"`
+	Tags                    *structpb.Struct       `protobuf:"bytes,11,opt,name=tags,proto3" json:"tags,omitempty"`
+	ExecutionTimeoutSeconds int32                  `protobuf:"varint,12,opt,name=execution_timeout_seconds,json=executionTimeoutSeconds,proto3" json:"execution_timeout_seconds,omitempty"`
+	// Rate limiting configuration
+	RateLimitPerHour int32 `protobuf:"varint,13,opt,name=rate_limit_per_hour,json=rateLimitPerHour,proto3" json:"rate_limit_per_hour,omitempty"`
+	RateLimitPerDay  int32 `protobuf:"varint,14,opt,name=rate_limit_per_day,json=rateLimitPerDay,proto3" json:"rate_limit_per_day,omitempty"`
+	RateLimitBurst   int32 `protobuf:"varint,15,opt,name=rate_limit_burst,json=rateLimitBurst,proto3" json:"rate_limit_burst,omitempty"`
+	// Usage tracking
+	TotalExecutions int32                  `protobuf:"varint,16,opt,name=total_executions,json=totalExecutions,proto3" json:"total_executions,omitempty"`
+	LastExecutedAt  *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=last_executed_at,json=lastExecutedAt,proto3" json:"last_executed_at,omitempty"`
+	CreatedAt       *timestamppb.Timestamp `protobuf:"bytes,18,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt       *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// Populated from joins
+	Parameters    []*ExecutionTemplateParameter `protobuf:"bytes,20,rep,name=parameters,proto3" json:"parameters,omitempty"`
+	AuthTokens    []*ExecutionTemplateAuthToken `protobuf:"bytes,21,rep,name=auth_tokens,json=authTokens,proto3" json:"auth_tokens,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExecutionTemplate) Reset() {
+	*x = ExecutionTemplate{}
+	mi := &file_proto_gogent_proto_msgTypes[63]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExecutionTemplate) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExecutionTemplate) ProtoMessage() {}
+
+func (x *ExecutionTemplate) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[63]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExecutionTemplate.ProtoReflect.Descriptor instead.
+func (*ExecutionTemplate) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{63}
+}
+
+func (x *ExecutionTemplate) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ExecutionTemplate) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *ExecutionTemplate) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *ExecutionTemplate) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *ExecutionTemplate) GetTemplatePrompt() string {
+	if x != nil {
+		return x.TemplatePrompt
+	}
+	return ""
+}
+
+func (x *ExecutionTemplate) GetContextTemplate() string {
+	if x != nil {
+		return x.ContextTemplate
+	}
+	return ""
+}
+
+func (x *ExecutionTemplate) GetEnableFunctionCalling() bool {
+	if x != nil {
+		return x.EnableFunctionCalling
+	}
+	return false
+}
+
+func (x *ExecutionTemplate) GetIsActive() bool {
+	if x != nil {
+		return x.IsActive
+	}
+	return false
+}
+
+func (x *ExecutionTemplate) GetIsPublic() bool {
+	if x != nil {
+		return x.IsPublic
+	}
+	return false
+}
+
+func (x *ExecutionTemplate) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
+func (x *ExecutionTemplate) GetTags() *structpb.Struct {
+	if x != nil {
+		return x.Tags
+	}
+	return nil
+}
+
+func (x *ExecutionTemplate) GetExecutionTimeoutSeconds() int32 {
+	if x != nil {
+		return x.ExecutionTimeoutSeconds
+	}
+	return 0
+}
+
+func (x *ExecutionTemplate) GetRateLimitPerHour() int32 {
+	if x != nil {
+		return x.RateLimitPerHour
+	}
+	return 0
+}
+
+func (x *ExecutionTemplate) GetRateLimitPerDay() int32 {
+	if x != nil {
+		return x.RateLimitPerDay
+	}
+	return 0
+}
+
+func (x *ExecutionTemplate) GetRateLimitBurst() int32 {
+	if x != nil {
+		return x.RateLimitBurst
+	}
+	return 0
+}
+
+func (x *ExecutionTemplate) GetTotalExecutions() int32 {
+	if x != nil {
+		return x.TotalExecutions
+	}
+	return 0
+}
+
+func (x *ExecutionTemplate) GetLastExecutedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LastExecutedAt
+	}
+	return nil
+}
+
+func (x *ExecutionTemplate) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *ExecutionTemplate) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+func (x *ExecutionTemplate) GetParameters() []*ExecutionTemplateParameter {
+	if x != nil {
+		return x.Parameters
+	}
+	return nil
+}
+
+func (x *ExecutionTemplate) GetAuthTokens() []*ExecutionTemplateAuthToken {
+	if x != nil {
+		return x.AuthTokens
+	}
+	return nil
+}
+
+// Template parameter definition
+type ExecutionTemplateParameter struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Id                string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	TemplateId        string                 `protobuf:"bytes,2,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
+	ParameterName     string                 `protobuf:"bytes,3,opt,name=parameter_name,json=parameterName,proto3" json:"parameter_name,omitempty"`
+	ParameterType     string                 `protobuf:"bytes,4,opt,name=parameter_type,json=parameterType,proto3" json:"parameter_type,omitempty"` // string, number, boolean, array, object
+	Description       string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
+	DefaultValue      string                 `protobuf:"bytes,6,opt,name=default_value,json=defaultValue,proto3" json:"default_value,omitempty"`
+	IsRequired        bool                   `protobuf:"varint,7,opt,name=is_required,json=isRequired,proto3" json:"is_required,omitempty"`
+	ValidationRules   *structpb.Struct       `protobuf:"bytes,8,opt,name=validation_rules,json=validationRules,proto3" json:"validation_rules,omitempty"`
+	AllowedValues     *structpb.Struct       `protobuf:"bytes,9,opt,name=allowed_values,json=allowedValues,proto3" json:"allowed_values,omitempty"`
+	AllowSqlKeywords  bool                   `protobuf:"varint,10,opt,name=allow_sql_keywords,json=allowSqlKeywords,proto3" json:"allow_sql_keywords,omitempty"`
+	AllowSpecialChars bool                   `protobuf:"varint,11,opt,name=allow_special_chars,json=allowSpecialChars,proto3" json:"allow_special_chars,omitempty"`
+	SanitizeHtml      bool                   `protobuf:"varint,12,opt,name=sanitize_html,json=sanitizeHtml,proto3" json:"sanitize_html,omitempty"`
+	DisplayOrder      int32                  `protobuf:"varint,13,opt,name=display_order,json=displayOrder,proto3" json:"display_order,omitempty"`
+	UiComponent       string                 `protobuf:"bytes,14,opt,name=ui_component,json=uiComponent,proto3" json:"ui_component,omitempty"` // text, textarea, select, etc.
+	PlaceholderText   string                 `protobuf:"bytes,15,opt,name=placeholder_text,json=placeholderText,proto3" json:"placeholder_text,omitempty"`
+	HelpText          string                 `protobuf:"bytes,16,opt,name=help_text,json=helpText,proto3" json:"help_text,omitempty"`
+	CreatedAt         *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt         *timestamppb.Timestamp `protobuf:"bytes,18,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *ExecutionTemplateParameter) Reset() {
+	*x = ExecutionTemplateParameter{}
+	mi := &file_proto_gogent_proto_msgTypes[64]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExecutionTemplateParameter) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExecutionTemplateParameter) ProtoMessage() {}
+
+func (x *ExecutionTemplateParameter) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[64]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExecutionTemplateParameter.ProtoReflect.Descriptor instead.
+func (*ExecutionTemplateParameter) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{64}
+}
+
+func (x *ExecutionTemplateParameter) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateParameter) GetTemplateId() string {
+	if x != nil {
+		return x.TemplateId
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateParameter) GetParameterName() string {
+	if x != nil {
+		return x.ParameterName
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateParameter) GetParameterType() string {
+	if x != nil {
+		return x.ParameterType
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateParameter) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateParameter) GetDefaultValue() string {
+	if x != nil {
+		return x.DefaultValue
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateParameter) GetIsRequired() bool {
+	if x != nil {
+		return x.IsRequired
+	}
+	return false
+}
+
+func (x *ExecutionTemplateParameter) GetValidationRules() *structpb.Struct {
+	if x != nil {
+		return x.ValidationRules
+	}
+	return nil
+}
+
+func (x *ExecutionTemplateParameter) GetAllowedValues() *structpb.Struct {
+	if x != nil {
+		return x.AllowedValues
+	}
+	return nil
+}
+
+func (x *ExecutionTemplateParameter) GetAllowSqlKeywords() bool {
+	if x != nil {
+		return x.AllowSqlKeywords
+	}
+	return false
+}
+
+func (x *ExecutionTemplateParameter) GetAllowSpecialChars() bool {
+	if x != nil {
+		return x.AllowSpecialChars
+	}
+	return false
+}
+
+func (x *ExecutionTemplateParameter) GetSanitizeHtml() bool {
+	if x != nil {
+		return x.SanitizeHtml
+	}
+	return false
+}
+
+func (x *ExecutionTemplateParameter) GetDisplayOrder() int32 {
+	if x != nil {
+		return x.DisplayOrder
+	}
+	return 0
+}
+
+func (x *ExecutionTemplateParameter) GetUiComponent() string {
+	if x != nil {
+		return x.UiComponent
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateParameter) GetPlaceholderText() string {
+	if x != nil {
+		return x.PlaceholderText
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateParameter) GetHelpText() string {
+	if x != nil {
+		return x.HelpText
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateParameter) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *ExecutionTemplateParameter) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+// Authentication token for public API access
+type ExecutionTemplateAuthToken struct {
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Id          string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	TemplateId  string                 `protobuf:"bytes,2,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
+	UserId      string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	TokenValue  string                 `protobuf:"bytes,4,opt,name=token_value,json=tokenValue,proto3" json:"token_value,omitempty"`
+	TokenName   string                 `protobuf:"bytes,5,opt,name=token_name,json=tokenName,proto3" json:"token_name,omitempty"`
+	Description string                 `protobuf:"bytes,6,opt,name=description,proto3" json:"description,omitempty"`
+	IsActive    bool                   `protobuf:"varint,7,opt,name=is_active,json=isActive,proto3" json:"is_active,omitempty"`
+	ExpiresAt   *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	// Rate limiting overrides
+	CustomRateLimitPerHour int32 `protobuf:"varint,9,opt,name=custom_rate_limit_per_hour,json=customRateLimitPerHour,proto3" json:"custom_rate_limit_per_hour,omitempty"`
+	CustomRateLimitPerDay  int32 `protobuf:"varint,10,opt,name=custom_rate_limit_per_day,json=customRateLimitPerDay,proto3" json:"custom_rate_limit_per_day,omitempty"`
+	CustomRateLimitBurst   int32 `protobuf:"varint,11,opt,name=custom_rate_limit_burst,json=customRateLimitBurst,proto3" json:"custom_rate_limit_burst,omitempty"`
+	// Usage tracking
+	TotalUses  int32                  `protobuf:"varint,12,opt,name=total_uses,json=totalUses,proto3" json:"total_uses,omitempty"`
+	LastUsedAt *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=last_used_at,json=lastUsedAt,proto3" json:"last_used_at,omitempty"`
+	LastUsedIp string                 `protobuf:"bytes,14,opt,name=last_used_ip,json=lastUsedIp,proto3" json:"last_used_ip,omitempty"`
+	// Security
+	AllowedOrigins *structpb.Struct       `protobuf:"bytes,15,opt,name=allowed_origins,json=allowedOrigins,proto3" json:"allowed_origins,omitempty"`
+	AllowedIps     *structpb.Struct       `protobuf:"bytes,16,opt,name=allowed_ips,json=allowedIps,proto3" json:"allowed_ips,omitempty"`
+	CreatedAt      *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt      *timestamppb.Timestamp `protobuf:"bytes,18,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *ExecutionTemplateAuthToken) Reset() {
+	*x = ExecutionTemplateAuthToken{}
+	mi := &file_proto_gogent_proto_msgTypes[65]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExecutionTemplateAuthToken) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExecutionTemplateAuthToken) ProtoMessage() {}
+
+func (x *ExecutionTemplateAuthToken) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[65]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExecutionTemplateAuthToken.ProtoReflect.Descriptor instead.
+func (*ExecutionTemplateAuthToken) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{65}
+}
+
+func (x *ExecutionTemplateAuthToken) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateAuthToken) GetTemplateId() string {
+	if x != nil {
+		return x.TemplateId
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateAuthToken) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateAuthToken) GetTokenValue() string {
+	if x != nil {
+		return x.TokenValue
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateAuthToken) GetTokenName() string {
+	if x != nil {
+		return x.TokenName
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateAuthToken) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateAuthToken) GetIsActive() bool {
+	if x != nil {
+		return x.IsActive
+	}
+	return false
+}
+
+func (x *ExecutionTemplateAuthToken) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
+func (x *ExecutionTemplateAuthToken) GetCustomRateLimitPerHour() int32 {
+	if x != nil {
+		return x.CustomRateLimitPerHour
+	}
+	return 0
+}
+
+func (x *ExecutionTemplateAuthToken) GetCustomRateLimitPerDay() int32 {
+	if x != nil {
+		return x.CustomRateLimitPerDay
+	}
+	return 0
+}
+
+func (x *ExecutionTemplateAuthToken) GetCustomRateLimitBurst() int32 {
+	if x != nil {
+		return x.CustomRateLimitBurst
+	}
+	return 0
+}
+
+func (x *ExecutionTemplateAuthToken) GetTotalUses() int32 {
+	if x != nil {
+		return x.TotalUses
+	}
+	return 0
+}
+
+func (x *ExecutionTemplateAuthToken) GetLastUsedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LastUsedAt
+	}
+	return nil
+}
+
+func (x *ExecutionTemplateAuthToken) GetLastUsedIp() string {
+	if x != nil {
+		return x.LastUsedIp
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateAuthToken) GetAllowedOrigins() *structpb.Struct {
+	if x != nil {
+		return x.AllowedOrigins
+	}
+	return nil
+}
+
+func (x *ExecutionTemplateAuthToken) GetAllowedIps() *structpb.Struct {
+	if x != nil {
+		return x.AllowedIps
+	}
+	return nil
+}
+
+func (x *ExecutionTemplateAuthToken) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *ExecutionTemplateAuthToken) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+// Template version for history tracking
+type ExecutionTemplateVersion struct {
+	state                 protoimpl.MessageState        `protogen:"open.v1"`
+	Id                    string                        `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	TemplateId            string                        `protobuf:"bytes,2,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
+	VersionNumber         int32                         `protobuf:"varint,3,opt,name=version_number,json=versionNumber,proto3" json:"version_number,omitempty"`
+	UserId                string                        `protobuf:"bytes,4,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Name                  string                        `protobuf:"bytes,5,opt,name=name,proto3" json:"name,omitempty"`
+	Description           string                        `protobuf:"bytes,6,opt,name=description,proto3" json:"description,omitempty"`
+	TemplatePrompt        string                        `protobuf:"bytes,7,opt,name=template_prompt,json=templatePrompt,proto3" json:"template_prompt,omitempty"`
+	ContextTemplate       string                        `protobuf:"bytes,8,opt,name=context_template,json=contextTemplate,proto3" json:"context_template,omitempty"`
+	EnableFunctionCalling bool                          `protobuf:"varint,9,opt,name=enable_function_calling,json=enableFunctionCalling,proto3" json:"enable_function_calling,omitempty"`
+	Category              string                        `protobuf:"bytes,10,opt,name=category,proto3" json:"category,omitempty"`
+	Tags                  *structpb.Struct              `protobuf:"bytes,11,opt,name=tags,proto3" json:"tags,omitempty"`
+	RateLimitPerHour      int32                         `protobuf:"varint,12,opt,name=rate_limit_per_hour,json=rateLimitPerHour,proto3" json:"rate_limit_per_hour,omitempty"`
+	RateLimitPerDay       int32                         `protobuf:"varint,13,opt,name=rate_limit_per_day,json=rateLimitPerDay,proto3" json:"rate_limit_per_day,omitempty"`
+	RateLimitBurst        int32                         `protobuf:"varint,14,opt,name=rate_limit_burst,json=rateLimitBurst,proto3" json:"rate_limit_burst,omitempty"`
+	ChangeSummary         string                        `protobuf:"bytes,15,opt,name=change_summary,json=changeSummary,proto3" json:"change_summary,omitempty"`
+	ChangeType            string                        `protobuf:"bytes,16,opt,name=change_type,json=changeType,proto3" json:"change_type,omitempty"` // create, update, restore
+	IsCurrentVersion      bool                          `protobuf:"varint,17,opt,name=is_current_version,json=isCurrentVersion,proto3" json:"is_current_version,omitempty"`
+	CreatedAt             *timestamppb.Timestamp        `protobuf:"bytes,18,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	Parameters            []*ExecutionTemplateParameter `protobuf:"bytes,19,rep,name=parameters,proto3" json:"parameters,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
+}
+
+func (x *ExecutionTemplateVersion) Reset() {
+	*x = ExecutionTemplateVersion{}
+	mi := &file_proto_gogent_proto_msgTypes[66]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExecutionTemplateVersion) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExecutionTemplateVersion) ProtoMessage() {}
+
+func (x *ExecutionTemplateVersion) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[66]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExecutionTemplateVersion.ProtoReflect.Descriptor instead.
+func (*ExecutionTemplateVersion) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{66}
+}
+
+func (x *ExecutionTemplateVersion) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateVersion) GetTemplateId() string {
+	if x != nil {
+		return x.TemplateId
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateVersion) GetVersionNumber() int32 {
+	if x != nil {
+		return x.VersionNumber
+	}
+	return 0
+}
+
+func (x *ExecutionTemplateVersion) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateVersion) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateVersion) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateVersion) GetTemplatePrompt() string {
+	if x != nil {
+		return x.TemplatePrompt
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateVersion) GetContextTemplate() string {
+	if x != nil {
+		return x.ContextTemplate
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateVersion) GetEnableFunctionCalling() bool {
+	if x != nil {
+		return x.EnableFunctionCalling
+	}
+	return false
+}
+
+func (x *ExecutionTemplateVersion) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateVersion) GetTags() *structpb.Struct {
+	if x != nil {
+		return x.Tags
+	}
+	return nil
+}
+
+func (x *ExecutionTemplateVersion) GetRateLimitPerHour() int32 {
+	if x != nil {
+		return x.RateLimitPerHour
+	}
+	return 0
+}
+
+func (x *ExecutionTemplateVersion) GetRateLimitPerDay() int32 {
+	if x != nil {
+		return x.RateLimitPerDay
+	}
+	return 0
+}
+
+func (x *ExecutionTemplateVersion) GetRateLimitBurst() int32 {
+	if x != nil {
+		return x.RateLimitBurst
+	}
+	return 0
+}
+
+func (x *ExecutionTemplateVersion) GetChangeSummary() string {
+	if x != nil {
+		return x.ChangeSummary
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateVersion) GetChangeType() string {
+	if x != nil {
+		return x.ChangeType
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateVersion) GetIsCurrentVersion() bool {
+	if x != nil {
+		return x.IsCurrentVersion
+	}
+	return false
+}
+
+func (x *ExecutionTemplateVersion) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *ExecutionTemplateVersion) GetParameters() []*ExecutionTemplateParameter {
+	if x != nil {
+		return x.Parameters
+	}
+	return nil
+}
+
+// Template execution record
+type ExecutionTemplateExecution struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Id                 string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	TemplateId         string                 `protobuf:"bytes,2,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
+	TemplateVersionId  string                 `protobuf:"bytes,3,opt,name=template_version_id,json=templateVersionId,proto3" json:"template_version_id,omitempty"`
+	AuthTokenId        string                 `protobuf:"bytes,4,opt,name=auth_token_id,json=authTokenId,proto3" json:"auth_token_id,omitempty"`
+	ExecutionRunId     string                 `protobuf:"bytes,5,opt,name=execution_run_id,json=executionRunId,proto3" json:"execution_run_id,omitempty"`
+	ParametersProvided *structpb.Struct       `protobuf:"bytes,6,opt,name=parameters_provided,json=parametersProvided,proto3" json:"parameters_provided,omitempty"`
+	ResolvedPrompt     string                 `protobuf:"bytes,7,opt,name=resolved_prompt,json=resolvedPrompt,proto3" json:"resolved_prompt,omitempty"`
+	ResolvedContext    string                 `protobuf:"bytes,8,opt,name=resolved_context,json=resolvedContext,proto3" json:"resolved_context,omitempty"`
+	RequestIp          string                 `protobuf:"bytes,9,opt,name=request_ip,json=requestIp,proto3" json:"request_ip,omitempty"`
+	UserAgent          string                 `protobuf:"bytes,10,opt,name=user_agent,json=userAgent,proto3" json:"user_agent,omitempty"`
+	Referer            string                 `protobuf:"bytes,11,opt,name=referer,proto3" json:"referer,omitempty"`
+	Status             string                 `protobuf:"bytes,12,opt,name=status,proto3" json:"status,omitempty"` // pending, running, completed, failed, rate_limited
+	ErrorMessage       string                 `protobuf:"bytes,13,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	ExecutionTimeMs    int32                  `protobuf:"varint,14,opt,name=execution_time_ms,json=executionTimeMs,proto3" json:"execution_time_ms,omitempty"`
+	CreatedAt          *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	CompletedAt        *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *ExecutionTemplateExecution) Reset() {
+	*x = ExecutionTemplateExecution{}
+	mi := &file_proto_gogent_proto_msgTypes[67]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExecutionTemplateExecution) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExecutionTemplateExecution) ProtoMessage() {}
+
+func (x *ExecutionTemplateExecution) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[67]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExecutionTemplateExecution.ProtoReflect.Descriptor instead.
+func (*ExecutionTemplateExecution) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{67}
+}
+
+func (x *ExecutionTemplateExecution) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateExecution) GetTemplateId() string {
+	if x != nil {
+		return x.TemplateId
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateExecution) GetTemplateVersionId() string {
+	if x != nil {
+		return x.TemplateVersionId
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateExecution) GetAuthTokenId() string {
+	if x != nil {
+		return x.AuthTokenId
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateExecution) GetExecutionRunId() string {
+	if x != nil {
+		return x.ExecutionRunId
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateExecution) GetParametersProvided() *structpb.Struct {
+	if x != nil {
+		return x.ParametersProvided
+	}
+	return nil
+}
+
+func (x *ExecutionTemplateExecution) GetResolvedPrompt() string {
+	if x != nil {
+		return x.ResolvedPrompt
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateExecution) GetResolvedContext() string {
+	if x != nil {
+		return x.ResolvedContext
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateExecution) GetRequestIp() string {
+	if x != nil {
+		return x.RequestIp
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateExecution) GetUserAgent() string {
+	if x != nil {
+		return x.UserAgent
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateExecution) GetReferer() string {
+	if x != nil {
+		return x.Referer
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateExecution) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateExecution) GetErrorMessage() string {
+	if x != nil {
+		return x.ErrorMessage
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateExecution) GetExecutionTimeMs() int32 {
+	if x != nil {
+		return x.ExecutionTimeMs
+	}
+	return 0
+}
+
+func (x *ExecutionTemplateExecution) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *ExecutionTemplateExecution) GetCompletedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CompletedAt
+	}
+	return nil
+}
+
+// Template analytics
+type ExecutionTemplateAnalytics struct {
+	state                  protoimpl.MessageState `protogen:"open.v1"`
+	TemplateId             string                 `protobuf:"bytes,1,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
+	TotalExecutions        int32                  `protobuf:"varint,2,opt,name=total_executions,json=totalExecutions,proto3" json:"total_executions,omitempty"`
+	SuccessfulExecutions   int32                  `protobuf:"varint,3,opt,name=successful_executions,json=successfulExecutions,proto3" json:"successful_executions,omitempty"`
+	FailedExecutions       int32                  `protobuf:"varint,4,opt,name=failed_executions,json=failedExecutions,proto3" json:"failed_executions,omitempty"`
+	RateLimitedExecutions  int32                  `protobuf:"varint,5,opt,name=rate_limited_executions,json=rateLimitedExecutions,proto3" json:"rate_limited_executions,omitempty"`
+	AverageExecutionTimeMs float64                `protobuf:"fixed64,6,opt,name=average_execution_time_ms,json=averageExecutionTimeMs,proto3" json:"average_execution_time_ms,omitempty"`
+	UsageByDay             *structpb.Struct       `protobuf:"bytes,7,opt,name=usage_by_day,json=usageByDay,proto3" json:"usage_by_day,omitempty"`
+	TopParameters          *structpb.Struct       `protobuf:"bytes,8,opt,name=top_parameters,json=topParameters,proto3" json:"top_parameters,omitempty"`
+	ErrorBreakdown         *structpb.Struct       `protobuf:"bytes,9,opt,name=error_breakdown,json=errorBreakdown,proto3" json:"error_breakdown,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *ExecutionTemplateAnalytics) Reset() {
+	*x = ExecutionTemplateAnalytics{}
+	mi := &file_proto_gogent_proto_msgTypes[68]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExecutionTemplateAnalytics) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExecutionTemplateAnalytics) ProtoMessage() {}
+
+func (x *ExecutionTemplateAnalytics) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[68]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExecutionTemplateAnalytics.ProtoReflect.Descriptor instead.
+func (*ExecutionTemplateAnalytics) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{68}
+}
+
+func (x *ExecutionTemplateAnalytics) GetTemplateId() string {
+	if x != nil {
+		return x.TemplateId
+	}
+	return ""
+}
+
+func (x *ExecutionTemplateAnalytics) GetTotalExecutions() int32 {
+	if x != nil {
+		return x.TotalExecutions
+	}
+	return 0
+}
+
+func (x *ExecutionTemplateAnalytics) GetSuccessfulExecutions() int32 {
+	if x != nil {
+		return x.SuccessfulExecutions
+	}
+	return 0
+}
+
+func (x *ExecutionTemplateAnalytics) GetFailedExecutions() int32 {
+	if x != nil {
+		return x.FailedExecutions
+	}
+	return 0
+}
+
+func (x *ExecutionTemplateAnalytics) GetRateLimitedExecutions() int32 {
+	if x != nil {
+		return x.RateLimitedExecutions
+	}
+	return 0
+}
+
+func (x *ExecutionTemplateAnalytics) GetAverageExecutionTimeMs() float64 {
+	if x != nil {
+		return x.AverageExecutionTimeMs
+	}
+	return 0
+}
+
+func (x *ExecutionTemplateAnalytics) GetUsageByDay() *structpb.Struct {
+	if x != nil {
+		return x.UsageByDay
+	}
+	return nil
+}
+
+func (x *ExecutionTemplateAnalytics) GetTopParameters() *structpb.Struct {
+	if x != nil {
+		return x.TopParameters
+	}
+	return nil
+}
+
+func (x *ExecutionTemplateAnalytics) GetErrorBreakdown() *structpb.Struct {
+	if x != nil {
+		return x.ErrorBreakdown
+	}
+	return nil
+}
+
+// List execution templates
+type ListExecutionTemplatesRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Limit           int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset          int32                  `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
+	Category        string                 `protobuf:"bytes,3,opt,name=category,proto3" json:"category,omitempty"`
+	IncludePublic   bool                   `protobuf:"varint,4,opt,name=include_public,json=includePublic,proto3" json:"include_public,omitempty"`
+	IncludeInactive bool                   `protobuf:"varint,5,opt,name=include_inactive,json=includeInactive,proto3" json:"include_inactive,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *ListExecutionTemplatesRequest) Reset() {
+	*x = ListExecutionTemplatesRequest{}
+	mi := &file_proto_gogent_proto_msgTypes[69]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListExecutionTemplatesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListExecutionTemplatesRequest) ProtoMessage() {}
+
+func (x *ListExecutionTemplatesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[69]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListExecutionTemplatesRequest.ProtoReflect.Descriptor instead.
+func (*ListExecutionTemplatesRequest) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{69}
+}
+
+func (x *ListExecutionTemplatesRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *ListExecutionTemplatesRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+func (x *ListExecutionTemplatesRequest) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
+func (x *ListExecutionTemplatesRequest) GetIncludePublic() bool {
+	if x != nil {
+		return x.IncludePublic
+	}
+	return false
+}
+
+func (x *ListExecutionTemplatesRequest) GetIncludeInactive() bool {
+	if x != nil {
+		return x.IncludeInactive
+	}
+	return false
+}
+
+type ListExecutionTemplatesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Templates     []*ExecutionTemplate   `protobuf:"bytes,1,rep,name=templates,proto3" json:"templates,omitempty"`
+	TotalCount    int32                  `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListExecutionTemplatesResponse) Reset() {
+	*x = ListExecutionTemplatesResponse{}
+	mi := &file_proto_gogent_proto_msgTypes[70]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListExecutionTemplatesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListExecutionTemplatesResponse) ProtoMessage() {}
+
+func (x *ListExecutionTemplatesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[70]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListExecutionTemplatesResponse.ProtoReflect.Descriptor instead.
+func (*ListExecutionTemplatesResponse) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{70}
+}
+
+func (x *ListExecutionTemplatesResponse) GetTemplates() []*ExecutionTemplate {
+	if x != nil {
+		return x.Templates
+	}
+	return nil
+}
+
+func (x *ListExecutionTemplatesResponse) GetTotalCount() int32 {
+	if x != nil {
+		return x.TotalCount
+	}
+	return 0
+}
+
+// Get execution template by ID
+type GetExecutionTemplateRequest struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Id                string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	IncludeParameters bool                   `protobuf:"varint,2,opt,name=include_parameters,json=includeParameters,proto3" json:"include_parameters,omitempty"`
+	IncludeTokens     bool                   `protobuf:"varint,3,opt,name=include_tokens,json=includeTokens,proto3" json:"include_tokens,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *GetExecutionTemplateRequest) Reset() {
+	*x = GetExecutionTemplateRequest{}
+	mi := &file_proto_gogent_proto_msgTypes[71]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetExecutionTemplateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetExecutionTemplateRequest) ProtoMessage() {}
+
+func (x *GetExecutionTemplateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[71]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetExecutionTemplateRequest.ProtoReflect.Descriptor instead.
+func (*GetExecutionTemplateRequest) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{71}
+}
+
+func (x *GetExecutionTemplateRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *GetExecutionTemplateRequest) GetIncludeParameters() bool {
+	if x != nil {
+		return x.IncludeParameters
+	}
+	return false
+}
+
+func (x *GetExecutionTemplateRequest) GetIncludeTokens() bool {
+	if x != nil {
+		return x.IncludeTokens
+	}
+	return false
+}
+
+type GetExecutionTemplateResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Template      *ExecutionTemplate     `protobuf:"bytes,1,opt,name=template,proto3" json:"template,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetExecutionTemplateResponse) Reset() {
+	*x = GetExecutionTemplateResponse{}
+	mi := &file_proto_gogent_proto_msgTypes[72]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetExecutionTemplateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetExecutionTemplateResponse) ProtoMessage() {}
+
+func (x *GetExecutionTemplateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[72]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetExecutionTemplateResponse.ProtoReflect.Descriptor instead.
+func (*GetExecutionTemplateResponse) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{72}
+}
+
+func (x *GetExecutionTemplateResponse) GetTemplate() *ExecutionTemplate {
+	if x != nil {
+		return x.Template
+	}
+	return nil
+}
+
+// Create execution template
+type CreateExecutionTemplateRequest struct {
+	state         protoimpl.MessageState        `protogen:"open.v1"`
+	Template      *ExecutionTemplate            `protobuf:"bytes,1,opt,name=template,proto3" json:"template,omitempty"`
+	Parameters    []*ExecutionTemplateParameter `protobuf:"bytes,2,rep,name=parameters,proto3" json:"parameters,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateExecutionTemplateRequest) Reset() {
+	*x = CreateExecutionTemplateRequest{}
+	mi := &file_proto_gogent_proto_msgTypes[73]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateExecutionTemplateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateExecutionTemplateRequest) ProtoMessage() {}
+
+func (x *CreateExecutionTemplateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[73]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateExecutionTemplateRequest.ProtoReflect.Descriptor instead.
+func (*CreateExecutionTemplateRequest) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{73}
+}
+
+func (x *CreateExecutionTemplateRequest) GetTemplate() *ExecutionTemplate {
+	if x != nil {
+		return x.Template
+	}
+	return nil
+}
+
+func (x *CreateExecutionTemplateRequest) GetParameters() []*ExecutionTemplateParameter {
+	if x != nil {
+		return x.Parameters
+	}
+	return nil
+}
+
+type CreateExecutionTemplateResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Template      *ExecutionTemplate     `protobuf:"bytes,1,opt,name=template,proto3" json:"template,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateExecutionTemplateResponse) Reset() {
+	*x = CreateExecutionTemplateResponse{}
+	mi := &file_proto_gogent_proto_msgTypes[74]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateExecutionTemplateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateExecutionTemplateResponse) ProtoMessage() {}
+
+func (x *CreateExecutionTemplateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[74]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateExecutionTemplateResponse.ProtoReflect.Descriptor instead.
+func (*CreateExecutionTemplateResponse) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{74}
+}
+
+func (x *CreateExecutionTemplateResponse) GetTemplate() *ExecutionTemplate {
+	if x != nil {
+		return x.Template
+	}
+	return nil
+}
+
+// Update execution template
+type UpdateExecutionTemplateRequest struct {
+	state         protoimpl.MessageState        `protogen:"open.v1"`
+	Id            string                        `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Template      *ExecutionTemplate            `protobuf:"bytes,2,opt,name=template,proto3" json:"template,omitempty"`
+	Parameters    []*ExecutionTemplateParameter `protobuf:"bytes,3,rep,name=parameters,proto3" json:"parameters,omitempty"`
+	ChangeSummary string                        `protobuf:"bytes,4,opt,name=change_summary,json=changeSummary,proto3" json:"change_summary,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateExecutionTemplateRequest) Reset() {
+	*x = UpdateExecutionTemplateRequest{}
+	mi := &file_proto_gogent_proto_msgTypes[75]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateExecutionTemplateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateExecutionTemplateRequest) ProtoMessage() {}
+
+func (x *UpdateExecutionTemplateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[75]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateExecutionTemplateRequest.ProtoReflect.Descriptor instead.
+func (*UpdateExecutionTemplateRequest) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{75}
+}
+
+func (x *UpdateExecutionTemplateRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UpdateExecutionTemplateRequest) GetTemplate() *ExecutionTemplate {
+	if x != nil {
+		return x.Template
+	}
+	return nil
+}
+
+func (x *UpdateExecutionTemplateRequest) GetParameters() []*ExecutionTemplateParameter {
+	if x != nil {
+		return x.Parameters
+	}
+	return nil
+}
+
+func (x *UpdateExecutionTemplateRequest) GetChangeSummary() string {
+	if x != nil {
+		return x.ChangeSummary
+	}
+	return ""
+}
+
+type UpdateExecutionTemplateResponse struct {
+	state         protoimpl.MessageState    `protogen:"open.v1"`
+	Template      *ExecutionTemplate        `protobuf:"bytes,1,opt,name=template,proto3" json:"template,omitempty"`
+	Version       *ExecutionTemplateVersion `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateExecutionTemplateResponse) Reset() {
+	*x = UpdateExecutionTemplateResponse{}
+	mi := &file_proto_gogent_proto_msgTypes[76]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateExecutionTemplateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateExecutionTemplateResponse) ProtoMessage() {}
+
+func (x *UpdateExecutionTemplateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[76]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateExecutionTemplateResponse.ProtoReflect.Descriptor instead.
+func (*UpdateExecutionTemplateResponse) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{76}
+}
+
+func (x *UpdateExecutionTemplateResponse) GetTemplate() *ExecutionTemplate {
+	if x != nil {
+		return x.Template
+	}
+	return nil
+}
+
+func (x *UpdateExecutionTemplateResponse) GetVersion() *ExecutionTemplateVersion {
+	if x != nil {
+		return x.Version
+	}
+	return nil
+}
+
+// Delete execution template
+type DeleteExecutionTemplateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteExecutionTemplateRequest) Reset() {
+	*x = DeleteExecutionTemplateRequest{}
+	mi := &file_proto_gogent_proto_msgTypes[77]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteExecutionTemplateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteExecutionTemplateRequest) ProtoMessage() {}
+
+func (x *DeleteExecutionTemplateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[77]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteExecutionTemplateRequest.ProtoReflect.Descriptor instead.
+func (*DeleteExecutionTemplateRequest) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{77}
+}
+
+func (x *DeleteExecutionTemplateRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type DeleteExecutionTemplateResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteExecutionTemplateResponse) Reset() {
+	*x = DeleteExecutionTemplateResponse{}
+	mi := &file_proto_gogent_proto_msgTypes[78]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteExecutionTemplateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteExecutionTemplateResponse) ProtoMessage() {}
+
+func (x *DeleteExecutionTemplateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[78]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteExecutionTemplateResponse.ProtoReflect.Descriptor instead.
+func (*DeleteExecutionTemplateResponse) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{78}
+}
+
+func (x *DeleteExecutionTemplateResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+// Execute template (public API)
+type ExecuteTemplateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TemplateId    string                 `protobuf:"bytes,1,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
+	AuthToken     string                 `protobuf:"bytes,2,opt,name=auth_token,json=authToken,proto3" json:"auth_token,omitempty"` // Required for public API
+	Parameters    *structpb.Struct       `protobuf:"bytes,3,opt,name=parameters,proto3" json:"parameters,omitempty"`
+	ClientIp      string                 `protobuf:"bytes,4,opt,name=client_ip,json=clientIp,proto3" json:"client_ip,omitempty"`    // Set by server
+	UserAgent     string                 `protobuf:"bytes,5,opt,name=user_agent,json=userAgent,proto3" json:"user_agent,omitempty"` // Set by server
+	Referer       string                 `protobuf:"bytes,6,opt,name=referer,proto3" json:"referer,omitempty"`                      // Set by server
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExecuteTemplateRequest) Reset() {
+	*x = ExecuteTemplateRequest{}
+	mi := &file_proto_gogent_proto_msgTypes[79]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExecuteTemplateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExecuteTemplateRequest) ProtoMessage() {}
+
+func (x *ExecuteTemplateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[79]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExecuteTemplateRequest.ProtoReflect.Descriptor instead.
+func (*ExecuteTemplateRequest) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{79}
+}
+
+func (x *ExecuteTemplateRequest) GetTemplateId() string {
+	if x != nil {
+		return x.TemplateId
+	}
+	return ""
+}
+
+func (x *ExecuteTemplateRequest) GetAuthToken() string {
+	if x != nil {
+		return x.AuthToken
+	}
+	return ""
+}
+
+func (x *ExecuteTemplateRequest) GetParameters() *structpb.Struct {
+	if x != nil {
+		return x.Parameters
+	}
+	return nil
+}
+
+func (x *ExecuteTemplateRequest) GetClientIp() string {
+	if x != nil {
+		return x.ClientIp
+	}
+	return ""
+}
+
+func (x *ExecuteTemplateRequest) GetUserAgent() string {
+	if x != nil {
+		return x.UserAgent
+	}
+	return ""
+}
+
+func (x *ExecuteTemplateRequest) GetReferer() string {
+	if x != nil {
+		return x.Referer
+	}
+	return ""
+}
+
+type ExecuteTemplateResponse struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	ExecutionId         string                 `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	TemplateExecutionId string                 `protobuf:"bytes,2,opt,name=template_execution_id,json=templateExecutionId,proto3" json:"template_execution_id,omitempty"`
+	ExecutionRun        *ExecutionRun          `protobuf:"bytes,3,opt,name=execution_run,json=executionRun,proto3" json:"execution_run,omitempty"`
+	Message             string                 `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
+	RateLimited         bool                   `protobuf:"varint,5,opt,name=rate_limited,json=rateLimited,proto3" json:"rate_limited,omitempty"`
+	RateLimitRemaining  int32                  `protobuf:"varint,6,opt,name=rate_limit_remaining,json=rateLimitRemaining,proto3" json:"rate_limit_remaining,omitempty"`
+	RateLimitResetAt    *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=rate_limit_reset_at,json=rateLimitResetAt,proto3" json:"rate_limit_reset_at,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *ExecuteTemplateResponse) Reset() {
+	*x = ExecuteTemplateResponse{}
+	mi := &file_proto_gogent_proto_msgTypes[80]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExecuteTemplateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExecuteTemplateResponse) ProtoMessage() {}
+
+func (x *ExecuteTemplateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[80]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExecuteTemplateResponse.ProtoReflect.Descriptor instead.
+func (*ExecuteTemplateResponse) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{80}
+}
+
+func (x *ExecuteTemplateResponse) GetExecutionId() string {
+	if x != nil {
+		return x.ExecutionId
+	}
+	return ""
+}
+
+func (x *ExecuteTemplateResponse) GetTemplateExecutionId() string {
+	if x != nil {
+		return x.TemplateExecutionId
+	}
+	return ""
+}
+
+func (x *ExecuteTemplateResponse) GetExecutionRun() *ExecutionRun {
+	if x != nil {
+		return x.ExecutionRun
+	}
+	return nil
+}
+
+func (x *ExecuteTemplateResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *ExecuteTemplateResponse) GetRateLimited() bool {
+	if x != nil {
+		return x.RateLimited
+	}
+	return false
+}
+
+func (x *ExecuteTemplateResponse) GetRateLimitRemaining() int32 {
+	if x != nil {
+		return x.RateLimitRemaining
+	}
+	return 0
+}
+
+func (x *ExecuteTemplateResponse) GetRateLimitResetAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.RateLimitResetAt
+	}
+	return nil
+}
+
+// Get template execution status
+type GetTemplateExecutionStatusRequest struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	TemplateExecutionId string                 `protobuf:"bytes,1,opt,name=template_execution_id,json=templateExecutionId,proto3" json:"template_execution_id,omitempty"`
+	AuthToken           string                 `protobuf:"bytes,2,opt,name=auth_token,json=authToken,proto3" json:"auth_token,omitempty"` // Required for public API
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *GetTemplateExecutionStatusRequest) Reset() {
+	*x = GetTemplateExecutionStatusRequest{}
+	mi := &file_proto_gogent_proto_msgTypes[81]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTemplateExecutionStatusRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTemplateExecutionStatusRequest) ProtoMessage() {}
+
+func (x *GetTemplateExecutionStatusRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[81]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTemplateExecutionStatusRequest.ProtoReflect.Descriptor instead.
+func (*GetTemplateExecutionStatusRequest) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{81}
+}
+
+func (x *GetTemplateExecutionStatusRequest) GetTemplateExecutionId() string {
+	if x != nil {
+		return x.TemplateExecutionId
+	}
+	return ""
+}
+
+func (x *GetTemplateExecutionStatusRequest) GetAuthToken() string {
+	if x != nil {
+		return x.AuthToken
+	}
+	return ""
+}
+
+type GetTemplateExecutionStatusResponse struct {
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	Execution     *ExecutionTemplateExecution `protobuf:"bytes,1,opt,name=execution,proto3" json:"execution,omitempty"`
+	Result        *ExecutionResult            `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"` // Only when completed
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTemplateExecutionStatusResponse) Reset() {
+	*x = GetTemplateExecutionStatusResponse{}
+	mi := &file_proto_gogent_proto_msgTypes[82]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTemplateExecutionStatusResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTemplateExecutionStatusResponse) ProtoMessage() {}
+
+func (x *GetTemplateExecutionStatusResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[82]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTemplateExecutionStatusResponse.ProtoReflect.Descriptor instead.
+func (*GetTemplateExecutionStatusResponse) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{82}
+}
+
+func (x *GetTemplateExecutionStatusResponse) GetExecution() *ExecutionTemplateExecution {
+	if x != nil {
+		return x.Execution
+	}
+	return nil
+}
+
+func (x *GetTemplateExecutionStatusResponse) GetResult() *ExecutionResult {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
+// Template version management
+type GetTemplateVersionsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TemplateId    string                 `protobuf:"bytes,1,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
+	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset        int32                  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTemplateVersionsRequest) Reset() {
+	*x = GetTemplateVersionsRequest{}
+	mi := &file_proto_gogent_proto_msgTypes[83]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTemplateVersionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTemplateVersionsRequest) ProtoMessage() {}
+
+func (x *GetTemplateVersionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[83]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTemplateVersionsRequest.ProtoReflect.Descriptor instead.
+func (*GetTemplateVersionsRequest) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{83}
+}
+
+func (x *GetTemplateVersionsRequest) GetTemplateId() string {
+	if x != nil {
+		return x.TemplateId
+	}
+	return ""
+}
+
+func (x *GetTemplateVersionsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *GetTemplateVersionsRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+type GetTemplateVersionsResponse struct {
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	Versions      []*ExecutionTemplateVersion `protobuf:"bytes,1,rep,name=versions,proto3" json:"versions,omitempty"`
+	TotalCount    int32                       `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTemplateVersionsResponse) Reset() {
+	*x = GetTemplateVersionsResponse{}
+	mi := &file_proto_gogent_proto_msgTypes[84]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTemplateVersionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTemplateVersionsResponse) ProtoMessage() {}
+
+func (x *GetTemplateVersionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[84]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTemplateVersionsResponse.ProtoReflect.Descriptor instead.
+func (*GetTemplateVersionsResponse) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{84}
+}
+
+func (x *GetTemplateVersionsResponse) GetVersions() []*ExecutionTemplateVersion {
+	if x != nil {
+		return x.Versions
+	}
+	return nil
+}
+
+func (x *GetTemplateVersionsResponse) GetTotalCount() int32 {
+	if x != nil {
+		return x.TotalCount
+	}
+	return 0
+}
+
+type RestoreTemplateVersionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TemplateId    string                 `protobuf:"bytes,1,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
+	VersionNumber int32                  `protobuf:"varint,2,opt,name=version_number,json=versionNumber,proto3" json:"version_number,omitempty"`
+	ChangeSummary string                 `protobuf:"bytes,3,opt,name=change_summary,json=changeSummary,proto3" json:"change_summary,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RestoreTemplateVersionRequest) Reset() {
+	*x = RestoreTemplateVersionRequest{}
+	mi := &file_proto_gogent_proto_msgTypes[85]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RestoreTemplateVersionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RestoreTemplateVersionRequest) ProtoMessage() {}
+
+func (x *RestoreTemplateVersionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[85]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RestoreTemplateVersionRequest.ProtoReflect.Descriptor instead.
+func (*RestoreTemplateVersionRequest) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{85}
+}
+
+func (x *RestoreTemplateVersionRequest) GetTemplateId() string {
+	if x != nil {
+		return x.TemplateId
+	}
+	return ""
+}
+
+func (x *RestoreTemplateVersionRequest) GetVersionNumber() int32 {
+	if x != nil {
+		return x.VersionNumber
+	}
+	return 0
+}
+
+func (x *RestoreTemplateVersionRequest) GetChangeSummary() string {
+	if x != nil {
+		return x.ChangeSummary
+	}
+	return ""
+}
+
+type RestoreTemplateVersionResponse struct {
+	state         protoimpl.MessageState    `protogen:"open.v1"`
+	Template      *ExecutionTemplate        `protobuf:"bytes,1,opt,name=template,proto3" json:"template,omitempty"`
+	NewVersion    *ExecutionTemplateVersion `protobuf:"bytes,2,opt,name=new_version,json=newVersion,proto3" json:"new_version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RestoreTemplateVersionResponse) Reset() {
+	*x = RestoreTemplateVersionResponse{}
+	mi := &file_proto_gogent_proto_msgTypes[86]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RestoreTemplateVersionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RestoreTemplateVersionResponse) ProtoMessage() {}
+
+func (x *RestoreTemplateVersionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[86]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RestoreTemplateVersionResponse.ProtoReflect.Descriptor instead.
+func (*RestoreTemplateVersionResponse) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{86}
+}
+
+func (x *RestoreTemplateVersionResponse) GetTemplate() *ExecutionTemplate {
+	if x != nil {
+		return x.Template
+	}
+	return nil
+}
+
+func (x *RestoreTemplateVersionResponse) GetNewVersion() *ExecutionTemplateVersion {
+	if x != nil {
+		return x.NewVersion
+	}
+	return nil
+}
+
+// Auth token management
+type CreateTemplateAuthTokenRequest struct {
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	TemplateId    string                      `protobuf:"bytes,1,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
+	Token         *ExecutionTemplateAuthToken `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateTemplateAuthTokenRequest) Reset() {
+	*x = CreateTemplateAuthTokenRequest{}
+	mi := &file_proto_gogent_proto_msgTypes[87]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateTemplateAuthTokenRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateTemplateAuthTokenRequest) ProtoMessage() {}
+
+func (x *CreateTemplateAuthTokenRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[87]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateTemplateAuthTokenRequest.ProtoReflect.Descriptor instead.
+func (*CreateTemplateAuthTokenRequest) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{87}
+}
+
+func (x *CreateTemplateAuthTokenRequest) GetTemplateId() string {
+	if x != nil {
+		return x.TemplateId
+	}
+	return ""
+}
+
+func (x *CreateTemplateAuthTokenRequest) GetToken() *ExecutionTemplateAuthToken {
+	if x != nil {
+		return x.Token
+	}
+	return nil
+}
+
+type CreateTemplateAuthTokenResponse struct {
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	Token         *ExecutionTemplateAuthToken `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateTemplateAuthTokenResponse) Reset() {
+	*x = CreateTemplateAuthTokenResponse{}
+	mi := &file_proto_gogent_proto_msgTypes[88]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateTemplateAuthTokenResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateTemplateAuthTokenResponse) ProtoMessage() {}
+
+func (x *CreateTemplateAuthTokenResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[88]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateTemplateAuthTokenResponse.ProtoReflect.Descriptor instead.
+func (*CreateTemplateAuthTokenResponse) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{88}
+}
+
+func (x *CreateTemplateAuthTokenResponse) GetToken() *ExecutionTemplateAuthToken {
+	if x != nil {
+		return x.Token
+	}
+	return nil
+}
+
+type ListTemplateAuthTokensRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	TemplateId      string                 `protobuf:"bytes,1,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
+	IncludeInactive bool                   `protobuf:"varint,2,opt,name=include_inactive,json=includeInactive,proto3" json:"include_inactive,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *ListTemplateAuthTokensRequest) Reset() {
+	*x = ListTemplateAuthTokensRequest{}
+	mi := &file_proto_gogent_proto_msgTypes[89]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListTemplateAuthTokensRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListTemplateAuthTokensRequest) ProtoMessage() {}
+
+func (x *ListTemplateAuthTokensRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[89]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListTemplateAuthTokensRequest.ProtoReflect.Descriptor instead.
+func (*ListTemplateAuthTokensRequest) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{89}
+}
+
+func (x *ListTemplateAuthTokensRequest) GetTemplateId() string {
+	if x != nil {
+		return x.TemplateId
+	}
+	return ""
+}
+
+func (x *ListTemplateAuthTokensRequest) GetIncludeInactive() bool {
+	if x != nil {
+		return x.IncludeInactive
+	}
+	return false
+}
+
+type ListTemplateAuthTokensResponse struct {
+	state         protoimpl.MessageState        `protogen:"open.v1"`
+	Tokens        []*ExecutionTemplateAuthToken `protobuf:"bytes,1,rep,name=tokens,proto3" json:"tokens,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListTemplateAuthTokensResponse) Reset() {
+	*x = ListTemplateAuthTokensResponse{}
+	mi := &file_proto_gogent_proto_msgTypes[90]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListTemplateAuthTokensResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListTemplateAuthTokensResponse) ProtoMessage() {}
+
+func (x *ListTemplateAuthTokensResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[90]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListTemplateAuthTokensResponse.ProtoReflect.Descriptor instead.
+func (*ListTemplateAuthTokensResponse) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{90}
+}
+
+func (x *ListTemplateAuthTokensResponse) GetTokens() []*ExecutionTemplateAuthToken {
+	if x != nil {
+		return x.Tokens
+	}
+	return nil
+}
+
+type UpdateTemplateAuthTokenRequest struct {
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	TokenId       string                      `protobuf:"bytes,1,opt,name=token_id,json=tokenId,proto3" json:"token_id,omitempty"`
+	Token         *ExecutionTemplateAuthToken `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateTemplateAuthTokenRequest) Reset() {
+	*x = UpdateTemplateAuthTokenRequest{}
+	mi := &file_proto_gogent_proto_msgTypes[91]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateTemplateAuthTokenRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateTemplateAuthTokenRequest) ProtoMessage() {}
+
+func (x *UpdateTemplateAuthTokenRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[91]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateTemplateAuthTokenRequest.ProtoReflect.Descriptor instead.
+func (*UpdateTemplateAuthTokenRequest) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{91}
+}
+
+func (x *UpdateTemplateAuthTokenRequest) GetTokenId() string {
+	if x != nil {
+		return x.TokenId
+	}
+	return ""
+}
+
+func (x *UpdateTemplateAuthTokenRequest) GetToken() *ExecutionTemplateAuthToken {
+	if x != nil {
+		return x.Token
+	}
+	return nil
+}
+
+type UpdateTemplateAuthTokenResponse struct {
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	Token         *ExecutionTemplateAuthToken `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateTemplateAuthTokenResponse) Reset() {
+	*x = UpdateTemplateAuthTokenResponse{}
+	mi := &file_proto_gogent_proto_msgTypes[92]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateTemplateAuthTokenResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateTemplateAuthTokenResponse) ProtoMessage() {}
+
+func (x *UpdateTemplateAuthTokenResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[92]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateTemplateAuthTokenResponse.ProtoReflect.Descriptor instead.
+func (*UpdateTemplateAuthTokenResponse) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{92}
+}
+
+func (x *UpdateTemplateAuthTokenResponse) GetToken() *ExecutionTemplateAuthToken {
+	if x != nil {
+		return x.Token
+	}
+	return nil
+}
+
+type DeleteTemplateAuthTokenRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TokenId       string                 `protobuf:"bytes,1,opt,name=token_id,json=tokenId,proto3" json:"token_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteTemplateAuthTokenRequest) Reset() {
+	*x = DeleteTemplateAuthTokenRequest{}
+	mi := &file_proto_gogent_proto_msgTypes[93]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteTemplateAuthTokenRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteTemplateAuthTokenRequest) ProtoMessage() {}
+
+func (x *DeleteTemplateAuthTokenRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[93]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteTemplateAuthTokenRequest.ProtoReflect.Descriptor instead.
+func (*DeleteTemplateAuthTokenRequest) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{93}
+}
+
+func (x *DeleteTemplateAuthTokenRequest) GetTokenId() string {
+	if x != nil {
+		return x.TokenId
+	}
+	return ""
+}
+
+type DeleteTemplateAuthTokenResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteTemplateAuthTokenResponse) Reset() {
+	*x = DeleteTemplateAuthTokenResponse{}
+	mi := &file_proto_gogent_proto_msgTypes[94]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteTemplateAuthTokenResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteTemplateAuthTokenResponse) ProtoMessage() {}
+
+func (x *DeleteTemplateAuthTokenResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[94]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteTemplateAuthTokenResponse.ProtoReflect.Descriptor instead.
+func (*DeleteTemplateAuthTokenResponse) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{94}
+}
+
+func (x *DeleteTemplateAuthTokenResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+// Template analytics
+type GetTemplateAnalyticsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TemplateId    string                 `protobuf:"bytes,1,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
+	StartDate     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	EndDate       *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTemplateAnalyticsRequest) Reset() {
+	*x = GetTemplateAnalyticsRequest{}
+	mi := &file_proto_gogent_proto_msgTypes[95]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTemplateAnalyticsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTemplateAnalyticsRequest) ProtoMessage() {}
+
+func (x *GetTemplateAnalyticsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[95]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTemplateAnalyticsRequest.ProtoReflect.Descriptor instead.
+func (*GetTemplateAnalyticsRequest) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{95}
+}
+
+func (x *GetTemplateAnalyticsRequest) GetTemplateId() string {
+	if x != nil {
+		return x.TemplateId
+	}
+	return ""
+}
+
+func (x *GetTemplateAnalyticsRequest) GetStartDate() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartDate
+	}
+	return nil
+}
+
+func (x *GetTemplateAnalyticsRequest) GetEndDate() *timestamppb.Timestamp {
+	if x != nil {
+		return x.EndDate
+	}
+	return nil
+}
+
+type GetTemplateAnalyticsResponse struct {
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	Analytics     *ExecutionTemplateAnalytics `protobuf:"bytes,1,opt,name=analytics,proto3" json:"analytics,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTemplateAnalyticsResponse) Reset() {
+	*x = GetTemplateAnalyticsResponse{}
+	mi := &file_proto_gogent_proto_msgTypes[96]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTemplateAnalyticsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTemplateAnalyticsResponse) ProtoMessage() {}
+
+func (x *GetTemplateAnalyticsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[96]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTemplateAnalyticsResponse.ProtoReflect.Descriptor instead.
+func (*GetTemplateAnalyticsResponse) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{96}
+}
+
+func (x *GetTemplateAnalyticsResponse) GetAnalytics() *ExecutionTemplateAnalytics {
+	if x != nil {
+		return x.Analytics
+	}
+	return nil
+}
+
+// Template execution history
+type GetTemplateExecutionHistoryRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TemplateId    string                 `protobuf:"bytes,1,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
+	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset        int32                  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
+	StatusFilter  string                 `protobuf:"bytes,4,opt,name=status_filter,json=statusFilter,proto3" json:"status_filter,omitempty"`
+	StartDate     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	EndDate       *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTemplateExecutionHistoryRequest) Reset() {
+	*x = GetTemplateExecutionHistoryRequest{}
+	mi := &file_proto_gogent_proto_msgTypes[97]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTemplateExecutionHistoryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTemplateExecutionHistoryRequest) ProtoMessage() {}
+
+func (x *GetTemplateExecutionHistoryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[97]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTemplateExecutionHistoryRequest.ProtoReflect.Descriptor instead.
+func (*GetTemplateExecutionHistoryRequest) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{97}
+}
+
+func (x *GetTemplateExecutionHistoryRequest) GetTemplateId() string {
+	if x != nil {
+		return x.TemplateId
+	}
+	return ""
+}
+
+func (x *GetTemplateExecutionHistoryRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *GetTemplateExecutionHistoryRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+func (x *GetTemplateExecutionHistoryRequest) GetStatusFilter() string {
+	if x != nil {
+		return x.StatusFilter
+	}
+	return ""
+}
+
+func (x *GetTemplateExecutionHistoryRequest) GetStartDate() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartDate
+	}
+	return nil
+}
+
+func (x *GetTemplateExecutionHistoryRequest) GetEndDate() *timestamppb.Timestamp {
+	if x != nil {
+		return x.EndDate
+	}
+	return nil
+}
+
+type GetTemplateExecutionHistoryResponse struct {
+	state         protoimpl.MessageState        `protogen:"open.v1"`
+	Executions    []*ExecutionTemplateExecution `protobuf:"bytes,1,rep,name=executions,proto3" json:"executions,omitempty"`
+	TotalCount    int32                         `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTemplateExecutionHistoryResponse) Reset() {
+	*x = GetTemplateExecutionHistoryResponse{}
+	mi := &file_proto_gogent_proto_msgTypes[98]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTemplateExecutionHistoryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTemplateExecutionHistoryResponse) ProtoMessage() {}
+
+func (x *GetTemplateExecutionHistoryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gogent_proto_msgTypes[98]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTemplateExecutionHistoryResponse.ProtoReflect.Descriptor instead.
+func (*GetTemplateExecutionHistoryResponse) Descriptor() ([]byte, []int) {
+	return file_proto_gogent_proto_rawDescGZIP(), []int{98}
+}
+
+func (x *GetTemplateExecutionHistoryResponse) GetExecutions() []*ExecutionTemplateExecution {
+	if x != nil {
+		return x.Executions
+	}
+	return nil
+}
+
+func (x *GetTemplateExecutionHistoryResponse) GetTotalCount() int32 {
+	if x != nil {
+		return x.TotalCount
+	}
+	return 0
+}
+
 var File_proto_gogent_proto protoreflect.FileDescriptor
 
 const file_proto_gogent_proto_rawDesc = "" +
@@ -4454,7 +7157,275 @@ const file_proto_gogent_proto_rawDesc = "" +
 	"\x10ComparisonConfig\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x18\n" +
 	"\ametrics\x18\x02 \x03(\tR\ametrics\x12!\n" +
-	"\fcustom_rules\x18\x03 \x03(\tR\vcustomRules2\x96\x10\n" +
+	"\fcustom_rules\x18\x03 \x03(\tR\vcustomRules\"\xb3\a\n" +
+	"\x11ExecutionTemplate\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12 \n" +
+	"\vdescription\x18\x04 \x01(\tR\vdescription\x12'\n" +
+	"\x0ftemplate_prompt\x18\x05 \x01(\tR\x0etemplatePrompt\x12)\n" +
+	"\x10context_template\x18\x06 \x01(\tR\x0fcontextTemplate\x126\n" +
+	"\x17enable_function_calling\x18\a \x01(\bR\x15enableFunctionCalling\x12\x1b\n" +
+	"\tis_active\x18\b \x01(\bR\bisActive\x12\x1b\n" +
+	"\tis_public\x18\t \x01(\bR\bisPublic\x12\x1a\n" +
+	"\bcategory\x18\n" +
+	" \x01(\tR\bcategory\x12+\n" +
+	"\x04tags\x18\v \x01(\v2\x17.google.protobuf.StructR\x04tags\x12:\n" +
+	"\x19execution_timeout_seconds\x18\f \x01(\x05R\x17executionTimeoutSeconds\x12-\n" +
+	"\x13rate_limit_per_hour\x18\r \x01(\x05R\x10rateLimitPerHour\x12+\n" +
+	"\x12rate_limit_per_day\x18\x0e \x01(\x05R\x0frateLimitPerDay\x12(\n" +
+	"\x10rate_limit_burst\x18\x0f \x01(\x05R\x0erateLimitBurst\x12)\n" +
+	"\x10total_executions\x18\x10 \x01(\x05R\x0ftotalExecutions\x12D\n" +
+	"\x10last_executed_at\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\x0elastExecutedAt\x129\n" +
+	"\n" +
+	"created_at\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12B\n" +
+	"\n" +
+	"parameters\x18\x14 \x03(\v2\".gogent.ExecutionTemplateParameterR\n" +
+	"parameters\x12C\n" +
+	"\vauth_tokens\x18\x15 \x03(\v2\".gogent.ExecutionTemplateAuthTokenR\n" +
+	"authTokens\"\x90\x06\n" +
+	"\x1aExecutionTemplateParameter\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
+	"\vtemplate_id\x18\x02 \x01(\tR\n" +
+	"templateId\x12%\n" +
+	"\x0eparameter_name\x18\x03 \x01(\tR\rparameterName\x12%\n" +
+	"\x0eparameter_type\x18\x04 \x01(\tR\rparameterType\x12 \n" +
+	"\vdescription\x18\x05 \x01(\tR\vdescription\x12#\n" +
+	"\rdefault_value\x18\x06 \x01(\tR\fdefaultValue\x12\x1f\n" +
+	"\vis_required\x18\a \x01(\bR\n" +
+	"isRequired\x12B\n" +
+	"\x10validation_rules\x18\b \x01(\v2\x17.google.protobuf.StructR\x0fvalidationRules\x12>\n" +
+	"\x0eallowed_values\x18\t \x01(\v2\x17.google.protobuf.StructR\rallowedValues\x12,\n" +
+	"\x12allow_sql_keywords\x18\n" +
+	" \x01(\bR\x10allowSqlKeywords\x12.\n" +
+	"\x13allow_special_chars\x18\v \x01(\bR\x11allowSpecialChars\x12#\n" +
+	"\rsanitize_html\x18\f \x01(\bR\fsanitizeHtml\x12#\n" +
+	"\rdisplay_order\x18\r \x01(\x05R\fdisplayOrder\x12!\n" +
+	"\fui_component\x18\x0e \x01(\tR\vuiComponent\x12)\n" +
+	"\x10placeholder_text\x18\x0f \x01(\tR\x0fplaceholderText\x12\x1b\n" +
+	"\thelp_text\x18\x10 \x01(\tR\bhelpText\x129\n" +
+	"\n" +
+	"created_at\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xbe\x06\n" +
+	"\x1aExecutionTemplateAuthToken\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
+	"\vtemplate_id\x18\x02 \x01(\tR\n" +
+	"templateId\x12\x17\n" +
+	"\auser_id\x18\x03 \x01(\tR\x06userId\x12\x1f\n" +
+	"\vtoken_value\x18\x04 \x01(\tR\n" +
+	"tokenValue\x12\x1d\n" +
+	"\n" +
+	"token_name\x18\x05 \x01(\tR\ttokenName\x12 \n" +
+	"\vdescription\x18\x06 \x01(\tR\vdescription\x12\x1b\n" +
+	"\tis_active\x18\a \x01(\bR\bisActive\x129\n" +
+	"\n" +
+	"expires_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12:\n" +
+	"\x1acustom_rate_limit_per_hour\x18\t \x01(\x05R\x16customRateLimitPerHour\x128\n" +
+	"\x19custom_rate_limit_per_day\x18\n" +
+	" \x01(\x05R\x15customRateLimitPerDay\x125\n" +
+	"\x17custom_rate_limit_burst\x18\v \x01(\x05R\x14customRateLimitBurst\x12\x1d\n" +
+	"\n" +
+	"total_uses\x18\f \x01(\x05R\ttotalUses\x12<\n" +
+	"\flast_used_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"lastUsedAt\x12 \n" +
+	"\flast_used_ip\x18\x0e \x01(\tR\n" +
+	"lastUsedIp\x12@\n" +
+	"\x0fallowed_origins\x18\x0f \x01(\v2\x17.google.protobuf.StructR\x0eallowedOrigins\x128\n" +
+	"\vallowed_ips\x18\x10 \x01(\v2\x17.google.protobuf.StructR\n" +
+	"allowedIps\x129\n" +
+	"\n" +
+	"created_at\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\x91\x06\n" +
+	"\x18ExecutionTemplateVersion\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
+	"\vtemplate_id\x18\x02 \x01(\tR\n" +
+	"templateId\x12%\n" +
+	"\x0eversion_number\x18\x03 \x01(\x05R\rversionNumber\x12\x17\n" +
+	"\auser_id\x18\x04 \x01(\tR\x06userId\x12\x12\n" +
+	"\x04name\x18\x05 \x01(\tR\x04name\x12 \n" +
+	"\vdescription\x18\x06 \x01(\tR\vdescription\x12'\n" +
+	"\x0ftemplate_prompt\x18\a \x01(\tR\x0etemplatePrompt\x12)\n" +
+	"\x10context_template\x18\b \x01(\tR\x0fcontextTemplate\x126\n" +
+	"\x17enable_function_calling\x18\t \x01(\bR\x15enableFunctionCalling\x12\x1a\n" +
+	"\bcategory\x18\n" +
+	" \x01(\tR\bcategory\x12+\n" +
+	"\x04tags\x18\v \x01(\v2\x17.google.protobuf.StructR\x04tags\x12-\n" +
+	"\x13rate_limit_per_hour\x18\f \x01(\x05R\x10rateLimitPerHour\x12+\n" +
+	"\x12rate_limit_per_day\x18\r \x01(\x05R\x0frateLimitPerDay\x12(\n" +
+	"\x10rate_limit_burst\x18\x0e \x01(\x05R\x0erateLimitBurst\x12%\n" +
+	"\x0echange_summary\x18\x0f \x01(\tR\rchangeSummary\x12\x1f\n" +
+	"\vchange_type\x18\x10 \x01(\tR\n" +
+	"changeType\x12,\n" +
+	"\x12is_current_version\x18\x11 \x01(\bR\x10isCurrentVersion\x129\n" +
+	"\n" +
+	"created_at\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12B\n" +
+	"\n" +
+	"parameters\x18\x13 \x03(\v2\".gogent.ExecutionTemplateParameterR\n" +
+	"parameters\"\xa4\x05\n" +
+	"\x1aExecutionTemplateExecution\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
+	"\vtemplate_id\x18\x02 \x01(\tR\n" +
+	"templateId\x12.\n" +
+	"\x13template_version_id\x18\x03 \x01(\tR\x11templateVersionId\x12\"\n" +
+	"\rauth_token_id\x18\x04 \x01(\tR\vauthTokenId\x12(\n" +
+	"\x10execution_run_id\x18\x05 \x01(\tR\x0eexecutionRunId\x12H\n" +
+	"\x13parameters_provided\x18\x06 \x01(\v2\x17.google.protobuf.StructR\x12parametersProvided\x12'\n" +
+	"\x0fresolved_prompt\x18\a \x01(\tR\x0eresolvedPrompt\x12)\n" +
+	"\x10resolved_context\x18\b \x01(\tR\x0fresolvedContext\x12\x1d\n" +
+	"\n" +
+	"request_ip\x18\t \x01(\tR\trequestIp\x12\x1d\n" +
+	"\n" +
+	"user_agent\x18\n" +
+	" \x01(\tR\tuserAgent\x12\x18\n" +
+	"\areferer\x18\v \x01(\tR\areferer\x12\x16\n" +
+	"\x06status\x18\f \x01(\tR\x06status\x12#\n" +
+	"\rerror_message\x18\r \x01(\tR\ferrorMessage\x12*\n" +
+	"\x11execution_time_ms\x18\x0e \x01(\x05R\x0fexecutionTimeMs\x129\n" +
+	"\n" +
+	"created_at\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12=\n" +
+	"\fcompleted_at\x18\x10 \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\"\xfa\x03\n" +
+	"\x1aExecutionTemplateAnalytics\x12\x1f\n" +
+	"\vtemplate_id\x18\x01 \x01(\tR\n" +
+	"templateId\x12)\n" +
+	"\x10total_executions\x18\x02 \x01(\x05R\x0ftotalExecutions\x123\n" +
+	"\x15successful_executions\x18\x03 \x01(\x05R\x14successfulExecutions\x12+\n" +
+	"\x11failed_executions\x18\x04 \x01(\x05R\x10failedExecutions\x126\n" +
+	"\x17rate_limited_executions\x18\x05 \x01(\x05R\x15rateLimitedExecutions\x129\n" +
+	"\x19average_execution_time_ms\x18\x06 \x01(\x01R\x16averageExecutionTimeMs\x129\n" +
+	"\fusage_by_day\x18\a \x01(\v2\x17.google.protobuf.StructR\n" +
+	"usageByDay\x12>\n" +
+	"\x0etop_parameters\x18\b \x01(\v2\x17.google.protobuf.StructR\rtopParameters\x12@\n" +
+	"\x0ferror_breakdown\x18\t \x01(\v2\x17.google.protobuf.StructR\x0eerrorBreakdown\"\xbb\x01\n" +
+	"\x1dListExecutionTemplatesRequest\x12\x14\n" +
+	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x02 \x01(\x05R\x06offset\x12\x1a\n" +
+	"\bcategory\x18\x03 \x01(\tR\bcategory\x12%\n" +
+	"\x0einclude_public\x18\x04 \x01(\bR\rincludePublic\x12)\n" +
+	"\x10include_inactive\x18\x05 \x01(\bR\x0fincludeInactive\"z\n" +
+	"\x1eListExecutionTemplatesResponse\x127\n" +
+	"\ttemplates\x18\x01 \x03(\v2\x19.gogent.ExecutionTemplateR\ttemplates\x12\x1f\n" +
+	"\vtotal_count\x18\x02 \x01(\x05R\n" +
+	"totalCount\"\x83\x01\n" +
+	"\x1bGetExecutionTemplateRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12-\n" +
+	"\x12include_parameters\x18\x02 \x01(\bR\x11includeParameters\x12%\n" +
+	"\x0einclude_tokens\x18\x03 \x01(\bR\rincludeTokens\"U\n" +
+	"\x1cGetExecutionTemplateResponse\x125\n" +
+	"\btemplate\x18\x01 \x01(\v2\x19.gogent.ExecutionTemplateR\btemplate\"\x9b\x01\n" +
+	"\x1eCreateExecutionTemplateRequest\x125\n" +
+	"\btemplate\x18\x01 \x01(\v2\x19.gogent.ExecutionTemplateR\btemplate\x12B\n" +
+	"\n" +
+	"parameters\x18\x02 \x03(\v2\".gogent.ExecutionTemplateParameterR\n" +
+	"parameters\"X\n" +
+	"\x1fCreateExecutionTemplateResponse\x125\n" +
+	"\btemplate\x18\x01 \x01(\v2\x19.gogent.ExecutionTemplateR\btemplate\"\xd2\x01\n" +
+	"\x1eUpdateExecutionTemplateRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x125\n" +
+	"\btemplate\x18\x02 \x01(\v2\x19.gogent.ExecutionTemplateR\btemplate\x12B\n" +
+	"\n" +
+	"parameters\x18\x03 \x03(\v2\".gogent.ExecutionTemplateParameterR\n" +
+	"parameters\x12%\n" +
+	"\x0echange_summary\x18\x04 \x01(\tR\rchangeSummary\"\x94\x01\n" +
+	"\x1fUpdateExecutionTemplateResponse\x125\n" +
+	"\btemplate\x18\x01 \x01(\v2\x19.gogent.ExecutionTemplateR\btemplate\x12:\n" +
+	"\aversion\x18\x02 \x01(\v2 .gogent.ExecutionTemplateVersionR\aversion\"0\n" +
+	"\x1eDeleteExecutionTemplateRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\";\n" +
+	"\x1fDeleteExecutionTemplateResponse\x12\x18\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\"\xe7\x01\n" +
+	"\x16ExecuteTemplateRequest\x12\x1f\n" +
+	"\vtemplate_id\x18\x01 \x01(\tR\n" +
+	"templateId\x12\x1d\n" +
+	"\n" +
+	"auth_token\x18\x02 \x01(\tR\tauthToken\x127\n" +
+	"\n" +
+	"parameters\x18\x03 \x01(\v2\x17.google.protobuf.StructR\n" +
+	"parameters\x12\x1b\n" +
+	"\tclient_ip\x18\x04 \x01(\tR\bclientIp\x12\x1d\n" +
+	"\n" +
+	"user_agent\x18\x05 \x01(\tR\tuserAgent\x12\x18\n" +
+	"\areferer\x18\x06 \x01(\tR\areferer\"\xe5\x02\n" +
+	"\x17ExecuteTemplateResponse\x12!\n" +
+	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x122\n" +
+	"\x15template_execution_id\x18\x02 \x01(\tR\x13templateExecutionId\x129\n" +
+	"\rexecution_run\x18\x03 \x01(\v2\x14.gogent.ExecutionRunR\fexecutionRun\x12\x18\n" +
+	"\amessage\x18\x04 \x01(\tR\amessage\x12!\n" +
+	"\frate_limited\x18\x05 \x01(\bR\vrateLimited\x120\n" +
+	"\x14rate_limit_remaining\x18\x06 \x01(\x05R\x12rateLimitRemaining\x12I\n" +
+	"\x13rate_limit_reset_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\x10rateLimitResetAt\"v\n" +
+	"!GetTemplateExecutionStatusRequest\x122\n" +
+	"\x15template_execution_id\x18\x01 \x01(\tR\x13templateExecutionId\x12\x1d\n" +
+	"\n" +
+	"auth_token\x18\x02 \x01(\tR\tauthToken\"\x97\x01\n" +
+	"\"GetTemplateExecutionStatusResponse\x12@\n" +
+	"\texecution\x18\x01 \x01(\v2\".gogent.ExecutionTemplateExecutionR\texecution\x12/\n" +
+	"\x06result\x18\x02 \x01(\v2\x17.gogent.ExecutionResultR\x06result\"k\n" +
+	"\x1aGetTemplateVersionsRequest\x12\x1f\n" +
+	"\vtemplate_id\x18\x01 \x01(\tR\n" +
+	"templateId\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x03 \x01(\x05R\x06offset\"|\n" +
+	"\x1bGetTemplateVersionsResponse\x12<\n" +
+	"\bversions\x18\x01 \x03(\v2 .gogent.ExecutionTemplateVersionR\bversions\x12\x1f\n" +
+	"\vtotal_count\x18\x02 \x01(\x05R\n" +
+	"totalCount\"\x8e\x01\n" +
+	"\x1dRestoreTemplateVersionRequest\x12\x1f\n" +
+	"\vtemplate_id\x18\x01 \x01(\tR\n" +
+	"templateId\x12%\n" +
+	"\x0eversion_number\x18\x02 \x01(\x05R\rversionNumber\x12%\n" +
+	"\x0echange_summary\x18\x03 \x01(\tR\rchangeSummary\"\x9a\x01\n" +
+	"\x1eRestoreTemplateVersionResponse\x125\n" +
+	"\btemplate\x18\x01 \x01(\v2\x19.gogent.ExecutionTemplateR\btemplate\x12A\n" +
+	"\vnew_version\x18\x02 \x01(\v2 .gogent.ExecutionTemplateVersionR\n" +
+	"newVersion\"{\n" +
+	"\x1eCreateTemplateAuthTokenRequest\x12\x1f\n" +
+	"\vtemplate_id\x18\x01 \x01(\tR\n" +
+	"templateId\x128\n" +
+	"\x05token\x18\x02 \x01(\v2\".gogent.ExecutionTemplateAuthTokenR\x05token\"[\n" +
+	"\x1fCreateTemplateAuthTokenResponse\x128\n" +
+	"\x05token\x18\x01 \x01(\v2\".gogent.ExecutionTemplateAuthTokenR\x05token\"k\n" +
+	"\x1dListTemplateAuthTokensRequest\x12\x1f\n" +
+	"\vtemplate_id\x18\x01 \x01(\tR\n" +
+	"templateId\x12)\n" +
+	"\x10include_inactive\x18\x02 \x01(\bR\x0fincludeInactive\"\\\n" +
+	"\x1eListTemplateAuthTokensResponse\x12:\n" +
+	"\x06tokens\x18\x01 \x03(\v2\".gogent.ExecutionTemplateAuthTokenR\x06tokens\"u\n" +
+	"\x1eUpdateTemplateAuthTokenRequest\x12\x19\n" +
+	"\btoken_id\x18\x01 \x01(\tR\atokenId\x128\n" +
+	"\x05token\x18\x02 \x01(\v2\".gogent.ExecutionTemplateAuthTokenR\x05token\"[\n" +
+	"\x1fUpdateTemplateAuthTokenResponse\x128\n" +
+	"\x05token\x18\x01 \x01(\v2\".gogent.ExecutionTemplateAuthTokenR\x05token\";\n" +
+	"\x1eDeleteTemplateAuthTokenRequest\x12\x19\n" +
+	"\btoken_id\x18\x01 \x01(\tR\atokenId\";\n" +
+	"\x1fDeleteTemplateAuthTokenResponse\x12\x18\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\"\xb0\x01\n" +
+	"\x1bGetTemplateAnalyticsRequest\x12\x1f\n" +
+	"\vtemplate_id\x18\x01 \x01(\tR\n" +
+	"templateId\x129\n" +
+	"\n" +
+	"start_date\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tstartDate\x125\n" +
+	"\bend_date\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\aendDate\"`\n" +
+	"\x1cGetTemplateAnalyticsResponse\x12@\n" +
+	"\tanalytics\x18\x01 \x01(\v2\".gogent.ExecutionTemplateAnalyticsR\tanalytics\"\x8a\x02\n" +
+	"\"GetTemplateExecutionHistoryRequest\x12\x1f\n" +
+	"\vtemplate_id\x18\x01 \x01(\tR\n" +
+	"templateId\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x03 \x01(\x05R\x06offset\x12#\n" +
+	"\rstatus_filter\x18\x04 \x01(\tR\fstatusFilter\x129\n" +
+	"\n" +
+	"start_date\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tstartDate\x125\n" +
+	"\bend_date\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\aendDate\"\x8a\x01\n" +
+	"#GetTemplateExecutionHistoryResponse\x12B\n" +
+	"\n" +
+	"executions\x18\x01 \x03(\v2\".gogent.ExecutionTemplateExecutionR\n" +
+	"executions\x12\x1f\n" +
+	"\vtotal_count\x18\x02 \x01(\x05R\n" +
+	"totalCount2\xc0\x1c\n" +
 	"\rGogentService\x124\n" +
 	"\x05Login\x12\x14.gogent.LoginRequest\x1a\x15.gogent.LoginResponse\x12=\n" +
 	"\bRegister\x12\x17.gogent.RegisterRequest\x1a\x18.gogent.RegisterResponse\x12^\n" +
@@ -4480,7 +7451,22 @@ const file_proto_gogent_proto_rawDesc = "" +
 	"\x10GetDatabaseStats\x12\x1f.gogent.GetDatabaseStatsRequest\x1a .gogent.GetDatabaseStatsResponse\x12[\n" +
 	"\x12ListDatabaseTables\x12!.gogent.ListDatabaseTablesRequest\x1a\".gogent.ListDatabaseTablesResponse\x12I\n" +
 	"\fGetTableData\x12\x1b.gogent.GetTableDataRequest\x1a\x1c.gogent.GetTableDataResponse\x127\n" +
-	"\x06Health\x12\x15.gogent.HealthRequest\x1a\x16.gogent.HealthResponseB\x0eZ\fgogent/protob\x06proto3"
+	"\x06Health\x12\x15.gogent.HealthRequest\x1a\x16.gogent.HealthResponse\x12g\n" +
+	"\x16ListExecutionTemplates\x12%.gogent.ListExecutionTemplatesRequest\x1a&.gogent.ListExecutionTemplatesResponse\x12a\n" +
+	"\x14GetExecutionTemplate\x12#.gogent.GetExecutionTemplateRequest\x1a$.gogent.GetExecutionTemplateResponse\x12j\n" +
+	"\x17CreateExecutionTemplate\x12&.gogent.CreateExecutionTemplateRequest\x1a'.gogent.CreateExecutionTemplateResponse\x12j\n" +
+	"\x17UpdateExecutionTemplate\x12&.gogent.UpdateExecutionTemplateRequest\x1a'.gogent.UpdateExecutionTemplateResponse\x12j\n" +
+	"\x17DeleteExecutionTemplate\x12&.gogent.DeleteExecutionTemplateRequest\x1a'.gogent.DeleteExecutionTemplateResponse\x12R\n" +
+	"\x0fExecuteTemplate\x12\x1e.gogent.ExecuteTemplateRequest\x1a\x1f.gogent.ExecuteTemplateResponse\x12s\n" +
+	"\x1aGetTemplateExecutionStatus\x12).gogent.GetTemplateExecutionStatusRequest\x1a*.gogent.GetTemplateExecutionStatusResponse\x12^\n" +
+	"\x13GetTemplateVersions\x12\".gogent.GetTemplateVersionsRequest\x1a#.gogent.GetTemplateVersionsResponse\x12g\n" +
+	"\x16RestoreTemplateVersion\x12%.gogent.RestoreTemplateVersionRequest\x1a&.gogent.RestoreTemplateVersionResponse\x12j\n" +
+	"\x17CreateTemplateAuthToken\x12&.gogent.CreateTemplateAuthTokenRequest\x1a'.gogent.CreateTemplateAuthTokenResponse\x12g\n" +
+	"\x16ListTemplateAuthTokens\x12%.gogent.ListTemplateAuthTokensRequest\x1a&.gogent.ListTemplateAuthTokensResponse\x12j\n" +
+	"\x17UpdateTemplateAuthToken\x12&.gogent.UpdateTemplateAuthTokenRequest\x1a'.gogent.UpdateTemplateAuthTokenResponse\x12j\n" +
+	"\x17DeleteTemplateAuthToken\x12&.gogent.DeleteTemplateAuthTokenRequest\x1a'.gogent.DeleteTemplateAuthTokenResponse\x12a\n" +
+	"\x14GetTemplateAnalytics\x12#.gogent.GetTemplateAnalyticsRequest\x1a$.gogent.GetTemplateAnalyticsResponse\x12v\n" +
+	"\x1bGetTemplateExecutionHistory\x12*.gogent.GetTemplateExecutionHistoryRequest\x1a+.gogent.GetTemplateExecutionHistoryResponseB\x0eZ\fgogent/protob\x06proto3"
 
 var (
 	file_proto_gogent_proto_rawDescOnce sync.Once
@@ -4494,82 +7480,118 @@ func file_proto_gogent_proto_rawDescGZIP() []byte {
 	return file_proto_gogent_proto_rawDescData
 }
 
-var file_proto_gogent_proto_msgTypes = make([]protoimpl.MessageInfo, 64)
+var file_proto_gogent_proto_msgTypes = make([]protoimpl.MessageInfo, 100)
 var file_proto_gogent_proto_goTypes = []any{
-	(*User)(nil),                         // 0: gogent.User
-	(*LoginRequest)(nil),                 // 1: gogent.LoginRequest
-	(*LoginResponse)(nil),                // 2: gogent.LoginResponse
-	(*RegisterRequest)(nil),              // 3: gogent.RegisterRequest
-	(*RegisterResponse)(nil),             // 4: gogent.RegisterResponse
-	(*CreateTemporaryUserRequest)(nil),   // 5: gogent.CreateTemporaryUserRequest
-	(*CreateTemporaryUserResponse)(nil),  // 6: gogent.CreateTemporaryUserResponse
-	(*SaveTemporaryAccountRequest)(nil),  // 7: gogent.SaveTemporaryAccountRequest
-	(*SaveTemporaryAccountResponse)(nil), // 8: gogent.SaveTemporaryAccountResponse
-	(*VerifyEmailRequest)(nil),           // 9: gogent.VerifyEmailRequest
-	(*VerifyEmailResponse)(nil),          // 10: gogent.VerifyEmailResponse
-	(*GetCurrentUserRequest)(nil),        // 11: gogent.GetCurrentUserRequest
-	(*GetCurrentUserResponse)(nil),       // 12: gogent.GetCurrentUserResponse
-	(*ExecuteRequest)(nil),               // 13: gogent.ExecuteRequest
-	(*ExecuteResponse)(nil),              // 14: gogent.ExecuteResponse
-	(*GetExecutionStatusRequest)(nil),    // 15: gogent.GetExecutionStatusRequest
-	(*GetExecutionStatusResponse)(nil),   // 16: gogent.GetExecutionStatusResponse
-	(*GetExecutionResultRequest)(nil),    // 17: gogent.GetExecutionResultRequest
-	(*GetExecutionResultResponse)(nil),   // 18: gogent.GetExecutionResultResponse
-	(*ListExecutionRunsRequest)(nil),     // 19: gogent.ListExecutionRunsRequest
-	(*ListExecutionRunsResponse)(nil),    // 20: gogent.ListExecutionRunsResponse
-	(*DeleteExecutionRunRequest)(nil),    // 21: gogent.DeleteExecutionRunRequest
-	(*DeleteExecutionRunResponse)(nil),   // 22: gogent.DeleteExecutionRunResponse
-	(*ListConfigurationsRequest)(nil),    // 23: gogent.ListConfigurationsRequest
-	(*ListConfigurationsResponse)(nil),   // 24: gogent.ListConfigurationsResponse
-	(*CreateConfigurationRequest)(nil),   // 25: gogent.CreateConfigurationRequest
-	(*CreateConfigurationResponse)(nil),  // 26: gogent.CreateConfigurationResponse
-	(*UpdateConfigurationRequest)(nil),   // 27: gogent.UpdateConfigurationRequest
-	(*UpdateConfigurationResponse)(nil),  // 28: gogent.UpdateConfigurationResponse
-	(*DeleteConfigurationRequest)(nil),   // 29: gogent.DeleteConfigurationRequest
-	(*DeleteConfigurationResponse)(nil),  // 30: gogent.DeleteConfigurationResponse
-	(*ListFunctionsRequest)(nil),         // 31: gogent.ListFunctionsRequest
-	(*ListFunctionsResponse)(nil),        // 32: gogent.ListFunctionsResponse
-	(*GetFunctionRequest)(nil),           // 33: gogent.GetFunctionRequest
-	(*GetFunctionResponse)(nil),          // 34: gogent.GetFunctionResponse
-	(*CreateFunctionRequest)(nil),        // 35: gogent.CreateFunctionRequest
-	(*CreateFunctionResponse)(nil),       // 36: gogent.CreateFunctionResponse
-	(*UpdateFunctionRequest)(nil),        // 37: gogent.UpdateFunctionRequest
-	(*UpdateFunctionResponse)(nil),       // 38: gogent.UpdateFunctionResponse
-	(*DeleteFunctionRequest)(nil),        // 39: gogent.DeleteFunctionRequest
-	(*DeleteFunctionResponse)(nil),       // 40: gogent.DeleteFunctionResponse
-	(*TestFunctionRequest)(nil),          // 41: gogent.TestFunctionRequest
-	(*TestFunctionResponse)(nil),         // 42: gogent.TestFunctionResponse
-	(*GetDatabaseStatsRequest)(nil),      // 43: gogent.GetDatabaseStatsRequest
-	(*GetDatabaseStatsResponse)(nil),     // 44: gogent.GetDatabaseStatsResponse
-	(*ListDatabaseTablesRequest)(nil),    // 45: gogent.ListDatabaseTablesRequest
-	(*ListDatabaseTablesResponse)(nil),   // 46: gogent.ListDatabaseTablesResponse
-	(*GetTableDataRequest)(nil),          // 47: gogent.GetTableDataRequest
-	(*GetTableDataResponse)(nil),         // 48: gogent.GetTableDataResponse
-	(*HealthRequest)(nil),                // 49: gogent.HealthRequest
-	(*HealthResponse)(nil),               // 50: gogent.HealthResponse
-	(*ExecutionRun)(nil),                 // 51: gogent.ExecutionRun
-	(*APIConfiguration)(nil),             // 52: gogent.APIConfiguration
-	(*Tool)(nil),                         // 53: gogent.Tool
-	(*FunctionDefinition)(nil),           // 54: gogent.FunctionDefinition
-	(*APIRequest)(nil),                   // 55: gogent.APIRequest
-	(*APIResponse)(nil),                  // 56: gogent.APIResponse
-	(*FunctionCall)(nil),                 // 57: gogent.FunctionCall
-	(*ExecutionResult)(nil),              // 58: gogent.ExecutionResult
-	(*VariationResult)(nil),              // 59: gogent.VariationResult
-	(*ComparisonResult)(nil),             // 60: gogent.ComparisonResult
-	(*ExecutionLog)(nil),                 // 61: gogent.ExecutionLog
-	(*ComparisonConfig)(nil),             // 62: gogent.ComparisonConfig
-	nil,                                  // 63: gogent.ExecuteRequest.SessionApiKeysEntry
-	(*timestamppb.Timestamp)(nil),        // 64: google.protobuf.Timestamp
-	(*structpb.Struct)(nil),              // 65: google.protobuf.Struct
-	(*structpb.ListValue)(nil),           // 66: google.protobuf.ListValue
+	(*User)(nil),                                // 0: gogent.User
+	(*LoginRequest)(nil),                        // 1: gogent.LoginRequest
+	(*LoginResponse)(nil),                       // 2: gogent.LoginResponse
+	(*RegisterRequest)(nil),                     // 3: gogent.RegisterRequest
+	(*RegisterResponse)(nil),                    // 4: gogent.RegisterResponse
+	(*CreateTemporaryUserRequest)(nil),          // 5: gogent.CreateTemporaryUserRequest
+	(*CreateTemporaryUserResponse)(nil),         // 6: gogent.CreateTemporaryUserResponse
+	(*SaveTemporaryAccountRequest)(nil),         // 7: gogent.SaveTemporaryAccountRequest
+	(*SaveTemporaryAccountResponse)(nil),        // 8: gogent.SaveTemporaryAccountResponse
+	(*VerifyEmailRequest)(nil),                  // 9: gogent.VerifyEmailRequest
+	(*VerifyEmailResponse)(nil),                 // 10: gogent.VerifyEmailResponse
+	(*GetCurrentUserRequest)(nil),               // 11: gogent.GetCurrentUserRequest
+	(*GetCurrentUserResponse)(nil),              // 12: gogent.GetCurrentUserResponse
+	(*ExecuteRequest)(nil),                      // 13: gogent.ExecuteRequest
+	(*ExecuteResponse)(nil),                     // 14: gogent.ExecuteResponse
+	(*GetExecutionStatusRequest)(nil),           // 15: gogent.GetExecutionStatusRequest
+	(*GetExecutionStatusResponse)(nil),          // 16: gogent.GetExecutionStatusResponse
+	(*GetExecutionResultRequest)(nil),           // 17: gogent.GetExecutionResultRequest
+	(*GetExecutionResultResponse)(nil),          // 18: gogent.GetExecutionResultResponse
+	(*ListExecutionRunsRequest)(nil),            // 19: gogent.ListExecutionRunsRequest
+	(*ListExecutionRunsResponse)(nil),           // 20: gogent.ListExecutionRunsResponse
+	(*DeleteExecutionRunRequest)(nil),           // 21: gogent.DeleteExecutionRunRequest
+	(*DeleteExecutionRunResponse)(nil),          // 22: gogent.DeleteExecutionRunResponse
+	(*ListConfigurationsRequest)(nil),           // 23: gogent.ListConfigurationsRequest
+	(*ListConfigurationsResponse)(nil),          // 24: gogent.ListConfigurationsResponse
+	(*CreateConfigurationRequest)(nil),          // 25: gogent.CreateConfigurationRequest
+	(*CreateConfigurationResponse)(nil),         // 26: gogent.CreateConfigurationResponse
+	(*UpdateConfigurationRequest)(nil),          // 27: gogent.UpdateConfigurationRequest
+	(*UpdateConfigurationResponse)(nil),         // 28: gogent.UpdateConfigurationResponse
+	(*DeleteConfigurationRequest)(nil),          // 29: gogent.DeleteConfigurationRequest
+	(*DeleteConfigurationResponse)(nil),         // 30: gogent.DeleteConfigurationResponse
+	(*ListFunctionsRequest)(nil),                // 31: gogent.ListFunctionsRequest
+	(*ListFunctionsResponse)(nil),               // 32: gogent.ListFunctionsResponse
+	(*GetFunctionRequest)(nil),                  // 33: gogent.GetFunctionRequest
+	(*GetFunctionResponse)(nil),                 // 34: gogent.GetFunctionResponse
+	(*CreateFunctionRequest)(nil),               // 35: gogent.CreateFunctionRequest
+	(*CreateFunctionResponse)(nil),              // 36: gogent.CreateFunctionResponse
+	(*UpdateFunctionRequest)(nil),               // 37: gogent.UpdateFunctionRequest
+	(*UpdateFunctionResponse)(nil),              // 38: gogent.UpdateFunctionResponse
+	(*DeleteFunctionRequest)(nil),               // 39: gogent.DeleteFunctionRequest
+	(*DeleteFunctionResponse)(nil),              // 40: gogent.DeleteFunctionResponse
+	(*TestFunctionRequest)(nil),                 // 41: gogent.TestFunctionRequest
+	(*TestFunctionResponse)(nil),                // 42: gogent.TestFunctionResponse
+	(*GetDatabaseStatsRequest)(nil),             // 43: gogent.GetDatabaseStatsRequest
+	(*GetDatabaseStatsResponse)(nil),            // 44: gogent.GetDatabaseStatsResponse
+	(*ListDatabaseTablesRequest)(nil),           // 45: gogent.ListDatabaseTablesRequest
+	(*ListDatabaseTablesResponse)(nil),          // 46: gogent.ListDatabaseTablesResponse
+	(*GetTableDataRequest)(nil),                 // 47: gogent.GetTableDataRequest
+	(*GetTableDataResponse)(nil),                // 48: gogent.GetTableDataResponse
+	(*HealthRequest)(nil),                       // 49: gogent.HealthRequest
+	(*HealthResponse)(nil),                      // 50: gogent.HealthResponse
+	(*ExecutionRun)(nil),                        // 51: gogent.ExecutionRun
+	(*APIConfiguration)(nil),                    // 52: gogent.APIConfiguration
+	(*Tool)(nil),                                // 53: gogent.Tool
+	(*FunctionDefinition)(nil),                  // 54: gogent.FunctionDefinition
+	(*APIRequest)(nil),                          // 55: gogent.APIRequest
+	(*APIResponse)(nil),                         // 56: gogent.APIResponse
+	(*FunctionCall)(nil),                        // 57: gogent.FunctionCall
+	(*ExecutionResult)(nil),                     // 58: gogent.ExecutionResult
+	(*VariationResult)(nil),                     // 59: gogent.VariationResult
+	(*ComparisonResult)(nil),                    // 60: gogent.ComparisonResult
+	(*ExecutionLog)(nil),                        // 61: gogent.ExecutionLog
+	(*ComparisonConfig)(nil),                    // 62: gogent.ComparisonConfig
+	(*ExecutionTemplate)(nil),                   // 63: gogent.ExecutionTemplate
+	(*ExecutionTemplateParameter)(nil),          // 64: gogent.ExecutionTemplateParameter
+	(*ExecutionTemplateAuthToken)(nil),          // 65: gogent.ExecutionTemplateAuthToken
+	(*ExecutionTemplateVersion)(nil),            // 66: gogent.ExecutionTemplateVersion
+	(*ExecutionTemplateExecution)(nil),          // 67: gogent.ExecutionTemplateExecution
+	(*ExecutionTemplateAnalytics)(nil),          // 68: gogent.ExecutionTemplateAnalytics
+	(*ListExecutionTemplatesRequest)(nil),       // 69: gogent.ListExecutionTemplatesRequest
+	(*ListExecutionTemplatesResponse)(nil),      // 70: gogent.ListExecutionTemplatesResponse
+	(*GetExecutionTemplateRequest)(nil),         // 71: gogent.GetExecutionTemplateRequest
+	(*GetExecutionTemplateResponse)(nil),        // 72: gogent.GetExecutionTemplateResponse
+	(*CreateExecutionTemplateRequest)(nil),      // 73: gogent.CreateExecutionTemplateRequest
+	(*CreateExecutionTemplateResponse)(nil),     // 74: gogent.CreateExecutionTemplateResponse
+	(*UpdateExecutionTemplateRequest)(nil),      // 75: gogent.UpdateExecutionTemplateRequest
+	(*UpdateExecutionTemplateResponse)(nil),     // 76: gogent.UpdateExecutionTemplateResponse
+	(*DeleteExecutionTemplateRequest)(nil),      // 77: gogent.DeleteExecutionTemplateRequest
+	(*DeleteExecutionTemplateResponse)(nil),     // 78: gogent.DeleteExecutionTemplateResponse
+	(*ExecuteTemplateRequest)(nil),              // 79: gogent.ExecuteTemplateRequest
+	(*ExecuteTemplateResponse)(nil),             // 80: gogent.ExecuteTemplateResponse
+	(*GetTemplateExecutionStatusRequest)(nil),   // 81: gogent.GetTemplateExecutionStatusRequest
+	(*GetTemplateExecutionStatusResponse)(nil),  // 82: gogent.GetTemplateExecutionStatusResponse
+	(*GetTemplateVersionsRequest)(nil),          // 83: gogent.GetTemplateVersionsRequest
+	(*GetTemplateVersionsResponse)(nil),         // 84: gogent.GetTemplateVersionsResponse
+	(*RestoreTemplateVersionRequest)(nil),       // 85: gogent.RestoreTemplateVersionRequest
+	(*RestoreTemplateVersionResponse)(nil),      // 86: gogent.RestoreTemplateVersionResponse
+	(*CreateTemplateAuthTokenRequest)(nil),      // 87: gogent.CreateTemplateAuthTokenRequest
+	(*CreateTemplateAuthTokenResponse)(nil),     // 88: gogent.CreateTemplateAuthTokenResponse
+	(*ListTemplateAuthTokensRequest)(nil),       // 89: gogent.ListTemplateAuthTokensRequest
+	(*ListTemplateAuthTokensResponse)(nil),      // 90: gogent.ListTemplateAuthTokensResponse
+	(*UpdateTemplateAuthTokenRequest)(nil),      // 91: gogent.UpdateTemplateAuthTokenRequest
+	(*UpdateTemplateAuthTokenResponse)(nil),     // 92: gogent.UpdateTemplateAuthTokenResponse
+	(*DeleteTemplateAuthTokenRequest)(nil),      // 93: gogent.DeleteTemplateAuthTokenRequest
+	(*DeleteTemplateAuthTokenResponse)(nil),     // 94: gogent.DeleteTemplateAuthTokenResponse
+	(*GetTemplateAnalyticsRequest)(nil),         // 95: gogent.GetTemplateAnalyticsRequest
+	(*GetTemplateAnalyticsResponse)(nil),        // 96: gogent.GetTemplateAnalyticsResponse
+	(*GetTemplateExecutionHistoryRequest)(nil),  // 97: gogent.GetTemplateExecutionHistoryRequest
+	(*GetTemplateExecutionHistoryResponse)(nil), // 98: gogent.GetTemplateExecutionHistoryResponse
+	nil,                           // 99: gogent.ExecuteRequest.SessionApiKeysEntry
+	(*timestamppb.Timestamp)(nil), // 100: google.protobuf.Timestamp
+	(*structpb.Struct)(nil),       // 101: google.protobuf.Struct
+	(*structpb.ListValue)(nil),    // 102: google.protobuf.ListValue
 }
 var file_proto_gogent_proto_depIdxs = []int32{
-	64,  // 0: gogent.User.created_at:type_name -> google.protobuf.Timestamp
-	64,  // 1: gogent.User.updated_at:type_name -> google.protobuf.Timestamp
-	64,  // 2: gogent.User.last_login_at:type_name -> google.protobuf.Timestamp
+	100, // 0: gogent.User.created_at:type_name -> google.protobuf.Timestamp
+	100, // 1: gogent.User.updated_at:type_name -> google.protobuf.Timestamp
+	100, // 2: gogent.User.last_login_at:type_name -> google.protobuf.Timestamp
 	0,   // 3: gogent.LoginResponse.user:type_name -> gogent.User
-	64,  // 4: gogent.LoginResponse.expires_at:type_name -> google.protobuf.Timestamp
+	100, // 4: gogent.LoginResponse.expires_at:type_name -> google.protobuf.Timestamp
 	0,   // 5: gogent.RegisterResponse.user:type_name -> gogent.User
 	0,   // 6: gogent.CreateTemporaryUserResponse.user:type_name -> gogent.User
 	0,   // 7: gogent.SaveTemporaryAccountResponse.user:type_name -> gogent.User
@@ -4578,10 +7600,10 @@ var file_proto_gogent_proto_depIdxs = []int32{
 	52,  // 10: gogent.ExecuteRequest.configurations:type_name -> gogent.APIConfiguration
 	53,  // 11: gogent.ExecuteRequest.function_tools:type_name -> gogent.Tool
 	62,  // 12: gogent.ExecuteRequest.comparison_config:type_name -> gogent.ComparisonConfig
-	63,  // 13: gogent.ExecuteRequest.session_api_keys:type_name -> gogent.ExecuteRequest.SessionApiKeysEntry
+	99,  // 13: gogent.ExecuteRequest.session_api_keys:type_name -> gogent.ExecuteRequest.SessionApiKeysEntry
 	51,  // 14: gogent.ExecuteResponse.execution_run:type_name -> gogent.ExecutionRun
-	64,  // 15: gogent.GetExecutionStatusResponse.start_time:type_name -> google.protobuf.Timestamp
-	64,  // 16: gogent.GetExecutionStatusResponse.end_time:type_name -> google.protobuf.Timestamp
+	100, // 15: gogent.GetExecutionStatusResponse.start_time:type_name -> google.protobuf.Timestamp
+	100, // 16: gogent.GetExecutionStatusResponse.end_time:type_name -> google.protobuf.Timestamp
 	58,  // 17: gogent.GetExecutionStatusResponse.result:type_name -> gogent.ExecutionResult
 	58,  // 18: gogent.GetExecutionResultResponse.result:type_name -> gogent.ExecutionResult
 	51,  // 19: gogent.ListExecutionRunsResponse.execution_runs:type_name -> gogent.ExecutionRun
@@ -4596,39 +7618,39 @@ var file_proto_gogent_proto_depIdxs = []int32{
 	54,  // 28: gogent.CreateFunctionResponse.function:type_name -> gogent.FunctionDefinition
 	54,  // 29: gogent.UpdateFunctionRequest.function:type_name -> gogent.FunctionDefinition
 	54,  // 30: gogent.UpdateFunctionResponse.function:type_name -> gogent.FunctionDefinition
-	65,  // 31: gogent.TestFunctionRequest.arguments:type_name -> google.protobuf.Struct
-	65,  // 32: gogent.TestFunctionResponse.response:type_name -> google.protobuf.Struct
-	66,  // 33: gogent.GetTableDataResponse.rows:type_name -> google.protobuf.ListValue
-	64,  // 34: gogent.HealthResponse.timestamp:type_name -> google.protobuf.Timestamp
-	64,  // 35: gogent.ExecutionRun.created_at:type_name -> google.protobuf.Timestamp
-	64,  // 36: gogent.ExecutionRun.updated_at:type_name -> google.protobuf.Timestamp
-	65,  // 37: gogent.APIConfiguration.safety_settings:type_name -> google.protobuf.Struct
-	65,  // 38: gogent.APIConfiguration.generation_config:type_name -> google.protobuf.Struct
+	101, // 31: gogent.TestFunctionRequest.arguments:type_name -> google.protobuf.Struct
+	101, // 32: gogent.TestFunctionResponse.response:type_name -> google.protobuf.Struct
+	102, // 33: gogent.GetTableDataResponse.rows:type_name -> google.protobuf.ListValue
+	100, // 34: gogent.HealthResponse.timestamp:type_name -> google.protobuf.Timestamp
+	100, // 35: gogent.ExecutionRun.created_at:type_name -> google.protobuf.Timestamp
+	100, // 36: gogent.ExecutionRun.updated_at:type_name -> google.protobuf.Timestamp
+	101, // 37: gogent.APIConfiguration.safety_settings:type_name -> google.protobuf.Struct
+	101, // 38: gogent.APIConfiguration.generation_config:type_name -> google.protobuf.Struct
 	53,  // 39: gogent.APIConfiguration.tools:type_name -> gogent.Tool
-	65,  // 40: gogent.APIConfiguration.tool_config:type_name -> google.protobuf.Struct
-	64,  // 41: gogent.APIConfiguration.created_at:type_name -> google.protobuf.Timestamp
-	64,  // 42: gogent.APIConfiguration.updated_at:type_name -> google.protobuf.Timestamp
-	65,  // 43: gogent.Tool.parameters:type_name -> google.protobuf.Struct
-	65,  // 44: gogent.FunctionDefinition.parameters_schema:type_name -> google.protobuf.Struct
-	65,  // 45: gogent.FunctionDefinition.mock_response:type_name -> google.protobuf.Struct
-	65,  // 46: gogent.FunctionDefinition.headers:type_name -> google.protobuf.Struct
-	65,  // 47: gogent.FunctionDefinition.auth_config:type_name -> google.protobuf.Struct
-	65,  // 48: gogent.FunctionDefinition.api_key_validation:type_name -> google.protobuf.Struct
-	64,  // 49: gogent.FunctionDefinition.created_at:type_name -> google.protobuf.Timestamp
-	64,  // 50: gogent.FunctionDefinition.updated_at:type_name -> google.protobuf.Timestamp
-	65,  // 51: gogent.APIRequest.function_parameters:type_name -> google.protobuf.Struct
-	65,  // 52: gogent.APIRequest.request_headers:type_name -> google.protobuf.Struct
-	65,  // 53: gogent.APIRequest.request_body:type_name -> google.protobuf.Struct
-	64,  // 54: gogent.APIRequest.created_at:type_name -> google.protobuf.Timestamp
-	65,  // 55: gogent.APIResponse.function_call_response:type_name -> google.protobuf.Struct
-	65,  // 56: gogent.APIResponse.usage_metadata:type_name -> google.protobuf.Struct
-	65,  // 57: gogent.APIResponse.safety_ratings:type_name -> google.protobuf.Struct
-	65,  // 58: gogent.APIResponse.response_headers:type_name -> google.protobuf.Struct
-	65,  // 59: gogent.APIResponse.response_body:type_name -> google.protobuf.Struct
-	64,  // 60: gogent.APIResponse.created_at:type_name -> google.protobuf.Timestamp
-	65,  // 61: gogent.FunctionCall.function_arguments:type_name -> google.protobuf.Struct
-	65,  // 62: gogent.FunctionCall.function_response:type_name -> google.protobuf.Struct
-	64,  // 63: gogent.FunctionCall.created_at:type_name -> google.protobuf.Timestamp
+	101, // 40: gogent.APIConfiguration.tool_config:type_name -> google.protobuf.Struct
+	100, // 41: gogent.APIConfiguration.created_at:type_name -> google.protobuf.Timestamp
+	100, // 42: gogent.APIConfiguration.updated_at:type_name -> google.protobuf.Timestamp
+	101, // 43: gogent.Tool.parameters:type_name -> google.protobuf.Struct
+	101, // 44: gogent.FunctionDefinition.parameters_schema:type_name -> google.protobuf.Struct
+	101, // 45: gogent.FunctionDefinition.mock_response:type_name -> google.protobuf.Struct
+	101, // 46: gogent.FunctionDefinition.headers:type_name -> google.protobuf.Struct
+	101, // 47: gogent.FunctionDefinition.auth_config:type_name -> google.protobuf.Struct
+	101, // 48: gogent.FunctionDefinition.api_key_validation:type_name -> google.protobuf.Struct
+	100, // 49: gogent.FunctionDefinition.created_at:type_name -> google.protobuf.Timestamp
+	100, // 50: gogent.FunctionDefinition.updated_at:type_name -> google.protobuf.Timestamp
+	101, // 51: gogent.APIRequest.function_parameters:type_name -> google.protobuf.Struct
+	101, // 52: gogent.APIRequest.request_headers:type_name -> google.protobuf.Struct
+	101, // 53: gogent.APIRequest.request_body:type_name -> google.protobuf.Struct
+	100, // 54: gogent.APIRequest.created_at:type_name -> google.protobuf.Timestamp
+	101, // 55: gogent.APIResponse.function_call_response:type_name -> google.protobuf.Struct
+	101, // 56: gogent.APIResponse.usage_metadata:type_name -> google.protobuf.Struct
+	101, // 57: gogent.APIResponse.safety_ratings:type_name -> google.protobuf.Struct
+	101, // 58: gogent.APIResponse.response_headers:type_name -> google.protobuf.Struct
+	101, // 59: gogent.APIResponse.response_body:type_name -> google.protobuf.Struct
+	100, // 60: gogent.APIResponse.created_at:type_name -> google.protobuf.Timestamp
+	101, // 61: gogent.FunctionCall.function_arguments:type_name -> google.protobuf.Struct
+	101, // 62: gogent.FunctionCall.function_response:type_name -> google.protobuf.Struct
+	100, // 63: gogent.FunctionCall.created_at:type_name -> google.protobuf.Timestamp
 	51,  // 64: gogent.ExecutionResult.execution_run:type_name -> gogent.ExecutionRun
 	59,  // 65: gogent.ExecutionResult.results:type_name -> gogent.VariationResult
 	60,  // 66: gogent.ExecutionResult.comparison:type_name -> gogent.ComparisonResult
@@ -4637,67 +7659,150 @@ var file_proto_gogent_proto_depIdxs = []int32{
 	55,  // 69: gogent.VariationResult.request:type_name -> gogent.APIRequest
 	56,  // 70: gogent.VariationResult.response:type_name -> gogent.APIResponse
 	57,  // 71: gogent.VariationResult.function_calls:type_name -> gogent.FunctionCall
-	65,  // 72: gogent.ComparisonResult.configuration_scores:type_name -> google.protobuf.Struct
+	101, // 72: gogent.ComparisonResult.configuration_scores:type_name -> google.protobuf.Struct
 	52,  // 73: gogent.ComparisonResult.best_configuration:type_name -> gogent.APIConfiguration
 	52,  // 74: gogent.ComparisonResult.all_configurations:type_name -> gogent.APIConfiguration
-	64,  // 75: gogent.ComparisonResult.created_at:type_name -> google.protobuf.Timestamp
-	65,  // 76: gogent.ExecutionLog.details:type_name -> google.protobuf.Struct
-	64,  // 77: gogent.ExecutionLog.timestamp:type_name -> google.protobuf.Timestamp
-	1,   // 78: gogent.GogentService.Login:input_type -> gogent.LoginRequest
-	3,   // 79: gogent.GogentService.Register:input_type -> gogent.RegisterRequest
-	5,   // 80: gogent.GogentService.CreateTemporaryUser:input_type -> gogent.CreateTemporaryUserRequest
-	7,   // 81: gogent.GogentService.SaveTemporaryAccount:input_type -> gogent.SaveTemporaryAccountRequest
-	9,   // 82: gogent.GogentService.VerifyEmail:input_type -> gogent.VerifyEmailRequest
-	11,  // 83: gogent.GogentService.GetCurrentUser:input_type -> gogent.GetCurrentUserRequest
-	13,  // 84: gogent.GogentService.Execute:input_type -> gogent.ExecuteRequest
-	15,  // 85: gogent.GogentService.GetExecutionStatus:input_type -> gogent.GetExecutionStatusRequest
-	17,  // 86: gogent.GogentService.GetExecutionResult:input_type -> gogent.GetExecutionResultRequest
-	19,  // 87: gogent.GogentService.ListExecutionRuns:input_type -> gogent.ListExecutionRunsRequest
-	21,  // 88: gogent.GogentService.DeleteExecutionRun:input_type -> gogent.DeleteExecutionRunRequest
-	23,  // 89: gogent.GogentService.ListConfigurations:input_type -> gogent.ListConfigurationsRequest
-	25,  // 90: gogent.GogentService.CreateConfiguration:input_type -> gogent.CreateConfigurationRequest
-	27,  // 91: gogent.GogentService.UpdateConfiguration:input_type -> gogent.UpdateConfigurationRequest
-	29,  // 92: gogent.GogentService.DeleteConfiguration:input_type -> gogent.DeleteConfigurationRequest
-	31,  // 93: gogent.GogentService.ListFunctions:input_type -> gogent.ListFunctionsRequest
-	33,  // 94: gogent.GogentService.GetFunction:input_type -> gogent.GetFunctionRequest
-	35,  // 95: gogent.GogentService.CreateFunction:input_type -> gogent.CreateFunctionRequest
-	37,  // 96: gogent.GogentService.UpdateFunction:input_type -> gogent.UpdateFunctionRequest
-	39,  // 97: gogent.GogentService.DeleteFunction:input_type -> gogent.DeleteFunctionRequest
-	41,  // 98: gogent.GogentService.TestFunction:input_type -> gogent.TestFunctionRequest
-	43,  // 99: gogent.GogentService.GetDatabaseStats:input_type -> gogent.GetDatabaseStatsRequest
-	45,  // 100: gogent.GogentService.ListDatabaseTables:input_type -> gogent.ListDatabaseTablesRequest
-	47,  // 101: gogent.GogentService.GetTableData:input_type -> gogent.GetTableDataRequest
-	49,  // 102: gogent.GogentService.Health:input_type -> gogent.HealthRequest
-	2,   // 103: gogent.GogentService.Login:output_type -> gogent.LoginResponse
-	4,   // 104: gogent.GogentService.Register:output_type -> gogent.RegisterResponse
-	6,   // 105: gogent.GogentService.CreateTemporaryUser:output_type -> gogent.CreateTemporaryUserResponse
-	8,   // 106: gogent.GogentService.SaveTemporaryAccount:output_type -> gogent.SaveTemporaryAccountResponse
-	10,  // 107: gogent.GogentService.VerifyEmail:output_type -> gogent.VerifyEmailResponse
-	12,  // 108: gogent.GogentService.GetCurrentUser:output_type -> gogent.GetCurrentUserResponse
-	14,  // 109: gogent.GogentService.Execute:output_type -> gogent.ExecuteResponse
-	16,  // 110: gogent.GogentService.GetExecutionStatus:output_type -> gogent.GetExecutionStatusResponse
-	18,  // 111: gogent.GogentService.GetExecutionResult:output_type -> gogent.GetExecutionResultResponse
-	20,  // 112: gogent.GogentService.ListExecutionRuns:output_type -> gogent.ListExecutionRunsResponse
-	22,  // 113: gogent.GogentService.DeleteExecutionRun:output_type -> gogent.DeleteExecutionRunResponse
-	24,  // 114: gogent.GogentService.ListConfigurations:output_type -> gogent.ListConfigurationsResponse
-	26,  // 115: gogent.GogentService.CreateConfiguration:output_type -> gogent.CreateConfigurationResponse
-	28,  // 116: gogent.GogentService.UpdateConfiguration:output_type -> gogent.UpdateConfigurationResponse
-	30,  // 117: gogent.GogentService.DeleteConfiguration:output_type -> gogent.DeleteConfigurationResponse
-	32,  // 118: gogent.GogentService.ListFunctions:output_type -> gogent.ListFunctionsResponse
-	34,  // 119: gogent.GogentService.GetFunction:output_type -> gogent.GetFunctionResponse
-	36,  // 120: gogent.GogentService.CreateFunction:output_type -> gogent.CreateFunctionResponse
-	38,  // 121: gogent.GogentService.UpdateFunction:output_type -> gogent.UpdateFunctionResponse
-	40,  // 122: gogent.GogentService.DeleteFunction:output_type -> gogent.DeleteFunctionResponse
-	42,  // 123: gogent.GogentService.TestFunction:output_type -> gogent.TestFunctionResponse
-	44,  // 124: gogent.GogentService.GetDatabaseStats:output_type -> gogent.GetDatabaseStatsResponse
-	46,  // 125: gogent.GogentService.ListDatabaseTables:output_type -> gogent.ListDatabaseTablesResponse
-	48,  // 126: gogent.GogentService.GetTableData:output_type -> gogent.GetTableDataResponse
-	50,  // 127: gogent.GogentService.Health:output_type -> gogent.HealthResponse
-	103, // [103:128] is the sub-list for method output_type
-	78,  // [78:103] is the sub-list for method input_type
-	78,  // [78:78] is the sub-list for extension type_name
-	78,  // [78:78] is the sub-list for extension extendee
-	0,   // [0:78] is the sub-list for field type_name
+	100, // 75: gogent.ComparisonResult.created_at:type_name -> google.protobuf.Timestamp
+	101, // 76: gogent.ExecutionLog.details:type_name -> google.protobuf.Struct
+	100, // 77: gogent.ExecutionLog.timestamp:type_name -> google.protobuf.Timestamp
+	101, // 78: gogent.ExecutionTemplate.tags:type_name -> google.protobuf.Struct
+	100, // 79: gogent.ExecutionTemplate.last_executed_at:type_name -> google.protobuf.Timestamp
+	100, // 80: gogent.ExecutionTemplate.created_at:type_name -> google.protobuf.Timestamp
+	100, // 81: gogent.ExecutionTemplate.updated_at:type_name -> google.protobuf.Timestamp
+	64,  // 82: gogent.ExecutionTemplate.parameters:type_name -> gogent.ExecutionTemplateParameter
+	65,  // 83: gogent.ExecutionTemplate.auth_tokens:type_name -> gogent.ExecutionTemplateAuthToken
+	101, // 84: gogent.ExecutionTemplateParameter.validation_rules:type_name -> google.protobuf.Struct
+	101, // 85: gogent.ExecutionTemplateParameter.allowed_values:type_name -> google.protobuf.Struct
+	100, // 86: gogent.ExecutionTemplateParameter.created_at:type_name -> google.protobuf.Timestamp
+	100, // 87: gogent.ExecutionTemplateParameter.updated_at:type_name -> google.protobuf.Timestamp
+	100, // 88: gogent.ExecutionTemplateAuthToken.expires_at:type_name -> google.protobuf.Timestamp
+	100, // 89: gogent.ExecutionTemplateAuthToken.last_used_at:type_name -> google.protobuf.Timestamp
+	101, // 90: gogent.ExecutionTemplateAuthToken.allowed_origins:type_name -> google.protobuf.Struct
+	101, // 91: gogent.ExecutionTemplateAuthToken.allowed_ips:type_name -> google.protobuf.Struct
+	100, // 92: gogent.ExecutionTemplateAuthToken.created_at:type_name -> google.protobuf.Timestamp
+	100, // 93: gogent.ExecutionTemplateAuthToken.updated_at:type_name -> google.protobuf.Timestamp
+	101, // 94: gogent.ExecutionTemplateVersion.tags:type_name -> google.protobuf.Struct
+	100, // 95: gogent.ExecutionTemplateVersion.created_at:type_name -> google.protobuf.Timestamp
+	64,  // 96: gogent.ExecutionTemplateVersion.parameters:type_name -> gogent.ExecutionTemplateParameter
+	101, // 97: gogent.ExecutionTemplateExecution.parameters_provided:type_name -> google.protobuf.Struct
+	100, // 98: gogent.ExecutionTemplateExecution.created_at:type_name -> google.protobuf.Timestamp
+	100, // 99: gogent.ExecutionTemplateExecution.completed_at:type_name -> google.protobuf.Timestamp
+	101, // 100: gogent.ExecutionTemplateAnalytics.usage_by_day:type_name -> google.protobuf.Struct
+	101, // 101: gogent.ExecutionTemplateAnalytics.top_parameters:type_name -> google.protobuf.Struct
+	101, // 102: gogent.ExecutionTemplateAnalytics.error_breakdown:type_name -> google.protobuf.Struct
+	63,  // 103: gogent.ListExecutionTemplatesResponse.templates:type_name -> gogent.ExecutionTemplate
+	63,  // 104: gogent.GetExecutionTemplateResponse.template:type_name -> gogent.ExecutionTemplate
+	63,  // 105: gogent.CreateExecutionTemplateRequest.template:type_name -> gogent.ExecutionTemplate
+	64,  // 106: gogent.CreateExecutionTemplateRequest.parameters:type_name -> gogent.ExecutionTemplateParameter
+	63,  // 107: gogent.CreateExecutionTemplateResponse.template:type_name -> gogent.ExecutionTemplate
+	63,  // 108: gogent.UpdateExecutionTemplateRequest.template:type_name -> gogent.ExecutionTemplate
+	64,  // 109: gogent.UpdateExecutionTemplateRequest.parameters:type_name -> gogent.ExecutionTemplateParameter
+	63,  // 110: gogent.UpdateExecutionTemplateResponse.template:type_name -> gogent.ExecutionTemplate
+	66,  // 111: gogent.UpdateExecutionTemplateResponse.version:type_name -> gogent.ExecutionTemplateVersion
+	101, // 112: gogent.ExecuteTemplateRequest.parameters:type_name -> google.protobuf.Struct
+	51,  // 113: gogent.ExecuteTemplateResponse.execution_run:type_name -> gogent.ExecutionRun
+	100, // 114: gogent.ExecuteTemplateResponse.rate_limit_reset_at:type_name -> google.protobuf.Timestamp
+	67,  // 115: gogent.GetTemplateExecutionStatusResponse.execution:type_name -> gogent.ExecutionTemplateExecution
+	58,  // 116: gogent.GetTemplateExecutionStatusResponse.result:type_name -> gogent.ExecutionResult
+	66,  // 117: gogent.GetTemplateVersionsResponse.versions:type_name -> gogent.ExecutionTemplateVersion
+	63,  // 118: gogent.RestoreTemplateVersionResponse.template:type_name -> gogent.ExecutionTemplate
+	66,  // 119: gogent.RestoreTemplateVersionResponse.new_version:type_name -> gogent.ExecutionTemplateVersion
+	65,  // 120: gogent.CreateTemplateAuthTokenRequest.token:type_name -> gogent.ExecutionTemplateAuthToken
+	65,  // 121: gogent.CreateTemplateAuthTokenResponse.token:type_name -> gogent.ExecutionTemplateAuthToken
+	65,  // 122: gogent.ListTemplateAuthTokensResponse.tokens:type_name -> gogent.ExecutionTemplateAuthToken
+	65,  // 123: gogent.UpdateTemplateAuthTokenRequest.token:type_name -> gogent.ExecutionTemplateAuthToken
+	65,  // 124: gogent.UpdateTemplateAuthTokenResponse.token:type_name -> gogent.ExecutionTemplateAuthToken
+	100, // 125: gogent.GetTemplateAnalyticsRequest.start_date:type_name -> google.protobuf.Timestamp
+	100, // 126: gogent.GetTemplateAnalyticsRequest.end_date:type_name -> google.protobuf.Timestamp
+	68,  // 127: gogent.GetTemplateAnalyticsResponse.analytics:type_name -> gogent.ExecutionTemplateAnalytics
+	100, // 128: gogent.GetTemplateExecutionHistoryRequest.start_date:type_name -> google.protobuf.Timestamp
+	100, // 129: gogent.GetTemplateExecutionHistoryRequest.end_date:type_name -> google.protobuf.Timestamp
+	67,  // 130: gogent.GetTemplateExecutionHistoryResponse.executions:type_name -> gogent.ExecutionTemplateExecution
+	1,   // 131: gogent.GogentService.Login:input_type -> gogent.LoginRequest
+	3,   // 132: gogent.GogentService.Register:input_type -> gogent.RegisterRequest
+	5,   // 133: gogent.GogentService.CreateTemporaryUser:input_type -> gogent.CreateTemporaryUserRequest
+	7,   // 134: gogent.GogentService.SaveTemporaryAccount:input_type -> gogent.SaveTemporaryAccountRequest
+	9,   // 135: gogent.GogentService.VerifyEmail:input_type -> gogent.VerifyEmailRequest
+	11,  // 136: gogent.GogentService.GetCurrentUser:input_type -> gogent.GetCurrentUserRequest
+	13,  // 137: gogent.GogentService.Execute:input_type -> gogent.ExecuteRequest
+	15,  // 138: gogent.GogentService.GetExecutionStatus:input_type -> gogent.GetExecutionStatusRequest
+	17,  // 139: gogent.GogentService.GetExecutionResult:input_type -> gogent.GetExecutionResultRequest
+	19,  // 140: gogent.GogentService.ListExecutionRuns:input_type -> gogent.ListExecutionRunsRequest
+	21,  // 141: gogent.GogentService.DeleteExecutionRun:input_type -> gogent.DeleteExecutionRunRequest
+	23,  // 142: gogent.GogentService.ListConfigurations:input_type -> gogent.ListConfigurationsRequest
+	25,  // 143: gogent.GogentService.CreateConfiguration:input_type -> gogent.CreateConfigurationRequest
+	27,  // 144: gogent.GogentService.UpdateConfiguration:input_type -> gogent.UpdateConfigurationRequest
+	29,  // 145: gogent.GogentService.DeleteConfiguration:input_type -> gogent.DeleteConfigurationRequest
+	31,  // 146: gogent.GogentService.ListFunctions:input_type -> gogent.ListFunctionsRequest
+	33,  // 147: gogent.GogentService.GetFunction:input_type -> gogent.GetFunctionRequest
+	35,  // 148: gogent.GogentService.CreateFunction:input_type -> gogent.CreateFunctionRequest
+	37,  // 149: gogent.GogentService.UpdateFunction:input_type -> gogent.UpdateFunctionRequest
+	39,  // 150: gogent.GogentService.DeleteFunction:input_type -> gogent.DeleteFunctionRequest
+	41,  // 151: gogent.GogentService.TestFunction:input_type -> gogent.TestFunctionRequest
+	43,  // 152: gogent.GogentService.GetDatabaseStats:input_type -> gogent.GetDatabaseStatsRequest
+	45,  // 153: gogent.GogentService.ListDatabaseTables:input_type -> gogent.ListDatabaseTablesRequest
+	47,  // 154: gogent.GogentService.GetTableData:input_type -> gogent.GetTableDataRequest
+	49,  // 155: gogent.GogentService.Health:input_type -> gogent.HealthRequest
+	69,  // 156: gogent.GogentService.ListExecutionTemplates:input_type -> gogent.ListExecutionTemplatesRequest
+	71,  // 157: gogent.GogentService.GetExecutionTemplate:input_type -> gogent.GetExecutionTemplateRequest
+	73,  // 158: gogent.GogentService.CreateExecutionTemplate:input_type -> gogent.CreateExecutionTemplateRequest
+	75,  // 159: gogent.GogentService.UpdateExecutionTemplate:input_type -> gogent.UpdateExecutionTemplateRequest
+	77,  // 160: gogent.GogentService.DeleteExecutionTemplate:input_type -> gogent.DeleteExecutionTemplateRequest
+	79,  // 161: gogent.GogentService.ExecuteTemplate:input_type -> gogent.ExecuteTemplateRequest
+	81,  // 162: gogent.GogentService.GetTemplateExecutionStatus:input_type -> gogent.GetTemplateExecutionStatusRequest
+	83,  // 163: gogent.GogentService.GetTemplateVersions:input_type -> gogent.GetTemplateVersionsRequest
+	85,  // 164: gogent.GogentService.RestoreTemplateVersion:input_type -> gogent.RestoreTemplateVersionRequest
+	87,  // 165: gogent.GogentService.CreateTemplateAuthToken:input_type -> gogent.CreateTemplateAuthTokenRequest
+	89,  // 166: gogent.GogentService.ListTemplateAuthTokens:input_type -> gogent.ListTemplateAuthTokensRequest
+	91,  // 167: gogent.GogentService.UpdateTemplateAuthToken:input_type -> gogent.UpdateTemplateAuthTokenRequest
+	93,  // 168: gogent.GogentService.DeleteTemplateAuthToken:input_type -> gogent.DeleteTemplateAuthTokenRequest
+	95,  // 169: gogent.GogentService.GetTemplateAnalytics:input_type -> gogent.GetTemplateAnalyticsRequest
+	97,  // 170: gogent.GogentService.GetTemplateExecutionHistory:input_type -> gogent.GetTemplateExecutionHistoryRequest
+	2,   // 171: gogent.GogentService.Login:output_type -> gogent.LoginResponse
+	4,   // 172: gogent.GogentService.Register:output_type -> gogent.RegisterResponse
+	6,   // 173: gogent.GogentService.CreateTemporaryUser:output_type -> gogent.CreateTemporaryUserResponse
+	8,   // 174: gogent.GogentService.SaveTemporaryAccount:output_type -> gogent.SaveTemporaryAccountResponse
+	10,  // 175: gogent.GogentService.VerifyEmail:output_type -> gogent.VerifyEmailResponse
+	12,  // 176: gogent.GogentService.GetCurrentUser:output_type -> gogent.GetCurrentUserResponse
+	14,  // 177: gogent.GogentService.Execute:output_type -> gogent.ExecuteResponse
+	16,  // 178: gogent.GogentService.GetExecutionStatus:output_type -> gogent.GetExecutionStatusResponse
+	18,  // 179: gogent.GogentService.GetExecutionResult:output_type -> gogent.GetExecutionResultResponse
+	20,  // 180: gogent.GogentService.ListExecutionRuns:output_type -> gogent.ListExecutionRunsResponse
+	22,  // 181: gogent.GogentService.DeleteExecutionRun:output_type -> gogent.DeleteExecutionRunResponse
+	24,  // 182: gogent.GogentService.ListConfigurations:output_type -> gogent.ListConfigurationsResponse
+	26,  // 183: gogent.GogentService.CreateConfiguration:output_type -> gogent.CreateConfigurationResponse
+	28,  // 184: gogent.GogentService.UpdateConfiguration:output_type -> gogent.UpdateConfigurationResponse
+	30,  // 185: gogent.GogentService.DeleteConfiguration:output_type -> gogent.DeleteConfigurationResponse
+	32,  // 186: gogent.GogentService.ListFunctions:output_type -> gogent.ListFunctionsResponse
+	34,  // 187: gogent.GogentService.GetFunction:output_type -> gogent.GetFunctionResponse
+	36,  // 188: gogent.GogentService.CreateFunction:output_type -> gogent.CreateFunctionResponse
+	38,  // 189: gogent.GogentService.UpdateFunction:output_type -> gogent.UpdateFunctionResponse
+	40,  // 190: gogent.GogentService.DeleteFunction:output_type -> gogent.DeleteFunctionResponse
+	42,  // 191: gogent.GogentService.TestFunction:output_type -> gogent.TestFunctionResponse
+	44,  // 192: gogent.GogentService.GetDatabaseStats:output_type -> gogent.GetDatabaseStatsResponse
+	46,  // 193: gogent.GogentService.ListDatabaseTables:output_type -> gogent.ListDatabaseTablesResponse
+	48,  // 194: gogent.GogentService.GetTableData:output_type -> gogent.GetTableDataResponse
+	50,  // 195: gogent.GogentService.Health:output_type -> gogent.HealthResponse
+	70,  // 196: gogent.GogentService.ListExecutionTemplates:output_type -> gogent.ListExecutionTemplatesResponse
+	72,  // 197: gogent.GogentService.GetExecutionTemplate:output_type -> gogent.GetExecutionTemplateResponse
+	74,  // 198: gogent.GogentService.CreateExecutionTemplate:output_type -> gogent.CreateExecutionTemplateResponse
+	76,  // 199: gogent.GogentService.UpdateExecutionTemplate:output_type -> gogent.UpdateExecutionTemplateResponse
+	78,  // 200: gogent.GogentService.DeleteExecutionTemplate:output_type -> gogent.DeleteExecutionTemplateResponse
+	80,  // 201: gogent.GogentService.ExecuteTemplate:output_type -> gogent.ExecuteTemplateResponse
+	82,  // 202: gogent.GogentService.GetTemplateExecutionStatus:output_type -> gogent.GetTemplateExecutionStatusResponse
+	84,  // 203: gogent.GogentService.GetTemplateVersions:output_type -> gogent.GetTemplateVersionsResponse
+	86,  // 204: gogent.GogentService.RestoreTemplateVersion:output_type -> gogent.RestoreTemplateVersionResponse
+	88,  // 205: gogent.GogentService.CreateTemplateAuthToken:output_type -> gogent.CreateTemplateAuthTokenResponse
+	90,  // 206: gogent.GogentService.ListTemplateAuthTokens:output_type -> gogent.ListTemplateAuthTokensResponse
+	92,  // 207: gogent.GogentService.UpdateTemplateAuthToken:output_type -> gogent.UpdateTemplateAuthTokenResponse
+	94,  // 208: gogent.GogentService.DeleteTemplateAuthToken:output_type -> gogent.DeleteTemplateAuthTokenResponse
+	96,  // 209: gogent.GogentService.GetTemplateAnalytics:output_type -> gogent.GetTemplateAnalyticsResponse
+	98,  // 210: gogent.GogentService.GetTemplateExecutionHistory:output_type -> gogent.GetTemplateExecutionHistoryResponse
+	171, // [171:211] is the sub-list for method output_type
+	131, // [131:171] is the sub-list for method input_type
+	131, // [131:131] is the sub-list for extension type_name
+	131, // [131:131] is the sub-list for extension extendee
+	0,   // [0:131] is the sub-list for field type_name
 }
 
 func init() { file_proto_gogent_proto_init() }
@@ -4711,7 +7816,7 @@ func file_proto_gogent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_gogent_proto_rawDesc), len(file_proto_gogent_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   64,
+			NumMessages:   100,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
