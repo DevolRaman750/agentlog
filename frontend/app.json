@@ -23,7 +23,28 @@
       "edgeToEdgeEnabled": true
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "static",
+      "lang": "en",
+      "customHeaders": [
+        {
+          "source": "**/*",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=86400"
+            }
+          ]
+        }
+      ],
+      "scripts": [
+        {
+          "defer": true,
+          "src": "https://plausible.io/js/script.js",
+          "data-domain": "agentlog.scalebase.io"
+        }
+      ]
     },
     "extra": {
       "eas": {
