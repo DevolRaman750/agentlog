@@ -73,7 +73,41 @@ export const linking: LinkingOptions<TabParamList> = {
 };
 
 // Default routes for authenticated vs unauthenticated users
-export const getInitialRouteName = (isAuthenticated: boolean): keyof TabParamList => {
+export const getInitialRouteName = (isAuthenticated: boolean, isLoading: boolean): keyof TabParamList => {
+  // While authentication is still loading, don't make routing decisions yet
+  // Return the route based on current URL to maintain user's position
+  if (isLoading && typeof window !== 'undefined' && window.location) {
+    const path = window.location.pathname;
+    
+    // Map paths to route names
+    const pathToRoute: Record<string, keyof TabParamList> = {
+      '/execute': 'Execute',
+      '/configure': 'Configure',
+      '/functions': 'Functions',
+      '/templates': 'Templates',
+      '/api-keys': 'API Keys',
+      '/history': 'History',
+      '/database': 'Database',
+      '/account': 'Account',
+      '/more': 'More',
+    };
+
+    const routeName = pathToRoute[path];
+    if (routeName) {
+      // Don't redirect yet - just return the current route
+      return routeName;
+    }
+    
+    // Handle root path "/" - default to Execute for now during loading
+    if (path === '/' || path === '') {
+      return 'Execute';
+    }
+    
+    // For unknown paths, default to Execute during loading
+    return 'Execute';
+  }
+
+  // Once auth has loaded, make proper routing decisions
   if (typeof window !== 'undefined' && window.location) {
     const path = window.location.pathname;
     
@@ -92,24 +126,19 @@ export const getInitialRouteName = (isAuthenticated: boolean): keyof TabParamLis
 
     const routeName = pathToRoute[path];
     if (routeName) {
-      // If user is not authenticated but trying to access protected route, redirect to account
-      if (!isAuthenticated && routeName !== 'Account') {
-        // Update URL to account page
-        window.history.replaceState({}, '', '/account');
-        return 'Account';
-      }
+      // Even if user is not authenticated, let them try to access any route
+      // Individual screens will handle authentication requirements
       return routeName;
     }
     
-    // Handle root path "/"
+    // Handle root path "/" - always default to Execute
     if (path === '/' || path === '') {
-      const defaultRoute = isAuthenticated ? 'Execute' : 'Account';
-      const defaultPath = isAuthenticated ? '/execute' : '/account';
+      const defaultPath = '/execute';
       window.history.replaceState({}, '', defaultPath);
-      return defaultRoute;
+      return 'Execute';
     }
   }
 
-  // Default initial routes
-  return isAuthenticated ? 'Execute' : 'Account';
+  // Default initial route is always Execute
+  return 'Execute';
 }; 

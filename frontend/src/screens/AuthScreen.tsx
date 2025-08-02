@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
 import { AlertAPI } from '../components/CustomAlert';
+import { webInputStyles } from '../styles/containers';
 
 type AuthFlow = 'welcome' | 'account-info' | 'connect-email' | 'change-password' | 'login' | 'register';
 
@@ -876,6 +877,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
+    ...webInputStyles,
   },
   actionButton: {
     flexDirection: 'row',

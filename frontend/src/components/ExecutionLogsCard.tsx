@@ -25,12 +25,25 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
   const [expandedLog, setExpandedLog] = useState<string | null>(null);
   const [levelFilter, setLevelFilter] = useState<LogLevel | 'ALL'>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<LogCategory | 'ALL'>('ALL');
+  const [expandedConfigurations, setExpandedConfigurations] = useState<Set<string>>(new Set());
 
   if (!visible) {
     return null;
   }
 
   const logs = executionResult.logs || [];
+
+  // Expand all configuration sections by default
+  React.useEffect(() => {
+    if (visible && logs.length > 0) {
+      const configIds = new Set<string>();
+      logs.forEach(log => {
+        const configId = log.configurationId || 'general';
+        configIds.add(configId);
+      });
+      setExpandedConfigurations(configIds);
+    }
+  }, [visible, logs]);
   const title = `Execution Logs for ${executionResult.executionRun.name}`;
 
   const filteredLogs = logs.filter(log => {
@@ -39,8 +52,48 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
     return levelMatch && categoryMatch;
   });
 
+  // Group logs by configuration
+  const groupedLogs = useMemo(() => {
+    const groups: Record<string, ExecutionLog[]> = {};
+    
+    filteredLogs.forEach(log => {
+      const configId = log.configurationId || 'general';
+      if (!groups[configId]) {
+        groups[configId] = [];
+      }
+      groups[configId].push(log);
+    });
+    
+    return groups;
+  }, [filteredLogs]);
+
+  // Get configuration details for each group
+  const configurationDetails = useMemo(() => {
+    const details: Record<string, any> = {};
+    
+    if (executionResult.results) {
+      executionResult.results.forEach(result => {
+        if (result.configuration.id) {
+          details[result.configuration.id] = result.configuration;
+        }
+      });
+    }
+    
+    return details;
+  }, [executionResult.results]);
+
   const toggleLogExpansion = (logId: string) => {
     setExpandedLog(expandedLog === logId ? null : logId);
+  };
+
+  const toggleConfigurationExpansion = (configId: string) => {
+    const newExpanded = new Set(expandedConfigurations);
+    if (newExpanded.has(configId)) {
+      newExpanded.delete(configId);
+    } else {
+      newExpanded.add(configId);
+    }
+    setExpandedConfigurations(newExpanded);
   };
 
   const copyToClipboard = async (text: string, label: string) => {
@@ -54,11 +107,22 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
 
   const copyAllLogs = async () => {
     try {
-      const allLogsText = filteredLogs.map(log => {
-        const timestamp = formatTimestamp(log.timestamp);
-        const details = typeof log.details === 'string' ? log.details : JSON.stringify(log.details, null, 2);
-        return `[${timestamp}] ${log.logLevel} - ${log.logCategory}\n${log.message}\n${details ? `Details: ${details}` : ''}\n---`;
-      }).join('\n\n');
+      const allLogsText = Object.entries(groupedLogs)
+        .map(([configId, configLogs]) => {
+          const configName = configId === 'general' 
+            ? 'General Execution Logs' 
+            : configurationDetails[configId]?.variationName || `Configuration ${configId}`;
+          
+          const configHeader = `=== ${configName} ===`;
+          const configLogsText = configLogs.map(log => {
+            const timestamp = formatTimestamp(log.timestamp);
+            const details = typeof log.details === 'string' ? log.details : JSON.stringify(log.details, null, 2);
+            return `[${timestamp}] ${log.logLevel} - ${log.logCategory}\n${log.message}\n${details ? `Details: ${details}` : ''}\n---`;
+          }).join('\n\n');
+          
+          return `${configHeader}\n\n${configLogsText}`;
+        })
+        .join('\n\n\n');
       
       await Clipboard.setString(allLogsText);
       AlertAPI.alert('Copied!', `All ${filteredLogs.length} logs copied to clipboard`);
@@ -271,6 +335,81 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
     );
   };
 
+  const renderConfigurationHeader = (configId: string, configLogs: ExecutionLog[]) => {
+    const isExpanded = expandedConfigurations.has(configId);
+    const config = configurationDetails[configId];
+    const isGeneral = configId === 'general';
+    
+    const configName = isGeneral 
+      ? 'General Execution Logs' 
+      : config?.variationName || `Configuration ${configId}`;
+    
+    return (
+      <TouchableOpacity 
+        style={styles.configurationHeader}
+        onPress={() => toggleConfigurationExpansion(configId)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.configHeaderLeft}>
+          <View style={styles.configIconContainer}>
+            <Ionicons 
+              name={isGeneral ? "settings" : "hardware-chip"} 
+              size={18} 
+              color={isGeneral ? "#8E8E93" : "#007AFF"} 
+            />
+          </View>
+          <View style={styles.configHeaderContent}>
+            <Text style={styles.configTitle}>{configName}</Text>
+            {!isGeneral && config && (
+              <Text style={styles.configSubtitle}>
+                {config.modelName} • Temp: {config.temperature || 0}
+              </Text>
+            )}
+            <Text style={styles.configLogCount}>
+              {configLogs.length} log{configLogs.length !== 1 ? 's' : ''}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.configHeaderRight}>
+          <TouchableOpacity 
+            style={styles.copyConfigButton}
+            onPress={(e) => {
+              e.stopPropagation();
+              const configLogsText = configLogs.map(log => {
+                const timestamp = formatTimestamp(log.timestamp);
+                const details = typeof log.details === 'string' ? log.details : JSON.stringify(log.details, null, 2);
+                return `[${timestamp}] ${log.logLevel} - ${log.logCategory}\n${log.message}\n${details ? `Details: ${details}` : ''}\n---`;
+              }).join('\n\n');
+              copyToClipboard(configLogsText, `${configName} logs`);
+            }}
+          >
+            <Ionicons name="copy" size={16} color="#007AFF" />
+          </TouchableOpacity>
+          <Ionicons 
+            name={isExpanded ? "chevron-up" : "chevron-down"} 
+            size={20} 
+            color="#8E8E93" 
+          />
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderConfigurationSection = (configId: string, configLogs: ExecutionLog[]) => {
+    const isExpanded = expandedConfigurations.has(configId);
+    
+    return (
+      <View key={configId} style={styles.configurationSection}>
+        {renderConfigurationHeader(configId, configLogs)}
+        {isExpanded && (
+          <View style={styles.configurationLogs}>
+            {configLogs.map(log => renderLogItem(log))}
+          </View>
+        )}
+      </View>
+    );
+  };
+
   return (
     <Modal
       animationType="slide"
@@ -296,21 +435,16 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
         
         {renderLogStats()}
         
-        <FlatList
-          data={filteredLogs}
-          renderItem={({ item }) => renderLogItem(item)}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContainer}
+        <ScrollView 
+          style={styles.listContainer}
           showsVerticalScrollIndicator={true}
           bounces={true}
-          removeClippedSubviews={true}
-          initialNumToRender={10}
-          maxToRenderPerBatch={5}
-          windowSize={10}
-          ListFooterComponent={() => (
-            <View style={styles.footerSpacer} />
+        >
+          {Object.entries(groupedLogs).map(([configId, configLogs]) => 
+            renderConfigurationSection(configId, configLogs)
           )}
-        />
+          <View style={styles.footerSpacer} />
+        </ScrollView>
         
         <View style={styles.footer}>
           <TouchableOpacity 
@@ -573,6 +707,70 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  // Configuration section styles
+  configurationSection: {
+    marginBottom: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  configurationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#F8F9FA',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+  },
+  configHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  configIconContainer: {
+    marginRight: 12,
+    width: 24,
+    alignItems: 'center',
+  },
+  configHeaderContent: {
+    flex: 1,
+  },
+  configTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1D1D1F',
+    marginBottom: 2,
+  },
+  configSubtitle: {
+    fontSize: 12,
+    color: '#8E8E93',
+    marginBottom: 4,
+  },
+  configLogCount: {
+    fontSize: 11,
+    color: '#8E8E93',
+    fontWeight: '500',
+  },
+  configHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  copyConfigButton: {
+    padding: 8,
+    borderRadius: 6,
+    backgroundColor: '#F0F8FF',
+  },
+  configurationLogs: {
+    paddingHorizontal: 12,
+    paddingBottom: 8,
   },
 });
 

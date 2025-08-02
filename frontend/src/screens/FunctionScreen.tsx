@@ -273,26 +273,6 @@ const FunctionScreen: React.FC = () => {
         Define and manage functions that AI agents can call
       </Text>
       
-      <View style={styles.headerActions}>
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#8E8E93" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search functions..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
-        
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => setShowNewFunctionForm(true)}
-        >
-          <Ionicons name="add" size={24} color="#FFFFFF" />
-          <Text style={styles.addButtonText}>New Function</Text>
-        </TouchableOpacity>
-      </View>
-      
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
           <Text style={styles.statValue}>{functions.length}</Text>
@@ -312,6 +292,29 @@ const FunctionScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      {/* Search and Actions - Outside of SectionList to maintain focus */}
+      <View style={styles.searchAndActionsContainer}>
+        <View style={styles.headerActions}>
+          <View style={styles.searchContainer}>
+            <Ionicons name="search" size={20} color="#8E8E93" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search functions..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
+          
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => setShowNewFunctionForm(true)}
+          >
+            <Ionicons name="add" size={24} color="#FFFFFF" />
+            <Text style={styles.addButtonText}>New Function</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      
       <SectionList
         sections={groupedFunctions}
         renderItem={renderFunctionCard}
@@ -1700,8 +1703,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F2F2F7',
   },
+  searchAndActionsContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    margin: 16,
+    marginBottom: 8,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
   listContainer: {
     padding: 16,
+    paddingTop: 8,
   },
   header: {
     backgroundColor: '#FFFFFF',

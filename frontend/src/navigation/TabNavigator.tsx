@@ -168,12 +168,12 @@ const withResponsiveLayout = (WrappedComponent: React.ComponentType<any>) => {
 };
 
 const TabNavigator = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const { isSidebarLayout, showMobileDropdown } = useResponsive();
 
   return (
     <Tab.Navigator
-      initialRouteName={getInitialRouteName(isAuthenticated)}
+      initialRouteName={getInitialRouteName(isAuthenticated, isLoading)}
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap = 'help-circle';
@@ -205,22 +205,15 @@ const TabNavigator = () => {
         tabBarStyle: (isSidebarLayout || showMobileDropdown) ? { display: 'none' } : styles.tabBar,
       })}
     >
-      {/* Show only Account tab when not authenticated */}
-      {!isAuthenticated ? (
-        <Tab.Screen name="Account" component={withResponsiveLayout(AuthScreen)} />
-      ) : (
-        <>
-          {/* All screens available - responsive wrapper handles layout */}
-          <Tab.Screen name="Execute" component={withResponsiveLayout(ExecuteScreen)} />
-          <Tab.Screen name="Configure" component={withResponsiveLayout(ConfigureScreen)} />
-          <Tab.Screen name="Functions" component={withResponsiveLayout(FunctionScreen)} />
-          <Tab.Screen name="Templates" component={withResponsiveLayout(TemplateLibraryScreen)} />
-          <Tab.Screen name="API Keys" component={withResponsiveLayout(ApiKeysScreen)} />
-          <Tab.Screen name="History" component={withResponsiveLayout(HistoryScreen)} />
-          <Tab.Screen name="Database" component={withResponsiveLayout(DatabaseScreen)} />
-          <Tab.Screen name="Account" component={withResponsiveLayout(AuthScreen)} />
-        </>
-      )}
+      {/* All screens are always available - individual screens handle authentication */}
+      <Tab.Screen name="Execute" component={withResponsiveLayout(ExecuteScreen)} />
+      <Tab.Screen name="Configure" component={withResponsiveLayout(ConfigureScreen)} />
+      <Tab.Screen name="Functions" component={withResponsiveLayout(FunctionScreen)} />
+      <Tab.Screen name="Templates" component={withResponsiveLayout(TemplateLibraryScreen)} />
+      <Tab.Screen name="API Keys" component={withResponsiveLayout(ApiKeysScreen)} />
+      <Tab.Screen name="History" component={withResponsiveLayout(HistoryScreen)} />
+      <Tab.Screen name="Database" component={withResponsiveLayout(DatabaseScreen)} />
+      <Tab.Screen name="Account" component={withResponsiveLayout(AuthScreen)} />
     </Tab.Navigator>
   );
 };

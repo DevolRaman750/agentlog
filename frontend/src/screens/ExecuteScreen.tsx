@@ -22,10 +22,12 @@ import { secureStorage } from '../utils/secureStorage';
 import { ExecutionResult, APIConfiguration, ComparisonMetric, FunctionDefinition } from '../types';
 import { AlertAPI } from '../components/CustomAlert';
 import ExecutionResultsViewer from '../components/ExecutionResultsViewer';
+import TextEditor from '../components/TextEditor';
+import { webInputStyles } from '../styles/containers';
 
 const ExecuteScreen: React.FC = () => {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
-  const { state } = useApp();
+  const { state, clearReExecutionData } = useApp();
   const configurations = state.configurations || [];
   const isConnected = state.isConnected;
   const { state: formState, updateField } = useFormState();
@@ -108,6 +110,30 @@ const ExecuteScreen: React.FC = () => {
     checkApiKeyStatus();
   }, []);
 
+  // Handle re-execution data from HistoryScreen navigation
+  useEffect(() => {
+    console.log('🕐 Re-execution useEffect triggered:', {
+      hasReExecutionData: !!state.reExecutionData,
+      reExecutionDataConfigs: state.reExecutionData?.configurations?.length || 0,
+      availableFunctionsCount: availableFunctions.length,
+      availableConfigurationsCount: configurations.length,
+      isConnected: isConnected,
+      userId: user?.id
+    });
+    
+    // Wait for BOTH functions AND configurations to be loaded before applying re-execution data
+    if (state.reExecutionData && availableFunctions.length > 0 && configurations.length > 0) {
+      console.log('🔄 Applying re-execution data:', state.reExecutionData);
+      handleReExecute(state.reExecutionData);
+      clearReExecutionData(); // Clear it after applying to prevent re-application
+    } else if (state.reExecutionData) {
+      console.log('⏳ Re-execution data available but waiting for:', {
+        functionsLoaded: availableFunctions.length > 0,
+        configurationsLoaded: configurations.length > 0
+      });
+    }
+  }, [state.reExecutionData, availableFunctions, configurations]); // Added configurations as dependency
+
   const loadAvailableFunctions = async () => {
     if (isLoadingFunctions.current) return;
     
@@ -183,17 +209,60 @@ const ExecuteScreen: React.FC = () => {
     updateField('context', reExecutionData.context);
     
     // Find and select the configurations
+    console.log('🔧 Configuration selection debug:', {
+      reExecutionConfigurations: reExecutionData.configurations,
+      availableConfigurations: configurations.map(c => ({ 
+        id: c.id, 
+        name: c.variationName, 
+        userId: c.userId, 
+        isSystemResource: c.isSystemResource 
+      })),
+      availableConfigurationsCount: configurations.length,
+      currentUserId: user?.id
+    });
+    
     const configIds = reExecutionData.configurations
-      .map((config: any) => config.id)
-      .filter((id: string) => id);
+      .map((config: any) => {
+        console.log(`🔍 Mapping config "${config.variationName}" (ID: ${config.id}) from re-execution data`);
+        const foundConfig = configurations.find(c => c.id === config.id);
+        console.log(`   -> Found in current configs: ${foundConfig ? 'YES' : 'NO'}${foundConfig ? ` (${foundConfig.variationName})` : ''}`);
+        return config.id;
+      })
+      .filter((id: string) => {
+        const exists = id && configurations.some(c => c.id === id);
+        console.log(`   -> Config ID "${id}" exists in current configs: ${exists}`);
+        return exists;
+      });
+    
+    console.log('🎯 Final config IDs to select:', configIds);
+    console.log('🎯 Total configs available vs selected:', {
+      totalAvailable: configurations.length,
+      fromReExecution: reExecutionData.configurations.length,
+      finalSelected: configIds.length
+    });
+    
     updateField('selectedConfigs', configIds);
+    
+    console.log('🔧 Function selection debug:', {
+      reExecutionFunctionTools: reExecutionData.functionTools,
+      availableFunctions: availableFunctions.map(f => ({ id: f.id, name: f.name })),
+      availableFunctionsCount: availableFunctions.length
+    });
     
     // Set function selection if any
     if (reExecutionData.functionTools && reExecutionData.functionTools.length > 0) {
       const functionIds = reExecutionData.functionTools
-        .map((tool: any) => availableFunctions.find(f => f.name === tool.name)?.id)
-        .filter((id: string) => id);
+        .map((tool: any) => {
+          const foundFunc = availableFunctions.find(f => f.name === tool.name);
+          console.log(`🔍 Mapping function "${tool.name}" -> ${foundFunc ? foundFunc.id : 'NOT FOUND'}`);
+          return foundFunc?.id;
+        })
+        .filter((id: string | undefined): id is string => !!id);
+      
+      console.log('🎯 Final function IDs to select:', functionIds);
       updateField('selectedFunctions', functionIds);
+    } else {
+      console.log('⚠️ No function tools in re-execution data');
     }
     
     // Close the results viewer
@@ -496,14 +565,16 @@ const ExecuteScreen: React.FC = () => {
             <Text style={[styles.fieldLabel, styles.primaryFieldLabel]}>What do you want the AI to do?</Text>
             <Text style={styles.requiredText}>Required</Text>
           </View>
-          <TextInput
-            style={[styles.input, styles.textArea, styles.primaryPrompt]}
+          <TextEditor
             value={formState.prompt}
             onChangeText={(text) => updateField('prompt', text)}
             placeholder="Write a compelling product description for a sustainable water bottle that highlights its eco-friendly features..."
-            placeholderTextColor="#8E8E93"
-            multiline
-            numberOfLines={6}
+            minHeight={140}
+            maxHeight={400}
+            allowFullscreen={true}
+            showCharacterCount={true}
+            showWordCount={true}
+            showLineNumbers={false}
           />
         </View>
 
@@ -553,35 +624,33 @@ const ExecuteScreen: React.FC = () => {
 
               {/* Description */}
               <View style={styles.compactFieldContainer}>
-                <View style={styles.compactLabelContainer}>
-                  <Ionicons name="document-text" size={14} color="#007AFF" />
-                  <Text style={styles.compactFieldLabel}>Description</Text>
-                </View>
-                <TextInput
-                  style={[styles.compactInput, styles.compactTextArea]}
+                <TextEditor
+                  label="📝 Description"
                   value={formState.description}
                   onChangeText={(text) => updateField('description', text)}
                   placeholder="Notes about this execution..."
-                  placeholderTextColor="#8E8E93"
-                  multiline
-                  numberOfLines={2}
+                  minHeight={80}
+                  maxHeight={200}
+                  allowFullscreen={true}
+                  showCharacterCount={false}
+                  showWordCount={false}
+                  showLineNumbers={false}
                 />
               </View>
 
               {/* Additional Context */}
               <View style={styles.compactFieldContainer}>
-                <View style={styles.compactLabelContainer}>
-                  <Ionicons name="information-circle" size={14} color="#007AFF" />
-                  <Text style={styles.compactFieldLabel}>Additional Context</Text>
-                </View>
-                <TextInput
-                  style={[styles.compactInput, styles.compactTextArea]}
+                <TextEditor
+                  label="ℹ️ Additional Context"
                   value={formState.context}
                   onChangeText={(text) => updateField('context', text)}
                   placeholder="Target audience, tone, constraints, etc..."
-                  placeholderTextColor="#8E8E93"
-                  multiline
-                  numberOfLines={3}
+                  minHeight={100}
+                  maxHeight={250}
+                  allowFullscreen={true}
+                  showCharacterCount={true}
+                  showWordCount={false}
+                  showLineNumbers={false}
                 />
               </View>
             </View>
@@ -1154,6 +1223,7 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     borderWidth: 1,
     borderColor: '#E5E5EA',
+    ...webInputStyles,
   },
   compactTextArea: {
     minHeight: 60,

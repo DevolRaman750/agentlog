@@ -68,7 +68,7 @@ const getBackendUrl = (): string => {
   console.log('  typeof process:', typeof process);
   
   // Check if we're running in production (deployed environment)
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && window.location) {
     // In web environment, check the current hostname
     const hostname = window.location.hostname;
     console.log('  window.location.hostname:', hostname);
@@ -383,9 +383,21 @@ export function AppProvider({ children }: AppProviderProps) {
       
       console.log('💾 Adding configuration for user:', user?.id, 'Config:', newConfig.variationName);
       
-      const updatedConfigs = [...state.configurations, newConfig];
-      dispatch({ type: 'ADD_CONFIGURATION', payload: newConfig });
+      // Save to backend first (like updateConfiguration does)
+      const response = await goGentAPI.saveConfiguration(newConfig);
+      if (!response.success) {
+        console.error('Backend save failed:', response.error);
+        dispatch({ type: 'SET_ERROR', payload: response.error || 'Failed to save configuration to server' });
+        return;
+      }
+      
+      // Update local state only after successful backend save
+      const savedConfig = response.data || newConfig;
+      const updatedConfigs = [...state.configurations, savedConfig];
+      dispatch({ type: 'ADD_CONFIGURATION', payload: savedConfig });
       await AsyncStorage.setItem('configurations', JSON.stringify(updatedConfigs));
+      
+      console.log('✅ Configuration saved to backend and local storage:', savedConfig.variationName);
     } catch (error) {
       console.error('Failed to add configuration:', error);
       dispatch({ type: 'SET_ERROR', payload: 'Failed to save configuration' });

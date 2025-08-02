@@ -685,17 +685,17 @@ frontend-install:
 # Start Expo development server
 frontend-start:
 	@echo "🚀 Starting Expo development server..."
-	cd frontend && yarn start
+	cd frontend && npx expo start --clear
 
 # Run on iOS simulator
 frontend-ios:
 	@echo "📱 Starting iOS app..."
-	cd frontend && yarn ios
+	cd frontend && npx expo start --ios
 
 # Run on Android simulator
 frontend-android:
 	@echo "🤖 Starting Android app..."
-	cd frontend && yarn android
+	cd frontend && npx expo start --android
 
 # Run on web browser (with cleanup)
 frontend-web:
@@ -709,7 +709,7 @@ frontend-web:
 	@sleep 2
 	@echo "✅ Ports 8081/8082 are now available"
 	@echo "🌐 Starting web app..."
-	cd frontend && yarn web
+	cd frontend && npx expo start --web
 
 # Build frontend for production
 frontend-build:

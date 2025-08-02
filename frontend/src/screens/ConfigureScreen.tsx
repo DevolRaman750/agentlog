@@ -22,12 +22,13 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import ConfigurationCard from '../components/ConfigurationCard';
 import { SessionManager } from '../components/SessionManager';
-import { containerStyles } from '../styles/containers';
+import { containerStyles, webInputStyles } from '../styles/containers';
 import LoadingScreen from '../components/LoadingScreen';
 import { CustomAlert, AlertAPI, AlertButton } from '../components/CustomAlert';
 import ModelSelector, { SUPPORTED_MODELS } from '../components/ModelSelector';
 import { APIConfiguration, getResourceOwnership } from '../types';
 import { debugAuthState, clearAllAuthData, createTestUser } from '../utils/debugAuth';
+import TextEditor from '../components/TextEditor';
 
 const { width } = Dimensions.get('window');
 
@@ -866,16 +867,17 @@ const NewConfigurationFormModal: React.FC<{
               onModelChange={(modelName) => setFormData(prev => ({ ...prev, modelName }))}
             />
             
-            <Text style={styles.inputLabel}>System Prompt</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
+            <TextEditor
+              label="🤖 System Prompt"
               value={formData.systemPrompt}
               onChangeText={(text) => setFormData(prev => ({ ...prev, systemPrompt: text }))}
               placeholder="Enter system prompt (optional)..."
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-              returnKeyType="done"
+              minHeight={120}
+              maxHeight={300}
+              allowFullscreen={true}
+              showCharacterCount={true}
+              showWordCount={true}
+              showLineNumbers={false}
             />
             
             <Text style={styles.inputLabel}>Temperature (0.0 - 1.0)</Text>
@@ -1048,6 +1050,7 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 14,
     backgroundColor: '#FFFFFF',
+    ...webInputStyles,
   },
   disabledInput: {
     backgroundColor: '#F2F2F7',
@@ -1112,6 +1115,7 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 14,
     backgroundColor: '#FFFFFF',
+    ...webInputStyles,
   },
   textArea: {
     height: 100,

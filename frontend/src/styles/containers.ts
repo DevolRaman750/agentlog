@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 
 export const containerStyles = StyleSheet.create({
   // Main app background
@@ -186,4 +186,51 @@ export const containerColors = {
     medium: '#E1E5EA',
     strong: '#D1D5DB',
   }
-}; 
+};
+
+// Web-specific styles to fix double border issues
+export const webInputStyles = Platform.select({
+  web: {
+    // @ts-ignore - Web-specific CSS properties
+    outline: 'none',
+    boxSizing: 'border-box',
+    WebkitAppearance: 'none',
+    MozAppearance: 'textfield',
+    boxShadow: 'none',
+  },
+  default: {}
+}) as any;
+
+// Common TextInput styles with web fixes
+export const textInputStyles = StyleSheet.create({
+  base: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#1A1A1A',
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    ...webInputStyles,
+  },
+  compact: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 14,
+    color: '#1A1A1A',
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    ...webInputStyles,
+  },
+  large: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: '#1A1A1A',
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    ...webInputStyles,
+  },
+}); 

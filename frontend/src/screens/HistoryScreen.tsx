@@ -186,20 +186,31 @@ const HistoryScreen: React.FC = () => {
             if (result.functionCalls && result.functionCalls.length > 0) {
               result.functionCalls.forEach(functionCall => {
                 const funcName = functionCall.functionName;
+                console.log('🔍 Found function call:', functionCall);
                 if (funcName && !functionTools.find(t => t.name === funcName)) {
                   functionTools.push({
                     name: funcName,
                     description: `${funcName} function`,
                     parameters: {}
                   });
+                  console.log(`✅ Added function tool: ${funcName}`);
                 }
               });
             }
           });
         }
+        
+        console.log('🧰 Final extracted function tools:', functionTools);
 
         // Extract the original base prompt and context from the execution run
         // The execution run should contain the original data, not the processed request data
+        console.log('🔍 Raw execution data for re-execution:', {
+          executionRun: executionRun,
+          results: results,
+          firstResult: results?.[0],
+          firstRequest: results?.[0]?.request
+        });
+        
         const basePrompt = results?.[0]?.request?.prompt || executionRun.basePrompt || '';
         const context = results?.[0]?.request?.context || executionRun.contextPrompt || '';
 
@@ -214,10 +225,13 @@ const HistoryScreen: React.FC = () => {
         };
         
         console.log('🔄 Re-execution data prepared:', {
-          ...reExecutionData,
-          basePrompt: basePrompt.substring(0, 100) + '...',
+          executionRunName: reExecutionData.executionRunName,
+          description: reExecutionData.description,
+          basePrompt: basePrompt ? basePrompt.substring(0, 100) + '...' : 'EMPTY',
+          context: context ? context.substring(0, 100) + '...' : 'EMPTY',
           configurationsCount: reExecutionData.configurations.length,
-          functionsCount: functionTools.length
+          functionsCount: functionTools.length,
+          configurations: reExecutionData.configurations.map(c => ({ id: c.id, name: c.variationName }))
         });
         
         setReExecutionData(reExecutionData);
@@ -685,6 +699,14 @@ const HistoryScreen: React.FC = () => {
               enableFunctionCalling: selectedRun.executionRun.enableFunctionCalling || functionTools.length > 0,
               functionTools: functionTools
             };
+            
+            console.log('🔄 Re-execution data from ExecutionLogs:', {
+              executionRunName: reExecutionData.executionRunName,
+              basePrompt: basePrompt ? basePrompt.substring(0, 100) + '...' : 'EMPTY',
+              context: context ? context.substring(0, 100) + '...' : 'EMPTY',
+              configurationsCount: reExecutionData.configurations.length,
+              functionsCount: functionTools.length
+            });
             
             setReExecutionData(reExecutionData);
             setShowExecutionLogs(false);

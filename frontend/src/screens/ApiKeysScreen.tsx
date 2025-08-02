@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { secureStorage, API_KEY_VALIDATIONS, FUNCTION_API_KEY_REQUIREMENTS } from '../utils/secureStorage';
 import { AlertAPI } from '../components/CustomAlert';
+import { webInputStyles } from '../styles/containers';
 
 interface ApiKeyStatus {
   name: string;
@@ -170,6 +171,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E1E5E9',
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    ...webInputStyles,
   },
   editActions: {
     flexDirection: 'row',

@@ -33,7 +33,27 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
   embedded = false,
 }) => {
   const [showExecutionLogs, setShowExecutionLogs] = useState(false);
-  const [expandedResults, setExpandedResults] = useState<Set<number>>(new Set());
+  // Initialize with all result indices expanded by default
+  const [expandedResults, setExpandedResults] = useState<Set<number>>(() => {
+    const initialExpanded = new Set<number>();
+    if (executionResult.results) {
+      executionResult.results.forEach((_, index) => {
+        initialExpanded.add(index);
+      });
+    }
+    return initialExpanded;
+  });
+
+  // Update expanded results when execution result changes
+  React.useEffect(() => {
+    if (executionResult.results) {
+      const newExpanded = new Set<number>();
+      executionResult.results.forEach((_, index) => {
+        newExpanded.add(index);
+      });
+      setExpandedResults(newExpanded);
+    }
+  }, [executionResult]);
 
   const toggleResultExpansion = (index: number) => {
     const newExpanded = new Set(expandedResults);

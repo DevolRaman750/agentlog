@@ -72,9 +72,8 @@ const StableDatabaseScreen = createStableScreenWithNavigation(DatabaseScreen);
 const StableAuthScreen = createStableScreenWithNavigation(AuthScreen);
 
 const ResponsiveTabNavigator = () => {
-  const { isAuthenticated } = useAuth();
-  // Use the existing responsive context instead of creating duplicate dimension listeners
-  const { isSidebarLayout } = useResponsive();
+  const { isAuthenticated, isLoading } = useAuth();
+  const { isSidebarLayout, isTabletLayout, isMobileLayout, isNarrowMobile, screenWidth, screenHeight } = useResponsive();
 
   // Memoize the context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({
@@ -87,50 +86,61 @@ const ResponsiveTabNavigator = () => {
     cardStyle: { backgroundColor: '#F2F2F7' },
   }), []);
 
+  // While auth is loading, determine initial route based on current URL
+  const getInitialRoute = () => {
+    if (isLoading && typeof window !== 'undefined' && window.location) {
+      const path = window.location.pathname;
+      const pathToRoute: Record<string, string> = {
+        '/execute': 'Execute',
+        '/configure': 'Configure',
+        '/functions': 'Functions',
+        '/templates': 'Templates',
+        '/api-keys': 'API Keys',
+        '/history': 'History',
+        '/database': 'Database',
+        '/account': 'Account',
+        '/more': 'More',
+      };
+      return pathToRoute[path] || 'Execute';
+    }
+    return 'Execute'; // Always default to Execute
+  };
+
   return (
     <ResponsiveLayoutContext.Provider value={contextValue}>
       <Stack.Navigator
         screenOptions={screenConfig}
-        initialRouteName={isAuthenticated ? "Execute" : "Account"}
+        initialRouteName={getInitialRoute()}
       >
-        {/* Show only Account screen when not authenticated */}
-        {!isAuthenticated ? (
-          <Stack.Screen 
-            name="Account" 
-            component={StableAuthScreen} 
-          />
-        ) : (
-          <>
-            <Stack.Screen 
-              name="Execute" 
-              component={StableExecuteScreen} 
-            />
-            <Stack.Screen 
-              name="Configure" 
-              component={StableConfigureScreen} 
-            />
-            <Stack.Screen 
-              name="Functions" 
-              component={StableFunctionScreen} 
-            />
-            <Stack.Screen 
-              name="API Keys" 
-              component={StableApiKeysScreen} 
-            />
-            <Stack.Screen 
-              name="History" 
-              component={StableHistoryScreen} 
-            />
-            <Stack.Screen 
-              name="Database" 
-              component={StableDatabaseScreen} 
-            />
-            <Stack.Screen 
-              name="Account" 
-              component={StableAuthScreen} 
-            />
-          </>
-        )}
+        {/* All screens are always available - individual screens handle authentication */}
+        <Stack.Screen 
+          name="Execute" 
+          component={StableExecuteScreen} 
+        />
+        <Stack.Screen 
+          name="Configure" 
+          component={StableConfigureScreen} 
+        />
+        <Stack.Screen 
+          name="Functions" 
+          component={StableFunctionScreen} 
+        />
+        <Stack.Screen 
+          name="API Keys" 
+          component={StableApiKeysScreen} 
+        />
+        <Stack.Screen 
+          name="History" 
+          component={StableHistoryScreen} 
+        />
+        <Stack.Screen 
+          name="Database" 
+          component={StableDatabaseScreen} 
+        />
+        <Stack.Screen 
+          name="Account" 
+          component={StableAuthScreen} 
+        />
       </Stack.Navigator>
     </ResponsiveLayoutContext.Provider>
   );
