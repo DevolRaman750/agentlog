@@ -5,6 +5,11 @@ agentlog is a Go platform that wraps AI APIs (starting with Google Gemini) with 
 <img width="627" height="717" alt="image" src="https://github.com/user-attachments/assets/93715c59-6cc6-4aaa-98d9-467dcb5c8647" />
 
 
+https://github.com/user-attachments/assets/43184a26-4a6f-4f93-a655-f58f7badaddc
+
+
+
+
 ## 🚀 Quick Start
 
 Get AgentLog running in 2 steps:
