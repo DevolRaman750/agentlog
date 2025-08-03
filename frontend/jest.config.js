@@ -11,7 +11,7 @@ module.exports = {
     }],
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|@expo|expo-.*|@testing-library)/)',
+    'node_modules/(?!(react-native|@react-native|@react-native-community|@expo|expo-.*|@testing-library)/)',
   ],
   moduleNameMapper: {
     '^react-native$': 'react-native-web',

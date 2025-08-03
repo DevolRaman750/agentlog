@@ -213,6 +213,14 @@ const TabNavigator = () => {
       <Tab.Screen name="History" component={withResponsiveLayout(HistoryScreen)} />
       <Tab.Screen name="Database" component={withResponsiveLayout(DatabaseScreen)} />
       <Tab.Screen name="Account" component={withResponsiveLayout(AuthScreen)} />
+      <Tab.Screen 
+        name="TemplateTokenManager" 
+        component={withResponsiveLayout(TemplateTokenManagerScreen)}
+        options={{
+          tabBarStyle: { display: 'none' },
+          presentation: 'modal'
+        }}
+      />
     </Tab.Navigator>
   );
 };

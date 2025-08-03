@@ -235,11 +235,13 @@ func (ts *TemplateService) GetTemplateByID(templateID string, includeParameters,
 
 // ListTemplates retrieves templates with filtering and pagination
 func (ts *TemplateService) ListTemplates(userID string, limit, offset int, category string, includePublic, includeInactive, includeTokens bool) ([]types.ExecutionTemplate, int, error) {
-	whereConditions := []string{"user_id = ?"}
+	// Always include user's own templates and system templates
+	whereConditions := []string{"(user_id = ? OR user_id = 'system')"}
 	args := []interface{}{userID}
 
 	if includePublic {
-		whereConditions[0] = "(user_id = ? OR is_public = TRUE)"
+		// Include other public templates as well (not system or user's own)
+		whereConditions[0] = "(user_id = ? OR user_id = 'system' OR is_public = TRUE)"
 	}
 
 	if !includeInactive {

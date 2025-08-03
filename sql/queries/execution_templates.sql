@@ -8,15 +8,27 @@ FROM execution_templates
 WHERE id = ? LIMIT 1;
 
 -- name: GetTemplatesByUser :many
+-- NOTE: This query is deprecated - the service uses dynamic query building
+-- Always includes system templates alongside user templates
 SELECT 
     id, user_id, name, description, template_prompt, context_template,
     enable_function_calling, is_active, is_public, category, tags,
     execution_timeout_seconds, rate_limit_per_hour, rate_limit_per_day,
     rate_limit_burst, total_executions, last_executed_at, created_at, updated_at
 FROM execution_templates 
-WHERE user_id = ? OR (is_public = TRUE AND ?)
+WHERE (user_id = ? OR user_id = 'system') OR (is_public = TRUE AND ?)
 ORDER BY created_at DESC
 LIMIT ? OFFSET ?;
+
+-- name: GetSystemTemplates :many
+SELECT 
+    id, user_id, name, description, template_prompt, context_template,
+    enable_function_calling, is_active, is_public, category, tags,
+    execution_timeout_seconds, rate_limit_per_hour, rate_limit_per_day,
+    rate_limit_burst, total_executions, last_executed_at, created_at, updated_at
+FROM execution_templates 
+WHERE user_id = 'system' AND is_active = TRUE
+ORDER BY created_at DESC;
 
 -- name: CreateTemplate :exec
 INSERT INTO execution_templates (

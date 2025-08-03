@@ -27,6 +27,7 @@
       "bundler": "metro",
       "output": "single",
       "lang": "en",
+      "template": "web/index.html",
       "customHeaders": [
         {
           "source": "**/*",
@@ -37,22 +38,12 @@
             }
           ]
         }
-      ],
-      "scripts": [
-        {
-          "defer": true,
-          "src": "https://plausible.io/js/script.js",
-          "data-domain": "agentlog.scalebase.io"
-        }
       ]
     },
     "extra": {
       "eas": {
         "projectId": "YOUR_EAS_PROJECT_ID"
       }
-    },
-    "plugins": [
-      "expo-router"
-    ]
+    }
   }
 }

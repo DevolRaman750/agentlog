@@ -25,6 +25,13 @@ import ExecutionResultsViewer from '../components/ExecutionResultsViewer';
 import TextEditor from '../components/TextEditor';
 import { webInputStyles } from '../styles/containers';
 
+interface ParameterValue {
+  name: string;
+  value: string;
+  isRequired: boolean;
+  description?: string;
+}
+
 const ExecuteScreen: React.FC = () => {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const { state, clearReExecutionData } = useApp();
@@ -47,8 +54,93 @@ const ExecuteScreen: React.FC = () => {
     hasFunctionKeys: false 
   });
   
+  // Parameter state for template functionality
+  const [parameterValues, setParameterValues] = useState<ParameterValue[]>([]);
+  const [showParameters, setShowParameters] = useState(false);
+  
   // Ref to prevent multiple concurrent API calls
   const isLoadingFunctions = useRef(false);
+
+  // Auto-detect parameters from prompt text
+  const detectParametersFromPrompt = useCallback((promptText: string) => {
+    const parameterRegex = /\{\{([^}]+)\}\}/g;
+    const detectedParams = new Set<string>();
+    let match;
+    
+    while ((match = parameterRegex.exec(promptText)) !== null) {
+      const paramName = match[1].trim();
+      if (paramName) {
+        detectedParams.add(paramName);
+      }
+    }
+    
+    return Array.from(detectedParams);
+  }, []);
+
+  // Update parameter values when prompt changes
+  useEffect(() => {
+    const detectedParams = detectParametersFromPrompt(formState.prompt || '');
+    const currentParamNames = parameterValues.map(p => p.name);
+    
+    // Keep existing parameter values that are still in the prompt
+    const existingParams = parameterValues.filter(p => detectedParams.includes(p.name));
+    
+    // Add new parameters that were detected but don't exist yet
+    const newParams = detectedParams
+      .filter(paramName => !currentParamNames.includes(paramName))
+      .map(paramName => ({
+        name: paramName,
+        value: '',
+        isRequired: true,
+        description: `Value for ${paramName}`,
+      }));
+    
+    // Update parameters list
+    const updatedParams = [...existingParams, ...newParams];
+    setParameterValues(updatedParams);
+    
+    // Show parameters section if we have any
+    setShowParameters(updatedParams.length > 0);
+  }, [formState.prompt, detectParametersFromPrompt]);
+
+  // Update parameter value
+  const updateParameterValue = (paramName: string, value: string) => {
+    setParameterValues(prev => 
+      prev.map(param => 
+        param.name === paramName 
+          ? { ...param, value }
+          : param
+      )
+    );
+  };
+
+  // Template parameters into prompt
+  const templatePrompt = useCallback((promptText: string, parameters: ParameterValue[]) => {
+    let templatedPrompt = promptText;
+    
+    parameters.forEach(param => {
+      const pattern = new RegExp(`\\{\\{${param.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\}\\}`, 'g');
+      templatedPrompt = templatedPrompt.replace(pattern, param.value || '');
+    });
+    
+    return templatedPrompt;
+  }, []);
+
+  // Validate parameters before execution
+  const validateParameters = useCallback(() => {
+    const missingRequired = parameterValues.filter(p => p.isRequired && !p.value.trim());
+    
+    if (missingRequired.length > 0) {
+      AlertAPI.alert(
+        'Missing Parameters',
+        `Please provide values for: ${missingRequired.map(p => p.name).join(', ')}`,
+        [{ text: 'OK', style: 'default' }]
+      );
+      return false;
+    }
+    
+    return true;
+  }, [parameterValues]);
 
   // Generate default execution name
   const generateDefaultExecutionName = () => {
@@ -315,6 +407,11 @@ const ExecuteScreen: React.FC = () => {
       return;
     }
 
+    // Validate parameters if any exist
+    if (parameterValues.length > 0 && !validateParameters()) {
+      return;
+    }
+
     setIsExecuting(true);
     setExecutionResult(null);
     setPollCount(0);
@@ -324,10 +421,15 @@ const ExecuteScreen: React.FC = () => {
         formState.selectedConfigs.includes(config.id || '')
       );
 
+      // Template the prompt with parameter values
+      const templatedPrompt = parameterValues.length > 0 
+        ? templatePrompt(formState.prompt, parameterValues)
+        : formState.prompt;
+
       const request = {
         executionRunName: formState.executionName || generateDefaultExecutionName(),
         description: formState.description,
-        basePrompt: formState.prompt,
+        basePrompt: templatedPrompt, // Use templated prompt
         context: formState.context,
         configurations: selectedConfigurations,
         enableFunctionCalling: formState.selectedFunctions.length > 0,
@@ -629,6 +731,49 @@ const ExecuteScreen: React.FC = () => {
             showLineNumbers={false}
           />
         </View>
+
+        {/* Template Parameters Section - Show when parameters are detected */}
+        {showParameters && parameterValues.length > 0 && (
+          <View style={[styles.fieldContainer, styles.parametersField]}>
+            <View style={styles.labelContainer}>
+              <Ionicons name="code-slash" size={18} color="#FF9500" />
+              <Text style={[styles.fieldLabel, styles.parametersFieldLabel]}>Template Parameters</Text>
+              <View style={styles.parameterBadge}>
+                <Text style={styles.parameterBadgeText}>{parameterValues.length}</Text>
+              </View>
+            </View>
+            <Text style={styles.parametersDescription}>
+              Your prompt contains parameters. Please provide values below:
+            </Text>
+            
+            <View style={styles.parametersContainer}>
+              {parameterValues.map((param, index) => (
+                <View key={param.name} style={styles.parameterInputContainer}>
+                  <View style={styles.parameterHeader}>
+                    <Text style={styles.parameterName}>{`{{${param.name}}}`}</Text>
+                    {param.isRequired && (
+                      <Text style={styles.parameterRequired}>Required</Text>
+                    )}
+                  </View>
+                  
+                  <TextInput
+                    style={styles.parameterInput}
+                    value={param.value}
+                    onChangeText={(value) => updateParameterValue(param.name, value)}
+                    placeholder={`Enter value for ${param.name}...`}
+                    placeholderTextColor="#8E8E93"
+                    multiline={param.value.length > 50}
+                    numberOfLines={param.value.length > 50 ? 3 : 1}
+                  />
+                  
+                  {param.description && (
+                    <Text style={styles.parameterDescription}>{param.description}</Text>
+                  )}
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* Optional Details Section - Collapsible */}
         <View style={styles.optionalSection}>
@@ -1203,6 +1348,86 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     minHeight: 140,
+  },
+  // Template parameters styles
+  parametersField: {
+    borderWidth: 2,
+    borderColor: '#FF9500',
+    shadowColor: '#FF9500',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  parametersFieldLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FF9500',
+  },
+  parameterBadge: {
+    backgroundColor: '#FFF0E0',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginLeft: 8,
+  },
+  parameterBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FF9500',
+  },
+  parametersDescription: {
+    fontSize: 14,
+    color: '#6B6B6B',
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  parametersContainer: {
+    gap: 12,
+  },
+  parameterInputContainer: {
+    backgroundColor: '#FFF8F0',
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#FFE4B8',
+  },
+  parameterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  parameterName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FF9500',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  parameterRequired: {
+    fontSize: 12,
+    color: '#FF3B30',
+    fontWeight: '500',
+    backgroundColor: '#FFF5F5',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  parameterInput: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 6,
+    padding: 12,
+    fontSize: 16,
+    color: '#1A1A1A',
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    minHeight: 44,
+  },
+  parameterDescription: {
+    fontSize: 12,
+    color: '#8E8E93',
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   // Optional section styles
   optionalSection: {
