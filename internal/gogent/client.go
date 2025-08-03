@@ -845,14 +845,30 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 
 	// Add system instruction for function calling reliability if tools are available
 	if len(config.Tools) > 0 {
-		// Use system instruction as recommended by Gemini docs for reliable function calling
-		systemInstruction := "You are a helpful assistant with access to function tools. When responding to user questions, you MUST use the available functions when they are relevant to answering the question. Always provide complete, helpful responses based on the function results. Do not mention function calls in your response - just provide the information naturally."
+		// Use user's system prompt if available, otherwise use minimal function calling instruction
+		systemInstruction := ""
+		if config.SystemPrompt != "" {
+			// Respect user's system prompt and enhance it for function calling
+			systemInstruction = fmt.Sprintf("%s\n\nWhen relevant functions are available, use them to provide accurate, helpful responses.", config.SystemPrompt)
+		} else {
+			// Minimal default instruction only if user hasn't specified one
+			systemInstruction = "Use the available functions when they are relevant to answering the user's question. Provide natural, helpful responses based on function results."
+		}
+
 		requestBody["systemInstruction"] = map[string]interface{}{
 			"parts": []map[string]interface{}{
 				{"text": systemInstruction},
 			},
 		}
-		log.Printf("🔧 Added system instruction for function calling reliability")
+		log.Printf("🔧 Added system instruction respecting user configuration")
+	} else if config.SystemPrompt != "" {
+		// No tools but user has system prompt - respect it
+		requestBody["systemInstruction"] = map[string]interface{}{
+			"parts": []map[string]interface{}{
+				{"text": config.SystemPrompt},
+			},
+		}
+		log.Printf("🔧 Added user-defined system instruction")
 	}
 
 	// Add generation config - ALWAYS respect user's configuration
@@ -1389,11 +1405,16 @@ func (c *Client) executeIterativeFunctionLoop(ctx context.Context, config *types
 			responseLength := len(strings.TrimSpace(nextResponse.TextResponse))
 			if responseLength < 100 {
 				log.Printf("⚠️ Response seems incomplete (only %d chars), encouraging continuation", responseLength)
-				// Add a follow-up message to encourage completion
+				// Add a follow-up message to encourage completion - using user's context if available
+				continuationPrompt := "Please continue and complete your response to fully address the original request."
+				if request.Context != "" {
+					continuationPrompt = fmt.Sprintf("Please continue and complete your response. %s", request.Context)
+				}
+
 				conversationHistory = append(conversationHistory, map[string]interface{}{
 					"role": "user",
 					"parts": []map[string]interface{}{
-						{"text": "Please continue and complete the full analysis. Make sure to address all parts of the original request, including reading relevant code and updating the GitHub issue with your findings."},
+						{"text": continuationPrompt},
 					},
 				})
 				// Continue iteration
@@ -1401,11 +1422,18 @@ func (c *Client) executeIterativeFunctionLoop(ctx context.Context, config *types
 				// Before returning, ask Gemini to provide a comprehensive summary of ALL work completed
 				log.Printf("🔧 Requesting comprehensive summary of all work completed in %d iterations", iteration)
 
-				// Add a summary request to the conversation
+				// Add a summary request to the conversation - respecting user's original request context
+				summaryPrompt := "Thank you for completing the tasks! Please provide a comprehensive summary of what you accomplished."
+				if request.Prompt != "" {
+					// Use the original user prompt to guide the summary
+					summaryPrompt = fmt.Sprintf("Thank you for completing the tasks! Please provide a comprehensive summary of what you accomplished based on the original request: \"%s\"",
+						strings.TrimSpace(request.Prompt))
+				}
+
 				conversationHistory = append(conversationHistory, map[string]interface{}{
 					"role": "user",
 					"parts": []map[string]interface{}{
-						{"text": "Thank you for completing all the tasks! Please provide a comprehensive summary of everything you accomplished:\n\n1. What GitHub issues you found and analyzed\n2. What code files you examined and what you discovered\n3. What updates you made to the GitHub issue\n4. What weather information you retrieved\n\nPlease confirm each task was completed successfully and provide a clear summary of the results."},
+						{"text": summaryPrompt},
 					},
 				})
 
@@ -1484,10 +1512,26 @@ func (c *Client) sendConversationToGeminiForIteration(ctx context.Context, confi
 
 	// Add system instruction for function calling reliability
 	if len(config.Tools) > 0 {
-		systemInstruction := "You are a helpful assistant with access to function tools. When responding to user questions, you MUST use the available functions when they are relevant to answering the question. Always provide complete, helpful responses based on the function results. Do not mention function calls in your response - just provide the information naturally."
+		// Use user's system prompt if available, otherwise use minimal function calling instruction
+		systemInstruction := ""
+		if config.SystemPrompt != "" {
+			// Respect user's system prompt and enhance it for function calling
+			systemInstruction = fmt.Sprintf("%s\n\nWhen relevant functions are available, use them to provide accurate, helpful responses.", config.SystemPrompt)
+		} else {
+			// Minimal default instruction only if user hasn't specified one
+			systemInstruction = "Use the available functions when they are relevant to answering the user's question. Provide natural, helpful responses based on function results."
+		}
+
 		requestBody["systemInstruction"] = map[string]interface{}{
 			"parts": []map[string]interface{}{
 				{"text": systemInstruction},
+			},
+		}
+	} else if config.SystemPrompt != "" {
+		// No tools but user has system prompt - respect it
+		requestBody["systemInstruction"] = map[string]interface{}{
+			"parts": []map[string]interface{}{
+				{"text": config.SystemPrompt},
 			},
 		}
 	}
