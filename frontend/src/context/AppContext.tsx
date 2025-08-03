@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
-import { AppConfig, APIConfiguration, ExecutionRun, Tool } from '../types';
+import { AppConfig, APIConfiguration, ExecutionRun, Tool, ExecutionResult } from '../types';
 import { goGentAPI } from '../api/client';
 import { useAuth } from './AuthContext';
 
@@ -26,6 +26,14 @@ interface AppState {
     selectedMetrics?: string[];
     functionExecutionMode?: 'mock' | 'real' | 'auto';
   };
+  currentExecution?: {
+    isExecuting: boolean;
+    executionId: string | null;
+    pollCount: number;
+    maxPolls: number;
+    executionResult: ExecutionResult | null;
+    startTime: number;
+  };
 }
 
 // Action types
@@ -43,6 +51,11 @@ type AppAction =
   | { type: 'SET_CONNECTION_STATUS'; payload: { connected: boolean; latency: number } }
   | { type: 'SET_RE_EXECUTION_DATA'; payload: { executionRunName: string; description: string; basePrompt: string; context?: string; configurations: APIConfiguration[]; enableFunctionCalling?: boolean; functionTools?: Tool[]; comparisonEnabled?: boolean; selectedMetrics?: string[]; functionExecutionMode?: 'mock' | 'real' | 'auto' } }
   | { type: 'CLEAR_RE_EXECUTION_DATA' }
+  | { type: 'START_EXECUTION'; payload: { executionId: string; maxPolls: number } }
+  | { type: 'UPDATE_EXECUTION_PROGRESS'; payload: { pollCount: number } }
+  | { type: 'COMPLETE_EXECUTION'; payload: { executionResult: ExecutionResult } }
+  | { type: 'CANCEL_EXECUTION' }
+  | { type: 'CLEAR_EXECUTION_RESULT' }
   | { type: 'RESET_STATE' };
 
 // Detect environment and set appropriate backend URL using Expo's build-time configuration
@@ -143,6 +156,12 @@ interface AppContextType {
   setReExecutionData: (data: { executionRunName: string; description: string; basePrompt: string; context?: string; configurations: APIConfiguration[]; enableFunctionCalling?: boolean; functionTools?: Tool[]; comparisonEnabled?: boolean; selectedMetrics?: string[]; functionExecutionMode?: 'mock' | 'real' | 'auto' }) => void;
   clearReExecutionData: () => void;
   refreshAllData: () => Promise<void>; // New global refresh function
+  // Execution management
+  startExecution: (executionId: string, maxPolls?: number) => void;
+  updateExecutionProgress: (pollCount: number) => void;
+  completeExecution: (executionResult: ExecutionResult) => void;
+  cancelExecution: () => void;
+  clearExecutionResult: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -209,6 +228,53 @@ function appReducer(state: AppState, action: AppAction): AppState {
     
     case 'CLEAR_RE_EXECUTION_DATA':
       return { ...state, reExecutionData: undefined };
+    
+    case 'START_EXECUTION':
+      return {
+        ...state,
+        currentExecution: {
+          isExecuting: true,
+          executionId: action.payload.executionId,
+          pollCount: 0,
+          maxPolls: action.payload.maxPolls,
+          executionResult: null,
+          startTime: Date.now(),
+        },
+      };
+    
+    case 'UPDATE_EXECUTION_PROGRESS':
+      return {
+        ...state,
+        currentExecution: state.currentExecution ? {
+          ...state.currentExecution,
+          pollCount: action.payload.pollCount,
+        } : undefined,
+      };
+    
+    case 'COMPLETE_EXECUTION':
+      return {
+        ...state,
+        currentExecution: state.currentExecution ? {
+          ...state.currentExecution,
+          isExecuting: false,
+          executionResult: action.payload.executionResult,
+        } : undefined,
+      };
+    
+    case 'CANCEL_EXECUTION':
+      return {
+        ...state,
+        currentExecution: undefined,
+      };
+    
+    case 'CLEAR_EXECUTION_RESULT':
+      return {
+        ...state,
+        currentExecution: state.currentExecution ? {
+          ...state.currentExecution,
+          executionResult: null,
+        } : undefined,
+      };
     
     case 'RESET_STATE':
       return initialState;
@@ -695,6 +761,39 @@ export function AppProvider({ children }: AppProviderProps) {
     }
   }, [testConnection, loadConfigurations, loadRecentExecutions]);
 
+  // Execution management functions
+  const startExecution = useCallback((executionId: string, maxPolls: number = 300) => {
+    console.log('🚀 Starting execution tracking:', executionId);
+    dispatch({ 
+      type: 'START_EXECUTION', 
+      payload: { executionId, maxPolls } 
+    });
+  }, []);
+
+  const updateExecutionProgress = useCallback((pollCount: number) => {
+    dispatch({ 
+      type: 'UPDATE_EXECUTION_PROGRESS', 
+      payload: { pollCount } 
+    });
+  }, []);
+
+  const completeExecution = useCallback((executionResult: ExecutionResult) => {
+    console.log('✅ Execution completed:', executionResult.id);
+    dispatch({ 
+      type: 'COMPLETE_EXECUTION', 
+      payload: { executionResult } 
+    });
+  }, []);
+
+  const cancelExecution = useCallback(() => {
+    console.log('❌ Execution cancelled by user');
+    dispatch({ type: 'CANCEL_EXECUTION' });
+  }, []);
+
+  const clearExecutionResult = useCallback(() => {
+    dispatch({ type: 'CLEAR_EXECUTION_RESULT' });
+  }, []);
+
   const value: AppContextType = {
     state,
     updateConfig,
@@ -712,6 +811,12 @@ export function AppProvider({ children }: AppProviderProps) {
     setReExecutionData,
     clearReExecutionData,
     refreshAllData,
+    // Execution management
+    startExecution,
+    updateExecutionProgress,
+    completeExecution,
+    cancelExecution,
+    clearExecutionResult,
   };
 
   return (

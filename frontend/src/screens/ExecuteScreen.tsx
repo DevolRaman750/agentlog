@@ -35,16 +35,21 @@ interface ParameterValue {
 
 const ExecuteScreen: React.FC = () => {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
-  const { state, clearReExecutionData } = useApp();
+  const { 
+    state, 
+    clearReExecutionData, 
+    startExecution, 
+    updateExecutionProgress, 
+    completeExecution, 
+    cancelExecution, 
+    clearExecutionResult 
+  } = useApp();
   const configurations = state.configurations || [];
   const isConnected = state.isConnected;
+  const currentExecution = state.currentExecution;
   const { state: formState, updateField } = useFormState();
 
-  // Execution state (doesn't need to persist across remounts)
-  const [isExecuting, setIsExecuting] = useState(false);
-  const [executionResult, setExecutionResult] = useState<ExecutionResult | null>(null);
-  const [pollCount, setPollCount] = useState(0);
-  const [currentExecutionId, setCurrentExecutionId] = useState<string | null>(null);
+  // UI state (local to component)
   const [showConfigSelector, setShowConfigSelector] = useState(false);
   const [showFunctionSelector, setShowFunctionSelector] = useState(false);
   const [showExecutionResults, setShowExecutionResults] = useState(false);
@@ -61,6 +66,7 @@ const ExecuteScreen: React.FC = () => {
   
   // Ref to prevent multiple concurrent API calls
   const isLoadingFunctions = useRef(false);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto-detect parameters from prompt text
   const detectParametersFromPrompt = useCallback((promptText: string) => {
@@ -202,6 +208,22 @@ const ExecuteScreen: React.FC = () => {
   useEffect(() => {
     checkApiKeyStatus();
   }, []);
+
+  // Resume polling if there's an active execution when component mounts or user returns
+  useEffect(() => {
+    if (currentExecution?.isExecuting && currentExecution.executionId) {
+      console.log('🔄 Resuming execution polling for:', currentExecution.executionId);
+      resumeExecutionPolling(currentExecution.executionId, currentExecution.pollCount);
+    }
+
+    // Cleanup polling when component unmounts
+    return () => {
+      if (pollingRef.current) {
+        clearTimeout(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+  }, [currentExecution?.isExecuting, currentExecution?.executionId]);
 
   // Handle re-execution data from HistoryScreen navigation
   useEffect(() => {
@@ -381,7 +403,7 @@ const ExecuteScreen: React.FC = () => {
     
     // Close the results viewer
     setShowExecutionResults(false);
-    setExecutionResult(null);
+    clearExecutionResult();
     
     // Scroll to top to show the form
     console.log('✅ Form populated for re-execution');
@@ -413,9 +435,7 @@ const ExecuteScreen: React.FC = () => {
       return;
     }
 
-    setIsExecuting(true);
-    setExecutionResult(null);
-    setPollCount(0);
+    clearExecutionResult();
 
     try {
       const selectedConfigurations = configurations.filter(config =>
@@ -452,7 +472,7 @@ const ExecuteScreen: React.FC = () => {
 
       if (response.success && response.data) {
         const executionId = response.data.executionRun.id;
-        setCurrentExecutionId(executionId);
+        startExecution(executionId, 300);
         console.log('✅ Execution started:', executionId);
         pollExecutionStatus(executionId);
       } else {
@@ -461,7 +481,7 @@ const ExecuteScreen: React.FC = () => {
     } catch (error) {
       console.error('❌ Execution failed:', error);
       AlertAPI.alert('Error', `Failed to start execution: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      setIsExecuting(false);
+      cancelExecution();
     }
   };
 
@@ -471,38 +491,85 @@ const ExecuteScreen: React.FC = () => {
 
     const poll = async () => {
       if (polls >= maxPolls) {
-        setIsExecuting(false);
+        cancelExecution();
         AlertAPI.alert('Timeout', 'Execution is taking longer than expected (10+ minutes). Please check the history for results.');
         return;
       }
 
       try {
         const response = await goGentAPI.getExecutionStatus(executionId);
-        setPollCount(polls + 1);
+        updateExecutionProgress(polls + 1);
 
         if (response.success && response.data) {
           if (response.data.status === 'completed') {
             // Fetch full execution results
             const resultResponse = await goGentAPI.getExecutionRun(executionId);
             if (resultResponse.success && resultResponse.data) {
-              setExecutionResult(resultResponse.data);
-              setIsExecuting(false);
+              completeExecution(resultResponse.data);
               setShowExecutionResults(true);
               console.log('✅ Execution completed successfully');
               return;
             }
           } else if (response.data.status === 'failed') {
-            setIsExecuting(false);
+            cancelExecution();
             AlertAPI.alert('Error', `Execution failed: ${response.data.error || 'Unknown error'}`);
             return;
           }
         }
 
         polls++;
-        setTimeout(poll, 2000);
+        pollingRef.current = setTimeout(poll, 2000);
       } catch (error) {
         console.error('❌ Polling failed:', error);
-        setIsExecuting(false);
+        cancelExecution();
+        AlertAPI.alert('Error', 'Failed to check execution status');
+      }
+    };
+
+    poll();
+  };
+
+  const resumeExecutionPolling = async (executionId: string, currentPolls: number) => {
+    const maxPolls = currentExecution?.maxPolls || 300;
+
+    // Clear any existing polling
+    if (pollingRef.current) {
+      clearTimeout(pollingRef.current);
+    }
+
+    const poll = async () => {
+      if (currentPolls >= maxPolls) {
+        cancelExecution();
+        AlertAPI.alert('Timeout', 'Execution is taking longer than expected (10+ minutes). Please check the history for results.');
+        return;
+      }
+
+      try {
+        const response = await goGentAPI.getExecutionStatus(executionId);
+        updateExecutionProgress(currentPolls + 1);
+
+        if (response.success && response.data) {
+          if (response.data.status === 'completed') {
+            // Fetch full execution results
+            const resultResponse = await goGentAPI.getExecutionRun(executionId);
+            if (resultResponse.success && resultResponse.data) {
+              completeExecution(resultResponse.data);
+              setShowExecutionResults(true);
+              console.log('✅ Execution completed successfully (resumed)');
+              return;
+            }
+          } else if (response.data.status === 'failed') {
+            cancelExecution();
+            AlertAPI.alert('Error', `Execution failed: ${response.data.error || 'Unknown error'}`);
+            return;
+          }
+        }
+
+        currentPolls++;
+        pollingRef.current = setTimeout(poll, 2000);
+      } catch (error) {
+        console.error('❌ Polling failed (resumed):', error);
+        cancelExecution();
         AlertAPI.alert('Error', 'Failed to check execution status');
       }
     };
@@ -913,21 +980,23 @@ const ExecuteScreen: React.FC = () => {
 
         {/* Execute Button */}
         <View style={styles.executeContainer}>
-          {isExecuting ? (
+          {currentExecution?.isExecuting ? (
             <View style={styles.executingContainer}>
               <ExecutionLoadingIndicator
-                progress={pollCount}
-                maxProgress={300}
+                progress={currentExecution.pollCount}
+                maxProgress={currentExecution.maxPolls}
                 message="AI Models are Processing..."
                 size="medium"
                 color="#007AFF"
+                onCancel={cancelExecution}
+                showCancel={true}
               />
             </View>
           ) : (
             <TouchableOpacity
-              style={[styles.executeButton, (!isConnected || isExecuting) && styles.executeButtonDisabled]}
+              style={[styles.executeButton, (!isConnected || currentExecution?.isExecuting) && styles.executeButtonDisabled]}
               onPress={executeMultiVariant}
-              disabled={!isConnected || isExecuting}
+              disabled={!isConnected || currentExecution?.isExecuting}
             >
               <View style={styles.executeContent}>
                 <Ionicons name="rocket" size={24} color="#FFFFFF" />
@@ -942,7 +1011,7 @@ const ExecuteScreen: React.FC = () => {
         </View>
 
         {/* Execution Complete Success Message */}
-        {executionResult && !showExecutionResults && (
+        {currentExecution?.executionResult && !showExecutionResults && (
           <View style={styles.resultContainer}>
             <View style={styles.resultHeader}>
               <Ionicons name="checkmark-circle" size={24} color="#34C759" />
@@ -967,9 +1036,9 @@ const ExecuteScreen: React.FC = () => {
       {renderFunctionSelector()}
       
       {/* Full Execution Results Viewer */}
-      {executionResult && showExecutionResults && (
+      {currentExecution?.executionResult && showExecutionResults && (
         <ExecutionResultsViewer
-          executionResult={executionResult}
+          executionResult={currentExecution.executionResult}
           visible={showExecutionResults}
           onClose={() => setShowExecutionResults(false)}
           onReExecute={handleReExecute}

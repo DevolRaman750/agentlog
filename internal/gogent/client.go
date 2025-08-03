@@ -1044,111 +1044,6 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 		}
 	}
 
-	// Skip the old sequential processing since we're now handling all function calls in parallel
-	// The old code below will be removed after implementing processParallelFunctionCalls
-	if false && len(allFunctionCalls) == 0 {
-		// Old single function call handling (keeping temporarily for reference)
-		for _, part := range geminiResp.Candidates[0].Content.Parts {
-			if part.FunctionCall.Name != "" {
-				c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryFunctionCall,
-					fmt.Sprintf("Function call detected: %s", part.FunctionCall.Name),
-					map[string]interface{}{
-						"functionName": part.FunctionCall.Name,
-						"arguments":    part.FunctionCall.Args,
-					})
-
-				// Execute the function call
-				startTime := time.Now()
-				functionResult, err := c.executeFunctionCall(ctx, part.FunctionCall.Name, part.FunctionCall.Args)
-				executionTime := time.Since(startTime).Milliseconds()
-
-				// Store original arguments in function result metadata for conversation reconstruction
-				if functionResult != nil {
-					if metadata, ok := functionResult["_metadata"].(map[string]interface{}); ok {
-						metadata["original_args"] = part.FunctionCall.Args
-					} else {
-						functionResult["_metadata"] = map[string]interface{}{
-							"original_args": part.FunctionCall.Args,
-						}
-					}
-				}
-
-				// Create function call record for logging
-				functionCall := &types.FunctionCall{
-					ID:               uuid.New().String(),
-					RequestID:        request.ID,
-					FunctionName:     part.FunctionCall.Name,
-					FunctionArgs:     part.FunctionCall.Args,
-					FunctionResponse: functionResult,
-					ExecutionTimeMs:  int32(executionTime),
-					CreatedAt:        time.Now(),
-				}
-
-				if err != nil {
-					c.logExecutionEvent(types.LogLevelError, types.LogCategoryFunctionCall,
-						fmt.Sprintf("Function execution failed: %v", err),
-						map[string]interface{}{
-							"functionName": part.FunctionCall.Name,
-							"error":        err.Error(),
-						})
-					functionCall.ExecutionStatus = "error"
-					functionCall.ErrorDetails = err.Error()
-					// Return error response but don't fail completely
-					functionResult = map[string]interface{}{
-						"error":  err.Error(),
-						"status": "failed",
-					}
-					functionCall.FunctionResponse = functionResult
-				} else {
-					c.logExecutionEvent(types.LogLevelSuccess, types.LogCategoryFunctionCall,
-						fmt.Sprintf("Function executed successfully: %s", part.FunctionCall.Name),
-						map[string]interface{}{
-							"functionName":  part.FunctionCall.Name,
-							"executionTime": executionTime,
-							"resultPreview": fmt.Sprintf("%v", functionResult)[:min(100, len(fmt.Sprintf("%v", functionResult)))],
-						})
-					functionCall.ExecutionStatus = "success"
-				}
-
-				// Log function call to database
-				if logErr := c.LogFunctionCall(ctx, functionCall); logErr != nil {
-					c.logExecutionEvent(types.LogLevelWarn, types.LogCategoryError,
-						fmt.Sprintf("Failed to log function call to database: %v", logErr), nil)
-				}
-
-				// Send function result back to Gemini to get final response
-				finalResponse, err := c.sendFunctionResultToGemini(ctx, config, request, part.FunctionCall.Name, functionResult, finalPrompt)
-				if err != nil {
-					c.logExecutionEvent(types.LogLevelError, types.LogCategoryAPICall,
-						fmt.Sprintf("Failed to get final response from Gemini: %v", err),
-						map[string]interface{}{
-							"functionName": part.FunctionCall.Name,
-							"error":        err.Error(),
-						})
-					// Fall back to just indicating the function was called
-					responseText = fmt.Sprintf("I called the %s function with the provided parameters and received the result.", part.FunctionCall.Name)
-				} else {
-					c.logExecutionEvent(types.LogLevelSuccess, types.LogCategoryAPICall,
-						"Got final response from Gemini after function execution",
-						map[string]interface{}{
-							"functionName":    part.FunctionCall.Name,
-							"responsePreview": finalResponse[:min(100, len(finalResponse))],
-						})
-					responseText = finalResponse
-				}
-
-				// Store function call information
-				functionCallResponse = map[string]interface{}{
-					"function_name": part.FunctionCall.Name,
-					"arguments":     part.FunctionCall.Args,
-					"result":        functionResult,
-				}
-
-				// Continue parsing in case additional function calls are present
-			}
-		}
-	}
-
 	// If we have a function call but no text response, generate appropriate text
 	if functionCallResponse != nil && responseText == "" {
 		functionName := functionCallResponse["function_name"].(string)
@@ -3010,6 +2905,50 @@ func (c *Client) executeHTTPFunction(ctx context.Context, funcDef *db.FunctionDe
 			})
 	}
 
+	// Special handling for GitHub branch creation - resolve branch name to SHA
+	if funcDef.Name == "github_create_branch" {
+		sourceBranch := "main"
+		if source, exists := args["source_branch"]; exists {
+			if sourceStr, ok := source.(string); ok && sourceStr != "" {
+				sourceBranch = sourceStr
+			}
+		}
+
+		// Extract repo from args for SHA resolution
+		repo, repoExists := args["repo"]
+		if !repoExists {
+			return nil, fmt.Errorf("repo parameter is required for github_create_branch")
+		}
+		repoStr := fmt.Sprintf("%v", repo)
+
+		// Split repo into owner/repo for URL parameter substitution
+		repoParts := strings.Split(repoStr, "/")
+		if len(repoParts) != 2 {
+			return nil, fmt.Errorf("repo must be in 'owner/repo' format, got: %s", repoStr)
+		}
+		args["owner"] = repoParts[0]
+		args["repo"] = repoParts[1] // Replace combined repo with just repo name
+
+		// Resolve source branch to SHA via GitHub API
+		resolvedSHA, err := c.resolveGitHubBranchToSHA(ctx, repoStr, sourceBranch)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve source branch '%s' to SHA: %w", sourceBranch, err)
+		}
+
+		// Add resolved SHA to args for template processing
+		args["resolved_sha"] = resolvedSHA
+
+		c.logExecutionEvent(types.LogLevelDebug, types.LogCategoryFunctionCall,
+			"Resolved GitHub branch to SHA and split repo parameters",
+			map[string]interface{}{
+				"source_branch": sourceBranch,
+				"resolved_sha":  resolvedSHA,
+				"full_repo":     repoStr,
+				"owner":         repoParts[0],
+				"repo":          repoParts[1],
+			})
+	}
+
 	// Replace URL path parameters (e.g., {owner}, {repo})
 	for key, value := range args {
 		placeholder := fmt.Sprintf("{%s}", key)
@@ -3053,28 +2992,48 @@ func (c *Client) executeHTTPFunction(ctx context.Context, funcDef *db.FunctionDe
 			requestURL = u.String()
 		}
 	} else {
-		// Add parameters as JSON body for POST/PUT/etc (excluding URL path parameters)
-		bodyArgs := make(map[string]interface{})
-		for key, value := range args {
-			placeholder := fmt.Sprintf("{%s}", key)
-			if strings.Contains(funcDef.EndpointUrl.String, placeholder) {
-				continue
+		// Check if function has a query_template to use instead of default body args
+		if funcDef.QueryTemplate.Valid && strings.TrimSpace(funcDef.QueryTemplate.String) != "" {
+			// Process query template with parameter substitution
+			templateStr := funcDef.QueryTemplate.String
+			for key, value := range args {
+				placeholder := fmt.Sprintf("{{%s}}", key)
+				valueStr := fmt.Sprintf("%v", value)
+				templateStr = strings.ReplaceAll(templateStr, placeholder, valueStr)
 			}
 
-			// Special case: map 'location' → 'q' for OpenWeather API
-			paramKey := key
-			if funcDef.Name == "get_current_weather" && key == "location" {
-				paramKey = "q"
+			c.logExecutionEvent(types.LogLevelDebug, types.LogCategoryFunctionCall,
+				"Using query template for request body",
+				map[string]interface{}{
+					"template":  funcDef.QueryTemplate.String,
+					"processed": templateStr,
+				})
+
+			requestBody = []byte(templateStr)
+		} else {
+			// Add parameters as JSON body for POST/PUT/etc (excluding URL path parameters)
+			bodyArgs := make(map[string]interface{})
+			for key, value := range args {
+				placeholder := fmt.Sprintf("{%s}", key)
+				if strings.Contains(funcDef.EndpointUrl.String, placeholder) {
+					continue
+				}
+
+				// Special case: map 'location' → 'q' for OpenWeather API
+				paramKey := key
+				if funcDef.Name == "get_current_weather" && key == "location" {
+					paramKey = "q"
+				}
+
+				bodyArgs[paramKey] = value
 			}
 
-			bodyArgs[paramKey] = value
-		}
-
-		if len(bodyArgs) > 0 {
-			var err error
-			requestBody, err = json.Marshal(bodyArgs)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal request body: %w", err)
+			if len(bodyArgs) > 0 {
+				var err error
+				requestBody, err = json.Marshal(bodyArgs)
+				if err != nil {
+					return nil, fmt.Errorf("failed to marshal request body: %w", err)
+				}
 			}
 		}
 	}
@@ -3119,18 +3078,35 @@ func (c *Client) executeHTTPFunction(ctx context.Context, funcDef *db.FunctionDe
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	// === NEW: log error for non-success status codes ===
+	// Handle HTTP error status codes with enhanced GitHub-specific messaging
 	if resp.StatusCode >= 400 {
 		preview := string(body)
 		if len(preview) > 200 {
 			preview = preview[:200] + "…"
 		}
+
+		// Enhanced error messaging for common GitHub API errors
+		var errorMessage string
+		if funcDef.Name == "github_create_branch" && resp.StatusCode == 422 {
+			if strings.Contains(preview, "Reference already exists") {
+				errorMessage = fmt.Sprintf("Branch creation failed: A branch with this name already exists. Please choose a different branch name or check if the intended branch already exists. GitHub API response: %s", preview)
+			} else {
+				errorMessage = fmt.Sprintf("Branch creation failed due to validation error. This usually means invalid branch name format or repository permissions issue. GitHub API response: %s", preview)
+			}
+		} else {
+			errorMessage = fmt.Sprintf("HTTP %d error for %s: %s", resp.StatusCode, funcDef.Name, preview)
+		}
+
 		c.logExecutionEvent(types.LogLevelError, types.LogCategoryFunctionCall,
 			fmt.Sprintf("HTTP %d error for %s", resp.StatusCode, funcDef.Name),
 			map[string]interface{}{
 				"status_code":      resp.StatusCode,
 				"response_preview": preview,
+				"enhanced_message": errorMessage,
 			})
+
+		// Return enhanced error message instead of processing error response as successful data
+		return nil, fmt.Errorf(errorMessage)
 	}
 
 	// Parse JSON response
@@ -3148,7 +3124,7 @@ func (c *Client) executeHTTPFunction(ctx context.Context, funcDef *db.FunctionDe
 		"status_code":      resp.StatusCode,
 		"function_name":    funcDef.Name,
 		"execution_method": "HTTP",
-		"is_error":         resp.StatusCode >= 400,
+		"is_error":         false, // Only successful responses reach here now
 	}
 
 	// Apply result transformer if specified
@@ -4442,6 +4418,55 @@ func (c *Client) inferDirectoryPurpose(filesWithContent []map[string]interface{}
 	} else {
 		return "Go code module (purpose unclear from file analysis)"
 	}
+}
+
+// resolveGitHubBranchToSHA resolves a GitHub branch name to its current SHA
+func (c *Client) resolveGitHubBranchToSHA(ctx context.Context, repo, branchName string) (string, error) {
+	// Split repo into owner/repo format
+	parts := strings.Split(repo, "/")
+	if len(parts) != 2 {
+		return "", fmt.Errorf("invalid repo format: %s (expected owner/repo)", repo)
+	}
+
+	// Build GitHub API URL to get branch info
+	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/branches/%s", parts[0], parts[1], branchName)
+
+	// Create request
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Add GitHub authentication
+	if err := c.addAPIKeyAuthentication(req, url, map[string]interface{}{"repo": repo}); err != nil {
+		return "", fmt.Errorf("failed to add GitHub authentication: %w", err)
+	}
+
+	// Make request
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("GitHub API request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("GitHub API returned %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Parse response
+	var branchInfo struct {
+		Commit struct {
+			SHA string `json:"sha"`
+		} `json:"commit"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&branchInfo); err != nil {
+		return "", fmt.Errorf("failed to parse GitHub API response: %w", err)
+	}
+
+	return branchInfo.Commit.SHA, nil
 }
 
 // applyStoredResultTransformer applies the stored result transformer

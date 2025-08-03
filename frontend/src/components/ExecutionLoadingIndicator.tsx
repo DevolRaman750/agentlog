@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Animated,
   Easing,
+  TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -14,6 +15,8 @@ interface ExecutionLoadingIndicatorProps {
   message?: string;
   size?: 'small' | 'medium' | 'large';
   color?: string;
+  onCancel?: () => void;
+  showCancel?: boolean;
 }
 
 const ExecutionLoadingIndicator: React.FC<ExecutionLoadingIndicatorProps> = ({
@@ -22,6 +25,8 @@ const ExecutionLoadingIndicator: React.FC<ExecutionLoadingIndicatorProps> = ({
   message = 'Processing...',
   size = 'medium',
   color = '#007AFF',
+  onCancel,
+  showCancel = true,
 }) => {
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
@@ -221,6 +226,18 @@ const ExecutionLoadingIndicator: React.FC<ExecutionLoadingIndicatorProps> = ({
           />
         ))}
       </View>
+
+      {/* Cancel button */}
+      {showCancel && onCancel && (
+        <TouchableOpacity 
+          style={styles.cancelButton} 
+          onPress={onCancel}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="stop-circle" size={20} color="#FF3B30" />
+          <Text style={styles.cancelButtonText}>Cancel Execution</Text>
+        </TouchableOpacity>
+      )}
     </Animated.View>
   );
 };
@@ -289,6 +306,24 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
+  },
+  cancelButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: '#FFF5F5',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FFE4E1',
+    gap: 8,
+  },
+  cancelButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FF3B30',
   },
 });
 
