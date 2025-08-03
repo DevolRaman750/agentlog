@@ -111,7 +111,22 @@ const ExecutionTemplatesScreen: React.FC = () => {
     }
 
     try {
-      if (configurations.length === 0) {
+      // Check if template has a preferred configuration
+      let templateConfigurations = configurations;
+      
+      if (template.preferredConfigurationId) {
+        // Find the preferred configuration
+        const preferredConfig = configurations.find(config => config.id === template.preferredConfigurationId);
+        if (preferredConfig) {
+          // Use only the preferred configuration
+          templateConfigurations = [preferredConfig];
+          console.log('🎯 Using preferred configuration for template:', template.name, 'Config:', preferredConfig.variationName);
+        } else {
+          console.warn('⚠️ Preferred configuration not found, falling back to all configurations');
+        }
+      }
+
+      if (templateConfigurations.length === 0) {
         AlertAPI.alert(
           'No Configurations',
           'You need to have at least one API configuration to execute templates. Please go to the Configure tab and add a configuration first.',
@@ -138,7 +153,7 @@ const ExecutionTemplatesScreen: React.FC = () => {
         description: template.description || '',
         basePrompt: template.templatePrompt || template.prompt || '',
         context: template.contextTemplate || template.context || '',
-        configurations: configurations,
+        configurations: templateConfigurations,
         enableFunctionCalling: template.enableFunctionCalling || functionTools.length > 0,
         functionTools: functionTools,
         isTemplateExecution: true,
@@ -149,9 +164,10 @@ const ExecutionTemplatesScreen: React.FC = () => {
       console.log('📋 Template execution data prepared:', {
         templateName: template.name,
         functionToolsCount: functionTools.length,
-        configurationsCount: configurations.length,
+        configurationsCount: templateConfigurations.length,
         enableFunctionCalling: templateExecutionData.enableFunctionCalling,
-        parametersCount: template.parameters?.length || 0
+        parametersCount: template.parameters?.length || 0,
+        usingPreferredConfig: !!template.preferredConfigurationId
       });
 
       setReExecutionData(templateExecutionData);

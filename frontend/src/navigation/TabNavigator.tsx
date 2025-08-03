@@ -217,8 +217,7 @@ const TabNavigator = () => {
         name="TemplateTokenManager" 
         component={withResponsiveLayout(TemplateTokenManagerScreen)}
         options={{
-          tabBarStyle: { display: 'none' },
-          presentation: 'modal'
+          tabBarStyle: { display: 'none' }
         }}
       />
     </Tab.Navigator>

@@ -243,7 +243,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
                 <Text style={styles.quickMetricsTitle}>Quick Metrics:</Text>
                 <View style={styles.quickMetricsGrid}>
                   {executionResult.results.map((result) => {
-                    const scores = executionResult.comparison!.configurationScores![result.configuration.id] || {};
+                    const scores = executionResult.comparison!.configurationScores![result.configuration.id!] || {};
                     const isBest = result.configuration.id === executionResult.comparison!.bestConfigurationId;
                     
                     return (
@@ -863,20 +863,6 @@ const styles = StyleSheet.create({
   },
   bestQuickMetricScore: {
     color: '#4CAF50',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-    backgroundColor: '#FFF',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
   },
   modalCloseButton: {
     padding: 8,

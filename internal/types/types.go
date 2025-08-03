@@ -430,28 +430,29 @@ type PerformanceMetrics struct {
 
 // ExecutionTemplate represents a reusable execution template with parameters
 type ExecutionTemplate struct {
-	ID                      string                       `json:"id"`
-	UserID                  string                       `json:"userId"`
-	Name                    string                       `json:"name"`
-	Description             string                       `json:"description,omitempty"`
-	TemplatePrompt          string                       `json:"templatePrompt"`
-	ContextTemplate         string                       `json:"contextTemplate,omitempty"`
-	EnableFunctionCalling   bool                         `json:"enableFunctionCalling"`
-	IsActive                bool                         `json:"isActive"`
-	IsPublic                bool                         `json:"isPublic"`
-	Category                string                       `json:"category"`
-	Tags                    map[string]interface{}       `json:"tags,omitempty"`
-	ExecutionTimeoutSeconds int                          `json:"executionTimeoutSeconds"`
-	RateLimitPerHour        int                          `json:"rateLimitPerHour"`
-	RateLimitPerDay         int                          `json:"rateLimitPerDay"`
-	RateLimitBurst          int                          `json:"rateLimitBurst"`
-	TotalExecutions         int                          `json:"totalExecutions"`
-	LastExecutedAt          *time.Time                   `json:"lastExecutedAt,omitempty"`
-	CreatedAt               time.Time                    `json:"createdAt"`
-	UpdatedAt               time.Time                    `json:"updatedAt"`
-	Parameters              []ExecutionTemplateParameter `json:"parameters,omitempty"`
-	AuthTokens              []ExecutionTemplateAuthToken `json:"authTokens,omitempty"`
-	FunctionIds             []string                     `json:"functionIds,omitempty"` // Associated function IDs
+	ID                       string                       `json:"id"`
+	UserID                   string                       `json:"userId"`
+	Name                     string                       `json:"name"`
+	Description              string                       `json:"description,omitempty"`
+	TemplatePrompt           string                       `json:"templatePrompt"`
+	ContextTemplate          string                       `json:"contextTemplate,omitempty"`
+	EnableFunctionCalling    bool                         `json:"enableFunctionCalling"`
+	PreferredConfigurationID *string                      `json:"preferredConfigurationId,omitempty"`
+	IsActive                 bool                         `json:"isActive"`
+	IsPublic                 bool                         `json:"isPublic"`
+	Category                 string                       `json:"category"`
+	Tags                     map[string]interface{}       `json:"tags,omitempty"`
+	ExecutionTimeoutSeconds  int                          `json:"executionTimeoutSeconds"`
+	RateLimitPerHour         int                          `json:"rateLimitPerHour"`
+	RateLimitPerDay          int                          `json:"rateLimitPerDay"`
+	RateLimitBurst           int                          `json:"rateLimitBurst"`
+	TotalExecutions          int                          `json:"totalExecutions"`
+	LastExecutedAt           *time.Time                   `json:"lastExecutedAt,omitempty"`
+	CreatedAt                time.Time                    `json:"createdAt"`
+	UpdatedAt                time.Time                    `json:"updatedAt"`
+	Parameters               []ExecutionTemplateParameter `json:"parameters,omitempty"`
+	AuthTokens               []ExecutionTemplateAuthToken `json:"authTokens,omitempty"`
+	FunctionIds              []string                     `json:"functionIds,omitempty"` // Associated function IDs
 }
 
 // ExecutionTemplateParameter represents a parameter definition for templates

@@ -10,6 +10,7 @@ export interface SessionApiKeys {
   neo4jPassword?: string;
   neo4jDatabase?: string;
   githubApiKey?: string;
+  mcpServerEndpoint?: string;
 }
 
 // API key validation rules
@@ -58,6 +59,11 @@ export const API_KEY_VALIDATIONS: Record<string, ApiKeyValidation> = {
     testEndpoint: 'https://api.github.com/user',
     errorMessage: 'Please enter a valid GitHub Personal Access Token (starts with ghp_, ghs_, gho_, ghu_, or github_pat_)',
   },
+  mcpServerEndpoint: {
+    description: 'Model Context Protocol server endpoint URL',
+    pattern: '^https?://[a-zA-Z0-9.-]+(:[0-9]+)?(/.*)?$',
+    errorMessage: 'Please enter a valid URL (http:// or https://)',
+  },
 };
 
 // Function-to-API-key mapping
@@ -67,6 +73,9 @@ export const FUNCTION_API_KEY_REQUIREMENTS: Record<string, string[]> = {
   neo4j_query: ['neo4jUrl', 'neo4jUsername', 'neo4jPassword', 'neo4jDatabase'],
   graph_query: ['neo4jUrl', 'neo4jUsername', 'neo4jPassword', 'neo4jDatabase'],
   github_repo_info: ['githubApiKey'],
+  mcp_github_operations: ['githubApiKey', 'mcpServerEndpoint'],
+  mysql_query_data: ['mcpServerEndpoint'],
+  github_file_manager: ['githubApiKey'],
   // Add more function mappings as needed
 };
 

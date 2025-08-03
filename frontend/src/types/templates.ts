@@ -9,13 +9,14 @@ export interface ExecutionTemplate {
   contextTemplate?: string; // API field name
   enableFunctionCalling: boolean;
   isActive: boolean;
-  tags: string[];
+  tags: string[] | Record<string, any>; // Can be array or object depending on source
   createdAt: string;
   updatedAt?: string;
   parameters?: TemplateParameter[];
   authTokens?: AuthToken[];
   modelName?: string;
   functionIds?: string[];
+  preferredConfigurationId?: string; // ID of the preferred API configuration
 }
 
 export interface TemplateParameter {
@@ -48,7 +49,7 @@ export interface TemplateFormData {
   prompt: string;
   context: string;
   enableFunctionCalling: boolean;
-  tags: string;
+  tags: string; // Backend expects string format
   modelName: string;
 }
 

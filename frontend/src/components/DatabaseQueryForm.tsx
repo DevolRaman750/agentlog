@@ -1,0 +1,606 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Modal,
+  ActivityIndicator,
+  Platform,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Picker } from '@react-native-picker/picker';
+import TextEditor from './TextEditor';
+
+import { FunctionDefinition } from '../types';
+import { StyleSheet } from 'react-native';
+
+interface DatabaseQueryFormProps {
+  onExecuteQuery: (queryData: DatabaseQueryData) => void;
+  loading?: boolean;
+  mysqlFunction?: FunctionDefinition;
+}
+
+export interface DatabaseQueryData {
+  query: string;
+  database: string;
+  limit: number;
+  timeout: number;
+  format: 'json' | 'csv' | 'table';
+}
+
+interface ValidationError {
+  field: string;
+  message: string;
+}
+
+const DATABASES = ['main', 'analytics', 'logs', 'reporting'];
+const FORMATS = ['json', 'csv', 'table'];
+const SAMPLE_QUERIES = {
+  users: 'SELECT id, name, email FROM users LIMIT 10;',
+  functions: 'SELECT name, display_name, function_group, is_active FROM function_definitions WHERE is_system_resource = 1;',
+  executions: 'SELECT id, name, created_at FROM execution_runs ORDER BY created_at DESC LIMIT 5;',
+  analytics: 'SELECT DATE(created_at) as date, COUNT(*) as executions FROM execution_runs GROUP BY DATE(created_at);'
+};
+
+export const DatabaseQueryForm: React.FC<DatabaseQueryFormProps> = ({
+  onExecuteQuery,
+  loading = false,
+  mysqlFunction
+}) => {
+  const [queryData, setQueryData] = useState<DatabaseQueryData>({
+    query: '',
+    database: 'main',
+    limit: 100,
+    timeout: 30,
+    format: 'json'
+  });
+
+  const [errors, setErrors] = useState<ValidationError[]>([]);
+  const [showSamples, setShowSamples] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'error' | 'warning' | 'info';
+  }>({ visible: false, title: '', message: '', type: 'info' });
+
+  // Validate query for security and syntax
+  const validateQuery = useCallback((query: string): ValidationError[] => {
+    const validationErrors: ValidationError[] = [];
+    const trimmedQuery = query.trim();
+
+    if (!trimmedQuery) {
+      validationErrors.push({ field: 'query', message: 'SQL query is required' });
+      return validationErrors;
+    }
+
+    if (trimmedQuery.length < 10) {
+      validationErrors.push({ field: 'query', message: 'Query must be at least 10 characters long' });
+    }
+
+    if (trimmedQuery.length > 5000) {
+      validationErrors.push({ field: 'query', message: 'Query must be less than 5000 characters' });
+    }
+
+    // Check if query starts with SELECT
+    const queryUpper = trimmedQuery.toUpperCase();
+    if (!queryUpper.startsWith('SELECT')) {
+      validationErrors.push({ field: 'query', message: 'Only SELECT queries are allowed for security' });
+    }
+
+    // Check for dangerous patterns
+    const dangerousPatterns = [
+      'DROP', 'DELETE', 'UPDATE', 'INSERT', 'CREATE', 'ALTER', 'TRUNCATE',
+      'EXEC', 'EXECUTE', 'CALL', 'MERGE', 'GRANT', 'REVOKE', 'LOAD', 'OUTFILE',
+      '--', '/*', '*/', 'UNION', 'INTO OUTFILE', 'LOAD_FILE'
+    ];
+
+    for (const pattern of dangerousPatterns) {
+      if (queryUpper.includes(pattern)) {
+        validationErrors.push({ 
+          field: 'query', 
+          message: `Dangerous SQL pattern detected: ${pattern}. Only safe SELECT queries are allowed.` 
+        });
+        break; // Only show first dangerous pattern
+      }
+    }
+
+    return validationErrors;
+  }, []);
+
+  // Real-time validation
+  useEffect(() => {
+    const validationErrors = validateQuery(queryData.query);
+    setErrors(validationErrors);
+  }, [queryData.query, validateQuery]);
+
+  const handleQueryChange = (query: string) => {
+    setQueryData(prev => ({ ...prev, query }));
+  };
+
+  const handleDatabaseChange = (database: string) => {
+    setQueryData(prev => ({ ...prev, database }));
+  };
+
+  const handleLimitChange = (limit: string) => {
+    const numLimit = parseInt(limit, 10);
+    if (!isNaN(numLimit) && numLimit >= 1 && numLimit <= 1000) {
+      setQueryData(prev => ({ ...prev, limit: numLimit }));
+    }
+  };
+
+  const handleTimeoutChange = (timeout: string) => {
+    const numTimeout = parseInt(timeout, 10);
+    if (!isNaN(numTimeout) && numTimeout >= 5 && numTimeout <= 60) {
+      setQueryData(prev => ({ ...prev, timeout: numTimeout }));
+    }
+  };
+
+  const handleFormatChange = (format: 'json' | 'csv' | 'table') => {
+    setQueryData(prev => ({ ...prev, format }));
+  };
+
+  const handleSampleQuery = (query: string) => {
+    setQueryData(prev => ({ ...prev, query }));
+    setShowSamples(false);
+  };
+
+  const handleExecuteQuery = () => {
+    const validationErrors = validateQuery(queryData.query);
+    
+    if (validationErrors.length > 0) {
+      setAlertConfig({
+        visible: true,
+        title: 'Validation Error',
+        message: validationErrors.map(e => e.message).join('\n'),
+        type: 'error'
+      });
+      return;
+    }
+
+    onExecuteQuery(queryData);
+  };
+
+  const hasErrors = errors.length > 0;
+  const isQueryValid = queryData.query.trim().length >= 10 && !hasErrors;
+
+  return (
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <View style={styles.header}>
+        <View style={styles.titleRow}>
+          <Ionicons name="server-outline" size={24} color="#007AFF" />
+          <Text style={styles.title}>MySQL Database Query</Text>
+        </View>
+        <Text style={styles.subtitle}>
+          Execute secure SELECT queries against configured databases
+        </Text>
+      </View>
+
+      {/* Query Editor */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>SQL Query</Text>
+          <TouchableOpacity 
+            style={styles.samplesButton}
+            onPress={() => setShowSamples(!showSamples)}
+          >
+            <Ionicons name="code-outline" size={16} color="#007AFF" />
+            <Text style={styles.samplesButtonText}>Samples</Text>
+          </TouchableOpacity>
+        </View>
+
+        {showSamples && (
+          <View style={styles.samplesContainer}>
+            <Text style={styles.samplesTitle}>Sample Queries:</Text>
+            {Object.entries(SAMPLE_QUERIES).map(([key, query]) => (
+              <TouchableOpacity
+                key={key}
+                style={styles.sampleItem}
+                onPress={() => handleSampleQuery(query)}
+              >
+                <Text style={styles.sampleLabel}>{key}:</Text>
+                <Text style={styles.sampleQuery} numberOfLines={2}>
+                  {query}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        <TextEditor
+          value={queryData.query}
+          onChangeText={handleQueryChange}
+          placeholder="SELECT * FROM table_name WHERE condition LIMIT 10;"
+          language="sql"
+          showLineNumbers={true}
+          minHeight={120}
+          maxHeight={200}
+          style={[styles.queryEditor, hasErrors && styles.queryEditorError]}
+        />
+
+        {/* Validation Errors */}
+        {errors.map((error, index) => (
+          <View key={index} style={styles.errorContainer}>
+            <Ionicons name="warning-outline" size={16} color="#FF3B30" />
+            <Text style={styles.errorText}>{error.message}</Text>
+          </View>
+        ))}
+      </View>
+
+      {/* Database Configuration */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Configuration</Text>
+        
+        <View style={styles.configGrid}>
+          {/* Database Selection */}
+          <View style={styles.configItem}>
+            <Text style={styles.configLabel}>Database</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={queryData.database}
+                onValueChange={handleDatabaseChange}
+                style={styles.picker}
+              >
+                {DATABASES.map(db => (
+                  <Picker.Item key={db} label={db} value={db} />
+                ))}
+              </Picker>
+            </View>
+          </View>
+
+          {/* Format Selection */}
+          <View style={styles.configItem}>
+            <Text style={styles.configLabel}>Format</Text>
+            <View style={styles.formatButtons}>
+              {FORMATS.map(format => (
+                <TouchableOpacity
+                  key={format}
+                  style={[
+                    styles.formatButton,
+                    queryData.format === format && styles.formatButtonActive
+                  ]}
+                  onPress={() => handleFormatChange(format as any)}
+                >
+                  <Text style={[
+                    styles.formatButtonText,
+                    queryData.format === format && styles.formatButtonTextActive
+                  ]}>
+                    {format.toUpperCase()}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+
+        {/* Limit and Timeout */}
+        <View style={styles.configGrid}>
+          <View style={styles.configItem}>
+            <Text style={styles.configLabel}>Limit (1-1000)</Text>
+            <TextEditor
+              value={queryData.limit.toString()}
+              onChangeText={handleLimitChange}
+              placeholder="100"
+              minHeight={40}
+              maxHeight={40}
+              showLineNumbers={false}
+              showCharacterCount={false}
+              showWordCount={false}
+              style={styles.numberInput}
+            />
+          </View>
+
+          <View style={styles.configItem}>
+            <Text style={styles.configLabel}>Timeout (5-60s)</Text>
+            <TextEditor
+              value={queryData.timeout.toString()}
+              onChangeText={handleTimeoutChange}
+              placeholder="30"
+              minHeight={40}
+              maxHeight={40}
+              showLineNumbers={false}
+              showCharacterCount={false}
+              showWordCount={false}
+              style={styles.numberInput}
+            />
+          </View>
+        </View>
+      </View>
+
+      {/* Execute Button */}
+      <View style={styles.executeSection}>
+        <TouchableOpacity
+          style={[
+            styles.executeButton,
+            (!isQueryValid || loading) && styles.executeButtonDisabled
+          ]}
+          onPress={handleExecuteQuery}
+          disabled={!isQueryValid || loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <Ionicons name="play" size={20} color="#FFFFFF" />
+          )}
+          <Text style={styles.executeButtonText}>
+            {loading ? 'Executing...' : 'Execute Query'}
+          </Text>
+        </TouchableOpacity>
+
+        {!mysqlFunction && (
+          <View style={styles.warningContainer}>
+            <Ionicons name="warning-outline" size={16} color="#FF9500" />
+            <Text style={styles.warningText}>
+              MySQL function not found. Please ensure the function is configured.
+            </Text>
+          </View>
+        )}
+      </View>
+
+      <Modal visible={alertConfig.visible} transparent>
+        <View style={styles.alertOverlay}>
+          <View style={styles.alertContainer}>
+            <Text style={styles.alertTitle}>{alertConfig.title}</Text>
+            <Text style={styles.alertMessage}>{alertConfig.message}</Text>
+            <TouchableOpacity 
+              style={styles.alertButton}
+              onPress={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+            >
+              <Text style={styles.alertButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </ScrollView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+    paddingHorizontal: 16,
+  },
+  header: {
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+    marginBottom: 20,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginLeft: 12,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#6B6B6B',
+    lineHeight: 22,
+  },
+  section: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
+  samplesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#F0F9FF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+  },
+  samplesButtonText: {
+    color: '#007AFF',
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 4,
+  },
+  samplesContainer: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  samplesTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 8,
+  },
+  sampleItem: {
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+  },
+  sampleLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#007AFF',
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  sampleQuery: {
+    fontSize: 14,
+    color: '#666',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  queryEditor: {
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    borderRadius: 8,
+  },
+  queryEditorError: {
+    borderColor: '#FF3B30',
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingHorizontal: 8,
+  },
+  errorText: {
+    color: '#FF3B30',
+    fontSize: 14,
+    marginLeft: 6,
+    flex: 1,
+  },
+  configGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -8,
+  },
+  configItem: {
+    flex: 1,
+    minWidth: 150,
+    paddingHorizontal: 8,
+    marginBottom: 16,
+  },
+  configLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 8,
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+  },
+  picker: {
+    height: 50,
+  },
+  formatButtons: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  formatButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    borderRightWidth: 1,
+    borderRightColor: '#E5E5EA',
+  },
+  formatButtonActive: {
+    backgroundColor: '#007AFF',
+  },
+  formatButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#666',
+  },
+  formatButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  numberInput: {
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    borderRadius: 8,
+  },
+  executeSection: {
+    paddingVertical: 20,
+  },
+  executeButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  executeButtonDisabled: {
+    backgroundColor: '#C7C7CC',
+    shadowOpacity: 0,
+  },
+  executeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  warningContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingHorizontal: 8,
+  },
+  warningText: {
+    color: '#FF9500',
+    fontSize: 14,
+    marginLeft: 6,
+    flex: 1,
+  },
+  alertOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  alertContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    marginHorizontal: 20,
+    maxWidth: 300,
+  },
+  alertTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 8,
+  },
+  alertMessage: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 20,
+  },
+  alertButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  alertButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+}); 

@@ -135,6 +135,8 @@ export interface UsageMetadata {
   prompt_tokens?: number;
   completion_tokens?: number;
   total_tokens?: number;
+  // Legacy field from older API versions
+  candidatesTokenCount?: number;
 }
 
 export interface FunctionCall {

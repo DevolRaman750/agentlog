@@ -128,9 +128,9 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
       </View>
 
       {/* Tags */}
-      {(template.tags?.length || 0) > 0 && (
+      {((Array.isArray(template.tags) ? template.tags.length : Object.keys(template.tags || {}).length) > 0) && (
         <View style={styles.tagsContainer}>
-          {template.tags?.map((tag, index) => (
+          {(Array.isArray(template.tags) ? template.tags : Object.keys(template.tags || {}))?.map((tag: string, index: number) => (
             <View key={index} style={styles.tag}>
               <Text style={styles.tagText}>{tag}</Text>
             </View>

@@ -23,7 +23,7 @@ interface MetricDisplay {
   key: string;
   unit?: string;
   format?: (value: any, result?: VariationResult) => string;
-  getDisplayValue?: (value: any, result?: VariationResult) => { value: string; label: string; color: string; icon?: string };
+  getDisplayValue?: (value: any, result?: VariationResult, allResults?: VariationResult[]) => { value: string; label: string; color: string; icon?: string };
   higherIsBetter?: boolean;
   color?: string;
   description?: string;
@@ -124,8 +124,8 @@ const METRIC_DEFINITIONS: MetricDisplay[] = [
     label: 'Response Speed',
     key: 'response_time_ms',
     description: 'How quickly the model generated the response',
-    getDisplayValue: (timeMs: number, result: VariationResult, allResults?: VariationResult[]) => {
-      if (!allResults) return { value: `${timeMs}ms`, label: 'Response time', color: '#2196F3' };
+    getDisplayValue: (timeMs: number, result?: VariationResult, allResults?: VariationResult[]) => {
+      if (!allResults || !result) return { value: `${timeMs}ms`, label: 'Response time', color: '#2196F3' };
       
       const allTimes = allResults.map(r => r.executionTime);
       const speedInfo = getSpeedLabel(timeMs, allTimes);
@@ -142,7 +142,7 @@ const METRIC_DEFINITIONS: MetricDisplay[] = [
     label: 'Token Efficiency',
     key: 'token_efficiency',
     description: 'How efficiently tokens were used to generate the response',
-    getDisplayValue: (score: number, result: VariationResult) => getTokenEfficiencyDisplay(score, result)
+    getDisplayValue: (score: number, result?: VariationResult) => result ? getTokenEfficiencyDisplay(score, result) : { value: 'N/A', label: 'No data', color: '#9E9E9E' }
   },
   {
     label: 'Response Quality',
@@ -187,7 +187,7 @@ const METRIC_DEFINITIONS: MetricDisplay[] = [
     label: 'Cost Effectiveness',
     key: 'cost_effectiveness',
     description: 'Estimated cost and value for money',
-    getDisplayValue: (score: number, result: VariationResult) => getCostEffectivenessDisplay(score, result)
+    getDisplayValue: (score: number, result?: VariationResult) => result ? getCostEffectivenessDisplay(score, result) : { value: 'N/A', label: 'No data', color: '#9E9E9E' }
   }
 ];
 
@@ -239,7 +239,7 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
                 isMobile && styles.configCardMobile
               ]}
               onPress={() => {
-                onConfigurationSelect?.(configId);
+                onConfigurationSelect?.(configId!);
               }}
             >
               {/* Header */}
@@ -350,7 +350,7 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
               <View style={styles.metricItems}>
                 {metricValues.map((item) => {
                   const displayInfo = metric.getDisplayValue ? 
-                    metric.getDisplayValue(item.value, item.result, executionResult.results) :
+                    metric.getDisplayValue(item.value, item.result) :
                     { value: String(item.value), label: '', color: '#9E9E9E' };
 
                   return (

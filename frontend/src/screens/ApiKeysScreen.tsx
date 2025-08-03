@@ -314,6 +314,7 @@ const ApiKeysScreen: React.FC = () => {
     weather: true,
     graph: true,
     github: true,
+    development: true,
   });
 
   const API_KEY_INFO = {
@@ -358,6 +359,13 @@ const ApiKeysScreen: React.FC = () => {
       placeholder: 'Enter your GitHub personal access token',
       functions: ['github_repo_info'],
       group: 'github',
+    },
+    mcpServerEndpoint: {
+      displayName: 'MCP Server Endpoint',
+      description: 'Model Context Protocol server URL for advanced GitHub operations and software engineering tasks',
+      placeholder: 'http://localhost:3001',
+      functions: ['mcp_github_operations', 'Software Engineer Template'],
+      group: 'development',
     },
   };
 
@@ -435,6 +443,11 @@ const ApiKeysScreen: React.FC = () => {
       title: 'GitHub Integration',
       description: 'API keys for GitHub repository access',
       icon: 'logo-github' as const,
+    },
+    development: {
+      title: 'Development Tools',
+      description: 'Configuration for development and advanced features',
+      icon: 'code-outline' as const,
     },
   };
 

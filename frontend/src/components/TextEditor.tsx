@@ -31,7 +31,7 @@ interface TextEditorProps {
   style?: any;
   textStyle?: any;
   theme?: 'light' | 'dark';
-  language?: 'plain' | 'markdown' | 'json';
+  language?: 'plain' | 'markdown' | 'json' | 'sql';
 }
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
