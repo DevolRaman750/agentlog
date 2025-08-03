@@ -23,6 +23,7 @@ import { ExecutionResult, APIConfiguration, ComparisonMetric, FunctionDefinition
 import { AlertAPI } from '../components/CustomAlert';
 import ExecutionResultsViewer from '../components/ExecutionResultsViewer';
 import TextEditor from '../components/TextEditor';
+import ExecutionLoadingIndicator from '../components/ExecutionLoadingIndicator';
 import { webInputStyles } from '../styles/containers';
 
 interface ParameterValue {
@@ -465,13 +466,13 @@ const ExecuteScreen: React.FC = () => {
   };
 
   const pollExecutionStatus = async (executionId: string) => {
-    const maxPolls = 60;
+    const maxPolls = 300; // Increased from 60 to 300 (5x longer timeout)
     let polls = 0;
 
     const poll = async () => {
       if (polls >= maxPolls) {
         setIsExecuting(false);
-        AlertAPI.alert('Timeout', 'Execution is taking longer than expected. Please check the history for results.');
+        AlertAPI.alert('Timeout', 'Execution is taking longer than expected (10+ minutes). Please check the history for results.');
         return;
       }
 
@@ -912,22 +913,28 @@ const ExecuteScreen: React.FC = () => {
 
         {/* Execute Button */}
         <View style={styles.executeContainer}>
-          <TouchableOpacity
-            style={[styles.executeButton, (!isConnected || isExecuting) && styles.executeButtonDisabled]}
-            onPress={executeMultiVariant}
-            disabled={!isConnected || isExecuting}
-          >
-            <View style={styles.executeContent}>
-              {isExecuting ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Ionicons name="rocket" size={24} color="#FFFFFF" />
-              )}
-              <Text style={styles.executeButtonText}>
-                {isExecuting ? `Executing... (${pollCount}/60)` : 'Run Execution'}
-              </Text>
+          {isExecuting ? (
+            <View style={styles.executingContainer}>
+              <ExecutionLoadingIndicator
+                progress={pollCount}
+                maxProgress={300}
+                message="AI Models are Processing..."
+                size="medium"
+                color="#007AFF"
+              />
             </View>
-          </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[styles.executeButton, (!isConnected || isExecuting) && styles.executeButtonDisabled]}
+              onPress={executeMultiVariant}
+              disabled={!isConnected || isExecuting}
+            >
+              <View style={styles.executeContent}>
+                <Ionicons name="rocket" size={24} color="#FFFFFF" />
+                <Text style={styles.executeButtonText}>Run Execution</Text>
+              </View>
+            </TouchableOpacity>
+          )}
           
           <Text style={styles.executeDescription}>
             This will run your prompt across all selected AI configurations and provide comparison results
@@ -1083,6 +1090,18 @@ const styles = StyleSheet.create({
   },
   executeContainer: {
     marginTop: 20,
+  },
+  executingContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   executeButton: {
     backgroundColor: '#007AFF',

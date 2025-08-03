@@ -1,0 +1,295 @@
+import React, { useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Animated,
+  Easing,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+
+interface ExecutionLoadingIndicatorProps {
+  progress: number; // 0-100
+  maxProgress: number;
+  message?: string;
+  size?: 'small' | 'medium' | 'large';
+  color?: string;
+}
+
+const ExecutionLoadingIndicator: React.FC<ExecutionLoadingIndicatorProps> = ({
+  progress,
+  maxProgress,
+  message = 'Processing...',
+  size = 'medium',
+  color = '#007AFF',
+}) => {
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  const progressPercentage = Math.min((progress / maxProgress) * 100, 100);
+
+  const sizeConfig = {
+    small: { containerSize: 60, iconSize: 20, fontSize: 12 },
+    medium: { containerSize: 80, iconSize: 24, fontSize: 14 },
+    large: { containerSize: 100, iconSize: 28, fontSize: 16 },
+  };
+
+  const config = sizeConfig[size];
+
+  useEffect(() => {
+    // Fade in animation
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+
+    // Pulse animation
+    const pulseAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.2,
+          duration: 1000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    // Rotation animation
+    const rotateAnimation = Animated.loop(
+      Animated.timing(rotateAnim, {
+        toValue: 1,
+        duration: 3000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    );
+
+    // Scale animation
+    const scaleAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 1500,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 0.8,
+          duration: 1500,
+          easing: Easing.in(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    pulseAnimation.start();
+    rotateAnimation.start();
+    scaleAnimation.start();
+
+    return () => {
+      pulseAnimation.stop();
+      rotateAnimation.stop();
+      scaleAnimation.stop();
+    };
+  }, []);
+
+  const rotateInterpolate = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  const progressArc = (progressPercentage / 100) * 360;
+
+  return (
+    <Animated.View 
+      style={[
+        styles.container, 
+        { opacity: fadeAnim }
+      ]}
+    >
+      {/* Outer pulsing ring */}
+      <Animated.View
+        style={[
+          styles.outerRing,
+          {
+            width: config.containerSize + 20,
+            height: config.containerSize + 20,
+            borderColor: `${color}20`,
+            transform: [{ scale: pulseAnim }],
+          },
+        ]}
+      />
+
+      {/* Progress ring */}
+      <View
+        style={[
+          styles.progressContainer,
+          {
+            width: config.containerSize,
+            height: config.containerSize,
+          },
+        ]}
+      >
+        {/* Background circle */}
+        <View
+          style={[
+            styles.progressBackground,
+            {
+              width: config.containerSize,
+              height: config.containerSize,
+              borderColor: `${color}15`,
+            },
+          ]}
+        />
+
+        {/* Progress indicator */}
+        <Animated.View
+          style={[
+            styles.progressIndicator,
+            {
+              width: config.containerSize,
+              height: config.containerSize,
+              borderColor: color,
+              transform: [
+                { rotate: rotateInterpolate },
+                { scale: scaleAnim },
+              ],
+            },
+          ]}
+        />
+
+        {/* Center content */}
+        <View style={styles.centerContent}>
+          <Ionicons 
+            name="rocket" 
+            size={config.iconSize} 
+            color={color} 
+          />
+          <Text style={[styles.progressText, { fontSize: config.fontSize, color }]}>
+            {Math.round(progressPercentage)}%
+          </Text>
+        </View>
+      </View>
+
+      {/* Message */}
+      <View style={styles.messageContainer}>
+        <Text style={[styles.message, { color }]}>{message}</Text>
+        <Text style={[styles.subMessage, { color: `${color}80` }]}>
+          {progress}/{maxProgress}
+        </Text>
+      </View>
+
+      {/* Floating dots animation */}
+      <View style={styles.dotsContainer}>
+        {[0, 1, 2].map((index) => (
+          <Animated.View
+            key={index}
+            style={[
+              styles.dot,
+              {
+                backgroundColor: color,
+                transform: [
+                  {
+                    translateY: pulseAnim.interpolate({
+                      inputRange: [1, 1.2],
+                      outputRange: [0, -4],
+                    }),
+                  },
+                  {
+                    scale: scaleAnim.interpolate({
+                      inputRange: [0.8, 1],
+                      outputRange: [0.6, 1],
+                    }),
+                  },
+                ],
+                opacity: pulseAnim.interpolate({
+                  inputRange: [1, 1.2],
+                  outputRange: [0.5, 0.9],
+                }),
+              },
+            ]}
+          />
+        ))}
+      </View>
+    </Animated.View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+  },
+  outerRing: {
+    position: 'absolute',
+    borderRadius: 1000,
+    borderWidth: 2,
+  },
+  progressContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  progressBackground: {
+    position: 'absolute',
+    borderRadius: 1000,
+    borderWidth: 3,
+  },
+  progressIndicator: {
+    position: 'absolute',
+    borderRadius: 1000,
+    borderWidth: 3,
+    borderTopColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: 'transparent',
+  },
+  centerContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  progressText: {
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  messageContainer: {
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  message: {
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  subMessage: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  dotsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+    gap: 4,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+});
+
+export default ExecutionLoadingIndicator; 
