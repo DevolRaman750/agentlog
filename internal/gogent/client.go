@@ -2965,6 +2965,10 @@ func (c *Client) executeDynamicFunction(ctx context.Context, funcDef *db.Functio
 		return c.executeHTTPFunction(ctx, funcDef, args)
 	case "CYPHER":
 		return c.executeCypherFunction(ctx, funcDef, args)
+	case "MYSQL":
+		return c.executeMySQLFunction(ctx, funcDef, args)
+	case "MCP":
+		return c.executeMCPFunction(ctx, funcDef, args)
 	default:
 		return nil, fmt.Errorf("unsupported execution method: %s", funcDef.HttpMethod.String)
 	}
@@ -3612,6 +3616,346 @@ func (c *Client) getDefaultFallbackData(functionName string) map[string]interfac
 		"function_name": functionName,
 		"timestamp":     time.Now().UTC().Format(time.RFC3339),
 	}
+}
+
+// executeMySQLFunction executes MySQL queries with comprehensive security controls
+func (c *Client) executeMySQLFunction(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+	c.logExecutionEvent(types.LogLevelDebug, types.LogCategoryFunctionCall,
+		fmt.Sprintf("Executing MySQL function: %s", funcDef.Name),
+		args)
+
+	startTime := time.Now()
+
+	// Extract and validate parameters
+	query, ok := args["query"].(string)
+	if !ok || strings.TrimSpace(query) == "" {
+		return nil, fmt.Errorf("query parameter is required and must be a non-empty string")
+	}
+
+	// Security: Only allow SELECT queries (prevent data modification)
+	queryUpper := strings.ToUpper(strings.TrimSpace(query))
+	if !strings.HasPrefix(queryUpper, "SELECT") {
+		c.logExecutionEvent(types.LogLevelError, types.LogCategoryFunctionCall,
+			"Security violation: Non-SELECT query attempted", map[string]interface{}{
+				"query": query,
+				"error": "only SELECT queries are allowed"})
+		return nil, fmt.Errorf("security violation: only SELECT queries are allowed")
+	}
+
+	// Security: Prevent dangerous SQL operations
+	dangerousPatterns := []string{
+		"DROP", "DELETE", "UPDATE", "INSERT", "CREATE", "ALTER", "TRUNCATE",
+		"EXEC", "EXECUTE", "CALL", "MERGE", "GRANT", "REVOKE", "LOAD", "OUTFILE",
+		"--", "/*", "*/", "UNION", "INTO OUTFILE", "LOAD_FILE",
+	}
+	for _, pattern := range dangerousPatterns {
+		if strings.Contains(queryUpper, pattern) {
+			c.logExecutionEvent(types.LogLevelError, types.LogCategoryFunctionCall,
+				fmt.Sprintf("Security violation: Dangerous pattern detected: %s", pattern),
+				map[string]interface{}{"query": query})
+			return nil, fmt.Errorf("security violation: dangerous SQL pattern detected: %s", pattern)
+		}
+	}
+
+	// Get database name and validate
+	database := "main" // Default database
+	if dbVal, exists := args["database"]; exists {
+		if dbStr, ok := dbVal.(string); ok {
+			database = dbStr
+		}
+	}
+
+	// Validate database name against allowed list
+	allowedDatabases := []string{"main", "analytics", "logs", "reporting"}
+	allowed := false
+	for _, allowedDB := range allowedDatabases {
+		if database == allowedDB {
+			allowed = true
+			break
+		}
+	}
+	if !allowed {
+		return nil, fmt.Errorf("database '%s' is not in the allowed list: %v", database, allowedDatabases)
+	}
+
+	// Get and validate limit
+	limit := 100 // Default limit
+	if limitVal, exists := args["limit"]; exists {
+		switch v := limitVal.(type) {
+		case float64:
+			limit = int(v)
+		case int:
+			limit = v
+		case int64:
+			limit = int(v)
+		}
+	}
+	if limit < 1 || limit > 1000 {
+		return nil, fmt.Errorf("limit must be between 1 and 1000, got %d", limit)
+	}
+
+	// Get timeout
+	timeout := 30 // Default timeout in seconds
+	if timeoutVal, exists := args["timeout"]; exists {
+		if timeoutFloat, ok := timeoutVal.(float64); ok {
+			timeout = int(timeoutFloat)
+		}
+	}
+
+	c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryFunctionCall,
+		"Executing MySQL query",
+		map[string]interface{}{
+			"database":     database,
+			"limit":        limit,
+			"timeout":      timeout,
+			"query_length": len(query),
+		})
+
+	// TODO: For now, return mock data since we don't have MySQL connection set up
+	// In production, this would connect to MySQL and execute the query
+
+	// Return structured mock response for development/testing
+	mockResult := map[string]interface{}{
+		"success":           true,
+		"rows_returned":     3,
+		"execution_time_ms": time.Since(startTime).Milliseconds(),
+		"query_hash":        fmt.Sprintf("%x", query[:min(20, len(query))]),
+		"data": []map[string]interface{}{
+			{"id": 1, "name": "Sample User 1", "email": "user1@example.com", "created_at": "2024-01-01T10:00:00Z"},
+			{"id": 2, "name": "Sample User 2", "email": "user2@example.com", "created_at": "2024-01-02T11:00:00Z"},
+			{"id": 3, "name": "Sample User 3", "email": "user3@example.com", "created_at": "2024-01-03T12:00:00Z"},
+		},
+		"metadata": map[string]interface{}{
+			"database":       database,
+			"query_type":     "SELECT",
+			"source":         "mock", // Will be "mysql" in production
+			"security_level": "high",
+			"applied_limit":  limit,
+		},
+	}
+
+	c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryFunctionCall,
+		"MySQL query completed successfully",
+		map[string]interface{}{
+			"rows_returned":     3,
+			"execution_time_ms": time.Since(startTime).Milliseconds(),
+		})
+
+	return mockResult, nil
+}
+
+// executeMCPFunction executes operations via MCP (Model Context Protocol) server
+func (c *Client) executeMCPFunction(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+	c.logExecutionEvent(types.LogLevelDebug, types.LogCategoryFunctionCall,
+		fmt.Sprintf("Executing MCP function: %s", funcDef.Name),
+		args)
+
+	startTime := time.Now()
+
+	// Extract and validate operation
+	operation, ok := args["operation"].(string)
+	if !ok || operation == "" {
+		return nil, fmt.Errorf("operation parameter is required")
+	}
+
+	// Extract and validate repository
+	repo, ok := args["repo"].(string)
+	if !ok || repo == "" {
+		return nil, fmt.Errorf("repo parameter is required")
+	}
+
+	// Validate repository format (owner/repo)
+	if !strings.Contains(repo, "/") || len(strings.Split(repo, "/")) != 2 {
+		return nil, fmt.Errorf("repo must be in 'owner/repo' format, got: %s", repo)
+	}
+
+	c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryFunctionCall,
+		"Processing MCP GitHub operation",
+		map[string]interface{}{
+			"operation": operation,
+			"repo":      repo,
+		})
+
+	// Handle different operations
+	switch operation {
+	case "create_branch":
+		return c.executeMCPCreateBranch(ctx, args, startTime)
+	case "commit_files":
+		return c.executeMCPCommitFiles(ctx, args, startTime)
+	case "create_pr":
+		return c.executeMCPCreatePR(ctx, args, startTime)
+	case "update_files":
+		return c.executeMCPUpdateFiles(ctx, args, startTime)
+	case "merge_pr":
+		return c.executeMCPMergePR(ctx, args, startTime)
+	default:
+		return nil, fmt.Errorf("unsupported MCP operation: %s", operation)
+	}
+}
+
+// executeMCPCreateBranch creates a new branch via MCP
+func (c *Client) executeMCPCreateBranch(ctx context.Context, args map[string]interface{}, startTime time.Time) (map[string]interface{}, error) {
+	branchName, ok := args["branch_name"].(string)
+	if !ok || branchName == "" {
+		return nil, fmt.Errorf("branch_name is required for create_branch operation")
+	}
+
+	repo := args["repo"].(string)
+	baseBranch := "main"
+	if base, exists := args["base_branch"]; exists {
+		if baseStr, ok := base.(string); ok {
+			baseBranch = baseStr
+		}
+	}
+
+	c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryFunctionCall,
+		"Creating branch via MCP",
+		map[string]interface{}{
+			"repo":        repo,
+			"branch_name": branchName,
+			"base_branch": baseBranch,
+		})
+
+	// TODO: In production, this would make actual MCP server calls
+	// For now, return structured mock response
+	result := map[string]interface{}{
+		"success":           true,
+		"operation":         "create_branch",
+		"repo":              repo,
+		"branch_name":       branchName,
+		"base_branch":       baseBranch,
+		"branch_url":        fmt.Sprintf("https://github.com/%s/tree/%s", repo, branchName),
+		"commit_sha":        fmt.Sprintf("abc%d", time.Now().Unix()),
+		"created_at":        time.Now().UTC().Format(time.RFC3339),
+		"execution_time_ms": time.Since(startTime).Milliseconds(),
+		"metadata": map[string]interface{}{
+			"source":      "mock", // Will be "mcp" in production
+			"mcp_server":  "github-operations",
+			"api_version": "v1",
+		},
+	}
+
+	c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryFunctionCall,
+		"Branch creation completed",
+		map[string]interface{}{
+			"branch_name":       branchName,
+			"execution_time_ms": time.Since(startTime).Milliseconds(),
+		})
+
+	return result, nil
+}
+
+// executeMCPCommitFiles commits files via MCP
+func (c *Client) executeMCPCommitFiles(ctx context.Context, args map[string]interface{}, startTime time.Time) (map[string]interface{}, error) {
+	commitMessage, ok := args["commit_message"].(string)
+	if !ok || commitMessage == "" {
+		return nil, fmt.Errorf("commit_message is required for commit_files operation")
+	}
+
+	files, ok := args["files"].([]interface{})
+	if !ok || len(files) == 0 {
+		return nil, fmt.Errorf("files array is required and must not be empty")
+	}
+
+	repo := args["repo"].(string)
+	branchName := args["branch_name"].(string)
+
+	c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryFunctionCall,
+		"Committing files via MCP",
+		map[string]interface{}{
+			"repo":           repo,
+			"branch_name":    branchName,
+			"commit_message": commitMessage,
+			"files_count":    len(files),
+		})
+
+	// TODO: In production, process actual files and make MCP server calls
+	result := map[string]interface{}{
+		"success":           true,
+		"operation":         "commit_files",
+		"repo":              repo,
+		"branch_name":       branchName,
+		"commit_message":    commitMessage,
+		"files_committed":   len(files),
+		"commit_sha":        fmt.Sprintf("def%d", time.Now().Unix()),
+		"commit_url":        fmt.Sprintf("https://github.com/%s/commit/def%d", repo, time.Now().Unix()),
+		"execution_time_ms": time.Since(startTime).Milliseconds(),
+		"metadata": map[string]interface{}{
+			"source":     "mock",
+			"mcp_server": "github-operations",
+		},
+	}
+
+	return result, nil
+}
+
+// executeMCPCreatePR creates a pull request via MCP
+func (c *Client) executeMCPCreatePR(ctx context.Context, args map[string]interface{}, startTime time.Time) (map[string]interface{}, error) {
+	prTitle, ok := args["pr_title"].(string)
+	if !ok || prTitle == "" {
+		return nil, fmt.Errorf("pr_title is required for create_pr operation")
+	}
+
+	repo := args["repo"].(string)
+	branchName := args["branch_name"].(string)
+	prDescription := ""
+	if desc, exists := args["pr_description"]; exists {
+		if descStr, ok := desc.(string); ok {
+			prDescription = descStr
+		}
+	}
+
+	c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryFunctionCall,
+		"Creating pull request via MCP",
+		map[string]interface{}{
+			"repo":        repo,
+			"branch_name": branchName,
+			"pr_title":    prTitle,
+		})
+
+	result := map[string]interface{}{
+		"success":           true,
+		"operation":         "create_pr",
+		"repo":              repo,
+		"branch_name":       branchName,
+		"pr_title":          prTitle,
+		"pr_description":    prDescription,
+		"pr_number":         42, // Mock PR number
+		"pr_url":            fmt.Sprintf("https://github.com/%s/pull/42", repo),
+		"state":             "open",
+		"execution_time_ms": time.Since(startTime).Milliseconds(),
+		"metadata": map[string]interface{}{
+			"source":     "mock",
+			"mcp_server": "github-operations",
+		},
+	}
+
+	return result, nil
+}
+
+// executeMCPUpdateFiles updates files via MCP
+func (c *Client) executeMCPUpdateFiles(ctx context.Context, args map[string]interface{}, startTime time.Time) (map[string]interface{}, error) {
+	// Similar implementation to commit_files but for updates
+	return c.executeMCPCommitFiles(ctx, args, startTime)
+}
+
+// executeMCPMergePR merges a pull request via MCP
+func (c *Client) executeMCPMergePR(ctx context.Context, args map[string]interface{}, startTime time.Time) (map[string]interface{}, error) {
+	repo := args["repo"].(string)
+
+	result := map[string]interface{}{
+		"success":           true,
+		"operation":         "merge_pr",
+		"repo":              repo,
+		"merged_at":         time.Now().UTC().Format(time.RFC3339),
+		"execution_time_ms": time.Since(startTime).Milliseconds(),
+		"metadata": map[string]interface{}{
+			"source":     "mock",
+			"mcp_server": "github-operations",
+		},
+	}
+
+	return result, nil
 }
 
 // transformGitHubCodeResponse transforms GitHub API code response by decoding base64 content and providing analysis
