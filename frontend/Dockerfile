@@ -17,6 +17,9 @@ ENV EXPO_PUBLIC_ENVIRONMENT=production
 # Build static web files using Expo
 RUN npx expo export --platform web --output-dir dist
 
+# Inject Plausible Analytics script into generated HTML
+RUN node scripts/inject-plausible.js
+
 # -------- Stage 2: Runtime --------
 FROM nginx:alpine
 

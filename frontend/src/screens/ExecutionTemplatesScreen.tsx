@@ -79,7 +79,7 @@ const ExecutionTemplatesScreen: React.FC = () => {
       context: templateData.context || '',
       contextTemplate: templateData.context || '',
       enableFunctionCalling: templateData.enableFunctionCalling ?? true,
-      isActive: true,
+          isActive: true,
       tags: templateData.tags || [],
       createdAt: new Date().toISOString(),
       functionIds: templateData.functionIds || [],
@@ -198,13 +198,13 @@ const ExecutionTemplatesScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Execution Templates</Text>
-        <TouchableOpacity
-          style={styles.createButton}
+          <TouchableOpacity
+            style={styles.createButton}
           onPress={handleCreateNew}
-        >
-          <Ionicons name="add" size={20} color="white" />
-          <Text style={styles.createButtonText}>Create Template</Text>
-        </TouchableOpacity>
+          >
+            <Ionicons name="add" size={20} color="white" />
+            <Text style={styles.createButtonText}>Create Template</Text>
+          </TouchableOpacity>
       </View>
 
       {error && (

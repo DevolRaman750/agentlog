@@ -27,7 +27,6 @@
       "bundler": "metro",
       "output": "single",
       "lang": "en",
-      "template": "web/index.html",
       "customHeaders": [
         {
           "source": "**/*",
