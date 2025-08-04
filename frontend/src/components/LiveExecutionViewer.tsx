@@ -7,6 +7,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  FlatList,
+  Animated,
+  Easing,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { goGentAPI } from '../api/client';
@@ -24,6 +27,99 @@ interface LiveExecutionViewerProps {
 
 type ViewMode = 'logs' | 'flow' | 'both';
 
+// Animated log item component
+const AnimatedLogItem: React.FC<{ log: ExecutionLog; index: number }> = ({ log, index }) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    // Stagger animations based on index
+    const delay = Math.min(index * 100, 500); // Max 500ms delay
+    
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 400,
+        delay,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 400,
+        delay,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [fadeAnim, slideAnim, index]);
+
+  const getLogEmoji = (logLevel: string, logCategory: string) => {
+    const category = logCategory?.toLowerCase() || '';
+    const level = logLevel?.toLowerCase() || '';
+    
+    if (category.includes('setup') || category.includes('init')) return '🔧';
+    if (category.includes('execution') || category.includes('processing')) return '⚡';
+    if (category.includes('function') || category.includes('api')) return '🔗';
+    if (category.includes('completion') || category.includes('success')) return '✅';
+    if (category.includes('error') || level.includes('error')) return '❌';
+    if (category.includes('warning') || level.includes('warn')) return '⚠️';
+    if (category.includes('comparison') || category.includes('analysis')) return '📊';
+    return '📋';
+  };
+
+  const getLogLevelColor = (logLevel: string) => {
+    switch (logLevel?.toLowerCase()) {
+      case 'error': return '#FF3B30';
+      case 'warn': case 'warning': return '#FF9500';
+      case 'info': return '#007AFF';
+      case 'debug': return '#8E8E93';
+      case 'success': return '#34C759';
+      default: return '#1A1A1A';
+    }
+  };
+
+  const formatTimestamp = (timestamp: Date | string) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString('en-US', { 
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit', 
+      second: '2-digit' 
+    });
+  };
+
+  return (
+    <Animated.View
+      style={[
+        styles.logEntry,
+        {
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }],
+        },
+      ]}
+    >
+      <View style={styles.logHeader}>
+        <View style={styles.logIcon}>
+          <Text style={styles.logEmoji}>{getLogEmoji(log.logLevel, log.logCategory)}</Text>
+        </View>
+        <View style={styles.logContent}>
+          <View style={styles.logTitleRow}>
+            <Text style={styles.logCategory}>{log.logCategory}</Text>
+            <Text style={styles.logTimestamp}>{formatTimestamp(log.timestamp)}</Text>
+          </View>
+          <Text style={styles.logMessage} numberOfLines={3}>
+            {log.message}
+          </Text>
+          <Text style={[styles.logLevel, { color: getLogLevelColor(log.logLevel) }]}>
+            {log.logLevel} • Seq #{log.sequenceNumber}
+          </Text>
+        </View>
+      </View>
+    </Animated.View>
+  );
+};
+
 const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
   executionId,
   progress,
@@ -39,31 +135,50 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   
+  // Track seen log IDs to prevent duplicates
+  const seenLogIds = useRef(new Set<string>()).current;
+  const lastProgressRef = useRef(0);
+  
   const logsIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const flowIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const scrollViewRef = useRef<ScrollView>(null);
+  const flatListRef = useRef<FlatList>(null);
 
   const progressPercentage = Math.min((progress / maxProgress) * 100, 100);
 
-  // Fetch live logs during execution
-  const fetchLiveLogs = useCallback(async () => {
-    if (!isExecuting || !executionId) return;
+  // Helper function to add new logs incrementally
+  const addNewLogs = useCallback((newLogs: ExecutionLog[]) => {
+    const unseenLogs = newLogs.filter(log => !seenLogIds.has(log.id));
+    if (unseenLogs.length === 0) return;
 
-    try {
-      setIsLoadingLogs(true);
+    // Add new log IDs to seen set
+    unseenLogs.forEach(log => seenLogIds.add(log.id));
+
+    setLogs(prevLogs => {
+      // Sort by sequence number to maintain chronological order
+      const combined = [...prevLogs, ...unseenLogs].sort((a, b) => a.sequenceNumber - b.sequenceNumber);
       
-      // During execution, the executionId might be a temporary ID (like exec-1754262781970)
-      // The real logs won't be available until the execution completes and gets a real ID
-      // For now, we'll show simulated logs based on the execution status
+      // Auto-scroll to bottom for new logs
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
       
-      if (executionId.startsWith('exec-')) {
-        // This is a temporary ID during execution
-        // Create simulated logs based on progress
-        console.log('🔄 Generating simulated logs for progress:', progress, 'of', maxProgress);
-        const simulatedLogs: ExecutionLog[] = [];
-        
-        // Always add initial setup log
-        simulatedLogs.push({
+      return combined;
+    });
+  }, []);
+
+  // Generate incremental simulated logs
+  const generateNewSimulatedLogs = useCallback((currentProgress: number): ExecutionLog[] => {
+    const newLogs: ExecutionLog[] = [];
+    const lastProgress = lastProgressRef.current;
+
+    // Only generate logs for new progress increments
+    if (currentProgress <= lastProgress) return newLogs;
+
+    // Generate logs for each new progress step
+    for (let i = lastProgress + 1; i <= currentProgress; i++) {
+      if (i === 1 && lastProgress === 0) {
+        // Initial setup log
+        newLogs.push({
           id: 'setup-1',
           executionRunId: executionId,
           configurationId: '',
@@ -72,119 +187,111 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
           logCategory: 'SETUP',
           message: '🚀 Execution started successfully',
           details: {},
-          timestamp: new Date(Date.now() - (progress * 2000)),
+          timestamp: new Date(Date.now() - (i * 2000)),
           sequenceNumber: 1,
           durationMs: 0,
         });
+      }
 
-        // Add progress-based logs
-        if (progress >= 1) {
-          simulatedLogs.push({
-            id: 'ai-call-1',
-            executionRunId: executionId,
-            configurationId: '',
-            requestId: '',
-            logLevel: 'info',
-            logCategory: 'EXECUTION',
-            message: '🤖 AI model processing started',
-            details: {},
-            timestamp: new Date(Date.now() - ((progress - 1) * 1500)),
-            sequenceNumber: 2,
-            durationMs: 0,
-          });
-        }
-
-        if (progress >= 2) {
-          simulatedLogs.push({
-            id: 'processing-1',
-            executionRunId: executionId,
-            configurationId: '',
-            requestId: '',
-            logLevel: 'info',
-            logCategory: 'EXECUTION',
-            message: `📊 Processing step ${Math.min(progress, maxProgress)} of ${maxProgress}`,
-            details: {},
-            timestamp: new Date(Date.now() - ((progress - 2) * 1000)),
-            sequenceNumber: 3,
-            durationMs: 0,
-          });
-        }
-
-        if (progress >= Math.max(3, Math.floor(maxProgress * 0.3))) {
-          simulatedLogs.push({
-            id: 'api-calls',
-            executionRunId: executionId,
-            configurationId: '',
-            requestId: '',
-            logLevel: 'info',
-            logCategory: 'API_CALL',
-            message: '📡 Making API calls to AI service',
-            details: {},
-            timestamp: new Date(Date.now() - 800),
-            sequenceNumber: 4,
-            durationMs: 0,
-          });
-        }
-
-        if (progress >= Math.max(5, Math.floor(maxProgress * 0.5))) {
-          simulatedLogs.push({
-            id: 'midpoint-1',
-            executionRunId: executionId,
-            configurationId: '',
-            requestId: '',
-            logLevel: 'info',
-            logCategory: 'EXECUTION',
-            message: '⚡ Execution is progressing well - halfway through',
-            details: {},
-            timestamp: new Date(Date.now() - 600),
-            sequenceNumber: 5,
-            durationMs: 0,
-          });
-        }
-
-        if (progress >= Math.max(8, Math.floor(maxProgress * 0.8))) {
-          simulatedLogs.push({
-            id: 'nearing-completion',
-            executionRunId: executionId,
-            configurationId: '',
-            requestId: '',
-            logLevel: 'info',
-            logCategory: 'COMPLETION',
-            message: '🎯 Nearing completion - finalizing results',
-            details: {},
-            timestamp: new Date(Date.now() - 300),
-            sequenceNumber: 6,
-            durationMs: 0,
-          });
-        }
-
-        // Add current status log
-        simulatedLogs.push({
-          id: `current-${progress}`,
+      if (i === 2 && !seenLogIds.has('ai-call-1')) {
+        newLogs.push({
+          id: 'ai-call-1',
           executionRunId: executionId,
           configurationId: '',
           requestId: '',
           logLevel: 'info',
           logCategory: 'EXECUTION',
-          message: `🔄 Currently processing... (${progress}/${maxProgress})`,
+          message: '🤖 AI model processing started',
           details: {},
-          timestamp: new Date(),
-          sequenceNumber: 100 + progress,
+          timestamp: new Date(Date.now() - (i * 1800)),
+          sequenceNumber: 2,
           durationMs: 0,
         });
+      }
 
-        console.log('📋 Generated', simulatedLogs.length, 'simulated logs');
-        setLogs(simulatedLogs);
+      if (i >= 5 && i % 5 === 0) {
+        // Progress milestone logs
+        newLogs.push({
+          id: `milestone-${i}`,
+          executionRunId: executionId,
+          configurationId: '',
+          requestId: '',
+          logLevel: 'info',
+          logCategory: 'EXECUTION',
+          message: `📊 Processing milestone reached (${i}/${maxProgress})`,
+          details: {},
+          timestamp: new Date(Date.now() - (currentProgress - i) * 1000),
+          sequenceNumber: 10 + i,
+          durationMs: 0,
+        });
+      }
+
+      if (i >= maxProgress * 0.8 && !seenLogIds.has('completion-warning')) {
+        newLogs.push({
+          id: 'completion-warning',
+          executionRunId: executionId,
+          configurationId: '',
+          requestId: '',
+          logLevel: 'info',
+          logCategory: 'COMPLETION',
+          message: '🎯 Nearing completion - finalizing results',
+          details: {},
+          timestamp: new Date(Date.now() - 300),
+          sequenceNumber: 90,
+          durationMs: 0,
+        });
+      }
+    }
+
+    // Current status log (always update)
+    const currentStatusId = `current-${currentProgress}`;
+    if (!seenLogIds.has(currentStatusId)) {
+      newLogs.push({
+        id: currentStatusId,
+        executionRunId: executionId,
+        configurationId: '',
+        requestId: '',
+        logLevel: 'info',
+        logCategory: 'EXECUTION',
+        message: `🔄 Currently processing... (${currentProgress}/${maxProgress})`,
+        details: {},
+        timestamp: new Date(),
+        sequenceNumber: 100 + currentProgress,
+        durationMs: 0,
+      });
+    }
+
+    lastProgressRef.current = currentProgress;
+    return newLogs;
+  }, [executionId, maxProgress]);
+
+  // Fetch live logs during execution
+  const fetchLiveLogs = useCallback(async () => {
+    if (!isExecuting || !executionId) return;
+
+    try {
+      setIsLoadingLogs(true);
+      
+      if (executionId.startsWith('exec-')) {
+        // Generate new simulated logs based on progress
+        console.log('🔄 Generating new simulated logs for progress:', progress, 'of', maxProgress);
+        const newLogs = generateNewSimulatedLogs(progress);
+        
+        if (newLogs.length > 0) {
+          console.log('📋 Adding', newLogs.length, 'new simulated logs');
+          addNewLogs(newLogs);
+        }
       } else {
         // This is a real execution ID, try to get actual logs
         try {
           const response = await goGentAPI.getExecutionLogs(100, 0);
           
           if (response.success && response.data?.rows) {
-            const logs = response.data.rows
+            const newLogs = response.data.rows
               .filter((row: any[]) => {
                 const rowExecutionId = row[1];
-                return rowExecutionId === executionId;
+                const logId = row[0];
+                return rowExecutionId === executionId && !seenLogIds.has(logId);
               })
               .map((row: any[]) => ({
                 id: row[0] || `log-${Date.now()}-${Math.random()}`,
@@ -198,31 +305,27 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
                 timestamp: new Date(row[8] || Date.now()),
                 sequenceNumber: row[9] || 0,
                 durationMs: row[10] || 0,
-              }))
-              .sort((a, b) => b.sequenceNumber - a.sequenceNumber);
+              }));
 
-            setLogs(logs);
+            if (newLogs.length > 0) {
+              console.log('📋 Adding', newLogs.length, 'new real logs');
+              addNewLogs(newLogs);
+            }
           }
         } catch (apiErr) {
           console.warn('Failed to fetch real execution logs:', apiErr);
         }
       }
       
-      // Auto-scroll to bottom for new logs
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-      
     } catch (err: any) {
       console.warn('Failed to fetch live logs:', err);
-      // Don't set error for temporary ID issues during execution
       if (!executionId.startsWith('exec-')) {
         setError(err.message);
       }
     } finally {
       setIsLoadingLogs(false);
     }
-  }, [executionId, isExecuting, progress, maxProgress]);
+  }, [executionId, isExecuting, progress, maxProgress, generateNewSimulatedLogs, addNewLogs]);
 
   // Fetch live flow data during execution
   const fetchLiveFlow = useCallback(async () => {
@@ -230,98 +333,68 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
 
     try {
       setIsLoadingFlow(true);
-      
+      setError(null);
+
       if (executionId.startsWith('exec-')) {
-        // Temporary execution ID - flow data not available yet
-        // Create a simulated flow structure to show progress
-        console.log('🔄 Generating simulated flow for progress:', progress, 'of', maxProgress);
-        
-        const events = [];
-        
-        // Always add prompt start
-        events.push({
-          id: 'event-1',
-          executionRunId: executionId,
-          eventType: 'prompt_start',
-          sequenceNumber: 1,
-          status: 'success',
-          createdAt: new Date(Date.now() - (progress * 2000)).toISOString(),
-          eventData: { message: 'Execution started' }
-        });
-
-        // Add AI model call if progress > 1
-        if (progress >= 1) {
-          events.push({
-            id: 'event-2',
-            executionRunId: executionId,
-            eventType: 'ai_model_call',
-            sequenceNumber: 2,
-            status: progress >= maxProgress * 0.8 ? 'success' : 'pending',
-            createdAt: new Date(Date.now() - ((progress - 1) * 1500)).toISOString(),
-            eventData: { message: 'AI processing in progress' }
-          });
-        }
-
-        // Add function calls if progress > maxProgress * 0.3
-        if (progress >= Math.max(3, Math.floor(maxProgress * 0.3))) {
-          events.push({
-            id: 'event-3',
-            executionRunId: executionId,
-            eventType: 'function_call_start',
-            sequenceNumber: 3,
-            status: progress >= maxProgress * 0.6 ? 'success' : 'pending',
-            createdAt: new Date(Date.now() - 1200).toISOString(),
-            eventData: { message: 'Function calls initiated' }
-          });
-        }
-
-        // Add AI response if progress > maxProgress * 0.5
-        if (progress >= Math.max(5, Math.floor(maxProgress * 0.5))) {
-          events.push({
-            id: 'event-4',
-            executionRunId: executionId,
-            eventType: 'ai_response',
-            sequenceNumber: 4,
-            status: progress >= maxProgress * 0.9 ? 'success' : 'pending',
-            createdAt: new Date(Date.now() - 800).toISOString(),
-            eventData: { message: 'AI response generated' }
-          });
-        }
-
+        // For temporary IDs, create simulated flow data
         const simulatedFlow = {
-          executionRunId: executionId,
-          events: events,
-          functionCalls: [],
-          stats: {
-            totalFunctionCalls: events.filter(e => e.eventType.includes('function')).length,
-            totalAIModelCalls: events.filter(e => e.eventType.includes('ai')).length,
-            totalErrors: 0,
-            totalRetries: 0,
-            totalExecutionTimeMs: progress * 2000,
-            avgFunctionCallTimeMs: 0,
-            avgAIResponseTimeMs: 2000,
-            maxExecutionDepth: 1
-          }
+          nodes: [
+            {
+              id: 'start',
+              type: 'input',
+              data: { label: '🚀 Execution Started', status: 'completed' },
+              position: { x: 100, y: 50 },
+            },
+            {
+              id: 'processing',
+              type: 'default',
+              data: { 
+                label: `🔄 Processing (${progress}/${maxProgress})`, 
+                status: progress < maxProgress ? 'running' : 'completed' 
+              },
+              position: { x: 100, y: 150 },
+            },
+          ],
+          edges: [
+            {
+              id: 'start-processing',
+              source: 'start',
+              target: 'processing',
+              type: 'smoothstep',
+            },
+          ],
         };
-        
-        console.log('🔄 Generated simulated flow with', events.length, 'events');
+
+        if (progress >= maxProgress * 0.8) {
+          simulatedFlow.nodes.push({
+            id: 'completion',
+            type: 'output',
+            data: { label: '✅ Completing', status: 'running' },
+            position: { x: 100, y: 250 },
+          });
+          simulatedFlow.edges.push({
+            id: 'processing-completion',
+            source: 'processing',
+            target: 'completion',
+            type: 'smoothstep',
+          });
+        }
+
         setFlowData(simulatedFlow);
       } else {
-        // Real execution ID - try to get actual flow data
+        // Try to fetch real flow data
         try {
-          const response = await goGentAPI.getExecutionFlowGraph(executionId);
-          
+          const response = await goGentAPI.getExecutionFlow(executionId);
           if (response.success && response.data) {
             setFlowData(response.data);
           }
-        } catch (apiErr: any) {
+        } catch (apiErr) {
           console.warn('Failed to fetch real execution flow:', apiErr);
-          // Don't show error for temporary IDs during execution
         }
       }
+
     } catch (err: any) {
       console.warn('Failed to fetch live flow:', err);
-      // Don't set error for temporary ID issues during execution
       if (!executionId.startsWith('exec-')) {
         setError(err.message);
       }
@@ -361,7 +434,7 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
         flowIntervalRef.current = null;
       }
     };
-  }, [isExecuting, autoRefresh, executionId]); // Removed functions from deps to avoid infinite loops
+  }, [isExecuting, autoRefresh, executionId, fetchLiveLogs, fetchLiveFlow]);
 
   // Manual refresh
   const handleRefresh = useCallback(() => {
@@ -370,197 +443,12 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
     fetchLiveFlow();
   }, [fetchLiveLogs, fetchLiveFlow]);
 
-  // Update simulated data when progress changes
+  // Clear logs when execution changes
   useEffect(() => {
-    if (isExecuting && executionId.startsWith('exec-')) {
-      console.log('🔄 Progress changed, updating simulated data:', progress, 'of', maxProgress);
-      
-      // Directly generate simulated data here instead of calling functions
-      // to avoid dependency issues
-      
-      // Generate simulated logs
-      const simulatedLogs: ExecutionLog[] = [];
-      
-      simulatedLogs.push({
-        id: 'setup-1',
-        executionRunId: executionId,
-        configurationId: '',
-        requestId: '',
-        logLevel: 'info',
-        logCategory: 'SETUP',
-        message: '🚀 Execution started successfully',
-        details: {},
-        timestamp: new Date(Date.now() - (progress * 2000)),
-        sequenceNumber: 1,
-        durationMs: 0,
-      });
-
-      if (progress >= 1) {
-        simulatedLogs.push({
-          id: 'ai-call-1',
-          executionRunId: executionId,
-          configurationId: '',
-          requestId: '',
-          logLevel: 'info',
-          logCategory: 'EXECUTION',
-          message: '🤖 AI model processing started',
-          details: {},
-          timestamp: new Date(Date.now() - ((progress - 1) * 1500)),
-          sequenceNumber: 2,
-          durationMs: 0,
-        });
-      }
-
-      if (progress >= 2) {
-        simulatedLogs.push({
-          id: 'processing-1',
-          executionRunId: executionId,
-          configurationId: '',
-          requestId: '',
-          logLevel: 'info',
-          logCategory: 'EXECUTION',
-          message: `📊 Processing step ${Math.min(progress, maxProgress)} of ${maxProgress}`,
-          details: {},
-          timestamp: new Date(Date.now() - ((progress - 2) * 1000)),
-          sequenceNumber: 3,
-          durationMs: 0,
-        });
-      }
-
-      if (progress >= Math.max(3, Math.floor(maxProgress * 0.3))) {
-        simulatedLogs.push({
-          id: 'api-calls',
-          executionRunId: executionId,
-          configurationId: '',
-          requestId: '',
-          logLevel: 'info',
-          logCategory: 'API_CALL',
-          message: '📡 Making API calls to AI service',
-          details: {},
-          timestamp: new Date(Date.now() - 800),
-          sequenceNumber: 4,
-          durationMs: 0,
-        });
-      }
-
-      if (progress >= Math.max(5, Math.floor(maxProgress * 0.5))) {
-        simulatedLogs.push({
-          id: 'midpoint-1',
-          executionRunId: executionId,
-          configurationId: '',
-          requestId: '',
-          logLevel: 'info',
-          logCategory: 'EXECUTION',
-          message: '⚡ Execution is progressing well - halfway through',
-          details: {},
-          timestamp: new Date(Date.now() - 600),
-          sequenceNumber: 5,
-          durationMs: 0,
-        });
-      }
-
-      if (progress >= Math.max(8, Math.floor(maxProgress * 0.8))) {
-        simulatedLogs.push({
-          id: 'nearing-completion',
-          executionRunId: executionId,
-          configurationId: '',
-          requestId: '',
-          logLevel: 'info',
-          logCategory: 'COMPLETION',
-          message: '🎯 Nearing completion - finalizing results',
-          details: {},
-          timestamp: new Date(Date.now() - 300),
-          sequenceNumber: 6,
-          durationMs: 0,
-        });
-      }
-
-      simulatedLogs.push({
-        id: `current-${progress}`,
-        executionRunId: executionId,
-        configurationId: '',
-        requestId: '',
-        logLevel: 'info',
-        logCategory: 'EXECUTION',
-        message: `🔄 Currently processing... (${progress}/${maxProgress})`,
-        details: {},
-        timestamp: new Date(),
-        sequenceNumber: 100 + progress,
-        durationMs: 0,
-      });
-
-      console.log('📋 Updated simulated logs with', simulatedLogs.length, 'entries');
-      setLogs(simulatedLogs);
-      
-      // Generate simulated flow
-      const events = [];
-      
-      events.push({
-        id: 'event-1',
-        executionRunId: executionId,
-        eventType: 'prompt_start',
-        sequenceNumber: 1,
-        status: 'success',
-        createdAt: new Date(Date.now() - (progress * 2000)).toISOString(),
-        eventData: { message: 'Execution started' }
-      });
-
-      if (progress >= 1) {
-        events.push({
-          id: 'event-2',
-          executionRunId: executionId,
-          eventType: 'ai_model_call',
-          sequenceNumber: 2,
-          status: progress >= maxProgress * 0.8 ? 'success' : 'pending',
-          createdAt: new Date(Date.now() - ((progress - 1) * 1500)).toISOString(),
-          eventData: { message: 'AI processing in progress' }
-        });
-      }
-
-      if (progress >= Math.max(3, Math.floor(maxProgress * 0.3))) {
-        events.push({
-          id: 'event-3',
-          executionRunId: executionId,
-          eventType: 'function_call_start',
-          sequenceNumber: 3,
-          status: progress >= maxProgress * 0.6 ? 'success' : 'pending',
-          createdAt: new Date(Date.now() - 1200).toISOString(),
-          eventData: { message: 'Function calls initiated' }
-        });
-      }
-
-      if (progress >= Math.max(5, Math.floor(maxProgress * 0.5))) {
-        events.push({
-          id: 'event-4',
-          executionRunId: executionId,
-          eventType: 'ai_response',
-          sequenceNumber: 4,
-          status: progress >= maxProgress * 0.9 ? 'success' : 'pending',
-          createdAt: new Date(Date.now() - 800).toISOString(),
-          eventData: { message: 'AI response generated' }
-        });
-      }
-
-      const simulatedFlow = {
-        executionRunId: executionId,
-        events: events,
-        functionCalls: [],
-        stats: {
-          totalFunctionCalls: events.filter(e => e.eventType.includes('function')).length,
-          totalAIModelCalls: events.filter(e => e.eventType.includes('ai')).length,
-          totalErrors: 0,
-          totalRetries: 0,
-          totalExecutionTimeMs: progress * 2000,
-          avgFunctionCallTimeMs: 0,
-          avgAIResponseTimeMs: 2000,
-          maxExecutionDepth: 1
-        }
-      };
-      
-      console.log('🔄 Updated simulated flow with', events.length, 'events');
-      setFlowData(simulatedFlow);
-    }
-  }, [progress, maxProgress, isExecuting, executionId]); // Trigger when progress changes
+    setLogs([]);
+    seenLogIds.clear();
+    lastProgressRef.current = 0;
+  }, [executionId]);
 
   const getLogLevelColor = (level: string): string => {
     switch (level?.toLowerCase()) {
@@ -702,43 +590,27 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
         </View>
       </View>
       
-      <ScrollView 
-        ref={scrollViewRef}
-        style={styles.logsScrollView}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={isLoadingLogs} onRefresh={handleRefresh} />
-        }
-      >
-        {logs.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="hourglass-outline" size={48} color="#8E8E93" />
-            <Text style={styles.emptyStateText}>Waiting for execution logs...</Text>
-          </View>
-        ) : (
-          logs.map((log) => (
-            <View key={log.id} style={styles.logEntry}>
-              <View style={styles.logHeader}>
-                <View style={styles.logIcon}>
-                  <Text style={styles.logEmoji}>{getLogEmoji(log.logLevel, log.logCategory)}</Text>
-                </View>
-                <View style={styles.logContent}>
-                  <View style={styles.logTitleRow}>
-                    <Text style={styles.logCategory}>{log.logCategory}</Text>
-                    <Text style={styles.logTimestamp}>{formatTimestamp(log.timestamp)}</Text>
-                  </View>
-                  <Text style={styles.logMessage} numberOfLines={3}>
-                    {log.message}
-                  </Text>
-                  <Text style={[styles.logLevel, { color: getLogLevelColor(log.logLevel) }]}>
-                    {log.logLevel} • Seq #{log.sequenceNumber}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          ))
-        )}
-      </ScrollView>
+             <FlatList 
+         ref={flatListRef}
+         data={logs}
+         renderItem={({ item, index }) => <AnimatedLogItem log={item} index={index} />}
+         keyExtractor={(item) => item.id}
+         contentContainerStyle={logs.length === 0 ? styles.emptyListContainer : styles.logsScrollView}
+         showsVerticalScrollIndicator={false}
+         refreshControl={
+           <RefreshControl refreshing={isLoadingLogs} onRefresh={handleRefresh} />
+         }
+         ListEmptyComponent={
+           <View style={styles.emptyState}>
+             <Ionicons name="hourglass-outline" size={48} color="#8E8E93" />
+             <Text style={styles.emptyStateText}>Waiting for execution logs...</Text>
+           </View>
+         }
+         maintainVisibleContentPosition={{
+           minIndexForVisible: 0,
+           autoscrollToTopThreshold: 10,
+         }}
+       />
     </View>
   );
 
@@ -1039,6 +911,12 @@ const styles = StyleSheet.create({
   logsScrollView: {
     flex: 1,
     maxHeight: 350,
+  },
+  emptyListContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: 200,
   },
   emptyState: {
     alignItems: 'center',

@@ -398,6 +398,8 @@ export interface Agent {
   templateId: string;
   templateName?: string;
   templateDescription?: string;
+  teamId?: string; // Optional foreign key to teams table
+  teamName?: string; // For display purposes
   maxTokensPerDay: number;
   heartbeatMinutes: number;
   lifecycleStatus: LifecycleStatus;
@@ -414,6 +416,7 @@ export interface AgentFormData {
   firstName: string;
   lastName: string;
   templateId: string;
+  teamId?: string; // Optional team assignment
   maxTokensPerDay: number;
   heartbeatMinutes: number;
   lifecycleStatus: LifecycleStatus;
@@ -436,6 +439,49 @@ export interface AgentExecutionSummary {
   totalTokensUsed: number;
   lastExecutionAt?: string;
   avgExecutionTime?: number;
+}
+
+// Team Types
+export interface Team {
+  id: string;
+  userId: string;
+  name: string;
+  description?: string;
+  maxTokensPerDay: number;
+  tokensUsedToday: number;
+  tokensResetDate: string;
+  agentCount: number;
+  activeAgentCount: number;
+  totalExecutions: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TeamFormData {
+  name: string;
+  description?: string;
+  maxTokensPerDay: number;
+}
+
+export interface TeamFormErrors {
+  name?: string;
+  description?: string;
+  maxTokensPerDay?: string;
+}
+
+export interface TeamWithAgents {
+  team: Team;
+  agents: Agent[];
+}
+
+export interface TeamStats {
+  teamId: string;
+  totalAgents: number;
+  activeAgents: number;
+  pausedAgents: number;
+  totalTokensUsed: number;
+  totalExecutions: number;
+  lastExecutionAt?: string;
 }
 
 export interface ExecutionTemplate {

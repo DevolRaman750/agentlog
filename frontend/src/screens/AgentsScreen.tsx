@@ -20,7 +20,10 @@ import CreateAgentForm from '../components/CreateAgentForm';
 import AgentDetailView from '../components/AgentDetailView';
 import EditAgentForm from '../components/EditAgentForm';
 import AgentBusinessCard from '../components/AgentBusinessCard';
-import { Agent, AgentFormData, LifecycleStatus, ExecutionTemplate } from '../types';
+import TeamCard from '../components/TeamCard';
+import AssignTeamModal from '../components/AssignTeamModal';
+import CreateTeamForm from '../components/CreateTeamForm';
+import { Agent, AgentFormData, LifecycleStatus, ExecutionTemplate, Team, TeamWithAgents } from '../types';
 
 
 const AgentsScreen: React.FC = () => {
@@ -28,9 +31,14 @@ const AgentsScreen: React.FC = () => {
   const { setReExecutionData } = useApp();
   const navigation = useNavigation<any>();
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [teamGroups, setTeamGroups] = useState<TeamWithAgents[]>([]);
+  const [unassignedAgents, setUnassignedAgents] = useState<Agent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCreateTeamModal, setShowCreateTeamModal] = useState(false);
+  const [showAssignTeamModal, setShowAssignTeamModal] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -69,23 +77,65 @@ const AgentsScreen: React.FC = () => {
   const loadAgents = async () => {
     try {
       setIsLoading(true);
-      console.log('🤖 Loading agents...');
+      console.log('🤖 Loading agents and teams...');
       console.log('🔍 User authenticated:', !!user);
       console.log('🔍 User ID:', user?.id);
       
-      const response = await goGentAPI.getAgents();
-      console.log('📡 API Response:', response);
+      // Load both agents and teams concurrently
+      const [agentsResponse, teamsResponse] = await Promise.all([
+        goGentAPI.getAgents(),
+        goGentAPI.getTeams()
+      ]);
       
-      if (response.success && response.data) {
-        setAgents(response.data);
-        console.log('✅ Loaded agents:', response.data.length);
+      console.log('📡 Agents Response:', agentsResponse);
+      console.log('📡 Teams Response:', teamsResponse);
+      
+      if (agentsResponse.success && agentsResponse.data) {
+        const agentsData = agentsResponse.data;
+        setAgents(agentsData);
+        console.log('✅ Loaded agents:', agentsData.length);
+
+        if (teamsResponse.success && teamsResponse.data) {
+          const teamsData = teamsResponse.data;
+          setTeams(teamsData);
+          console.log('✅ Loaded teams:', teamsData.length);
+
+          // Group agents by teams
+          const grouped: TeamWithAgents[] = [];
+          const unassigned: Agent[] = [];
+
+          // First, add agents with teams
+          teamsData.forEach(team => {
+            const teamAgents = agentsData.filter(agent => agent.teamId === team.id);
+            if (teamAgents.length > 0) {
+              grouped.push({ team, agents: teamAgents });
+            }
+          });
+
+          // Then, collect unassigned agents
+          agentsData.forEach(agent => {
+            if (!agent.teamId) {
+              unassigned.push(agent);
+            }
+          });
+
+          setTeamGroups(grouped);
+          setUnassignedAgents(unassigned);
+          console.log('✅ Grouped data:', { teams: grouped.length, unassigned: unassigned.length });
+        } else {
+          // If teams failed to load, treat all agents as unassigned
+          setTeams([]);
+          setTeamGroups([]);
+          setUnassignedAgents(agentsData);
+          console.log('⚠️ Teams failed to load, showing all agents as unassigned');
+        }
       } else {
-        console.error('❌ Failed to load agents:', response.error);
-        AlertAPI.alert('Error', response.error || 'Failed to load agents');
+        console.error('❌ Failed to load agents:', agentsResponse.error);
+        AlertAPI.alert('Error', agentsResponse.error || 'Failed to load agents');
       }
     } catch (error) {
-      console.error('💥 Error loading agents:', error);
-      AlertAPI.alert('Error', 'Failed to load agents: ' + (error as Error).message);
+      console.error('💥 Error loading data:', error);
+      AlertAPI.alert('Error', 'Failed to load agents and teams: ' + (error as Error).message);
     } finally {
       setIsLoading(false);
     }
@@ -255,6 +305,23 @@ const AgentsScreen: React.FC = () => {
     }
   };
 
+  // Team handlers
+  const handleAssignTeam = (agent: Agent) => {
+    setSelectedAgent(agent);
+    setShowAssignTeamModal(true);
+  };
+
+  const handleTeamCreated = () => {
+    setShowCreateTeamModal(false);
+    loadAgents(); // Refresh to get updated teams and agents
+  };
+
+  const handleTeamAssigned = () => {
+    setShowAssignTeamModal(false);
+    setSelectedAgent(null);
+    loadAgents(); // Refresh to get updated grouping
+  };
+
   const renderAgentCard = ({ item: agent }: { item: Agent }) => (
     <AgentBusinessCard
       agent={agent}
@@ -290,6 +357,91 @@ const AgentsScreen: React.FC = () => {
     createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 1 week ago
     updatedAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // 1 hour ago
   });
+
+  const renderTeamSection = ({ item: teamGroup }: { item: TeamWithAgents }) => (
+    <View key={teamGroup.team.id} style={styles.teamSection}>
+      <TeamCard
+        team={teamGroup.team}
+        agents={teamGroup.agents}
+        onTeamUpdate={loadAgents}
+      />
+      <View style={styles.teamAgentsContainer}>
+        {teamGroup.agents.map(agent => (
+          <View key={agent.id} style={styles.teamAgentCard}>
+            <AgentBusinessCard
+              agent={agent}
+              onPress={() => {
+                setSelectedAgent(agent);
+                setShowDetailModal(true);
+              }}
+              onEdit={() => {
+                setSelectedAgent(agent);
+                setShowEditModal(true);
+              }}
+              onDelete={() => handleDeleteAgent(agent)}
+              onNavigateToTemplate={handleNavigateToTemplate}
+              onToggleStatus={() => handleToggleAgentStatus(agent)}
+              onExecuteNow={() => handleExecuteAgentNow(agent)}
+              animated={true}
+            />
+            <TouchableOpacity
+              style={styles.assignTeamButton}
+              onPress={() => handleAssignTeam(agent)}
+            >
+              <Ionicons name="people" size={16} color="#007AFF" />
+              <Text style={styles.assignTeamText}>Change Team</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+
+  const renderUnassignedSection = () => {
+    if (unassignedAgents.length === 0) return null;
+
+    return (
+      <View style={styles.unassignedSection}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Unassigned Agents</Text>
+          <TouchableOpacity
+            style={styles.createTeamButton}
+            onPress={() => setShowCreateTeamModal(true)}
+          >
+            <Ionicons name="add" size={16} color="#007AFF" />
+            <Text style={styles.createTeamButtonText}>Create Team</Text>
+          </TouchableOpacity>
+        </View>
+        {unassignedAgents.map(agent => (
+          <View key={agent.id} style={styles.unassignedAgentCard}>
+            <AgentBusinessCard
+              agent={agent}
+              onPress={() => {
+                setSelectedAgent(agent);
+                setShowDetailModal(true);
+              }}
+              onEdit={() => {
+                setSelectedAgent(agent);
+                setShowEditModal(true);
+              }}
+              onDelete={() => handleDeleteAgent(agent)}
+              onNavigateToTemplate={handleNavigateToTemplate}
+              onToggleStatus={() => handleToggleAgentStatus(agent)}
+              onExecuteNow={() => handleExecuteAgentNow(agent)}
+              animated={true}
+            />
+            <TouchableOpacity
+              style={styles.assignTeamButton}
+              onPress={() => handleAssignTeam(agent)}
+            >
+              <Ionicons name="people" size={16} color="#007AFF" />
+              <Text style={styles.assignTeamText}>Assign Team</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+      </View>
+    );
+  };
 
   const renderEmptyState = () => {
     const exampleAgent = createExampleAgent();
@@ -369,20 +521,34 @@ const AgentsScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      <FlatList
-        data={agents}
-        renderItem={renderAgentCard}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={[
-          styles.listContainer,
-          agents.length === 0 && styles.emptyListContainer,
-        ]}
-        ListEmptyComponent={renderEmptyState}
-        refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
-        }
-        showsVerticalScrollIndicator={false}
-      />
+      {/* Show empty state if no agents */}
+      {agents.length === 0 ? (
+        <View style={[styles.listContainer, styles.emptyListContainer]}>
+          {renderEmptyState()}
+        </View>
+      ) : (
+        <FlatList
+          data={[
+            ...teamGroups,
+            { type: 'unassigned' } // Marker for unassigned section
+          ]}
+          renderItem={({ item }) => {
+            if ('type' in item && item.type === 'unassigned') {
+              return renderUnassignedSection();
+            }
+            return renderTeamSection({ item: item as TeamWithAgents });
+          }}
+          keyExtractor={(item) => {
+            if ('type' in item) return 'unassigned';
+            return (item as TeamWithAgents).team.id;
+          }}
+          contentContainerStyle={styles.listContainer}
+          refreshControl={
+            <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+          }
+          showsVerticalScrollIndicator={false}
+        />
+      )}
 
       {/* Create Agent Modal */}
       <Modal visible={showCreateModal} animationType="slide" presentationStyle="pageSheet">
@@ -441,6 +607,26 @@ const AgentsScreen: React.FC = () => {
           />
         )}
       </Modal>
+
+      {/* Create Team Modal */}
+      <CreateTeamForm
+        visible={showCreateTeamModal}
+        onClose={() => setShowCreateTeamModal(false)}
+        onTeamCreated={handleTeamCreated}
+      />
+
+      {/* Assign Team Modal */}
+      {selectedAgent && (
+        <AssignTeamModal
+          visible={showAssignTeamModal}
+          agent={selectedAgent}
+          onClose={() => {
+            setShowAssignTeamModal(false);
+            setSelectedAgent(null);
+          }}
+          onAssigned={handleTeamAssigned}
+        />
+      )}
     </View>
   );
 };
@@ -547,6 +733,73 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.5,
+  },
+  // Team styles
+  teamSection: {
+    marginBottom: 20,
+  },
+  teamAgentsContainer: {
+    marginTop: 8,
+  },
+  teamAgentCard: {
+    marginBottom: 12,
+  },
+  assignTeamButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F0F8FF',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+  },
+  assignTeamText: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '500',
+    marginLeft: 4,
+  },
+  unassignedSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    margin: 16,
+    marginTop: 0,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
+  createTeamButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+    backgroundColor: '#F0F8FF',
+  },
+  createTeamButtonText: {
+    fontSize: 14,
+    color: '#007AFF',
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  unassignedAgentCard: {
+    marginBottom: 12,
   },
 });
 

@@ -1,8 +1,8 @@
 -- Execution Runs queries
 
 -- name: CreateExecutionRun :exec
-INSERT INTO execution_runs (id, user_id, name, description, enable_function_calling)
-VALUES (?, ?, ?, ?, ?);
+INSERT INTO execution_runs (id, user_id, name, description, enable_function_calling, agent_id)
+VALUES (?, ?, ?, ?, ?, ?);
 
 -- name: GetExecutionRun :one
 SELECT * FROM execution_runs WHERE id = ? AND user_id = ?;

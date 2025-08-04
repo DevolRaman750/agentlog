@@ -12,13 +12,14 @@ import (
 // getAgents retrieves all agents for a user without statistics
 func (h *AgentsHandler) getAgents(userID string) ([]types.Agent, error) {
 	query := `
-		SELECT a.id, a.user_id, a.first_name, a.last_name, a.template_id,
+		SELECT a.id, a.user_id, a.first_name, a.last_name, a.template_id, a.team_id,
 		       a.max_tokens_per_day, a.heartbeat_minutes, a.lifecycle_status,
 		       a.tokens_used_today, a.tokens_reset_date, a.last_execution_at,
 		       a.next_scheduled_at, a.total_executions, a.created_at, a.updated_at,
-		       et.name, et.description
+		       et.name, et.description, t.name
 		FROM agents a
 		LEFT JOIN execution_templates et ON a.template_id = et.id
+		LEFT JOIN teams t ON a.team_id = t.id
 		WHERE a.user_id = ?
 		ORDER BY a.created_at DESC
 	`
@@ -34,13 +35,14 @@ func (h *AgentsHandler) getAgents(userID string) ([]types.Agent, error) {
 		var agent types.Agent
 		var lastExecutionAt, nextScheduledAt sql.NullTime
 		var templateName, templateDescription sql.NullString
+		var teamID, teamName sql.NullString
 
 		err := rows.Scan(
-			&agent.ID, &agent.UserID, &agent.FirstName, &agent.LastName, &agent.TemplateID,
+			&agent.ID, &agent.UserID, &agent.FirstName, &agent.LastName, &agent.TemplateID, &teamID,
 			&agent.MaxTokensPerDay, &agent.HeartbeatMinutes, &agent.LifecycleStatus,
 			&agent.TokensUsedToday, &agent.TokensResetDate, &lastExecutionAt,
 			&nextScheduledAt, &agent.TotalExecutions, &agent.CreatedAt, &agent.UpdatedAt,
-			&templateName, &templateDescription,
+			&templateName, &templateDescription, &teamName,
 		)
 		if err != nil {
 			return nil, err
@@ -59,6 +61,12 @@ func (h *AgentsHandler) getAgents(userID string) ([]types.Agent, error) {
 		if templateDescription.Valid {
 			agent.TemplateDescription = templateDescription.String
 		}
+		if teamID.Valid {
+			agent.TeamID = &teamID.String
+		}
+		if teamName.Valid {
+			agent.TeamName = teamName.String
+		}
 
 		agents = append(agents, agent)
 	}
@@ -70,24 +78,25 @@ func (h *AgentsHandler) getAgents(userID string) ([]types.Agent, error) {
 func (h *AgentsHandler) getAgentsWithStats(userID string) ([]types.Agent, error) {
 	query := `
 		SELECT 
-			a.id, a.user_id, a.first_name, a.last_name, a.template_id,
+			a.id, a.user_id, a.first_name, a.last_name, a.template_id, a.team_id,
 			a.max_tokens_per_day, a.heartbeat_minutes, a.lifecycle_status,
 			a.tokens_used_today, a.tokens_reset_date, a.last_execution_at,
 			a.next_scheduled_at, a.total_executions, a.created_at, a.updated_at,
-			et.name, et.description,
+			et.name, et.description, t.name,
 			COALESCE(COUNT(er.id), 0) as execution_count,
 			MAX(er.created_at) as latest_execution_at,
 			COALESCE(SUM(CASE WHEN er.status = 'completed' THEN 1 ELSE 0 END), 0) as successful_executions,
 			COALESCE(SUM(CASE WHEN er.status = 'failed' THEN 1 ELSE 0 END), 0) as failed_executions
 		FROM agents a
 		LEFT JOIN execution_templates et ON a.template_id = et.id
+		LEFT JOIN teams t ON a.team_id = t.id
 		LEFT JOIN execution_runs er ON a.id = er.agent_id
 		WHERE a.user_id = ?
-		GROUP BY a.id, a.user_id, a.first_name, a.last_name, a.template_id,
+		GROUP BY a.id, a.user_id, a.first_name, a.last_name, a.template_id, a.team_id,
 		         a.max_tokens_per_day, a.heartbeat_minutes, a.lifecycle_status,
 		         a.tokens_used_today, a.tokens_reset_date, a.last_execution_at,
 		         a.next_scheduled_at, a.total_executions, a.created_at, a.updated_at,
-		         et.name, et.description
+		         et.name, et.description, t.name
 		ORDER BY a.created_at DESC
 	`
 
@@ -102,14 +111,15 @@ func (h *AgentsHandler) getAgentsWithStats(userID string) ([]types.Agent, error)
 		var agent types.Agent
 		var lastExecutionAt, nextScheduledAt, latestExecutionAt sql.NullTime
 		var templateName, templateDescription sql.NullString
+		var teamID, teamName sql.NullString
 		var executionCount, successfulExecutions, failedExecutions int32
 
 		err := rows.Scan(
-			&agent.ID, &agent.UserID, &agent.FirstName, &agent.LastName, &agent.TemplateID,
+			&agent.ID, &agent.UserID, &agent.FirstName, &agent.LastName, &agent.TemplateID, &teamID,
 			&agent.MaxTokensPerDay, &agent.HeartbeatMinutes, &agent.LifecycleStatus,
 			&agent.TokensUsedToday, &agent.TokensResetDate, &lastExecutionAt,
 			&nextScheduledAt, &agent.TotalExecutions, &agent.CreatedAt, &agent.UpdatedAt,
-			&templateName, &templateDescription,
+			&templateName, &templateDescription, &teamName,
 			&executionCount, &latestExecutionAt, &successfulExecutions, &failedExecutions,
 		)
 		if err != nil {
@@ -128,6 +138,18 @@ func (h *AgentsHandler) getAgentsWithStats(userID string) ([]types.Agent, error)
 		}
 		if templateDescription.Valid {
 			agent.TemplateDescription = templateDescription.String
+		}
+		if teamID.Valid {
+			agent.TeamID = &teamID.String
+		}
+		if teamName.Valid {
+			agent.TeamName = teamName.String
+		}
+
+		// Update agent with calculated statistics (real-time data from execution_runs)
+		agent.TotalExecutions = executionCount
+		if latestExecutionAt.Valid {
+			agent.LastExecutionAt = &latestExecutionAt.Time
 		}
 
 		agents = append(agents, agent)
@@ -356,4 +378,24 @@ func (h *AgentsHandler) getExecutionsByAgentID(agentID string, limit, offset int
 	}
 
 	return executions, rows.Err()
+}
+
+// removeAgentFromTeam removes an agent from its team
+func (h *AgentsHandler) removeAgentFromTeam(agentID, userID string) error {
+	updateQuery := `UPDATE agents SET team_id = NULL, updated_at = ? WHERE id = ? AND user_id = ?`
+	result, err := h.db.Exec(updateQuery, time.Now(), agentID, userID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
 }

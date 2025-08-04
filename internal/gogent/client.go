@@ -150,18 +150,30 @@ func (c *Client) Close() error {
 }
 
 // CreateExecutionRun creates a new execution run for grouping related API calls
-func (c *Client) CreateExecutionRun(ctx context.Context, userID, name, description string, enableFunctionCalling bool) (*types.ExecutionRun, error) {
+func (c *Client) CreateExecutionRun(ctx context.Context, userID, name, description string, enableFunctionCalling bool, agentID *string) (*types.ExecutionRun, error) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
 	id := uuid.New().String()
-	log.Printf("🔧 Creating execution run with enableFunctionCalling: %v", enableFunctionCalling)
+	if agentID != nil {
+		log.Printf("🔧 Creating execution run with enableFunctionCalling: %v, agentID: %s", enableFunctionCalling, *agentID)
+	} else {
+		log.Printf("🔧 Creating execution run with enableFunctionCalling: %v, agentID: <nil>", enableFunctionCalling)
+	}
+
+	// Convert agentID pointer to sql.NullString
+	var agentIDNull sql.NullString
+	if agentID != nil && *agentID != "" {
+		agentIDNull = sql.NullString{String: *agentID, Valid: true}
+	}
+
 	err := c.queries.CreateExecutionRun(ctx, db.CreateExecutionRunParams{
 		ID:                    id,
 		UserID:                userID,
 		Name:                  name,
 		Description:           sql.NullString{String: description, Valid: description != ""},
 		EnableFunctionCalling: enableFunctionCalling,
+		AgentID:               agentIDNull,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create execution run: %w", err)
@@ -307,7 +319,7 @@ func (c *Client) LogAPIResponse(ctx context.Context, userID string, response *ty
 // ExecuteMultiVariation executes the same prompt with multiple configurations
 func (c *Client) ExecuteMultiVariation(ctx context.Context, userID string, request *types.MultiExecutionRequest) (*types.ExecutionResult, error) {
 	// Create execution run
-	executionRun, err := c.CreateExecutionRun(ctx, userID, request.ExecutionRunName, request.Description, request.EnableFunctionCalling)
+	executionRun, err := c.CreateExecutionRun(ctx, userID, request.ExecutionRunName, request.Description, request.EnableFunctionCalling, request.AgentID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create execution run: %w", err)
 	}

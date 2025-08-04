@@ -17,6 +17,7 @@ import (
 	"gogent/internal/auth"
 	"gogent/internal/db"
 	"gogent/internal/gogent"
+	"gogent/internal/teams"
 	"gogent/internal/templates"
 	"gogent/internal/types"
 
@@ -34,6 +35,7 @@ type Server struct {
 	authHandlers        *auth.AuthHandlers
 	templateIntegration *templates.TemplateIntegration
 	agentsHandler       *agents.AgentsHandler
+	teamsHandler        *teams.TeamsHandler
 }
 
 // ExecutionStatus tracks the status of an async execution
@@ -116,6 +118,9 @@ func NewServer() (*Server, error) {
 	// Create agents handler
 	agentsHandler := agents.NewAgentsHandler(client.GetDB())
 
+	// Create teams handler
+	teamsHandler := teams.NewTeamsHandler(client.GetDB())
+
 	return &Server{
 		client:              client,
 		config:              config,
@@ -124,6 +129,7 @@ func NewServer() (*Server, error) {
 		authHandlers:        authHandlers,
 		templateIntegration: templateIntegration,
 		agentsHandler:       agentsHandler,
+		teamsHandler:        teamsHandler,
 	}, nil
 }
 
@@ -1933,6 +1939,10 @@ func runServer() {
 	http.HandleFunc("/api/agents", server.enableCORS(authMiddleware(server.agentsHandler.HandleAgents)))
 	http.HandleFunc("/api/agents/", server.enableCORS(authMiddleware(server.agentsHandler.HandleAgentByID)))
 
+	// Protected team management endpoints
+	http.HandleFunc("/api/teams", server.enableCORS(authMiddleware(server.teamsHandler.HandleTeams)))
+	http.HandleFunc("/api/teams/", server.enableCORS(authMiddleware(server.teamsHandler.HandleTeamByID)))
+
 	// Register execution template routes
 	mux := http.NewServeMux()
 	server.templateIntegration.RegisterRoutes(mux, func(h http.HandlerFunc) http.HandlerFunc {
@@ -1978,6 +1988,17 @@ func runServer() {
 	fmt.Printf("   PUT  /api/agents/{id} - Update agent (🔐 Protected)\n")
 	fmt.Printf("   DELETE /api/agents/{id} - Delete agent (🔐 Protected)\n")
 	fmt.Printf("   GET  /api/agents/{id}/executions - Get agent executions (🔐 Protected)\n")
+	fmt.Printf("   DELETE /api/agents/{id}/team - Remove agent from team (🔐 Protected)\n")
+	fmt.Printf("   GET  /api/teams - List teams (🔐 Protected)\n")
+	fmt.Printf("   POST /api/teams - Create team (🔐 Protected)\n")
+	fmt.Printf("   GET  /api/teams/{id} - Get team by ID (🔐 Protected)\n")
+	fmt.Printf("   PUT  /api/teams/{id} - Update team (🔐 Protected)\n")
+	fmt.Printf("   DELETE /api/teams/{id} - Delete team (🔐 Protected)\n")
+	fmt.Printf("   GET  /api/teams/{id}/agents - Get team with agents (🔐 Protected)\n")
+	fmt.Printf("   POST /api/teams/{id}/agents/{agentId} - Assign agent to team (🔐 Protected)\n")
+	fmt.Printf("   POST /api/teams/{id}/pause-all - Pause all team agents (🔐 Protected)\n")
+	fmt.Printf("   POST /api/teams/{id}/resume-all - Resume all team agents (🔐 Protected)\n")
+	fmt.Printf("   GET  /api/teams/{id}/stats - Get team statistics (🔐 Protected)\n")
 	fmt.Printf("💡 Use X-Use-Mock: true header for mock responses\n")
 	fmt.Printf("🔑 Set GEMINI_API_KEY in config.env for real API calls\n")
 	fmt.Printf("🔐 Most endpoints now require authentication\n")

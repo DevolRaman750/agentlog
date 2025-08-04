@@ -1,7 +1,7 @@
 -- name: GetTemplate :one
 SELECT 
     id, user_id, name, description, template_prompt, context_template,
-    enable_function_calling, preferred_configuration_id, is_active, is_public, category, tags,
+    enable_function_calling, is_active, is_public, category, tags,
     execution_timeout_seconds, rate_limit_per_hour, rate_limit_per_day,
     rate_limit_burst, total_executions, last_executed_at, created_at, updated_at
 FROM execution_templates 
@@ -12,7 +12,7 @@ WHERE id = ? LIMIT 1;
 -- Always includes system templates alongside user templates
 SELECT 
     id, user_id, name, description, template_prompt, context_template,
-    enable_function_calling, preferred_configuration_id, is_active, is_public, category, tags,
+    enable_function_calling, is_active, is_public, category, tags,
     execution_timeout_seconds, rate_limit_per_hour, rate_limit_per_day,
     rate_limit_burst, total_executions, last_executed_at, created_at, updated_at
 FROM execution_templates 
@@ -23,7 +23,7 @@ LIMIT ? OFFSET ?;
 -- name: GetSystemTemplates :many
 SELECT 
     id, user_id, name, description, template_prompt, context_template,
-    enable_function_calling, preferred_configuration_id, is_active, is_public, category, tags,
+    enable_function_calling, is_active, is_public, category, tags,
     execution_timeout_seconds, rate_limit_per_hour, rate_limit_per_day,
     rate_limit_burst, total_executions, last_executed_at, created_at, updated_at
 FROM execution_templates 
@@ -33,15 +33,15 @@ ORDER BY created_at DESC;
 -- name: CreateTemplate :exec
 INSERT INTO execution_templates (
     id, user_id, name, description, template_prompt, context_template,
-    enable_function_calling, preferred_configuration_id, is_active, is_public, category, tags,
+    enable_function_calling, is_active, is_public, category, tags,
     execution_timeout_seconds, rate_limit_per_hour, rate_limit_per_day,
     rate_limit_burst, total_executions, created_at, updated_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- name: UpdateTemplate :exec
 UPDATE execution_templates 
 SET name = ?, description = ?, template_prompt = ?, context_template = ?,
-    enable_function_calling = ?, preferred_configuration_id = ?, is_active = ?, is_public = ?, 
+    enable_function_calling = ?, is_active = ?, is_public = ?, 
     category = ?, tags = ?, execution_timeout_seconds = ?, 
     rate_limit_per_hour = ?, rate_limit_per_day = ?, rate_limit_burst = ?, 
     updated_at = CURRENT_TIMESTAMP

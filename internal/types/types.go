@@ -268,6 +268,7 @@ type MultiExecutionRequest struct {
 	FunctionTools         []Tool             `json:"functionTools,omitempty"`
 	ComparisonConfig      *ComparisonConfig  `json:"comparisonConfig,omitempty"`
 	SessionApiKeys        *SessionApiKeys    `json:"sessionApiKeys,omitempty"` // API keys for this session
+	AgentID               *string            `json:"agentId,omitempty"`        // Agent ID for agent executions
 }
 
 // ComparisonConfig represents configuration for comparing execution results
@@ -616,6 +617,7 @@ type Agent struct {
 	FirstName        string          `json:"firstName"`
 	LastName         string          `json:"lastName"`
 	TemplateID       string          `json:"templateId"`
+	TeamID           *string         `json:"teamId,omitempty"`
 	MaxTokensPerDay  int32           `json:"maxTokensPerDay"`
 	HeartbeatMinutes int32           `json:"heartbeatMinutes"` // Minimum 5 minutes
 	LifecycleStatus  LifecycleStatus `json:"lifecycleStatus"`
@@ -629,6 +631,8 @@ type Agent struct {
 	// Template information (populated via JOIN)
 	TemplateName        string `json:"templateName,omitempty"`
 	TemplateDescription string `json:"templateDescription,omitempty"`
+	// Team information (populated via JOIN)
+	TeamName string `json:"teamName,omitempty"`
 }
 
 // AgentCreateRequest represents the request to create a new agent
@@ -636,6 +640,7 @@ type AgentCreateRequest struct {
 	FirstName        string          `json:"firstName" validate:"required,min=1,max=100"`
 	LastName         string          `json:"lastName" validate:"required,min=1,max=100"`
 	TemplateID       string          `json:"templateId" validate:"required"`
+	TeamID           *string         `json:"teamId,omitempty"`
 	MaxTokensPerDay  int32           `json:"maxTokensPerDay" validate:"required,min=1"`
 	HeartbeatMinutes int32           `json:"heartbeatMinutes" validate:"required,min=5"`
 	LifecycleStatus  LifecycleStatus `json:"lifecycleStatus"`
@@ -645,9 +650,57 @@ type AgentCreateRequest struct {
 type AgentUpdateRequest struct {
 	FirstName        *string          `json:"firstName,omitempty" validate:"omitempty,min=1,max=100"`
 	LastName         *string          `json:"lastName,omitempty" validate:"omitempty,min=1,max=100"`
+	TeamID           *string          `json:"teamId,omitempty"`
 	MaxTokensPerDay  *int32           `json:"maxTokensPerDay,omitempty" validate:"omitempty,min=1"`
 	HeartbeatMinutes *int32           `json:"heartbeatMinutes,omitempty" validate:"omitempty,min=5"`
 	LifecycleStatus  *LifecycleStatus `json:"lifecycleStatus,omitempty"`
+}
+
+// Team represents a team that can organize agents
+type Team struct {
+	ID               string    `json:"id"`
+	UserID           string    `json:"userId"`
+	Name             string    `json:"name"`
+	Description      *string   `json:"description,omitempty"`
+	MaxTokensPerDay  int32     `json:"maxTokensPerDay"`
+	TokensUsedToday  int32     `json:"tokensUsedToday"`
+	TokensResetDate  string    `json:"tokensResetDate"`
+	AgentCount       int32     `json:"agentCount"`
+	ActiveAgentCount int32     `json:"activeAgentCount"`
+	TotalExecutions  int32     `json:"totalExecutions"`
+	CreatedAt        time.Time `json:"createdAt"`
+	UpdatedAt        time.Time `json:"updatedAt"`
+}
+
+// TeamCreateRequest represents the request to create a new team
+type TeamCreateRequest struct {
+	Name            string  `json:"name" validate:"required,min=1,max=100"`
+	Description     *string `json:"description,omitempty" validate:"omitempty,max=500"`
+	MaxTokensPerDay int32   `json:"maxTokensPerDay" validate:"required,min=1000"`
+}
+
+// TeamUpdateRequest represents the request to update an existing team
+type TeamUpdateRequest struct {
+	Name            *string `json:"name,omitempty" validate:"omitempty,min=1,max=100"`
+	Description     *string `json:"description,omitempty" validate:"omitempty,max=500"`
+	MaxTokensPerDay *int32  `json:"maxTokensPerDay,omitempty" validate:"omitempty,min=1000"`
+}
+
+// TeamWithAgents represents a team with its associated agents
+type TeamWithAgents struct {
+	Team   Team    `json:"team"`
+	Agents []Agent `json:"agents"`
+}
+
+// TeamStats represents statistics for a team
+type TeamStats struct {
+	TeamID          string     `json:"teamId"`
+	TotalAgents     int32      `json:"totalAgents"`
+	ActiveAgents    int32      `json:"activeAgents"`
+	PausedAgents    int32      `json:"pausedAgents"`
+	TotalTokensUsed int32      `json:"totalTokensUsed"`
+	TotalExecutions int32      `json:"totalExecutions"`
+	LastExecutionAt *time.Time `json:"lastExecutionAt,omitempty"`
 }
 
 // AgentSummary represents a summary view of an agent with execution statistics

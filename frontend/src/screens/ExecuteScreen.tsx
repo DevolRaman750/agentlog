@@ -525,6 +525,10 @@ const ExecuteScreen: React.FC = () => {
           enabled: formState.comparisonEnabled,
           metrics: formState.selectedMetrics,
         },
+        // Include agentId for agent executions
+        ...(agentData.isAgentExecution && agentData.agent?.id && {
+          agentId: agentData.agent.id
+        }),
       };
 
       console.log('🚀 Starting multi-variant execution with request:', request);

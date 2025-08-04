@@ -25,6 +25,9 @@ interface AppState {
     comparisonEnabled?: boolean;
     selectedMetrics?: string[];
     functionExecutionMode?: 'mock' | 'real' | 'auto';
+    isAgentExecution?: boolean;
+    agentId?: string;
+    templateId?: string;
   };
   currentExecution?: {
     isExecuting: boolean;

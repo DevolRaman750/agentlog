@@ -53,6 +53,12 @@ func (h *AgentsHandler) HandleAgentByID(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// Check for team assignment sub-route /api/agents/{id}/team
+	if len(pathParts) >= 4 && pathParts[3] == "team" {
+		h.handleAgentTeamAssignment(w, r, agentID)
+		return
+	}
+
 	switch r.Method {
 	case http.MethodGet:
 		h.getAgent(w, r, agentID)
@@ -64,8 +70,6 @@ func (h *AgentsHandler) HandleAgentByID(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
-
-
 
 // listAgents lists all agents for the authenticated user
 func (h *AgentsHandler) listAgents(w http.ResponseWriter, r *http.Request) {
@@ -363,4 +367,39 @@ func (h *AgentsHandler) validateUpdateRequest(req *types.AgentUpdateRequest) err
 		}
 	}
 	return nil
+}
+
+// handleAgentTeamAssignment handles team assignment operations for an agent
+func (h *AgentsHandler) handleAgentTeamAssignment(w http.ResponseWriter, r *http.Request, agentID string) {
+	user, ok := auth.GetUserFromContext(r.Context())
+	if !ok {
+		http.Error(w, "User not found in context", http.StatusUnauthorized)
+		return
+	}
+
+	switch r.Method {
+	case http.MethodDelete:
+		// Remove agent from team
+		err := h.removeAgentFromTeam(agentID, user.ID)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				http.Error(w, "Agent not found", http.StatusNotFound)
+				return
+			}
+			http.Error(w, fmt.Sprintf("Failed to remove agent from team: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		// Get the updated agent
+		agent, err := h.getAgentByID(agentID, user.ID)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to retrieve updated agent: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(agent)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
 }

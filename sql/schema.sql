@@ -164,10 +164,13 @@ CREATE TABLE `execution_runs` (
   `error_message` text,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `agent_id` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_execution_runs_user_id` (`user_id`),
   KEY `idx_execution_runs_created_at` (`created_at`),
-  CONSTRAINT `execution_runs_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+  KEY `idx_execution_runs_agent_id` (`agent_id`),
+  CONSTRAINT `execution_runs_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_execution_runs_agent_id` FOREIGN KEY (`agent_id`) REFERENCES `agents` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 CREATE TABLE `execution_stats` (
   `id` varchar(255) NOT NULL,

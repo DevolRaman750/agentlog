@@ -14,6 +14,10 @@ import {
   Agent,
   AgentFormData,
   AgentExecutionSummary,
+  Team,
+  TeamFormData,
+  TeamWithAgents,
+  TeamStats,
 } from '../types';
 import { User } from '../context/AuthContext';
 import { secureStorage } from '../utils/secureStorage';
@@ -1008,7 +1012,7 @@ class GoGentAPI {
   // Agent Management APIs
   async getAgents(): Promise<ApiResponse<Agent[]>> {
     try {
-      const response: AxiosResponse = await this.api.get('/api/agents');
+      const response: AxiosResponse = await this.api.get('/api/agents?include_stats=true');
       return {
         success: true,
         data: response.data || [],
@@ -1102,6 +1106,185 @@ class GoGentAPI {
         success: false,
         error: error.response?.data?.error || error.message || 'Failed to fetch agent executions',
         data: [],
+      };
+    }
+  }
+
+  // Team Management APIs
+  async getTeams(): Promise<ApiResponse<Team[]>> {
+    try {
+      const response: AxiosResponse = await this.api.get('/api/teams');
+      return {
+        success: true,
+        data: response.data || [],
+      };
+    } catch (error: any) {
+      console.error('API Error (getTeams):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to fetch teams',
+        data: [],
+      };
+    }
+  }
+
+  async getTeam(id: string): Promise<ApiResponse<Team>> {
+    try {
+      const response: AxiosResponse = await this.api.get(`/api/teams/${id}`);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (getTeam):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to fetch team',
+      };
+    }
+  }
+
+  async createTeam(teamData: TeamFormData): Promise<ApiResponse<Team>> {
+    try {
+      const response: AxiosResponse = await this.api.post('/api/teams', teamData);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (createTeam):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to create team',
+      };
+    }
+  }
+
+  async updateTeam(id: string, teamData: Partial<TeamFormData>): Promise<ApiResponse<Team>> {
+    try {
+      const response: AxiosResponse = await this.api.put(`/api/teams/${id}`, teamData);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (updateTeam):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to update team',
+      };
+    }
+  }
+
+  async deleteTeam(id: string): Promise<ApiResponse<{ message: string }>> {
+    try {
+      const response: AxiosResponse = await this.api.delete(`/api/teams/${id}`);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (deleteTeam):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to delete team',
+      };
+    }
+  }
+
+  async getTeamWithAgents(id: string): Promise<ApiResponse<TeamWithAgents>> {
+    try {
+      const response: AxiosResponse = await this.api.get(`/api/teams/${id}/agents`);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (getTeamWithAgents):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to fetch team with agents',
+      };
+    }
+  }
+
+  async assignAgentToTeam(agentId: string, teamId: string): Promise<ApiResponse<Agent>> {
+    try {
+      const response: AxiosResponse = await this.api.post(`/api/teams/${teamId}/agents/${agentId}`);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (assignAgentToTeam):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to assign agent to team',
+      };
+    }
+  }
+
+  async removeAgentFromTeam(agentId: string): Promise<ApiResponse<Agent>> {
+    try {
+      const response: AxiosResponse = await this.api.delete(`/api/agents/${agentId}/team`);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (removeAgentFromTeam):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to remove agent from team',
+      };
+    }
+  }
+
+  // Team Controls
+  async pauseAllTeamAgents(teamId: string): Promise<ApiResponse<{ message: string; affectedCount: number }>> {
+    try {
+      const response: AxiosResponse = await this.api.post(`/api/teams/${teamId}/pause-all`);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (pauseAllTeamAgents):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to pause all team agents',
+      };
+    }
+  }
+
+  async resumeAllTeamAgents(teamId: string): Promise<ApiResponse<{ message: string; affectedCount: number }>> {
+    try {
+      const response: AxiosResponse = await this.api.post(`/api/teams/${teamId}/resume-all`);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (resumeAllTeamAgents):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to resume all team agents',
+      };
+    }
+  }
+
+  async getTeamStats(teamId: string): Promise<ApiResponse<TeamStats>> {
+    try {
+      const response: AxiosResponse = await this.api.get(`/api/teams/${teamId}/stats`);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (getTeamStats):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to fetch team stats',
       };
     }
   }
