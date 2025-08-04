@@ -23,9 +23,17 @@ interface LiveExecutionViewerProps {
   maxProgress: number;
   onCancel: () => void;
   isExecuting: boolean;
+  executionResult?: any; // Add execution result to get configuration info
 }
 
 type ViewMode = 'logs' | 'flow' | 'both';
+
+// Configuration info for tabs
+interface ConfigurationTab {
+  id: string;
+  name: string;
+  logCount: number;
+}
 
 // Animated log item component
 const AnimatedLogItem: React.FC<{ log: ExecutionLog; index: number }> = ({ log, index }) => {
@@ -126,26 +134,29 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
   maxProgress,
   onCancel,
   isExecuting,
+  executionResult,
 }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('both');
   const [logs, setLogs] = useState<ExecutionLog[]>([]);
-  const [flowData, setFlowData] = useState<any>(null);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
-  const [isLoadingFlow, setIsLoadingFlow] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  
+  // Configuration tabs state
+  const [configurationTabs, setConfigurationTabs] = useState<ConfigurationTab[]>([]);
+  const [activeConfigTab, setActiveConfigTab] = useState<string>('all'); // 'all' or configuration ID
+  const [logsByConfiguration, setLogsByConfiguration] = useState<Record<string, ExecutionLog[]>>({});
   
   // Track seen log IDs to prevent duplicates
   const seenLogIds = useRef(new Set<string>()).current;
   const lastProgressRef = useRef(0);
   
   const logsIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const flowIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   const progressPercentage = Math.min((progress / maxProgress) * 100, 100);
 
-  // Helper function to add new logs incrementally
+  // Helper function to add new logs incrementally and organize by configuration
   const addNewLogs = useCallback((newLogs: ExecutionLog[]) => {
     const unseenLogs = newLogs.filter(log => !seenLogIds.has(log.id));
     if (unseenLogs.length === 0) return;
@@ -155,7 +166,7 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
 
     setLogs(prevLogs => {
       // Sort by sequence number to maintain chronological order
-      const combined = [...prevLogs, ...unseenLogs].sort((a, b) => a.sequenceNumber - b.sequenceNumber);
+      const combined = [...prevLogs, ...unseenLogs].sort((a, b) => (a.sequenceNumber || 0) - (b.sequenceNumber || 0));
       
       // Auto-scroll to bottom for new logs
       setTimeout(() => {
@@ -164,7 +175,61 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
       
       return combined;
     });
-  }, []);
+
+    // Organize logs by configuration
+    setLogsByConfiguration(prevLogsByConfig => {
+      const updatedLogsByConfig = { ...prevLogsByConfig };
+      
+      unseenLogs.forEach(log => {
+        const configId = log.configurationId || 'unknown';
+        if (!updatedLogsByConfig[configId]) {
+          updatedLogsByConfig[configId] = [];
+        }
+        updatedLogsByConfig[configId].push(log);
+        // Sort each configuration's logs by sequence number
+        updatedLogsByConfig[configId] = updatedLogsByConfig[configId].sort((a, b) => (a.sequenceNumber || 0) - (b.sequenceNumber || 0));
+      });
+      
+      return updatedLogsByConfig;
+    });
+
+    // Update configuration tabs based on logs and execution result
+    const updateConfigurationTabs = () => {
+      const configIds = new Set<string>();
+      const configNames = new Map<string, string>();
+      
+      // Get configuration IDs from logs
+      [...logs, ...unseenLogs].forEach(log => {
+        if (log.configurationId) {
+          configIds.add(log.configurationId);
+        }
+      });
+      
+      // Get configuration names from execution result if available
+      if (executionResult?.results) {
+        executionResult.results.forEach((result: any) => {
+          if (result.configuration?.id && result.configuration?.variationName) {
+            configIds.add(result.configuration.id);
+            configNames.set(result.configuration.id, result.configuration.variationName);
+          }
+        });
+      }
+      
+      // Create tabs for each configuration
+      const tabs: ConfigurationTab[] = Array.from(configIds).map(configId => {
+        const configLogs = [...logs, ...unseenLogs].filter(log => log.configurationId === configId);
+        return {
+          id: configId,
+          name: configNames.get(configId) || `Config ${configId.slice(-8)}`, // Use variation name or short ID
+          logCount: configLogs.length,
+        };
+      }).sort((a, b) => a.name.localeCompare(b.name));
+      
+      setConfigurationTabs(tabs);
+    };
+    
+    updateConfigurationTabs();
+  }, [logs, executionResult]);
 
   // Generate incremental simulated logs
   const generateNewSimulatedLogs = useCallback((currentProgress: number): ExecutionLog[] => {
@@ -284,27 +349,24 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
       } else {
         // This is a real execution ID, try to get actual logs
         try {
-          const response = await goGentAPI.getExecutionLogs(100, 0);
+          const response = await goGentAPI.getExecutionLogsByRun(executionId);
           
-          if (response.success && response.data?.rows) {
-            const newLogs = response.data.rows
-              .filter((row: any[]) => {
-                const rowExecutionId = row[1];
-                const logId = row[0];
-                return rowExecutionId === executionId && !seenLogIds.has(logId);
-              })
-              .map((row: any[]) => ({
-                id: row[0] || `log-${Date.now()}-${Math.random()}`,
-                executionRunId: row[1] || executionId,
-                configurationId: row[2] || '',
-                requestId: row[3] || '',
-                logLevel: (row[4] || 'info') as any,
-                logCategory: (row[5] || 'execution') as any,
-                message: row[6] || 'Unknown log message',
-                details: row[7] || {},
-                timestamp: new Date(row[8] || Date.now()),
-                sequenceNumber: row[9] || 0,
-                durationMs: row[10] || 0,
+          if (response.success && response.data) {
+            // Convert response to expected format and filter for new logs
+            const newLogs = response.data
+              .filter((log: ExecutionLog) => !seenLogIds.has(log.id))
+              .map((log: ExecutionLog) => ({
+                id: log.id,
+                executionRunId: log.executionRunId,
+                configurationId: log.configurationId || '',
+                requestId: log.requestId || '',
+                logLevel: log.logLevel,
+                logCategory: log.logCategory,
+                message: log.message,
+                details: log.details || {},
+                timestamp: new Date(log.timestamp),
+                sequenceNumber: log.sequenceNumber || 0,
+                durationMs: log.durationMs || 0,
               }));
 
             if (newLogs.length > 0) {
@@ -327,82 +389,6 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
     }
   }, [executionId, isExecuting, progress, maxProgress, generateNewSimulatedLogs, addNewLogs]);
 
-  // Fetch live flow data during execution
-  const fetchLiveFlow = useCallback(async () => {
-    if (!isExecuting || !executionId) return;
-
-    try {
-      setIsLoadingFlow(true);
-      setError(null);
-
-      if (executionId.startsWith('exec-')) {
-        // For temporary IDs, create simulated flow data
-        const simulatedFlow = {
-          nodes: [
-            {
-              id: 'start',
-              type: 'input',
-              data: { label: '🚀 Execution Started', status: 'completed' },
-              position: { x: 100, y: 50 },
-            },
-            {
-              id: 'processing',
-              type: 'default',
-              data: { 
-                label: `🔄 Processing (${progress}/${maxProgress})`, 
-                status: progress < maxProgress ? 'running' : 'completed' 
-              },
-              position: { x: 100, y: 150 },
-            },
-          ],
-          edges: [
-            {
-              id: 'start-processing',
-              source: 'start',
-              target: 'processing',
-              type: 'smoothstep',
-            },
-          ],
-        };
-
-        if (progress >= maxProgress * 0.8) {
-          simulatedFlow.nodes.push({
-            id: 'completion',
-            type: 'output',
-            data: { label: '✅ Completing', status: 'running' },
-            position: { x: 100, y: 250 },
-          });
-          simulatedFlow.edges.push({
-            id: 'processing-completion',
-            source: 'processing',
-            target: 'completion',
-            type: 'smoothstep',
-          });
-        }
-
-        setFlowData(simulatedFlow);
-      } else {
-        // Try to fetch real flow data
-        try {
-          const response = await goGentAPI.getExecutionFlow(executionId);
-          if (response.success && response.data) {
-            setFlowData(response.data);
-          }
-        } catch (apiErr) {
-          console.warn('Failed to fetch real execution flow:', apiErr);
-        }
-      }
-
-    } catch (err: any) {
-      console.warn('Failed to fetch live flow:', err);
-      if (!executionId.startsWith('exec-')) {
-        setError(err.message);
-      }
-    } finally {
-      setIsLoadingFlow(false);
-    }
-  }, [executionId, isExecuting, progress, maxProgress]);
-
   // Set up live refresh intervals
   useEffect(() => {
     if (isExecuting && autoRefresh) {
@@ -410,18 +396,12 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
       
       // Fetch initial data immediately
       fetchLiveLogs();
-      fetchLiveFlow();
 
       // Set up intervals for live updates
       logsIntervalRef.current = setInterval(() => {
         console.log('🔄 Refreshing logs for:', executionId);
         fetchLiveLogs();
       }, 3000); // Every 3 seconds
-      
-      flowIntervalRef.current = setInterval(() => {
-        console.log('🔄 Refreshing flow for:', executionId);
-        fetchLiveFlow();
-      }, 5000); // Every 5 seconds
     }
 
     return () => {
@@ -429,23 +409,21 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
         clearInterval(logsIntervalRef.current);
         logsIntervalRef.current = null;
       }
-      if (flowIntervalRef.current) {
-        clearInterval(flowIntervalRef.current);
-        flowIntervalRef.current = null;
-      }
     };
-  }, [isExecuting, autoRefresh, executionId, fetchLiveLogs, fetchLiveFlow]);
+  }, [isExecuting, autoRefresh, executionId, fetchLiveLogs]);
 
   // Manual refresh
   const handleRefresh = useCallback(() => {
     console.log('🔄 Manual refresh triggered for:', executionId);
     fetchLiveLogs();
-    fetchLiveFlow();
-  }, [fetchLiveLogs, fetchLiveFlow]);
+  }, [fetchLiveLogs]);
 
   // Clear logs when execution changes
   useEffect(() => {
     setLogs([]);
+    setLogsByConfiguration({});
+    setConfigurationTabs([]);
+    setActiveConfigTab('all');
     seenLogIds.clear();
     lastProgressRef.current = 0;
   }, [executionId]);
@@ -530,6 +508,80 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
     </View>
   );
 
+  const renderConfigurationTabs = () => {
+    if (configurationTabs.length === 0) return null;
+
+    const allLogsCount = logs.length;
+    
+    return (
+      <View style={styles.configTabsContainer}>
+        <Text style={styles.configTabsTitle}>📋 Logs by Configuration</Text>
+        <View style={styles.configTabsScroll}>
+          {/* All logs tab */}
+          <TouchableOpacity
+            style={[
+              styles.configTab,
+              activeConfigTab === 'all' && styles.activeConfigTab
+            ]}
+            onPress={() => setActiveConfigTab('all')}
+          >
+            <View style={styles.configTabContent}>
+              <Text style={[
+                styles.configTabText,
+                activeConfigTab === 'all' && styles.activeConfigTabText
+              ]}>
+                All
+              </Text>
+              <View style={[
+                styles.configTabBadge,
+                activeConfigTab === 'all' && styles.activeConfigTabBadge
+              ]}>
+                <Text style={[
+                  styles.configTabBadgeText,
+                  activeConfigTab === 'all' && styles.activeConfigTabBadgeText
+                ]}>
+                  {allLogsCount}
+                </Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          {/* Configuration-specific tabs */}
+          {configurationTabs.map((tab) => (
+            <TouchableOpacity
+              key={tab.id}
+              style={[
+                styles.configTab,
+                activeConfigTab === tab.id && styles.activeConfigTab
+              ]}
+              onPress={() => setActiveConfigTab(tab.id)}
+            >
+              <View style={styles.configTabContent}>
+                <Text style={[
+                  styles.configTabText,
+                  activeConfigTab === tab.id && styles.activeConfigTabText
+                ]}>
+                  {tab.name}
+                </Text>
+                <View style={[
+                  styles.configTabBadge,
+                  activeConfigTab === tab.id && styles.activeConfigTabBadge
+                ]}>
+                  <Text style={[
+                    styles.configTabBadgeText,
+                    activeConfigTab === tab.id && styles.activeConfigTabBadgeText
+                  ]}>
+                    {tab.logCount}
+                  </Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
   const renderProgressHeader = () => {
     const isTemporaryId = executionId.startsWith('exec-');
     
@@ -580,39 +632,58 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
     );
   };
 
-  const renderLogs = () => (
-    <View style={styles.logsContainer}>
-      <View style={styles.logsHeader}>
-        <Text style={styles.logsTitle}>📋 Live Execution Logs</Text>
-        <View style={styles.logsStats}>
-          <Text style={styles.logsCount}>{logs.length} entries</Text>
-          {isLoadingLogs && <ActivityIndicator size="small" color="#007AFF" />}
+  const renderLogs = () => {
+    // Filter logs based on active configuration tab
+    const filteredLogs = activeConfigTab === 'all' 
+      ? logs 
+      : logs.filter(log => log.configurationId === activeConfigTab);
+    
+    return (
+      <View style={styles.logsContainer}>
+        <View style={styles.logsHeader}>
+          <Text style={styles.logsTitle}>
+            📋 Live Execution Logs
+            {activeConfigTab !== 'all' && (
+              <Text style={styles.logsConfigIndicator}>
+                {' '}• {configurationTabs.find(tab => tab.id === activeConfigTab)?.name || 'Unknown Config'}
+              </Text>
+            )}
+          </Text>
+          <View style={styles.logsStats}>
+            <Text style={styles.logsCount}>{filteredLogs.length} entries</Text>
+            {isLoadingLogs && <ActivityIndicator size="small" color="#007AFF" />}
+          </View>
         </View>
+        
+        <FlatList 
+          ref={flatListRef}
+          data={filteredLogs}
+          renderItem={({ item, index }) => <AnimatedLogItem log={item} index={index} />}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={filteredLogs.length === 0 ? styles.emptyListContainer : styles.logsScrollView}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={isLoadingLogs} onRefresh={handleRefresh} />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Ionicons name="hourglass-outline" size={48} color="#8E8E93" />
+              <Text style={styles.emptyStateText}>
+                {activeConfigTab === 'all' 
+                  ? 'Waiting for execution logs...' 
+                  : `No logs found for ${configurationTabs.find(tab => tab.id === activeConfigTab)?.name || 'this configuration'}...`
+                }
+              </Text>
+            </View>
+          }
+          maintainVisibleContentPosition={{
+            minIndexForVisible: 0,
+            autoscrollToTopThreshold: 10,
+          }}
+        />
       </View>
-      
-             <FlatList 
-         ref={flatListRef}
-         data={logs}
-         renderItem={({ item, index }) => <AnimatedLogItem log={item} index={index} />}
-         keyExtractor={(item) => item.id}
-         contentContainerStyle={logs.length === 0 ? styles.emptyListContainer : styles.logsScrollView}
-         showsVerticalScrollIndicator={false}
-         refreshControl={
-           <RefreshControl refreshing={isLoadingLogs} onRefresh={handleRefresh} />
-         }
-         ListEmptyComponent={
-           <View style={styles.emptyState}>
-             <Ionicons name="hourglass-outline" size={48} color="#8E8E93" />
-             <Text style={styles.emptyStateText}>Waiting for execution logs...</Text>
-           </View>
-         }
-         maintainVisibleContentPosition={{
-           minIndexForVisible: 0,
-           autoscrollToTopThreshold: 10,
-         }}
-       />
-    </View>
-  );
+    );
+  };
 
   const renderFlow = () => {
     const isTemporaryId = executionId.startsWith('exec-');
@@ -621,64 +692,94 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
       <View style={styles.flowContainer}>
         <View style={styles.flowHeader}>
           <Text style={styles.flowTitle}>🔄 Live Execution Flow</Text>
-          {isLoadingFlow && <ActivityIndicator size="small" color="#007AFF" />}
+          {/* ExecutionFlowGraph handles its own loading/error states */}
         </View>
         
         {isTemporaryId ? (
           // Show simulated flow for temporary IDs
           <ScrollView style={styles.simulatedFlowContainer}>
-            {flowData?.events?.map((event: any, index: number) => (
-              <View key={event.id} style={styles.simulatedFlowEvent}>
+            {/* Simulated flow based on current progress */}
+            <View style={styles.simulatedFlowEvent}>
+              <View style={styles.simulatedEventHeader}>
+                <View style={[
+                  styles.simulatedEventStatus,
+                  { backgroundColor: '#34C759' }
+                ]}>
+                  <Text style={styles.simulatedEventIcon}>🚀</Text>
+                </View>
+                <View style={styles.simulatedEventContent}>
+                  <Text style={styles.simulatedEventType}>EXECUTION STARTED</Text>
+                  <Text style={styles.simulatedEventMessage}>Initializing AI models...</Text>
+                  <Text style={styles.simulatedEventStatusText}>Status: COMPLETED</Text>
+                </View>
+              </View>
+              <View style={styles.simulatedEventConnector} />
+            </View>
+
+            <View style={styles.simulatedFlowEvent}>
+              <View style={styles.simulatedEventHeader}>
+                <View style={[
+                  styles.simulatedEventStatus,
+                  { backgroundColor: progress < maxProgress ? '#FF9500' : '#34C759' }
+                ]}>
+                  <Text style={styles.simulatedEventIcon}>🤖</Text>
+                </View>
+                <View style={styles.simulatedEventContent}>
+                  <Text style={styles.simulatedEventType}>AI MODEL PROCESSING</Text>
+                  <Text style={styles.simulatedEventMessage}>
+                    Processing step {progress} of {maxProgress}...
+                  </Text>
+                  <Text style={styles.simulatedEventStatusText}>
+                    Status: {progress < maxProgress ? 'RUNNING' : 'COMPLETED'}
+                  </Text>
+                </View>
+              </View>
+              {progress >= maxProgress * 0.8 && (
+                <View style={styles.simulatedEventConnector} />
+              )}
+            </View>
+
+            {progress >= maxProgress * 0.8 && (
+              <View style={styles.simulatedFlowEvent}>
                 <View style={styles.simulatedEventHeader}>
                   <View style={[
                     styles.simulatedEventStatus,
-                    { backgroundColor: event.status === 'success' ? '#34C759' : event.status === 'pending' ? '#FF9500' : '#8E8E93' }
+                    { backgroundColor: progress >= maxProgress ? '#34C759' : '#FF9500' }
                   ]}>
-                    <Text style={styles.simulatedEventIcon}>
-                      {event.eventType === 'prompt_start' ? '🚀' : 
-                       event.eventType === 'ai_model_call' ? '🤖' : 
-                       event.eventType === 'ai_response' ? '💬' : '📝'}
-                    </Text>
+                    <Text style={styles.simulatedEventIcon}>✅</Text>
                   </View>
                   <View style={styles.simulatedEventContent}>
-                    <Text style={styles.simulatedEventType}>
-                      {event.eventType.replace('_', ' ').toUpperCase()}
-                    </Text>
+                    <Text style={styles.simulatedEventType}>COMPLETION</Text>
                     <Text style={styles.simulatedEventMessage}>
-                      {event.eventData?.message || 'Processing...'}
+                      {progress >= maxProgress ? 'Execution completed successfully!' : 'Finalizing results...'}
                     </Text>
-                                         <Text style={styles.simulatedEventStatusText}>
-                       Status: {event.status.toUpperCase()}
-                     </Text>
-                  </View>
-                </View>
-                {index < (flowData?.events?.length || 0) - 1 && (
-                  <View style={styles.simulatedEventConnector} />
-                )}
-              </View>
-            ))}
-            
-            {flowData?.stats && (
-              <View style={styles.simulatedStatsContainer}>
-                <Text style={styles.simulatedStatsTitle}>📊 Live Statistics</Text>
-                <View style={styles.simulatedStatsGrid}>
-                  <View style={styles.simulatedStatItem}>
-                    <Text style={styles.simulatedStatValue}>{flowData.stats.totalAIModelCalls}</Text>
-                    <Text style={styles.simulatedStatLabel}>AI Calls</Text>
-                  </View>
-                  <View style={styles.simulatedStatItem}>
-                    <Text style={styles.simulatedStatValue}>{Math.round(flowData.stats.totalExecutionTimeMs / 1000)}s</Text>
-                    <Text style={styles.simulatedStatLabel}>Runtime</Text>
-                  </View>
-                  <View style={styles.simulatedStatItem}>
-                    <Text style={styles.simulatedStatValue}>{flowData.stats.totalErrors}</Text>
-                    <Text style={styles.simulatedStatLabel}>Errors</Text>
+                    <Text style={styles.simulatedEventStatusText}>
+                      Status: {progress >= maxProgress ? 'COMPLETED' : 'RUNNING'}
+                    </Text>
                   </View>
                 </View>
               </View>
             )}
-            
-            {(!flowData || !flowData.events || flowData.events.length === 0) && (
+
+            <View style={styles.simulatedStatsContainer}>
+              <Text style={styles.simulatedStatsTitle}>📊 Live Statistics</Text>
+              <View style={styles.simulatedStatsGrid}>
+                <View style={styles.simulatedStatItem}>
+                  <Text style={styles.simulatedStatValue}>{Math.max(1, Math.floor(progress / 2))}</Text>
+                  <Text style={styles.simulatedStatLabel}>AI Calls</Text>
+                </View>
+                <View style={styles.simulatedStatItem}>
+                  <Text style={styles.simulatedStatValue}>{Math.floor(progress * 0.8)}s</Text>
+                  <Text style={styles.simulatedStatLabel}>Runtime</Text>
+                </View>
+                <View style={styles.simulatedStatItem}>
+                  <Text style={styles.simulatedStatValue}>0</Text>
+                  <Text style={styles.simulatedStatLabel}>Errors</Text>
+                </View>
+              </View>
+            </View>
+
+            {progress === 0 && (
               <View style={styles.emptyState}>
                 <Ionicons name="git-network-outline" size={48} color="#8E8E93" />
                 <Text style={styles.emptyStateText}>Building execution flow...</Text>
@@ -686,19 +787,12 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
             )}
           </ScrollView>
         ) : (
-          // Show real ExecutionFlowGraph for real IDs
-          flowData ? (
-            <ExecutionFlowGraph
-              executionRunId={executionId}
-              visible={true}
-              onClose={() => {}} // No close in live view
-            />
-          ) : (
-            <View style={styles.emptyState}>
-              <Ionicons name="git-network-outline" size={48} color="#8E8E93" />
-              <Text style={styles.emptyStateText}>Loading execution flow...</Text>
-            </View>
-          )
+          // Show real ExecutionFlowGraph for real IDs - it handles its own loading/error states
+          <ExecutionFlowGraph
+            executionRunId={executionId}
+            visible={true}
+            onClose={() => {}} // No close in live view
+          />
         )}
       </View>
     );
@@ -706,8 +800,9 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
 
   return (
     <View style={styles.container}>
-      {renderProgressHeader()}
       {renderViewModeSelector()}
+      {renderConfigurationTabs()}
+      {renderProgressHeader()}
       
       {error && (
         <View style={styles.errorBanner}>
@@ -899,6 +994,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1A1A1A',
   },
+  logsConfigIndicator: {
+    fontSize: 14,
+    color: '#6B6B6B',
+    fontWeight: '500',
+  },
   logsStats: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1086,6 +1186,71 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     textAlign: 'center',
     marginTop: 2,
+  },
+  // Configuration tabs styles
+  configTabsContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: '#F8F9FA',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+  },
+  configTabsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 8,
+  },
+  configTabsScroll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 4,
+  },
+  configTab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    backgroundColor: '#FFFFFF',
+  },
+  activeConfigTab: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  configTabContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  configTabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
+  activeConfigTabText: {
+    color: '#FFFFFF',
+  },
+  configTabBadge: {
+    backgroundColor: '#007AFF',
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  activeConfigTabBadge: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#FFFFFF',
+  },
+  configTabBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  activeConfigTabBadgeText: {
+    color: '#007AFF',
   },
 });
 

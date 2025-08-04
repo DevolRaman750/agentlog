@@ -181,7 +181,21 @@ const HistoryScreen: React.FC = () => {
         // Extract function tools from the execution run data more comprehensively
         const functionTools: any[] = [];
         if (results && results.length > 0) {
-          // Look for function calls in the responses to determine what functions were used
+          // PRIORITY 1: Look for function tools in the configuration (stored from original execution)
+          if (results[0].configuration && results[0].configuration.tools && results[0].configuration.tools.length > 0) {
+            results[0].configuration.tools.forEach((tool: any) => {
+              if (!functionTools.find(t => t.name === tool.name)) {
+                functionTools.push({
+                  name: tool.name,
+                  description: tool.description || `${tool.name} function`,
+                  parameters: tool.parameters || {}
+                });
+                console.log(`✅ Added function tool from configuration: ${tool.name}`);
+              }
+            });
+          }
+          
+          // PRIORITY 2: Look for function calls in the responses as fallback
           results.forEach(result => {
             if (result.functionCalls && result.functionCalls.length > 0) {
               result.functionCalls.forEach(functionCall => {
@@ -193,7 +207,7 @@ const HistoryScreen: React.FC = () => {
                     description: `${funcName} function`,
                     parameters: {}
                   });
-                  console.log(`✅ Added function tool: ${funcName}`);
+                  console.log(`✅ Added function tool from function call: ${funcName}`);
                 }
               });
             }
@@ -823,6 +837,20 @@ const HistoryScreen: React.FC = () => {
             // Extract function tools from the execution data
             const functionTools: any[] = [];
             if (selectedRun.results && selectedRun.results.length > 0) {
+              // PRIORITY 1: Look for function tools in the configuration (stored from original execution)
+              if (selectedRun.results[0].configuration && selectedRun.results[0].configuration.tools && selectedRun.results[0].configuration.tools.length > 0) {
+                selectedRun.results[0].configuration.tools.forEach((tool: any) => {
+                  if (!functionTools.find(t => t.name === tool.name)) {
+                    functionTools.push({
+                      name: tool.name,
+                      description: tool.description || `${tool.name} function`,
+                      parameters: tool.parameters || {}
+                    });
+                  }
+                });
+              }
+              
+              // PRIORITY 2: Look for function calls in the responses as fallback
               selectedRun.results.forEach(result => {
                 if (result.functionCalls && result.functionCalls.length > 0) {
                   result.functionCalls.forEach(functionCall => {

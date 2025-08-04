@@ -264,6 +264,22 @@ class GoGentAPI {
     }
   }
 
+  // Get all execution logs for a specific execution run (across all configurations)
+  async getExecutionLogsByRun(executionRunId: string): Promise<ApiResponse<ExecutionLog[]>> {
+    try {
+      const response: AxiosResponse<ExecutionLog[]> = await this.api.get(`/api/execution-logs/${executionRunId}`);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to fetch execution logs by run',
+      };
+    }
+  }
+
   // Get execution flow graph filtered by configuration
   async getExecutionFlowGraphByConfiguration(executionRunId: string, configurationId: string): Promise<ApiResponse<any>> {
     try {

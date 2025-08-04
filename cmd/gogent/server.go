@@ -1934,7 +1934,7 @@ func runServer() {
 	http.HandleFunc("/api/execution-flow/", server.enableCORS(authMiddleware(server.executionFlowGraphHandler)))
 
 	// Configuration-specific logs and flow endpoints
-	http.HandleFunc("/api/execution-logs/", server.enableCORS(authMiddleware(server.executionLogsHandler)))
+	http.HandleFunc("/api/execution-logs/", server.enableCORS(authMiddleware(server.executionLogsRouter)))
 	http.HandleFunc("/api/execution-flow-by-config/", server.enableCORS(authMiddleware(server.executionFlowByConfigHandler)))
 
 	// Protected configuration management endpoints
@@ -2211,6 +2211,65 @@ func (s *Server) executionLogsHandler(w http.ResponseWriter, r *http.Request) {
 	logs, err := s.client.GetExecutionLogsByConfiguration(context.Background(), executionRunID, configurationID)
 	if err != nil {
 		log.Printf("❌ Failed to get execution logs by configuration: %v", err)
+		http.Error(w, fmt.Sprintf("Failed to get execution logs: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(logs)
+}
+
+// executionLogsAllHandler handles requests for ALL execution logs for a specific execution run ID
+func (s *Server) executionLogsAllHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Extract user ID for authorization
+	userID, err := s.getUserID(r)
+	if err != nil {
+		log.Printf("❌ Failed to get user ID from context for execution logs endpoint")
+		http.Error(w, "Unauthorized - user context not found", http.StatusUnauthorized)
+		return
+	}
+
+	// Extract execution run ID from URL path
+	// URL format: /api/execution-logs/{execution-run-id}
+	path := r.URL.Path
+	logsPrefix := "/api/execution-logs/"
+	if !strings.HasPrefix(path, logsPrefix) {
+		http.Error(w, "Invalid execution logs endpoint", http.StatusBadRequest)
+		return
+	}
+
+	executionRunID := path[len(logsPrefix):]
+	if executionRunID == "" {
+		http.Error(w, "Execution run ID required", http.StatusBadRequest)
+		return
+	}
+
+	// Check if this contains a slash (which means it's the config-specific endpoint)
+	if strings.Contains(executionRunID, "/") {
+		// This should be handled by executionLogsHandler, not this one
+		http.Error(w, "Invalid execution logs endpoint", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("🔍 Getting ALL execution logs for execution run: %s, user: %s", executionRunID, userID)
+
+	// First verify the execution run belongs to the user
+	_, err = s.client.GetExecutionRun(context.Background(), userID, executionRunID)
+	if err != nil {
+		log.Printf("❌ Execution run not found or access denied: %v", err)
+		http.Error(w, "Execution run not found or access denied", http.StatusNotFound)
+		return
+	}
+
+	// Get ALL execution logs for this execution run (across all configurations)
+	logs, err := s.client.GetExecutionLogsByRun(context.Background(), executionRunID)
+	if err != nil {
+		log.Printf("❌ Failed to get execution logs by run: %v", err)
 		http.Error(w, fmt.Sprintf("Failed to get execution logs: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -2888,5 +2947,28 @@ func (s *Server) createGenericMockExecutionResult(runID string) *types.Execution
 			AnalysisNotes:       fmt.Sprintf("Creative variation achieved faster response time for run: %s", runID),
 			CreatedAt:           now.Add(-2 * time.Hour),
 		},
+	}
+}
+
+// executionLogsRouter routes execution logs requests to the appropriate handler
+func (s *Server) executionLogsRouter(w http.ResponseWriter, r *http.Request) {
+	// Extract the path after /api/execution-logs/
+	path := r.URL.Path
+	logsPrefix := "/api/execution-logs/"
+	if !strings.HasPrefix(path, logsPrefix) {
+		http.Error(w, "Invalid execution logs endpoint", http.StatusBadRequest)
+		return
+	}
+
+	pathRemainder := path[len(logsPrefix):]
+
+	// If there's a slash in the remainder, it's {execution-run-id}/{configuration-id}
+	// If there's no slash, it's just {execution-run-id}
+	if strings.Contains(pathRemainder, "/") {
+		// Route to configuration-specific handler
+		s.executionLogsHandler(w, r)
+	} else {
+		// Route to all-logs handler
+		s.executionLogsAllHandler(w, r)
 	}
 }

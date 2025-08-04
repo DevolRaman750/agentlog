@@ -75,6 +75,8 @@ export interface ExecutionLog {
   message: string;
   details?: Record<string, any>;
   timestamp: Date;
+  sequenceNumber?: number;
+  durationMs?: number;
 }
 
 export interface VariationResult {

@@ -158,7 +158,7 @@ func (p *GeminiProvider) buildGeminiConversationHistory(request *ModelRequest) [
 	return history
 }
 
-// callGeminiWithTools makes API calls with function calling support
+// callGeminiWithTools makes API calls with function calling support using the existing sophisticated logic
 func (p *GeminiProvider) callGeminiWithTools(ctx context.Context, config *types.APIConfiguration, request *ModelRequest, conversationHistory []map[string]interface{}) (*ModelResponse, error) {
 	// Build full prompt with system prompt and context
 	fullPrompt := request.Prompt

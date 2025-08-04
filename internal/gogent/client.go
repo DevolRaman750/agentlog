@@ -491,7 +491,7 @@ func (c *Client) ExecuteMultiVariation(ctx context.Context, userID string, reque
 		}
 	}
 
-	// Store function-execution relationships for replay functionality
+	// Store function tools for replay functionality - these are available to ALL configurations
 	if request.EnableFunctionCalling && len(request.FunctionTools) > 0 {
 		err := c.storeFunctionExecutionConfigs(ctx, userID, executionRun.ID, request.FunctionTools)
 		if err != nil {
@@ -500,7 +500,7 @@ func (c *Client) ExecuteMultiVariation(ctx context.Context, userID string, reque
 			// Don't fail the entire execution, just log the warning
 		} else {
 			c.logExecutionEvent(types.LogLevelSuccess, types.LogCategorySetup,
-				"Function-execution relationships stored for replay", nil)
+				"Function tools stored - available to all configurations", nil)
 		}
 	}
 
@@ -687,7 +687,13 @@ func (c *Client) callGeminiAPI(ctx context.Context, config *types.APIConfigurati
 			c.sessionApiKeys.OpenRouterApiKey != "", c.sessionApiKeys.GeminiApiKey != "")
 	}
 
-	// Create the appropriate provider
+	// TEMPORARY FIX: For Gemini models, use the original working implementation instead of the broken provider
+	if providerType == "gemini" {
+		log.Printf("🔧 USING ORIGINAL GEMINI IMPLEMENTATION (bypassing broken provider)")
+		return c.callGeminiRestAPI(ctx, config, request)
+	}
+
+	// For non-Gemini models, use the provider pattern
 	provider, err := c.providerFactory.CreateProvider(ctx, config.ModelName, c.sessionApiKeys)
 	if err != nil {
 		log.Printf("❌ Failed to create %s provider: %v", providerType, err)
@@ -1027,6 +1033,12 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 	}
 
 	log.Printf("🔧 Complete Gemini API request body: %s", string(reqBodyBytes))
+	if len(config.Tools) > 0 {
+		log.Printf("🔧 DEBUG: Function calling enabled with %d tools and mode=ANY", len(config.Tools))
+		for i, tool := range config.Tools {
+			log.Printf("🔧 DEBUG: Tool %d - Name: %s, Description: %s", i+1, tool.Name, tool.Description)
+		}
+	}
 
 	// Make HTTP request to Gemini REST API
 	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent", config.ModelName)
@@ -1099,15 +1111,23 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 	if len(geminiResp.Candidates) > 0 {
 		candidate := geminiResp.Candidates[0]
 		finishReason = candidate.FinishReason
+		log.Printf("🔧 DEBUG: Candidate finish reason: %s", finishReason)
+		log.Printf("🔧 DEBUG: Candidate has %d parts", len(candidate.Content.Parts))
 
 		// First pass: collect all function calls and text responses (Gemini parallel function calling)
-		for _, part := range candidate.Content.Parts {
+		for i, part := range candidate.Content.Parts {
+			log.Printf("🔧 DEBUG: Part %d - Text: %q, FunctionCall: %q", i, part.Text, part.FunctionCall.Name)
 			if part.Text != "" {
 				responseText = part.Text
 			}
 			if part.FunctionCall.Name != "" {
 				allFunctionCalls = append(allFunctionCalls, part)
 			}
+		}
+
+		log.Printf("🔧 DEBUG: Found %d function calls in response", len(allFunctionCalls))
+		if len(config.Tools) > 0 && len(allFunctionCalls) == 0 {
+			log.Printf("⚠️ WARNING: Expected function calls but Gemini returned text-only response despite toolConfig mode=ANY")
 		}
 
 		// Process function calls - let Gemini decide parallel vs sequential
@@ -6025,6 +6045,95 @@ func (c *Client) storeFunctionExecutionConfigs(ctx context.Context, userID strin
 	return nil
 }
 
+// getCurrentRequestID returns the current request ID if available
+func (c *Client) getCurrentRequestID() string {
+	if c.currentRequestID == nil {
+		return ""
+	}
+	return *c.currentRequestID
+}
+
+// getUserIDFromExecutionRun fetches the user ID associated with an execution run
+func (c *Client) getUserIDFromExecutionRun(ctx context.Context, executionRunID string) (string, error) {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
+	// Query execution run to get user ID
+	query := `SELECT user_id FROM execution_runs WHERE id = ?`
+	var userID string
+	err := c.db.QueryRowContext(ctx, query, executionRunID).Scan(&userID)
+	if err != nil {
+		return "", fmt.Errorf("failed to get user ID from execution run %s: %w", executionRunID, err)
+	}
+
+	return userID, nil
+}
+
+// getFunctionCallsByRequestID retrieves function calls for a specific request
+func (c *Client) getFunctionCallsByRequestID(ctx context.Context, requestID string) ([]types.FunctionCall, error) {
+	query := `
+		SELECT id, request_id, function_name, function_arguments, function_response, 
+		       execution_status, error_details, created_at
+		FROM function_calls
+		WHERE request_id = ?
+		ORDER BY created_at ASC
+	`
+
+	rows, err := c.db.QueryContext(ctx, query, requestID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query function calls by request ID: %w", err)
+	}
+	defer rows.Close()
+
+	var functionCalls []types.FunctionCall
+	for rows.Next() {
+		var call types.FunctionCall
+		var functionArgs, functionResponse, errorDetails sql.NullString
+
+		err := rows.Scan(
+			&call.ID,
+			&call.RequestID,
+			&call.FunctionName,
+			&functionArgs,
+			&functionResponse,
+			&call.ExecutionStatus,
+			&errorDetails,
+			&call.CreatedAt,
+		)
+		if err != nil {
+			log.Printf("⚠️ Failed to scan function call: %v", err)
+			continue
+		}
+
+		// Handle nullable JSON fields
+		if functionArgs.Valid && functionArgs.String != "" {
+			var args map[string]interface{}
+			if err := json.Unmarshal([]byte(functionArgs.String), &args); err != nil {
+				log.Printf("⚠️ Failed to parse function args JSON for call %s: %v", call.ID, err)
+			} else {
+				call.FunctionArgs = args
+			}
+		}
+
+		if functionResponse.Valid && functionResponse.String != "" {
+			var response map[string]interface{}
+			if err := json.Unmarshal([]byte(functionResponse.String), &response); err != nil {
+				log.Printf("⚠️ Failed to parse function response JSON for call %s: %v", call.ID, err)
+			} else {
+				call.FunctionResponse = response
+			}
+		}
+
+		if errorDetails.Valid {
+			call.ErrorDetails = errorDetails.String
+		}
+
+		functionCalls = append(functionCalls, call)
+	}
+
+	return functionCalls, rows.Err()
+}
+
 // logExecutionEvent logs an execution event to the database and console
 func (c *Client) logExecutionEvent(level types.LogLevel, category types.LogCategory, message string, details map[string]interface{}) {
 	// Always log to console
@@ -6557,6 +6666,79 @@ func (c *Client) GetExecutionLogsByConfiguration(ctx context.Context, executionR
 	}
 
 	log.Printf("✅ Found %d execution logs for configuration %s", len(logs), configurationID)
+	return logs, nil
+}
+
+// GetExecutionLogsByRun retrieves ALL execution logs for a specific execution run ID (across all configurations)
+func (c *Client) GetExecutionLogsByRun(ctx context.Context, executionRunID string) ([]types.ExecutionLog, error) {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
+	log.Printf("🔍 Getting ALL execution logs for execution run: %s", executionRunID)
+
+	// Query database directly since we don't have a specific sqlc method for this
+	query := `
+		SELECT id, execution_run_id, configuration_id, request_id, log_level, log_category, 
+		       message, details, timestamp, sequence_number, duration_ms
+		FROM execution_logs 
+		WHERE execution_run_id = ?
+		ORDER BY sequence_number ASC, timestamp ASC
+	`
+
+	rows, err := c.db.QueryContext(ctx, query, executionRunID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query execution logs by run: %w", err)
+	}
+	defer rows.Close()
+
+	var logs []types.ExecutionLog
+	for rows.Next() {
+		var log types.ExecutionLog
+		var configurationID, requestID sql.NullString
+		var details sql.NullString
+		var sequenceNumber sql.NullInt32
+		var durationMs sql.NullInt64
+
+		err := rows.Scan(
+			&log.ID,
+			&log.ExecutionRunID,
+			&configurationID,
+			&requestID,
+			&log.LogLevel,
+			&log.LogCategory,
+			&log.Message,
+			&details,
+			&log.Timestamp,
+			&sequenceNumber,
+			&durationMs,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan execution log: %w", err)
+		}
+
+		if configurationID.Valid {
+			log.ConfigurationID = &configurationID.String
+		}
+		if requestID.Valid {
+			log.RequestID = &requestID.String
+		}
+		if sequenceNumber.Valid {
+			seqNum := int32(sequenceNumber.Int32)
+			log.SequenceNumber = &seqNum
+		}
+		if durationMs.Valid {
+			durMs := int32(durationMs.Int64)
+			log.DurationMs = &durMs
+		}
+
+		logs = append(logs, log)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate execution logs: %w", err)
+	}
+
+	log.Printf("✅ Found %d execution logs for execution run %s", len(logs), executionRunID)
 	return logs, nil
 }
 
