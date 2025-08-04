@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,8 @@ import {
   Platform,
   Switch,
   FlatList,
+  Alert,
+  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
@@ -48,14 +50,20 @@ interface TooltipProps {
   onClose: () => void;
 }
 
-const Tooltip: React.FC<TooltipProps> = ({ title, content, icon, visible, onClose }) => (
-  <Modal visible={visible} transparent animationType="fade">
+// Memoized Tooltip component for performance
+const Tooltip: React.FC<TooltipProps> = React.memo(({ title, content, icon, visible, onClose }) => (
+  <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
     <View style={styles.tooltipOverlay}>
       <View style={styles.tooltipContainer}>
         <View style={styles.tooltipHeader}>
           <Ionicons name={icon as any} size={24} color="#007AFF" />
           <Text style={styles.tooltipTitle}>{title}</Text>
-          <TouchableOpacity onPress={onClose} style={styles.tooltipClose}>
+          <TouchableOpacity 
+            onPress={onClose} 
+            style={styles.tooltipClose}
+            accessibilityLabel="Close tooltip"
+            accessibilityRole="button"
+          >
             <Ionicons name="close" size={20} color="#8E8E93" />
           </TouchableOpacity>
         </View>
@@ -63,13 +71,40 @@ const Tooltip: React.FC<TooltipProps> = ({ title, content, icon, visible, onClos
       </View>
     </View>
   </Modal>
-);
+));
 
 const TEMPLATE_VARIABLES = [
   '{{user_input}}',
   '{{context}}',
   '{{parameter_name}}',
 ];
+
+// Input sanitization utility
+const sanitizeInput = (input: string, maxLength: number = 1000): string => {
+  if (!input || typeof input !== 'string') return '';
+  return input.trim().slice(0, maxLength);
+};
+
+// Validation rules
+const VALIDATION_RULES = {
+  templateName: {
+    minLength: 2,
+    maxLength: 100,
+    pattern: /^[a-zA-Z0-9\s\-_\.]+$/,
+  },
+  description: {
+    maxLength: 500,
+  },
+  prompt: {
+    minLength: 10,
+    maxLength: 5000,
+  },
+  parameterName: {
+    minLength: 1,
+    maxLength: 50,
+    pattern: /^[a-zA-Z0-9_]+$/,
+  },
+};
 
 const TemplateForm: React.FC<TemplateFormProps> = ({
   template,
@@ -80,7 +115,11 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
   onSave,
   onClose,
 }) => {
-  // Form state
+  // Refs for cleanup and focus management
+  const scrollViewRef = useRef<ScrollView>(null);
+  const isMountedRef = useRef(true);
+
+  // Form state with better initial values
   const [formData, setFormData] = useState<TemplateFormData>({
     name: '',
     description: '',
@@ -102,81 +141,173 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [showTooltip, setShowTooltip] = useState<string>('');
 
-  // Initialize form with template data
+  // Cleanup on unmount
   useEffect(() => {
-    if (template) {
-      setFormData({
-        name: template.name || '',
-        description: template.description || '',
-        prompt: template.prompt || template.templatePrompt || '',
-        context: template.context || template.contextTemplate || '',
-        enableFunctionCalling: template.enableFunctionCalling || false,
-        tags: Array.isArray(template.tags) ? template.tags.join(', ') : '',
-        modelName: template.modelName || 'gemini-1.5-flash',
-      });
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
-      if (template.parameters) {
-        setParameters(template.parameters.map(p => ({
-          name: p.name,
-          type: p.type || 'text',
-          description: p.description || '',
-          defaultValue: p.defaultValue || '',
-          isRequired: p.isRequired || false,
-          options: p.options || [],
-        })));
+  // Initialize form with template data (optimized with useMemo)
+  const initialFormData = useMemo(() => {
+    if (!template) return null;
+    
+    return {
+      name: sanitizeInput(template.name || '', VALIDATION_RULES.templateName.maxLength),
+      description: sanitizeInput(template.description || '', VALIDATION_RULES.description.maxLength),
+      prompt: sanitizeInput((template.prompt || template.templatePrompt || ''), VALIDATION_RULES.prompt.maxLength),
+      context: sanitizeInput((template.context || template.contextTemplate || '')),
+      enableFunctionCalling: Boolean(template.enableFunctionCalling),
+      tags: Array.isArray(template.tags) ? template.tags.join(', ') : '',
+      modelName: template.modelName || 'gemini-1.5-flash',
+    };
+  }, [template]);
+
+  // Initialize form when template changes
+  useEffect(() => {
+    if (initialFormData) {
+      setFormData(initialFormData);
+      
+      if (template?.parameters) {
+        const sanitizedParams = template.parameters.map(p => ({
+          name: sanitizeInput(p.name, VALIDATION_RULES.parameterName.maxLength),
+          parameterType: p.parameterType || p.type || 'text',
+          type: p.type || p.parameterType || 'text',
+          description: sanitizeInput(p.description || ''),
+          defaultValue: sanitizeInput(p.defaultValue || ''),
+          isRequired: Boolean(p.isRequired),
+          options: Array.isArray(p.options) ? p.options : [],
+        }));
+        setParameters(sanitizedParams);
       }
 
-      if (template.functionIds) {
+      if (template?.functionIds) {
         setSelectedFunctions(template.functionIds);
       }
     }
-  }, [template]);
+  }, [initialFormData, template]);
 
+  // Enhanced validation with detailed error messages
   const validateForm = useCallback((): ValidationError[] => {
     const newErrors: ValidationError[] = [];
     
-    if (!formData.name.trim()) {
+    // Template name validation
+    const trimmedName = formData.name.trim();
+    if (!trimmedName) {
       newErrors.push({ field: 'name', message: 'Template name is required' });
+    } else if (trimmedName.length < VALIDATION_RULES.templateName.minLength) {
+      newErrors.push({ field: 'name', message: `Template name must be at least ${VALIDATION_RULES.templateName.minLength} characters` });
+    } else if (trimmedName.length > VALIDATION_RULES.templateName.maxLength) {
+      newErrors.push({ field: 'name', message: `Template name must be less than ${VALIDATION_RULES.templateName.maxLength} characters` });
+    } else if (!VALIDATION_RULES.templateName.pattern.test(trimmedName)) {
+      newErrors.push({ field: 'name', message: 'Template name can only contain letters, numbers, spaces, hyphens, underscores, and periods' });
     }
     
-    if (!formData.prompt.trim()) {
+    // Prompt validation
+    const trimmedPrompt = formData.prompt.trim();
+    if (!trimmedPrompt) {
       newErrors.push({ field: 'prompt', message: 'Template prompt is required' });
+    } else if (trimmedPrompt.length < VALIDATION_RULES.prompt.minLength) {
+      newErrors.push({ field: 'prompt', message: `Prompt must be at least ${VALIDATION_RULES.prompt.minLength} characters` });
+    } else if (trimmedPrompt.length > VALIDATION_RULES.prompt.maxLength) {
+      newErrors.push({ field: 'prompt', message: `Prompt must be less than ${VALIDATION_RULES.prompt.maxLength} characters` });
+    }
+
+    // Description validation
+    if (formData.description && formData.description.length > VALIDATION_RULES.description.maxLength) {
+      newErrors.push({ field: 'description', message: `Description must be less than ${VALIDATION_RULES.description.maxLength} characters` });
     }
     
-    // Validate parameters
+    // Parameter validation
     parameters.forEach((param, index) => {
-      if (!param.name.trim()) {
+      const trimmedParamName = param.name.trim();
+      if (!trimmedParamName) {
         newErrors.push({ field: `parameter_${index}_name`, message: `Parameter ${index + 1} name is required` });
+      } else if (!VALIDATION_RULES.parameterName.pattern.test(trimmedParamName)) {
+        newErrors.push({ field: `parameter_${index}_name`, message: `Parameter ${index + 1} name can only contain letters, numbers, and underscores` });
+      }
+      
+      // Check for duplicate parameter names
+      const duplicateIndex = parameters.findIndex((p, i) => i !== index && p.name.trim() === trimmedParamName);
+      if (duplicateIndex !== -1) {
+        newErrors.push({ field: `parameter_${index}_name`, message: `Parameter name "${trimmedParamName}" is already used` });
       }
     });
-    
-    return newErrors;
-  }, [formData, parameters]);
 
-  const handleSave = useCallback(async () => {
-    const validationErrors = validateForm();
-    setErrors(validationErrors);
-    
-    if (validationErrors.length > 0) {
-      return;
+    // Function calling validation
+    if (formData.enableFunctionCalling && selectedFunctions.length === 0) {
+      newErrors.push({ field: 'functions', message: 'Please select at least one function when function calling is enabled' });
     }
     
-    setSaving(true);
+    return newErrors;
+  }, [formData, parameters, selectedFunctions]);
+
+  // Enhanced save handler with better error handling
+  const handleSave = useCallback(async () => {
     try {
-      const success = await onSave(formData, parameters, selectedFunctions);
-      if (success) {
+      // Dismiss keyboard
+      Keyboard.dismiss();
+      
+      const validationErrors = validateForm();
+      setErrors(validationErrors);
+      
+      if (validationErrors.length > 0) {
+        // Scroll to first error
+        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+        
+        // Show error alert
+        Alert.alert(
+          'Validation Error',
+          validationErrors[0].message,
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+      
+      setSaving(true);
+      
+      // Sanitize form data before saving
+      const sanitizedFormData = {
+        ...formData,
+        name: sanitizeInput(formData.name, VALIDATION_RULES.templateName.maxLength),
+        description: sanitizeInput(formData.description, VALIDATION_RULES.description.maxLength),
+        prompt: sanitizeInput(formData.prompt, VALIDATION_RULES.prompt.maxLength),
+        context: sanitizeInput(formData.context),
+      };
+      
+      const sanitizedParameters = parameters.map(p => ({
+        ...p,
+        name: sanitizeInput(p.name, VALIDATION_RULES.parameterName.maxLength),
+        description: sanitizeInput(p.description || ''),
+        defaultValue: sanitizeInput(p.defaultValue || ''),
+      }));
+      
+      const success = await onSave(sanitizedFormData, sanitizedParameters, selectedFunctions);
+      
+      if (success && isMountedRef.current) {
         onClose();
       }
     } catch (error) {
       console.error('Error saving template:', error);
+      if (isMountedRef.current) {
+        Alert.alert(
+          'Save Error',
+          'An error occurred while saving the template. Please try again.',
+          [{ text: 'OK' }]
+        );
+      }
     } finally {
-      setSaving(false);
+      if (isMountedRef.current) {
+        setSaving(false);
+      }
     }
   }, [formData, parameters, selectedFunctions, onSave, onClose, validateForm]);
 
-  const addParameter = () => {
+  // Optimized parameter handlers
+  const addParameter = useCallback(() => {
     const newParam: Omit<TemplateParameter, 'id'> = {
       name: '',
+      parameterType: 'text',
       type: 'text',
       description: '',
       defaultValue: '',
@@ -184,19 +315,38 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
       options: [],
     };
 
-    setParameters([...parameters, newParam]);
-  };
+    setParameters(prev => [...prev, newParam]);
+  }, []);
 
-  const updateParameter = (index: number, field: keyof Omit<TemplateParameter, 'id'>, value: any) => {
-    const updated = [...parameters];
-    updated[index] = { ...updated[index], [field]: value };
-    setParameters(updated);
-  };
+  const updateParameter = useCallback((index: number, field: keyof Omit<TemplateParameter, 'id'>, value: any) => {
+    setParameters(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+    
+    // Clear related error
+    setErrors(prev => prev.filter(e => e.field !== `parameter_${index}_${field}`));
+  }, []);
 
-  const removeParameter = (index: number) => {
-    setParameters(parameters.filter((_, i) => i !== index));
-  };
+  const removeParameter = useCallback((index: number) => {
+    Alert.alert(
+      'Remove Parameter',
+      'Are you sure you want to remove this parameter?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Remove', 
+          style: 'destructive',
+          onPress: () => {
+            setParameters(prev => prev.filter((_, i) => i !== index));
+          }
+        },
+      ]
+    );
+  }, []);
 
+  // Optimized variable insertion
   const insertVariable = useCallback((variable: string, field: 'prompt' | 'context') => {
     setFormData(prev => ({
       ...prev,
@@ -204,17 +354,19 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
     }));
   }, []);
 
-  const updateFormData = (field: keyof TemplateFormData, value: any) => {
+  // Optimized form data updater
+  const updateFormData = useCallback((field: keyof TemplateFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     // Clear error for this field
     setErrors(prev => prev.filter(e => e.field !== field));
-  };
+  }, []);
 
-  const getFieldError = (field: string) => {
+  const getFieldError = useCallback((field: string) => {
     return errors.find(e => e.field === field)?.message;
-  };
+  }, [errors]);
 
-  const getModelInfo = (modelName: string) => {
+  // Memoized model info
+  const getModelInfo = useCallback((modelName: string) => {
     const model = GEMINI_MODELS.find(m => m.value === modelName);
     return {
       name: model?.label || modelName,
@@ -222,9 +374,10 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
       maxTokens: model?.maxTokens || 'Unknown',
       isRecommended: modelName === 'gemini-1.5-flash',
     };
-  };
+  }, []);
 
-  const tooltips = {
+  // Enhanced tooltips with better content
+  const tooltips = useMemo(() => ({
     overview: {
       title: "What is an Execution Template?",
       content: "Execution templates are reusable prompt frameworks that can be parameterized and called via API. They enable consistent, repeatable AI interactions with variable inputs and structured outputs.",
@@ -232,7 +385,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
     },
     name: {
       title: "Template Name",
-      content: "A descriptive name for your template. This will be displayed in lists and used when calling the template via API. Choose something memorable and descriptive.",
+      content: "A descriptive name for your template. This will be displayed in lists and used when calling the template via API. Choose something memorable and descriptive. Only letters, numbers, spaces, hyphens, underscores, and periods are allowed.",
       icon: "create"
     },
     description: {
@@ -242,7 +395,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
     },
     prompt: {
       title: "Main Prompt",
-      content: "The core AI instruction that will be executed. Use variables like {{user_input}} for dynamic content. This is the primary instruction that guides the AI's response.",
+      content: "The core AI instruction that will be executed. Use variables like {{user_input}} for dynamic content. This is the primary instruction that guides the AI's response. Minimum 10 characters required.",
       icon: "chatbox"
     },
     context: {
@@ -262,10 +415,10 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
     },
     parameters: {
       title: "Template Parameters",
-      content: "Define input variables that users can provide when executing this template. Parameters make templates flexible and reusable for different scenarios.",
+      content: "Define input variables that users can provide when executing this template. Parameters make templates flexible and reusable for different scenarios. Parameter names can only contain letters, numbers, and underscores.",
       icon: "options"
     }
-  };
+  }), []);
 
   const renderHeader = () => (
     <View style={styles.header}>
@@ -333,7 +486,6 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
             placeholder="Enter template name"
             style={[textInputStyles.base, getFieldError('name') && textInputStyles.error]}
             editable={!isViewMode}
-            multiline={false}
           />
           {getFieldError('name') && (
             <Text style={styles.errorText}>{getFieldError('name')}</Text>
@@ -354,8 +506,10 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
           placeholder="Describe what this template does and when to use it"
           style={[textInputStyles.base, styles.textArea]}
           editable={!isViewMode}
-          multiline={true}
         />
+        {getFieldError('description') && (
+          <Text style={styles.errorText}>{getFieldError('description')}</Text>
+        )}
       </View>
     </View>
   );
@@ -391,7 +545,6 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
         placeholder="Enter your template prompt. Use {{variables}} for dynamic content."
         style={[textInputStyles.base, styles.promptArea, getFieldError('prompt') && textInputStyles.error]}
         editable={!isViewMode}
-        multiline={true}
       />
       {getFieldError('prompt') && (
         <Text style={styles.errorText}>{getFieldError('prompt')}</Text>
@@ -430,7 +583,6 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
         placeholder="Additional context or system instructions (optional)"
         style={[textInputStyles.base, styles.promptArea]}
         editable={!isViewMode}
-        multiline={true}
       />
     </View>
   );
@@ -470,87 +622,80 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
     );
   };
 
-  const renderFunctionsSection = () => {
-    // Get selected function details for display
-    const selectedFunctionDetails = selectedFunctions.map(functionId => 
-      availableFunctions.find(func => func.id === functionId)
-    ).filter(Boolean);
+  const renderFunctionsSection = () => (
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <Ionicons name="extension-puzzle" size={20} color="#007AFF" />
+        <Text style={styles.sectionTitle}>Function Calling</Text>
+        <TouchableOpacity onPress={() => setShowTooltip('functions')}>
+          <Ionicons name="help-circle-outline" size={16} color="#007AFF" />
+        </TouchableOpacity>
+      </View>
 
-    return (
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Ionicons name="extension-puzzle" size={20} color="#007AFF" />
-          <Text style={styles.sectionTitle}>Function Calling</Text>
-          <TouchableOpacity onPress={() => setShowTooltip('functions')}>
-            <Ionicons name="help-circle-outline" size={16} color="#007AFF" />
-          </TouchableOpacity>
+      <View style={styles.switchContainer}>
+        <View style={styles.switchLabel}>
+          <Text style={styles.switchText}>Enable Function Calling</Text>
+          <Text style={styles.switchDescription}>
+            Allow AI to call external functions and APIs
+          </Text>
         </View>
+        <Switch
+          value={formData.enableFunctionCalling}
+          onValueChange={(value) => updateFormData('enableFunctionCalling', value)}
+          disabled={isViewMode}
+          trackColor={{ false: '#E1E5E9', true: '#007AFF' }}
+          thumbColor={Platform.OS === 'android' ? (formData.enableFunctionCalling ? '#FFFFFF' : '#F4F3F4') : ''}
+        />
+      </View>
 
-        <View style={styles.switchContainer}>
-          <View style={styles.switchLabel}>
-            <Text style={styles.switchText}>Enable Function Calling</Text>
-            <Text style={styles.switchDescription}>
-              Allow AI to call external functions and APIs
-            </Text>
-          </View>
-          <Switch
-            value={formData.enableFunctionCalling}
-            onValueChange={(value) => updateFormData('enableFunctionCalling', value)}
-            disabled={isViewMode}
-            trackColor={{ false: '#E1E5E9', true: '#007AFF' }}
-            thumbColor={Platform.OS === 'android' ? (formData.enableFunctionCalling ? '#FFFFFF' : '#F4F3F4') : ''}
-          />
-        </View>
-
-        {formData.enableFunctionCalling && (
-          <>
-            {/* Edit Mode: Show button to open selector */}
-            {!isViewMode && (
-              <TouchableOpacity
-                style={styles.functionsButton}
-                onPress={() => setShowFunctionSelector(true)}
-              >
-                <View style={styles.functionsContent}>
-                  <Text style={styles.functionsLabel}>
-                    Selected Functions ({selectedFunctions.length})
-                  </Text>
-                  <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
-                </View>
-              </TouchableOpacity>
-            )}
-
-            {/* View Mode: Show expanded function list */}
-            {isViewMode && (
-              <View style={styles.functionsViewContainer}>
-                <Text style={styles.functionsViewLabel}>
+      {formData.enableFunctionCalling && (
+        <>
+          {/* Edit Mode: Show button to open selector */}
+          {!isViewMode && (
+            <TouchableOpacity
+              style={styles.functionsButton}
+              onPress={() => setShowFunctionSelector(true)}
+            >
+              <View style={styles.functionsContent}>
+                <Text style={styles.functionsLabel}>
                   Selected Functions ({selectedFunctions.length})
                 </Text>
-                {selectedFunctionDetails.length > 0 ? (
-                  <View style={styles.functionsList}>
-                    {selectedFunctionDetails.map((func, index) => (
-                      <View key={func.id || index} style={styles.functionItem}>
-                        <View style={styles.functionItemHeader}>
-                          <Ionicons name="cube" size={16} color="#007AFF" />
-                          <Text style={styles.functionName}>{func.name}</Text>
-                        </View>
-                        {func.description && (
-                          <Text style={styles.functionDescription}>{func.description}</Text>
-                        )}
-                      </View>
-                    ))}
-                  </View>
-                ) : (
-                  <View style={styles.noFunctionsContainer}>
-                    <Text style={styles.noFunctionsText}>No functions selected</Text>
-                  </View>
-                )}
+                <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
               </View>
-            )}
-          </>
-        )}
-      </View>
-    );
-  };
+            </TouchableOpacity>
+          )}
+
+          {/* View Mode: Show expanded function list */}
+          {isViewMode && (
+            <View style={styles.functionsViewContainer}>
+              <Text style={styles.functionsViewLabel}>
+                Selected Functions ({selectedFunctions.length})
+              </Text>
+              {selectedFunctionDetails.length > 0 ? (
+                <View style={styles.functionsList}>
+                  {selectedFunctionDetails.map((func, index) => func ? (
+                    <View key={func.id || index} style={styles.functionItem}>
+                      <View style={styles.functionItemHeader}>
+                        <Ionicons name="cube" size={16} color="#007AFF" />
+                        <Text style={styles.functionName}>{func.name}</Text>
+                      </View>
+                      {func.description && (
+                        <Text style={styles.functionDescription}>{func.description}</Text>
+                      )}
+                    </View>
+                  ) : null)}
+                </View>
+              ) : (
+                <View style={styles.noFunctionsContainer}>
+                  <Text style={styles.noFunctionsText}>No functions selected</Text>
+                </View>
+              )}
+            </View>
+          )}
+        </>
+      )}
+    </View>
+  );
 
   const renderParametersSection = () => (
     <View style={styles.section}>
@@ -584,8 +729,10 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
                 placeholder="parameter_name"
                 style={[textInputStyles.base, styles.parameterInput]}
                 editable={!isViewMode}
-                multiline={false}
               />
+              {getFieldError(`parameter_${index}_name`) && (
+                <Text style={styles.errorText}>{getFieldError(`parameter_${index}_name`)}</Text>
+              )}
             </View>
             <View style={styles.parameterField}>
               <Text style={styles.parameterFieldLabel}>Type</Text>
@@ -611,8 +758,10 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
             placeholder="Parameter description"
             style={[textInputStyles.base, styles.parameterInput]}
             editable={!isViewMode}
-            multiline={true}
           />
+          {getFieldError(`parameter_${index}_description`) && (
+            <Text style={styles.errorText}>{getFieldError(`parameter_${index}_description`)}</Text>
+          )}
         </View>
       ))}
 
@@ -683,11 +832,22 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
     </Modal>
   );
 
+  const selectedFunctionDetails = useMemo(() => {
+    return selectedFunctions.map(functionId => 
+      availableFunctions.find(func => func.id === functionId)
+    ).filter(Boolean);
+  }, [selectedFunctions, availableFunctions]);
+
   return (
     <SafeAreaView style={styles.container}>
       {renderHeader()}
       
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        ref={scrollViewRef} 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+      >
         {renderTemplateOverview()}
         {renderBasicInfo()}
         {renderPromptSection()}
@@ -706,7 +866,8 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
         onRequestClose={() => setShowFunctionSelector(false)}
       >
         <FunctionSelector
-          availableFunctions={availableFunctions}
+          visible={showFunctionSelector}
+          functions={availableFunctions}
           selectedFunctions={selectedFunctions}
           onSelectionChange={setSelectedFunctions}
           onClose={() => setShowFunctionSelector(false)}

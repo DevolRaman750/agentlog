@@ -185,6 +185,26 @@ const ExecutionTemplatesScreen: React.FC = () => {
     });
   };
 
+  const handleCopy = (template: ExecutionTemplate) => {
+    console.log('📋 Copying system template:', template.name);
+    
+    // Create a copy of the template with reset fields for user template
+    const copiedTemplate: ExecutionTemplate = {
+      ...template,
+      id: '', // Reset ID for new template
+      name: `${template.name} (Copy)`, // Add (Copy) suffix to name
+      userId: user?.id || '', // Set current user as owner
+      authTokens: [], // Reset auth tokens
+      createdAt: new Date().toISOString(), // Reset creation date
+      updatedAt: new Date().toISOString(), // Reset update date
+    };
+
+    setSelectedTemplate(copiedTemplate);
+    setIsEditMode(false);
+    setIsViewMode(false);
+    setShowCreateModal(true);
+  };
+
   const handleCreateNew = () => {
     setSelectedTemplate(null);
     setIsEditMode(false);
@@ -257,6 +277,7 @@ const ExecutionTemplatesScreen: React.FC = () => {
               onDelete={deleteTemplate}
               onExecute={handleTemplateExecute}
               onTokenManager={handleTokenManager}
+              onCopy={handleCopy}
             />
           ))
         )}

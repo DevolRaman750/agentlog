@@ -25,9 +25,11 @@ export interface TemplateParameter {
   parameterName?: string; // API field name
   description: string;
   parameterType: string;
+  type?: string; // Alias for parameterType for backward compatibility
   isRequired: boolean;
   defaultValue?: string;
   validationRules?: any;
+  options?: any[]; // For dropdown/select parameters
 }
 
 export interface AuthToken {

@@ -70,7 +70,7 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
     return 'document';
   };
 
-  const getToggleStatusIcon = (): string => {
+  const getToggleStatusIcon = () => {
     return agent.status === 'PAUSED' ? 'play' : 'pause';
   };
 

@@ -23,7 +23,7 @@ export interface ModelInfo {
   name: string;
   displayName: string;
   description: string;
-  category: 'gemini' | 'gpt' | 'claude' | 'other';
+  category: 'gemini' | 'gpt' | 'claude' | 'kimi' | 'other';
   isRecommended?: boolean;
   isNew?: boolean;
 }

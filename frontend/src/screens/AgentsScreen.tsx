@@ -358,7 +358,8 @@ const AgentsScreen: React.FC = () => {
     totalExecutions: 24,
     lastExecutionAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
     createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 1 week ago
-    updatedAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // 1 hour ago
+    updatedAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+    status: 'STANDBY'
   });
 
   const renderTeamSection = ({ item: teamGroup }: { item: TeamWithAgents }) => (

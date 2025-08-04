@@ -15,6 +15,7 @@ interface TemplateCardProps {
   onDelete: (templateId: string) => void;
   onExecute: (template: ExecutionTemplate) => void;
   onTokenManager: (template: ExecutionTemplate) => void;
+  onCopy?: (template: ExecutionTemplate) => void;
 }
 
 const TemplateCard: React.FC<TemplateCardProps> = ({
@@ -24,6 +25,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
   onDelete,
   onExecute,
   onTokenManager,
+  onCopy,
 }) => {
   // Detect system templates by userId
   const isSystem = template.userId === 'system';
@@ -62,6 +64,16 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
           >
             <Ionicons name="eye-outline" size={20} color="#007AFF" />
           </TouchableOpacity>
+          
+          {/* System template actions: Copy */}
+          {isSystem && onCopy && (
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => onCopy(template)}
+            >
+              <Ionicons name="copy-outline" size={20} color="#FF9500" />
+            </TouchableOpacity>
+          )}
           
           {/* User-only actions: Token Manager, Edit, Delete */}
           {!isSystem && (

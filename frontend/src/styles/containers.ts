@@ -148,6 +148,20 @@ export const shadowPresets = {
     shadowRadius: 2,
     elevation: 1,
   },
+  small: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  subtle: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
+  },
   medium: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -231,6 +245,16 @@ export const textInputStyles = StyleSheet.create({
     color: '#1A1A1A',
     borderWidth: 1,
     borderColor: '#E5E5EA',
+    ...webInputStyles,
+  },
+  error: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#1A1A1A',
+    borderWidth: 1,
+    borderColor: '#FF3B30',
     ...webInputStyles,
   },
 }); 

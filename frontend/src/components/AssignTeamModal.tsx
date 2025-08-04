@@ -44,7 +44,7 @@ const AssignTeamModal: React.FC<AssignTeamModalProps> = ({
     try {
       const response = await goGentAPI.getTeams();
       if (response.success) {
-        setTeams(response.data);
+        setTeams(response.data || []);
       } else {
         AlertAPI.alert('Error', 'Failed to load teams');
       }

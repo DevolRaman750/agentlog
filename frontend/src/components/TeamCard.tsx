@@ -40,7 +40,7 @@ const TeamCard: React.FC<TeamCardProps> = ({
     try {
       const response = await goGentAPI.pauseAllTeamAgents(team.id);
       if (response.success) {
-        AlertAPI.alert('Success', `Paused ${response.data.affectedCount} agents`);
+        AlertAPI.alert('Success', `Paused ${response.data?.affectedCount || 0} agents`);
         onTeamUpdate();
       } else {
         AlertAPI.alert('Error', response.error || 'Failed to pause team agents');
@@ -67,7 +67,7 @@ const TeamCard: React.FC<TeamCardProps> = ({
     try {
       const response = await goGentAPI.resumeAllTeamAgents(team.id);
       if (response.success) {
-        AlertAPI.alert('Success', `Resumed ${response.data.affectedCount} agents`);
+        AlertAPI.alert('Success', `Resumed ${response.data?.affectedCount || 0} agents`);
         onTeamUpdate();
       } else {
         AlertAPI.alert('Error', response.error || 'Failed to resume team agents');

@@ -25,6 +25,7 @@ import LoadingScreen from '../components/LoadingScreen';
 import JsonEditor from '../components/JsonEditor';
 import { AlertAPI } from '../components/CustomAlert';
 import { containerStyles, shadowPresets } from '../styles/containers';
+import GroupedFunctionList from '../components/GroupedFunctionList';
 
 const { width } = Dimensions.get('window');
 
@@ -164,6 +165,28 @@ const FunctionScreen: React.FC = () => {
         data
       }))
       .sort((a, b) => a.title.localeCompare(b.title)); // Sort sections alphabetically
+  }, [functions, searchQuery]);
+
+  // Create filtered functions for the GroupedFunctionList component
+  const filteredFunctions = useMemo(() => {
+    if (!functions || !Array.isArray(functions)) {
+      return [];
+    }
+    
+    // Filter functions based on search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      return functions.filter(func => {
+        if (!func) return false;
+        return (
+          func.displayName?.toLowerCase().includes(query) ||
+          func.description?.toLowerCase().includes(query) ||
+          func.name?.toLowerCase().includes(query)
+        );
+      });
+    }
+    
+    return functions;
   }, [functions, searchQuery]);
 
   const renderFunctionCard = ({ item }: { item: FunctionDefinition }) => {
@@ -315,24 +338,32 @@ const FunctionScreen: React.FC = () => {
         </View>
       </View>
       
-      <SectionList
-        sections={groupedFunctions}
-        renderItem={renderFunctionCard}
-        renderSectionHeader={renderSectionHeader}
-        keyExtractor={(item) => item.id}
-        ListHeaderComponent={renderHeader}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.listContainer, { paddingBottom: 100 }]}
-        ListEmptyComponent={() => (
-          <View style={styles.emptyState}>
-            <Ionicons name="code-outline" size={64} color="#C7C7CC" />
-            <Text style={styles.emptyStateText}>No functions found</Text>
-            <Text style={styles.emptyStateSubtext}>
-              {searchQuery ? 'Try adjusting your search terms' : 'Create your first function to get started'}
-            </Text>
-          </View>
-        )}
-        stickySectionHeadersEnabled={false}
+      <GroupedFunctionList
+        functions={filteredFunctions}
+        showEditActions={true}
+        onFunctionPress={(func) => setViewingFunction(func)}
+        onEdit={(func) => {
+          const ownership = getResourceOwnership(func, user?.id);
+          if (ownership.canEdit) {
+            setEditingFunction(func);
+          } else {
+            showWarning('Permission Denied', 'You cannot edit a system function.');
+          }
+        }}
+        onDelete={(functionId) => {
+          const func = functions.find(f => f.id === functionId);
+          if (func) {
+            const ownership = getResourceOwnership(func, user?.id);
+            if (ownership.canDelete) {
+              handleDeleteFunction(functionId);
+            } else {
+              showWarning('Permission Denied', 'You cannot delete a system function.');
+            }
+          }
+        }}
+        onTest={(func) => setTestingFunction(func)}
+        emptyMessage={searchQuery ? 'No functions match your search' : 'No functions found. Create your first function to get started.'}
+        style={{ flex: 1, paddingBottom: 100 }}
       />
       
       {/* Function Form Modal */}

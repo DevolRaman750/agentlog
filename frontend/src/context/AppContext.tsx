@@ -781,7 +781,7 @@ export function AppProvider({ children }: AppProviderProps) {
   }, []);
 
   const completeExecution = useCallback((executionResult: ExecutionResult) => {
-    console.log('✅ Execution completed:', executionResult.id);
+    console.log('✅ Execution completed:', executionResult.executionRun?.id || 'Unknown ID');
     dispatch({ 
       type: 'COMPLETE_EXECUTION', 
       payload: { executionResult } 

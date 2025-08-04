@@ -430,6 +430,7 @@ CREATE TABLE `function_definitions` (
   `name` varchar(100) NOT NULL,
   `display_name` varchar(100) NOT NULL,
   `function_group` varchar(100) NOT NULL DEFAULT 'general',
+  `function_type` varchar(20) NOT NULL DEFAULT 'api',
   `description` text,
   `parameters_schema` json,
   `mock_response` json,

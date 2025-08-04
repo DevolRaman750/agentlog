@@ -340,6 +340,7 @@ export interface FunctionDefinition {
   displayName: string;
   description: string;
   functionGroup: string; // Group functions by category (e.g., "graph", "weather", "github")
+  functionType: 'api' | 'mcp'; // Function type: API (REST/HTTP) or MCP (Model Context Protocol)
   parametersSchema: Record<string, any>;
   mockResponse?: Record<string, any>;
   endpointUrl?: string;
@@ -425,6 +426,7 @@ export interface Agent {
   maxTokensPerDay: number;
   heartbeatMinutes: number;
   lifecycleStatus: LifecycleStatus;
+  status: LifecycleStatus; // Alias for lifecycleStatus for backward compatibility
   tokensUsedToday: number;
   tokensResetDate: string;
   lastExecutionAt?: string;
@@ -507,12 +509,25 @@ export interface TeamStats {
   lastExecutionAt?: string;
 }
 
+export interface ExecutionFlowEvent {
+  id: string;
+  execution_run_id: string;
+  event_type: string;
+  event_data: any;
+  sequence_number: number;
+  timestamp: string;
+  related_event_id?: string;
+  duration_ms?: number;
+  createdAt: string;
+}
+
 export interface ExecutionTemplate {
   id: string;
   name: string;
   description?: string;
   userId?: string;
   isActive?: boolean;
+  isPublic?: boolean; // Whether the template is publicly available
   parameters?: any[];
   authTokens?: any[];
   tags?: string[];
