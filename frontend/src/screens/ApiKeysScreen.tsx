@@ -311,17 +311,24 @@ const ApiKeysScreen: React.FC = () => {
   const [showValue, setShowValue] = useState<Record<string, boolean>>({});
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     model: true,
-    weather: true,
-    graph: true,
-    github: true,
-    development: true,
+    weather: false,
+    graph: false,
+    github: false,
+    development: false,
   });
 
   const API_KEY_INFO = {
     geminiApiKey: {
-      displayName: 'Gemini AI API Key',
-      description: 'Required for all AI model interactions and function calling',
+      displayName: 'Gemini + API Key',
+      description: 'API key for Google Gemini model',
       placeholder: 'Enter your Google Gemini API key',
+      functions: ['All AI Functions'],
+      group: 'model',
+    },
+    kimiApiKey: {
+      displayName: 'Kimi + API Key', 
+      description: 'API key for Kimi K2 model',
+      placeholder: 'Enter your Kimi API key',
       functions: ['All AI Functions'],
       group: 'model',
     },

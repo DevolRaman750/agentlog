@@ -12,6 +12,7 @@ import { useToast } from '../context/ToastContext';
 
 const ConfigurationCard: React.FC<ConfigurationCardProps> = ({
   configuration,
+  onView,
   onEdit,
   onDelete,
   onDuplicate,
@@ -122,10 +123,22 @@ const ConfigurationCard: React.FC<ConfigurationCardProps> = ({
         </View>
         
         <View style={styles.actions}>
+          {/* Always show view button */}
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => onView(configuration)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="eye" size={16} color="#007AFF" />
+          </TouchableOpacity>
+
           {/* Always show duplicate button */}
           <TouchableOpacity
             style={styles.actionButton}
             onPress={handleDuplicate}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            activeOpacity={0.7}
           >
             <Ionicons name="copy" size={16} color="#007AFF" />
           </TouchableOpacity>
@@ -138,6 +151,8 @@ const ConfigurationCard: React.FC<ConfigurationCardProps> = ({
             ]}
             onPress={handleEdit}
             disabled={!ownership.canEdit}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            activeOpacity={0.7}
           >
             <Ionicons 
               name="pencil" 
@@ -154,6 +169,8 @@ const ConfigurationCard: React.FC<ConfigurationCardProps> = ({
             ]}
             onPress={handleDelete}
             disabled={!ownership.canDelete}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            activeOpacity={0.7}
           >
             <Ionicons 
               name="trash" 

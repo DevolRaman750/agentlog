@@ -27,6 +27,7 @@ const navigationItems: NavigationItem[] = [
   { name: 'API Keys', title: 'API Keys', icon: 'key-outline', iconFocused: 'key' },
   { name: 'History', title: 'History', icon: 'time-outline', iconFocused: 'time' },
   { name: 'Database', title: 'Database', icon: 'server-outline', iconFocused: 'server' },
+  { name: 'Agents', title: 'Agents', icon: 'construct-outline', iconFocused: 'construct' },
   { name: 'Account', title: 'Account', icon: 'person-circle-outline', iconFocused: 'person-circle' },
 ];
 
@@ -66,6 +67,7 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({ isSi
         'API Keys': '/api-keys',
         'History': '/history',
         'Database': '/database',
+        'Agents': '/agents',
         'Account': '/account',
       };
       
@@ -88,6 +90,8 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({ isSi
         <TouchableOpacity
           style={styles.hamburgerButton}
           onPress={() => setShowMobileMenu(true)}
+          activeOpacity={0.7}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="menu" size={24} color="#007AFF" />
         </TouchableOpacity>
@@ -110,6 +114,8 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({ isSi
             <TouchableOpacity
               style={styles.closeButton}
               onPress={() => setShowMobileMenu(false)}
+              activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons name="close" size={24} color="#8E8E93" />
             </TouchableOpacity>
@@ -200,9 +206,13 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   hamburgerButton: {
-    padding: 8,
+    padding: 10,
     borderRadius: 8,
     backgroundColor: '#F0F8FF',
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   mobileTitle: {
     fontSize: 18,
@@ -236,9 +246,13 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
   },
   closeButton: {
-    padding: 8,
+    padding: 10,
     borderRadius: 8,
     backgroundColor: '#F5F5F5',
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalContent: {
     flex: 1,

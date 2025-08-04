@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
 import { AlertAPI } from '../components/CustomAlert';
@@ -17,6 +18,7 @@ import { webInputStyles } from '../styles/containers';
 type AuthFlow = 'welcome' | 'account-info' | 'connect-email' | 'change-password' | 'login' | 'register';
 
 const AuthScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
   const { 
     user, 
     isAuthenticated, 
@@ -306,6 +308,38 @@ const AuthScreen: React.FC = () => {
             <Text style={[styles.infoValue, styles.passwordText]}>{tempPassword}</Text>
           </View>
         )}
+      </View>
+
+      {/* Quick Links Section */}
+      <View style={styles.quickLinksSection}>
+        <Text style={styles.quickLinksTitle}>Quick Access</Text>
+        <Text style={styles.quickLinksSubtitle}>Jump to the main features</Text>
+        
+        <View style={styles.quickLinksContainer}>
+          <TouchableOpacity
+            style={styles.quickLinkButton}
+            onPress={() => navigation.navigate('Execute')}
+          >
+            <View style={styles.quickLinkContent}>
+              <Ionicons name="play-circle" size={24} color="#007AFF" />
+              <Text style={styles.quickLinkTitle}>Execute</Text>
+              <Text style={styles.quickLinkDescription}>Run prompts and execute tasks</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.quickLinkButton}
+            onPress={() => navigation.navigate('Agents')}
+          >
+            <View style={styles.quickLinkContent}>
+              <Ionicons name="construct" size={24} color="#007AFF" />
+              <Text style={styles.quickLinkTitle}>Agents</Text>
+              <Text style={styles.quickLinkDescription}>Manage your AI agents</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.actionsSection}>
@@ -964,6 +998,58 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#666',
     textAlign: 'center',
+  },
+  // Quick Links Styles
+  quickLinksSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  quickLinksTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 4,
+  },
+  quickLinksSubtitle: {
+    fontSize: 14,
+    color: '#8E8E93',
+    marginBottom: 16,
+  },
+  quickLinksContainer: {
+    gap: 12,
+  },
+  quickLinkButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E1E5E9',
+  },
+  quickLinkContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  quickLinkTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    flex: 1,
+  },
+  quickLinkDescription: {
+    fontSize: 12,
+    color: '#8E8E93',
+    flex: 2,
   },
 });
 

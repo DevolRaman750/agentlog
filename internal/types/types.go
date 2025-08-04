@@ -599,6 +599,66 @@ type RateLimitWindow struct {
 	UpdatedAt            time.Time  `json:"updatedAt"`
 }
 
+// LifecycleStatus represents the lifecycle status of an agent
+type LifecycleStatus string
+
+const (
+	LifecycleStatusStandby LifecycleStatus = "STANDBY" // Alive but won't perform actions, will only log
+	LifecycleStatusActive  LifecycleStatus = "ACTIVE"  // Fully operational
+	LifecycleStatusPaused  LifecycleStatus = "PAUSED"  // Temporarily stopped
+	LifecycleStatusKilled  LifecycleStatus = "KILLED"  // Permanently disabled (cannot revive)
+)
+
+// Agent represents an autonomous agent that can execute templates on a schedule
+type Agent struct {
+	ID               string          `json:"id"`
+	UserID           string          `json:"userId"`
+	FirstName        string          `json:"firstName"`
+	LastName         string          `json:"lastName"`
+	TemplateID       string          `json:"templateId"`
+	MaxTokensPerDay  int32           `json:"maxTokensPerDay"`
+	HeartbeatMinutes int32           `json:"heartbeatMinutes"` // Minimum 5 minutes
+	LifecycleStatus  LifecycleStatus `json:"lifecycleStatus"`
+	TokensUsedToday  int32           `json:"tokensUsedToday"`
+	TokensResetDate  string          `json:"tokensResetDate"` // Date string in YYYY-MM-DD format
+	LastExecutionAt  *time.Time      `json:"lastExecutionAt,omitempty"`
+	NextScheduledAt  *time.Time      `json:"nextScheduledAt,omitempty"`
+	TotalExecutions  int32           `json:"totalExecutions"`
+	CreatedAt        time.Time       `json:"createdAt"`
+	UpdatedAt        time.Time       `json:"updatedAt"`
+	// Template information (populated via JOIN)
+	TemplateName        string `json:"templateName,omitempty"`
+	TemplateDescription string `json:"templateDescription,omitempty"`
+}
+
+// AgentCreateRequest represents the request to create a new agent
+type AgentCreateRequest struct {
+	FirstName        string          `json:"firstName" validate:"required,min=1,max=100"`
+	LastName         string          `json:"lastName" validate:"required,min=1,max=100"`
+	TemplateID       string          `json:"templateId" validate:"required"`
+	MaxTokensPerDay  int32           `json:"maxTokensPerDay" validate:"required,min=1"`
+	HeartbeatMinutes int32           `json:"heartbeatMinutes" validate:"required,min=5"`
+	LifecycleStatus  LifecycleStatus `json:"lifecycleStatus"`
+}
+
+// AgentUpdateRequest represents the request to update an existing agent
+type AgentUpdateRequest struct {
+	FirstName        *string          `json:"firstName,omitempty" validate:"omitempty,min=1,max=100"`
+	LastName         *string          `json:"lastName,omitempty" validate:"omitempty,min=1,max=100"`
+	MaxTokensPerDay  *int32           `json:"maxTokensPerDay,omitempty" validate:"omitempty,min=1"`
+	HeartbeatMinutes *int32           `json:"heartbeatMinutes,omitempty" validate:"omitempty,min=5"`
+	LifecycleStatus  *LifecycleStatus `json:"lifecycleStatus,omitempty"`
+}
+
+// AgentSummary represents a summary view of an agent with execution statistics
+type AgentSummary struct {
+	Agent
+	ExecutionCount       int32      `json:"executionCount"`
+	LatestExecutionAt    *time.Time `json:"latestExecutionAt,omitempty"`
+	SuccessfulExecutions int32      `json:"successfulExecutions"`
+	FailedExecutions     int32      `json:"failedExecutions"`
+}
+
 // ToJSON converts any struct to JSON string for database storage
 func ToJSON(v interface{}) (string, error) {
 	bytes, err := json.Marshal(v)

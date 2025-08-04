@@ -82,7 +82,8 @@ const ExecutionFlowGraph: React.FC<ExecutionFlowGraphProps> = ({
   const backendUrl = state.config.backendUrl;
 
   useEffect(() => {
-    if (visible && executionRunId) {
+    if (visible && executionRunId && !executionRunId.startsWith('exec-')) {
+      // Only fetch data for real execution IDs, not temporary ones
       fetchExecutionFlowData();
     }
   }, [visible, executionRunId, configurationId]);

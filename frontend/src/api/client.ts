@@ -11,6 +11,9 @@ import {
   AppConfig,
   FunctionDefinition,
   ExecutionLog,
+  Agent,
+  AgentFormData,
+  AgentExecutionSummary,
 } from '../types';
 import { User } from '../context/AuthContext';
 import { secureStorage } from '../utils/secureStorage';
@@ -951,9 +954,44 @@ class GoGentAPI {
 
   async executeTemplate(templateId: string, parameters: Record<string, any>): Promise<ApiResponse<{ executionRun: { id: string; name: string; status: string }; message: string }>> {
     try {
-      const response: AxiosResponse = await this.api.post(`/api/templates/${templateId}/execute`, {
-        parameters
-      });
+      // First, get the template details to construct the execution request
+      const templateResponse = await this.getTemplates();
+      if (!templateResponse.success) {
+        throw new Error('Failed to fetch templates');
+      }
+      
+      const template = templateResponse.data?.templates?.find(t => t.id === templateId);
+      if (!template) {
+        throw new Error('Template not found');
+      }
+
+      // Get configurations for the execution
+      const configResponse = await this.getConfigurations();
+      if (!configResponse.success) {
+        throw new Error('Failed to fetch configurations');
+      }
+
+      // Use the first available configuration (or default)
+      const configurations = configResponse.data || [];
+      const defaultConfig = configurations.find(c => c.variationName === 'Software Engineer') || configurations[0];
+      
+      if (!defaultConfig) {
+        throw new Error('No configurations available');
+      }
+
+      // Construct the execution request
+      const executionRequest = {
+        executionRunName: `Agent Execution: ${template.name}`,
+        description: `Template execution via agent: ${template.name}`,
+        basePrompt: template.prompt,
+        context: template.context || '',
+        enableFunctionCalling: template.enableFunctionCalling || false,
+        configurations: [defaultConfig],
+        // Add agent context to parameters if provided
+        ...parameters
+      };
+
+      const response: AxiosResponse = await this.api.post('/api/execute', executionRequest);
       return {
         success: true,
         data: response.data,
@@ -963,6 +1001,107 @@ class GoGentAPI {
       return {
         success: false,
         error: error.response?.data?.error || error.message || 'Failed to execute template',
+      };
+    }
+  }
+
+  // Agent Management APIs
+  async getAgents(): Promise<ApiResponse<Agent[]>> {
+    try {
+      const response: AxiosResponse = await this.api.get('/api/agents');
+      return {
+        success: true,
+        data: response.data || [],
+      };
+    } catch (error: any) {
+      console.error('API Error (getAgents):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to fetch agents',
+        data: [],
+      };
+    }
+  }
+
+  async getAgent(id: string): Promise<ApiResponse<Agent>> {
+    try {
+      const response: AxiosResponse = await this.api.get(`/api/agents/${id}`);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (getAgent):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to fetch agent',
+      };
+    }
+  }
+
+  async createAgent(agentData: AgentFormData): Promise<ApiResponse<Agent>> {
+    try {
+      const response: AxiosResponse = await this.api.post('/api/agents', agentData);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (createAgent):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to create agent',
+      };
+    }
+  }
+
+  async updateAgent(id: string, agentData: Partial<AgentFormData>): Promise<ApiResponse<Agent>> {
+    try {
+      const response: AxiosResponse = await this.api.put(`/api/agents/${id}`, agentData);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (updateAgent):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to update agent',
+      };
+    }
+  }
+
+  async deleteAgent(id: string): Promise<ApiResponse<{ message: string }>> {
+    try {
+      const response: AxiosResponse = await this.api.delete(`/api/agents/${id}`);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (deleteAgent):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to delete agent',
+      };
+    }
+  }
+
+  async getAgentExecutions(id: string, limit: number = 50, offset: number = 0): Promise<ApiResponse<ExecutionRun[]>> {
+    try {
+      const response: AxiosResponse = await this.api.get(`/api/agents/${id}/executions`, {
+        params: { limit, offset }
+      });
+      return {
+        success: true,
+        data: response.data || [],
+      };
+    } catch (error: any) {
+      console.error('API Error (getAgentExecutions):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to fetch agent executions',
+        data: [],
       };
     }
   }

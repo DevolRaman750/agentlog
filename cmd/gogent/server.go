@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"gogent/internal/agents"
 	"gogent/internal/auth"
 	"gogent/internal/db"
 	"gogent/internal/gogent"
@@ -32,6 +33,7 @@ type Server struct {
 	authService         *auth.AuthService
 	authHandlers        *auth.AuthHandlers
 	templateIntegration *templates.TemplateIntegration
+	agentsHandler       *agents.AgentsHandler
 }
 
 // ExecutionStatus tracks the status of an async execution
@@ -111,6 +113,9 @@ func NewServer() (*Server, error) {
 	// Create template integration
 	templateIntegration := templates.NewTemplateIntegration(client.GetDB(), authService, executionEngine)
 
+	// Create agents handler
+	agentsHandler := agents.NewAgentsHandler(client.GetDB())
+
 	return &Server{
 		client:              client,
 		config:              config,
@@ -118,6 +123,7 @@ func NewServer() (*Server, error) {
 		authService:         authService,
 		authHandlers:        authHandlers,
 		templateIntegration: templateIntegration,
+		agentsHandler:       agentsHandler,
 	}, nil
 }
 
@@ -1923,6 +1929,10 @@ func runServer() {
 	http.HandleFunc("/api/database/tables/", server.enableCORS(authMiddleware(server.databaseTableDataHandler))) // Specific table data
 	http.HandleFunc("/api/database/tables", server.enableCORS(authMiddleware(server.databaseTablesHandler)))     // List tables
 
+	// Protected agent management endpoints
+	http.HandleFunc("/api/agents", server.enableCORS(authMiddleware(server.agentsHandler.HandleAgents)))
+	http.HandleFunc("/api/agents/", server.enableCORS(authMiddleware(server.agentsHandler.HandleAgentByID)))
+
 	// Register execution template routes
 	mux := http.NewServeMux()
 	server.templateIntegration.RegisterRoutes(mux, func(h http.HandlerFunc) http.HandlerFunc {
@@ -1962,6 +1972,12 @@ func runServer() {
 	fmt.Printf("   GET  /api/templates - List execution templates (🔐 Protected)\n")
 	fmt.Printf("   POST /api/templates - Create execution template (🔐 Protected)\n")
 	fmt.Printf("   POST /api/public/templates/{id}/execute - Execute template via token (🌐 Public)\n")
+	fmt.Printf("   GET  /api/agents - List agents (🔐 Protected)\n")
+	fmt.Printf("   POST /api/agents - Create agent (🔐 Protected)\n")
+	fmt.Printf("   GET  /api/agents/{id} - Get agent by ID (🔐 Protected)\n")
+	fmt.Printf("   PUT  /api/agents/{id} - Update agent (🔐 Protected)\n")
+	fmt.Printf("   DELETE /api/agents/{id} - Delete agent (🔐 Protected)\n")
+	fmt.Printf("   GET  /api/agents/{id}/executions - Get agent executions (🔐 Protected)\n")
 	fmt.Printf("💡 Use X-Use-Mock: true header for mock responses\n")
 	fmt.Printf("🔑 Set GEMINI_API_KEY in config.env for real API calls\n")
 	fmt.Printf("🔐 Most endpoints now require authentication\n")

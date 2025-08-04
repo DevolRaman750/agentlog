@@ -19,11 +19,13 @@ import { useFormState } from '../context/FormStateContext';
 import LoadingScreen from '../components/LoadingScreen';
 import { goGentAPI } from '../api/client';
 import { secureStorage } from '../utils/secureStorage';
-import { ExecutionResult, APIConfiguration, ComparisonMetric, FunctionDefinition } from '../types';
+import { ExecutionResult, APIConfiguration, ComparisonMetric, FunctionDefinition, Agent } from '../types';
 import { AlertAPI } from '../components/CustomAlert';
+import AgentAvatar from '../components/AgentAvatar';
 import ExecutionResultsViewer from '../components/ExecutionResultsViewer';
 import TextEditor from '../components/TextEditor';
 import ExecutionLoadingIndicator from '../components/ExecutionLoadingIndicator';
+import LiveExecutionViewer from '../components/LiveExecutionViewer';
 import { webInputStyles } from '../styles/containers';
 
 interface ParameterValue {
@@ -63,6 +65,17 @@ const ExecuteScreen: React.FC = () => {
   // Parameter state for template functionality
   const [parameterValues, setParameterValues] = useState<ParameterValue[]>([]);
   const [showParameters, setShowParameters] = useState(false);
+  
+  // Agent execution state
+  const [agentData, setAgentData] = useState<{
+    agent: any;
+    isAgentExecution: boolean;
+    showTooltip: boolean;
+  }>({
+    agent: null,
+    isAgentExecution: false,
+    showTooltip: false
+  });
   
   // Ref to prevent multiple concurrent API calls
   const isLoadingFunctions = useRef(false);
@@ -239,8 +252,9 @@ const ExecuteScreen: React.FC = () => {
     // Wait for BOTH functions AND configurations to be loaded before applying re-execution data
     if (state.reExecutionData && availableFunctions.length > 0 && configurations.length > 0) {
       console.log('🔄 Applying re-execution data:', state.reExecutionData);
-      handleReExecute(state.reExecutionData);
-      clearReExecutionData(); // Clear it after applying to prevent re-application
+      handleReExecute(state.reExecutionData).then(() => {
+        clearReExecutionData(); // Clear it after applying to prevent re-application
+      });
     } else if (state.reExecutionData) {
       console.log('⏳ Re-execution data available but waiting for:', {
         functionsLoaded: availableFunctions.length > 0,
@@ -269,6 +283,23 @@ const ExecuteScreen: React.FC = () => {
       setAvailableFunctions([]);
     } finally {
       isLoadingFunctions.current = false;
+    }
+  };
+
+  const loadTemplateFunctions = async (templateId: string) => {
+    try {
+      console.log('🔧 Loading template functions for templateId:', templateId);
+      const templateResponse = await goGentAPI.getTemplates();
+      if (templateResponse.success && templateResponse.data?.templates) {
+        const template = templateResponse.data.templates.find(t => t.id === templateId);
+        if (template && template.functionIds && template.functionIds.length > 0) {
+          console.log('📋 Template has functions:', template.functionIds);
+          // Set the selected functions from the template
+          updateField('selectedFunctions', template.functionIds);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load template functions:', error);
     }
   };
 
@@ -337,7 +368,36 @@ const ExecuteScreen: React.FC = () => {
     updateField('selectedFunctions', newSelection);
   };
 
-  const handleReExecute = (reExecutionData: any) => {
+  const handleReExecute = async (reExecutionData: any) => {
+    // Check if this is an agent execution
+    if (reExecutionData.isAgentExecution && reExecutionData.agentId) {
+      try {
+        console.log('🤖 Loading agent data for execution:', reExecutionData.agentId);
+        const agentResponse = await goGentAPI.getAgent(reExecutionData.agentId);
+        if (agentResponse.success && agentResponse.data) {
+          setAgentData({
+            agent: agentResponse.data,
+            isAgentExecution: true,
+            showTooltip: false
+          });
+          
+          // If we have a templateId, ensure template functions are loaded
+          if (reExecutionData.templateId) {
+            await loadTemplateFunctions(reExecutionData.templateId);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load agent data:', error);
+      }
+    } else {
+      // Reset agent data for non-agent executions
+      setAgentData({
+        agent: null,
+        isAgentExecution: false,
+        showTooltip: false
+      });
+    }
+
     // Update form state with the re-execution data
     updateField('executionName', reExecutionData.executionRunName);
     updateField('description', reExecutionData.description);
@@ -772,11 +832,67 @@ const ExecuteScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Agent Header - Only show for agent executions */}
+        {agentData.isAgentExecution && agentData.agent && (
+          <View style={styles.agentHeader}>
+            <View style={styles.agentInfo}>
+              <AgentAvatar 
+                agent={{
+                  firstName: agentData.agent.firstName,
+                  lastName: agentData.agent.lastName,
+                  lifecycleStatus: agentData.agent.lifecycleStatus,
+                  templateName: agentData.agent.templateName
+                }}
+                size="large"
+                showStatus={true}
+                animated={false}
+              />
+              <View style={styles.agentDetails}>
+                <View style={styles.agentNameContainer}>
+                  <Text style={styles.agentName}>
+                    {agentData.agent.firstName} {agentData.agent.lastName}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.tooltipIcon}
+                    onPress={() => setAgentData(prev => ({ ...prev, showTooltip: !prev.showTooltip }))}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons name="information-circle-outline" size={18} color="#007AFF" />
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.agentSubtitle}>Agent Execution</Text>
+                {agentData.agent.templateName && (
+                  <Text style={styles.agentTemplate}>
+                    Using: {agentData.agent.templateName}
+                  </Text>
+                )}
+              </View>
+            </View>
+            
+            {/* Tooltip */}
+            {agentData.showTooltip && (
+              <View style={styles.tooltip}>
+                <View style={styles.tooltipArrow} />
+                <Text style={styles.tooltipText}>
+                  This execution is being run on behalf of the agent "{agentData.agent.firstName} {agentData.agent.lastName}". 
+                  The prompt and functions have been pre-configured based on the agent's template settings. 
+                  You can modify them before running the execution.
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
         {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>🚀 Execute AI Models</Text>
+        <View style={[styles.header, agentData.isAgentExecution && styles.headerCompact]}>
+          <Text style={styles.title}>
+            {agentData.isAgentExecution ? '🤖 Agent Execution' : '🚀 Execute AI Models'}
+          </Text>
           <Text style={styles.subtitle}>
-            Run your prompts across multiple AI configurations and compare their responses
+            {agentData.isAgentExecution 
+              ? 'Review and modify the agent\'s execution settings before running'
+              : 'Run your prompts across multiple AI configurations and compare their responses'
+            }
           </Text>
         </View>
 
@@ -981,17 +1097,13 @@ const ExecuteScreen: React.FC = () => {
         {/* Execute Button */}
         <View style={styles.executeContainer}>
           {currentExecution?.isExecuting ? (
-            <View style={styles.executingContainer}>
-              <ExecutionLoadingIndicator
-                progress={currentExecution.pollCount}
-                maxProgress={currentExecution.maxPolls}
-                message="AI Models are Processing..."
-                size="medium"
-                color="#007AFF"
-                onCancel={cancelExecution}
-                showCancel={true}
-              />
-            </View>
+            <LiveExecutionViewer
+              executionId={currentExecution.executionId || ''}
+              progress={currentExecution.pollCount}
+              maxProgress={currentExecution.maxPolls}
+              onCancel={cancelExecution}
+              isExecuting={currentExecution.isExecuting}
+            />
           ) : (
             <TouchableOpacity
               style={[styles.executeButton, (!isConnected || currentExecution?.isExecuting) && styles.executeButtonDisabled]}
@@ -1630,6 +1742,77 @@ const styles = StyleSheet.create({
   categorySelectionCheckboxPartial: {
     backgroundColor: '#FFFFFF',
     borderColor: '#007AFF',
+  },
+  // Agent header styles
+  agentHeader: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    borderLeftWidth: 4,
+    borderLeftColor: '#007AFF',
+  },
+  agentInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  agentDetails: {
+    marginLeft: 16,
+    flex: 1,
+  },
+  agentNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  agentName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
+  tooltipIcon: {
+    marginLeft: 8,
+    padding: 4,
+  },
+  agentSubtitle: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  agentTemplate: {
+    fontSize: 14,
+    color: '#6B6B6B',
+    marginTop: 4,
+  },
+  tooltip: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+    position: 'relative',
+  },
+  tooltipArrow: {
+    position: 'absolute',
+    top: -6,
+    right: 20,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderBottomWidth: 6,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: '#F8F9FA',
+  },
+  tooltipText: {
+    fontSize: 14,
+    color: '#6B6B6B',
+    lineHeight: 20,
+  },
+  headerCompact: {
+    marginBottom: 16,
   },
 });
 

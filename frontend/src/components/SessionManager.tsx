@@ -322,7 +322,12 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>🔧 Session Manager</Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+          <TouchableOpacity 
+            onPress={onClose} 
+            style={styles.closeButton}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name="close" size={24} color="#8E8E93" />
           </TouchableOpacity>
         </View>
@@ -499,9 +504,13 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
   },
   closeButton: {
-    padding: 8,
-    borderRadius: 20,
+    padding: 10,
+    borderRadius: 22,
     backgroundColor: '#F5F5F5',
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   content: {
     flex: 1,

@@ -145,6 +145,8 @@ const ConfigureScreen: React.FC = () => {
   const [showNewConfigForm, setShowNewConfigForm] = useState(false);
   const [showSessionManager, setShowSessionManager] = useState(false);
   const [editingConfig, setEditingConfig] = useState<APIConfiguration | null>(null);
+  const [viewingConfig, setViewingConfig] = useState<APIConfiguration | null>(null);
+  const [showViewConfigModal, setShowViewConfigModal] = useState(false);
 
 
   // Connection status color
@@ -434,19 +436,20 @@ const ConfigureScreen: React.FC = () => {
               <Text style={styles.subsectionTitle}>System Configurations</Text>
               <Text style={styles.subsectionCount}>({systemConfigurations.length})</Text>
             </View>
-            <FlatList
-              data={systemConfigurations}
-              keyExtractor={(item) => item.id || item.variationName}
-              renderItem={({ item }) => (
-                <ConfigurationCard
-                  configuration={item}
-                  onEdit={handleEditConfiguration}
-                  onDelete={handleDeleteConfiguration}
-                  onDuplicate={handleDuplicateConfiguration}
-                />
-              )}
-              scrollEnabled={false}
-            />
+                          <FlatList
+                data={systemConfigurations}
+                keyExtractor={(item) => item.id || item.variationName}
+                renderItem={({ item }) => (
+                  <ConfigurationCard
+                    configuration={item}
+                    onView={handleViewConfiguration}
+                    onEdit={handleEditConfiguration}
+                    onDelete={handleDeleteConfiguration}
+                    onDuplicate={handleDuplicateConfiguration}
+                  />
+                )}
+                scrollEnabled={false}
+              />
           </>
         )}
 
@@ -478,6 +481,7 @@ const ConfigureScreen: React.FC = () => {
             renderItem={({ item }) => (
               <ConfigurationCard
                 configuration={item}
+                onView={handleViewConfiguration}
                 onEdit={handleEditConfiguration}
                 onDelete={handleDeleteConfiguration}
                 onDuplicate={handleDuplicateConfiguration}
@@ -488,6 +492,11 @@ const ConfigureScreen: React.FC = () => {
         )}
       </View>
     );
+  };
+
+  const handleViewConfiguration = (config: APIConfiguration) => {
+    setViewingConfig(config);
+    setShowViewConfigModal(true);
   };
 
   const handleEditConfiguration = (config: APIConfiguration) => {
@@ -689,6 +698,16 @@ const ConfigureScreen: React.FC = () => {
           editingConfig={editingConfig}
         />
       )}
+
+      {showViewConfigModal && viewingConfig && (
+        <ViewConfigurationModal 
+          configuration={viewingConfig}
+          onClose={() => {
+            setShowViewConfigModal(false);
+            setViewingConfig(null);
+          }} 
+        />
+      )}
     </View>
   );
 };
@@ -886,6 +905,125 @@ const NewConfigurationFormModal: React.FC<{
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
+      </SafeAreaView>
+    </Modal>
+  );
+};
+
+// View Configuration Modal (Read-only)
+const ViewConfigurationModal: React.FC<{ 
+  configuration: APIConfiguration;
+  onClose: () => void; 
+}> = ({ configuration, onClose }) => {
+  const { user } = useAuth();
+  const ownership = getResourceOwnership(configuration, user?.id);
+  
+  const getTemperatureDescription = (temperature?: number) => {
+    if (!temperature) return 'Default (0.5)';
+    if (temperature <= 0.3) return `${temperature} - Conservative (Precise and predictable)`;
+    if (temperature <= 0.7) return `${temperature} - Balanced (Good mix of accuracy and creativity)`;
+    return `${temperature} - Creative (More varied and imaginative)`;
+  };
+
+  const getTokensDescription = (maxTokens?: number) => {
+    if (!maxTokens) return 'Default (500)';
+    if (maxTokens <= 300) return `${maxTokens} - Short responses`;
+    if (maxTokens <= 800) return `${maxTokens} - Standard responses`;
+    if (maxTokens <= 1500) return `${maxTokens} - Detailed responses`;
+    return `${maxTokens} - Long-form responses`;
+  };
+
+  return (
+    <Modal visible={true} animationType="slide" presentationStyle="pageSheet">
+      <SafeAreaView style={styles.modalContainer}>
+        <View style={styles.modalHeader}>
+          <Text style={styles.modalTitle}>View Configuration</Text>
+          <TouchableOpacity 
+            onPress={onClose}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="close" size={24} color="#8E8E93" />
+          </TouchableOpacity>
+        </View>
+        
+        <ScrollView 
+          style={styles.modalContent}
+          contentContainerStyle={styles.modalScrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Configuration Header */}
+          <View style={styles.viewHeader}>
+            <Text style={styles.viewConfigName}>{configuration.variationName}</Text>
+            
+            {/* Badges */}
+            <View style={styles.viewBadgesContainer}>
+              {ownership.ownershipType === 'system' && (
+                <View style={styles.systemViewBadge}>
+                  <Ionicons name="shield-checkmark" size={12} color="#007AFF" />
+                  <Text style={styles.systemViewBadgeText}>SYSTEM</Text>
+                </View>
+              )}
+              
+              {ownership.ownershipType !== 'system' && ownership.ownerInfo && !ownership.ownerInfo.isCurrentUser && (
+                <View style={styles.ownerViewBadge}>
+                  <Ionicons name="person" size={12} color="#8E8E93" />
+                  <Text style={styles.ownerViewBadgeText}>Other User</Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* Configuration Details */}
+          <View style={styles.viewSection}>
+            <Text style={styles.viewSectionTitle}>Model Information</Text>
+            <View style={styles.viewDetailRow}>
+              <Text style={styles.viewDetailLabel}>Model:</Text>
+              <Text style={styles.viewDetailValue}>{configuration.modelName}</Text>
+            </View>
+            
+            {configuration.id && (
+              <View style={styles.viewDetailRow}>
+                <Text style={styles.viewDetailLabel}>Configuration ID:</Text>
+                <Text style={styles.viewDetailValue}>{configuration.id}</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Parameters */}
+          <View style={styles.viewSection}>
+            <Text style={styles.viewSectionTitle}>Parameters</Text>
+            <View style={styles.viewDetailRow}>
+              <Text style={styles.viewDetailLabel}>Temperature:</Text>
+              <Text style={styles.viewDetailValue}>{getTemperatureDescription(configuration.temperature)}</Text>
+            </View>
+            
+            <View style={styles.viewDetailRow}>
+              <Text style={styles.viewDetailLabel}>Max Tokens:</Text>
+              <Text style={styles.viewDetailValue}>{getTokensDescription(configuration.maxTokens)}</Text>
+            </View>
+          </View>
+
+          {/* System Prompt */}
+          <View style={styles.viewSection}>
+            <Text style={styles.viewSectionTitle}>System Prompt</Text>
+            <View style={styles.viewPromptContainer}>
+              <Text style={styles.viewPromptText}>
+                {configuration.systemPrompt || 'No system prompt specified'}
+              </Text>
+            </View>
+          </View>
+
+          {/* Additional Info */}
+          {ownership.ownershipType === 'system' && (
+            <View style={styles.viewInfoSection}>
+              <Ionicons name="information-circle" size={20} color="#007AFF" />
+              <Text style={styles.viewInfoText}>
+                This is a system-provided configuration. You can duplicate it to create your own customizable version.
+              </Text>
+            </View>
+          )}
+        </ScrollView>
       </SafeAreaView>
     </Modal>
   );
@@ -1366,6 +1504,109 @@ const styles = StyleSheet.create({
     color: '#6C757D',
     fontStyle: 'italic',
     lineHeight: 16,
+  },
+  
+  // View Configuration Modal Styles
+  viewHeader: {
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E1E5E9',
+    marginBottom: 20,
+  },
+  viewConfigName: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 12,
+  },
+  viewBadgesContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  systemViewBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F8FF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  systemViewBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  ownerViewBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  ownerViewBadgeText: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: '#8E8E93',
+  },
+  viewSection: {
+    marginBottom: 24,
+  },
+  viewSectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 12,
+  },
+  viewDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  viewDetailLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#8E8E93',
+    flex: 1,
+  },
+  viewDetailValue: {
+    fontSize: 14,
+    color: '#1A1A1A',
+    flex: 2,
+    textAlign: 'right',
+  },
+  viewPromptContainer: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E1E5E9',
+  },
+  viewPromptText: {
+    fontSize: 14,
+    color: '#1A1A1A',
+    lineHeight: 20,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  viewInfoSection: {
+    flexDirection: 'row',
+    backgroundColor: '#F0F8FF',
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'flex-start',
+    gap: 12,
+    marginTop: 20,
+  },
+  viewInfoText: {
+    fontSize: 14,
+    color: '#007AFF',
+    lineHeight: 20,
+    flex: 1,
   },
 });
 

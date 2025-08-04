@@ -4,11 +4,13 @@ import { createStackNavigator } from '@react-navigation/stack';
 import ConfigureScreen from '../screens/ConfigureScreen';
 import FunctionScreen from '../screens/FunctionScreen';
 import ExecuteScreen from '../screens/ExecuteScreen';
+import ExecutionTemplatesScreen from '../screens/ExecutionTemplatesScreen';
 import HistoryScreen from '../screens/HistoryScreen';
 import DatabaseScreen from '../screens/DatabaseScreen';
 import AuthScreen from '../screens/AuthScreen';
 import TemplateTokenManagerScreen from '../screens/TemplateTokenManagerScreen';
 import ApiKeysScreen from '../screens/ApiKeysScreen';
+import AgentsScreen from '../screens/AgentsScreen';
 import { ResponsiveNavigation } from '../components/ResponsiveNavigation';
 import { useAuth } from '../context/AuthContext';
 import { useResponsive } from '../context/ResponsiveContext'; // Use existing responsive context
@@ -67,9 +69,11 @@ const createStableScreenWithNavigation = (Component: React.ComponentType<any>) =
 const StableExecuteScreen = createStableScreenWithNavigation(ExecuteScreen);
 const StableConfigureScreen = createStableScreenWithNavigation(ConfigureScreen);
 const StableFunctionScreen = createStableScreenWithNavigation(FunctionScreen);
+const StableExecutionTemplatesScreen = createStableScreenWithNavigation(ExecutionTemplatesScreen);
 const StableApiKeysScreen = createStableScreenWithNavigation(ApiKeysScreen);
 const StableHistoryScreen = createStableScreenWithNavigation(HistoryScreen);
 const StableDatabaseScreen = createStableScreenWithNavigation(DatabaseScreen);
+const StableAgentsScreen = createStableScreenWithNavigation(AgentsScreen);
 const StableAuthScreen = createStableScreenWithNavigation(AuthScreen);
 const StableTemplateTokenManagerScreen = createStableScreenWithNavigation(TemplateTokenManagerScreen);
 
@@ -100,6 +104,7 @@ const ResponsiveTabNavigator = () => {
         '/api-keys': 'API Keys',
         '/history': 'History',
         '/database': 'Database',
+        '/agents': 'Agents',
         '/account': 'Account',
         '/more': 'More',
       };
@@ -129,6 +134,10 @@ const ResponsiveTabNavigator = () => {
           component={StableFunctionScreen} 
         />
         <Stack.Screen 
+          name="Execution Templates" 
+          component={StableExecutionTemplatesScreen} 
+        />
+        <Stack.Screen 
           name="API Keys" 
           component={StableApiKeysScreen} 
         />
@@ -139,6 +148,10 @@ const ResponsiveTabNavigator = () => {
         <Stack.Screen 
           name="Database" 
           component={StableDatabaseScreen} 
+        />
+        <Stack.Screen 
+          name="Agents" 
+          component={StableAgentsScreen} 
         />
         <Stack.Screen 
           name="Account" 

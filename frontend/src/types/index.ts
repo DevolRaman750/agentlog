@@ -92,6 +92,9 @@ export interface ExecutionRun {
   basePrompt?: string; // Add missing property for backward compatibility
   contextPrompt?: string; // Add missing property for backward compatibility  
   enableFunctionCalling?: boolean; // Add missing property for backward compatibility
+  status?: string;
+  total_time?: number;
+  created_at?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -190,6 +193,7 @@ export interface TabParamList {
   Database: undefined;
   Account: undefined;
   More: undefined;
+  Agents: undefined;
   TemplateTokenManager: {
     templateId: string;
     templateName: string;
@@ -199,6 +203,7 @@ export interface TabParamList {
 // UI Component types
 export interface ConfigurationCardProps {
   configuration: APIConfiguration;
+  onView: (config: APIConfiguration) => void;
   onEdit: (config: APIConfiguration) => void;
   onDelete: (configId: string) => void;
   onDuplicate: (config: APIConfiguration) => void;
@@ -381,3 +386,69 @@ export const getResourceOwnership = (
     ownershipType: 'unknown',
   };
 }; 
+
+// Agent Types
+export type LifecycleStatus = 'STANDBY' | 'ACTIVE' | 'PAUSED' | 'KILLED';
+
+export interface Agent {
+  id: string;
+  userId: string;
+  firstName: string;
+  lastName: string;
+  templateId: string;
+  templateName?: string;
+  templateDescription?: string;
+  maxTokensPerDay: number;
+  heartbeatMinutes: number;
+  lifecycleStatus: LifecycleStatus;
+  tokensUsedToday: number;
+  tokensResetDate: string;
+  lastExecutionAt?: string;
+  nextScheduledAt?: string;
+  totalExecutions: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AgentFormData {
+  firstName: string;
+  lastName: string;
+  templateId: string;
+  maxTokensPerDay: number;
+  heartbeatMinutes: number;
+  lifecycleStatus: LifecycleStatus;
+}
+
+export interface AgentFormErrors {
+  firstName?: string;
+  lastName?: string;
+  templateId?: string;
+  maxTokensPerDay?: string;
+  heartbeatMinutes?: string;
+  lifecycleStatus?: string;
+}
+
+export interface AgentExecutionSummary {
+  agentId: string;
+  totalExecutions: number;
+  successfulExecutions: number;
+  failedExecutions: number;
+  totalTokensUsed: number;
+  lastExecutionAt?: string;
+  avgExecutionTime?: number;
+}
+
+export interface ExecutionTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  userId?: string;
+  isActive?: boolean;
+  parameters?: any[];
+  authTokens?: any[];
+  tags?: string[];
+  enableFunctionCalling?: boolean;
+  functionIds?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+} 

@@ -4,6 +4,7 @@ import CryptoJS from 'crypto-js';
 // Session API keys interface matching backend
 export interface SessionApiKeys {
   geminiApiKey?: string;
+  kimiApiKey?: string;
   openWeatherApiKey?: string;
   neo4jUrl?: string;
   neo4jUsername?: string;
@@ -28,6 +29,12 @@ export const API_KEY_VALIDATIONS: Record<string, ApiKeyValidation> = {
     description: 'Google Gemini API key for AI processing',
     pattern: '^AIza[0-9A-Za-z\\-_]{35}$',
     errorMessage: 'Please enter a valid Gemini API key (starts with AIza)',
+    required: true,
+  },
+  kimiApiKey: {
+    description: 'Kimi K2 API key for AI processing',
+    pattern: '^[a-zA-Z0-9\\-_]{32,}$',
+    errorMessage: 'Please enter a valid Kimi API key',
     required: true,
   },
   openWeatherApiKey: {

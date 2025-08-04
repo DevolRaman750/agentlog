@@ -58,6 +58,11 @@ func GetUserFromContext(ctx context.Context) (*User, bool) {
 	return user, ok
 }
 
+// AddUserToContext adds a user to the context (for testing purposes)
+func AddUserToContext(ctx context.Context, user *User) context.Context {
+	return context.WithValue(ctx, UserContextKey{}, user)
+}
+
 // shouldSkipAuth returns true if the endpoint should skip authentication
 func shouldSkipAuth(path string) bool {
 	skipPaths := []string{

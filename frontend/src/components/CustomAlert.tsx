@@ -103,6 +103,8 @@ export const CustomAlert: React.FC = () => {
                 key={index}
                 style={getButtonStyle(button.style)}
                 onPress={() => handleButtonPress(button)}
+                activeOpacity={0.7}
+                hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
               >
                 <Text style={getButtonTextStyle(button.style)}>
                   {button.text}

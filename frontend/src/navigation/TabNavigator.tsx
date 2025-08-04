@@ -18,6 +18,7 @@ import HistoryScreen from '../screens/HistoryScreen';
 import DatabaseScreen from '../screens/DatabaseScreen';
 import AuthScreen from '../screens/AuthScreen';
 import ApiKeysScreen from '../screens/ApiKeysScreen';
+import AgentsScreen from '../screens/AgentsScreen';
 import TemplateTokenManagerScreen from '../screens/TemplateTokenManagerScreen';
 
 const Tab = createBottomTabNavigator();
@@ -45,6 +46,7 @@ const MobileNavigationDropdown: React.FC = () => {
     { name: 'API Keys', title: 'API Keys', icon: 'key-outline', iconFocused: 'key', component: ApiKeysScreen },
     { name: 'History', title: 'History', icon: 'time-outline', iconFocused: 'time', component: HistoryScreen },
     { name: 'Database', title: 'Database', icon: 'server-outline', iconFocused: 'server', component: DatabaseScreen },
+    { name: 'Agents', title: 'Agents', icon: 'construct-outline', iconFocused: 'construct', component: AgentsScreen },
     { name: 'Account', title: 'Account', icon: 'person-circle-outline', iconFocused: 'person-circle', component: AuthScreen },
   ];
 
@@ -191,6 +193,8 @@ const TabNavigator = () => {
             iconName = focused ? 'time' : 'time-outline';
           } else if (route.name === 'Database') {
             iconName = focused ? 'server' : 'server-outline';
+          } else if (route.name === 'Agents') {
+            iconName = focused ? 'construct' : 'construct-outline';
           } else if (route.name === 'Account') {
             iconName = focused ? 'person-circle' : 'person-circle-outline';
           }
@@ -212,6 +216,7 @@ const TabNavigator = () => {
       <Tab.Screen name="API Keys" component={withResponsiveLayout(ApiKeysScreen)} />
       <Tab.Screen name="History" component={withResponsiveLayout(HistoryScreen)} />
       <Tab.Screen name="Database" component={withResponsiveLayout(DatabaseScreen)} />
+      <Tab.Screen name="Agents" component={withResponsiveLayout(AgentsScreen)} />
       <Tab.Screen name="Account" component={withResponsiveLayout(AuthScreen)} />
       <Tab.Screen 
         name="TemplateTokenManager" 

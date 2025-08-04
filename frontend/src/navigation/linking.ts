@@ -37,6 +37,10 @@ export const linking: LinkingOptions<TabParamList> = {
         path: '/account',
         exact: true,
       },
+      Agents: {
+        path: '/agents',
+        exact: true,
+      },
       More: {
         path: '/more',
         exact: true,

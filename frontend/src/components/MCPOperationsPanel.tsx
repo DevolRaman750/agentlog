@@ -413,6 +413,8 @@ export const MCPOperationsPanel: React.FC<MCPOperationsPanelProps> = ({
             <TouchableOpacity 
               style={styles.alertButton}
               onPress={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+              activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Text style={styles.alertButtonText}>OK</Text>
             </TouchableOpacity>
