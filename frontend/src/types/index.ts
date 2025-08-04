@@ -275,13 +275,33 @@ export interface ExecutionForm {
 
 // Constants
 export const GEMINI_MODELS = [
-  'gemini-1.5-flash',
-  'gemini-1.5-pro',
-  'gemini-pro',
-  'gemini-pro-vision'
+  {
+    value: 'gemini-1.5-flash',
+    label: 'Gemini 1.5 Flash',
+    description: 'Fast and efficient model for quick responses with great performance',
+    maxTokens: 1048576
+  },
+  {
+    value: 'gemini-1.5-pro',
+    label: 'Gemini 1.5 Pro',
+    description: 'Advanced model with superior reasoning capabilities and longer context',
+    maxTokens: 2097152
+  },
+  {
+    value: 'gemini-1.0-pro',
+    label: 'Gemini 1.0 Pro',
+    description: 'Stable production model with proven performance and reliability',
+    maxTokens: 30720
+  },
+  {
+    value: 'gemini-1.5-flash-8b',
+    label: 'Gemini 1.5 Flash 8B',
+    description: 'Lightweight model optimized for speed and efficiency',
+    maxTokens: 1048576
+  }
 ] as const;
 
-export type GeminiModel = typeof GEMINI_MODELS[number];
+export type GeminiModel = typeof GEMINI_MODELS[number]['value'];
 
 export const COMPARISON_METRICS = [
   'response_time',
@@ -426,6 +446,7 @@ export interface AgentFormErrors {
   firstName?: string;
   lastName?: string;
   templateId?: string;
+  teamId?: string;
   maxTokensPerDay?: string;
   heartbeatMinutes?: string;
   lifecycleStatus?: string;

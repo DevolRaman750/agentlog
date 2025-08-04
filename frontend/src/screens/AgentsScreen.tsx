@@ -8,6 +8,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   Modal,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -219,11 +220,11 @@ const AgentsScreen: React.FC = () => {
   const handleToggleAgentStatus = async (agent: Agent) => {
     try {
       setIsLoading(true);
-      const newStatus = agent.status === 'PAUSED' ? 'ACTIVE' : 'PAUSED';
+      const newStatus = agent.lifecycleStatus === 'PAUSED' ? 'ACTIVE' : 'PAUSED';
       
       const response = await goGentAPI.updateAgent(agent.id, {
         ...agent,
-        status: newStatus
+        lifecycleStatus: newStatus
       });
       
       if (response.success) {
@@ -344,14 +345,16 @@ const AgentsScreen: React.FC = () => {
   // Create example agent for empty state
   const createExampleAgent = (): Agent => ({
     id: 'example-agent',
+    userId: 'example-user',
     firstName: 'Alex',
     lastName: 'CodeBot',
     templateId: 'system-template-software-engineer',
     templateName: 'Software Engineer',
     maxTokensPerDay: 50000,
     heartbeatMinutes: 30,
-    status: 'STANDBY' as LifecycleStatus,
+    lifecycleStatus: 'STANDBY' as LifecycleStatus,
     tokensUsedToday: 12450,
+    tokensResetDate: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
     totalExecutions: 24,
     lastExecutionAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
     createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 1 week ago

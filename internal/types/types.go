@@ -241,6 +241,7 @@ type FunctionCall struct {
 // SessionApiKeys represents API keys passed with each request (not stored on backend)
 type SessionApiKeys struct {
 	GeminiApiKey      string `json:"geminiApiKey,omitempty"`
+	OpenRouterApiKey  string `json:"openRouterApiKey,omitempty"`  // For Kimi K2 and other models via OpenRouter
 	OpenWeatherApiKey string `json:"openWeatherApiKey,omitempty"`
 	Neo4jUrl          string `json:"neo4jUrl,omitempty"`
 	Neo4jUsername     string `json:"neo4jUsername,omitempty"`

@@ -12,6 +12,7 @@ import {
   FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { goGentAPI } from '../api/client';
 import { AlertAPI } from './CustomAlert';
 import AgentAvatar from './AgentAvatar';
@@ -49,6 +50,7 @@ const Tooltip: React.FC<TooltipProps> = ({ title, content, visible, onClose }) =
 );
 
 const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCancel }) => {
+  const navigation = useNavigation();
   const [formData, setFormData] = useState<AgentFormData>({
     firstName: agent.firstName,
     lastName: agent.lastName,
@@ -327,6 +329,18 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
             </View>
           </TouchableOpacity>
           {errors.templateId && <Text style={styles.errorText}>{errors.templateId}</Text>}
+          <View style={styles.fieldHelpContainer}>
+            <Text style={styles.fieldHelp}>
+              The archetype template defines what your agent can do. System templates are pre-built, custom templates are your own creations.
+            </Text>
+            <TouchableOpacity 
+              style={styles.manageTemplatesLink}
+              onPress={() => navigation.navigate('Execution Templates' as never)}
+            >
+              <Ionicons name="open-outline" size={14} color="#007AFF" />
+              <Text style={styles.linkText}>Manage Templates</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Behavior Settings */}
@@ -534,8 +548,17 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
       />
 
       <Tooltip
-                  title="Archetype Templates"
-        content="Templates define what your agent does and how it behaves. Changing the template will update the agent's capabilities and behavior for future executions. System templates are pre-built and maintained by the platform."
+        title="Archetype Templates"
+        content={`An Archetype Template is a complete configuration that defines your agent's capabilities:
+
+• **AI Model Selection**: Choose which LLM your agent uses (Gemini, GPT-4, Claude, etc.)
+• **System Prompts**: The core instructions that shape your agent's personality and behavior
+• **Available Functions**: Tools and APIs your agent can access
+• **Configuration Parameters**: Settings for temperature, token limits, and more
+
+Changing the template will update the agent's capabilities and behavior for future executions. System templates are pre-built and maintained, while custom templates give you full control.
+
+💡 **Tip**: You can create and edit templates in the "Execution Templates" section to customize your agent's capabilities.`}
         visible={showTemplateTooltip}
         onClose={() => setShowTemplateTooltip(false)}
       />
@@ -925,6 +948,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     lineHeight: 20,
+  },
+  fieldHelpContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginTop: 6,
+  },
+  fieldHelp: {
+    fontSize: 13,
+    color: '#8E8E93',
+    marginTop: 6,
+    lineHeight: 18,
+    flex: 1,
+  },
+  manageTemplatesLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 8,
+    padding: 4,
+    borderRadius: 6,
+    backgroundColor: '#F2F2F7',
+  },
+  linkText: {
+    fontSize: 12,
+    color: '#007AFF',
+    fontWeight: '500',
+    marginLeft: 4,
   },
 });
 

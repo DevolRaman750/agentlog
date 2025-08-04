@@ -697,9 +697,8 @@ const HistoryScreen: React.FC = () => {
          const promptPreview = getPromptPreview(item);
          
          return (
-           <View style={styles.executionListItem}>
-                         <ExecutionRunCard
-              key={item.id}
+                     <View style={styles.executionListItem}>
+                        <ExecutionRunCard
               executionRun={item}
               onPress={handleRunPress}
               onDelete={handleDeleteRun}

@@ -12,6 +12,7 @@ import {
   FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { goGentAPI } from '../api/client';
 import { AlertAPI } from './CustomAlert';
 import AgentAvatar from './AgentAvatar';
@@ -49,6 +50,7 @@ const Tooltip: React.FC<TooltipProps> = ({ title, content, icon, visible, onClos
 );
 
 const CreateAgentForm: React.FC<CreateAgentFormProps> = ({ onSuccess, onCancel }) => {
+  const navigation = useNavigation();
   const [formData, setFormData] = useState<AgentFormData>({
     firstName: '',
     lastName: '',
@@ -196,9 +198,9 @@ const CreateAgentForm: React.FC<CreateAgentFormProps> = ({ onSuccess, onCancel }
               content: 'An Agent is an autonomous AI assistant that executes tasks on a schedule using an Archetype Template. Think of it as a specialized AI employee that:\n\n• Uses an Archetype Template to define its capabilities and behavior\n• Runs automatically based on your heartbeat schedule\n• Can be in different lifecycle states (Standby, Active, Paused, Killed)\n• Has token limits to control usage\n\nTo modify how your agent works, update the underlying Archetype Template - all agents using that template will inherit the changes.',
       icon: 'information-circle'
     },
-          template: {
-        title: 'Archetype Template',
-        content: 'The Archetype Template defines what your agent can do:\n\n• Contains the AI prompt and context\n• Defines available functions/tools\n• Sets parameters and configurations\n• Can be shared across multiple agents\n\nChoose a template that matches your agent\'s purpose. System templates are pre-built for common tasks, while custom templates can be tailored to your specific needs.',
+              template: {
+      title: 'Archetype Template',
+      content: 'An Archetype Template is a complete configuration that defines your agent\'s capabilities:\n\n• **AI Model Selection**: Choose which LLM your agent uses (Gemini, GPT-4, Claude, etc.)\n• **System Prompts**: The core instructions that shape your agent\'s personality and behavior\n• **Available Functions**: Tools and APIs your agent can access\n• **Configuration Parameters**: Settings for temperature, token limits, and more\n\nTemplates can be shared across multiple agents. System templates are pre-built and maintained, while custom templates give you full control over every aspect of your agent\'s behavior.\n\n💡 **Tip**: You can create and edit templates in the "Execution Templates" section to customize your agent\'s capabilities.',
       icon: 'document-text'
     },
     heartbeat: {
@@ -249,7 +251,7 @@ const CreateAgentForm: React.FC<CreateAgentFormProps> = ({ onSuccess, onCancel }
       {/* Introduction Card */}
       <View style={[containerStyles.primaryContainer, styles.introCard]}>
         <View style={styles.introHeader}>
-          <Ionicons name="lightbulb" size={20} color="#FF9500" />
+          <Ionicons name="bulb-outline" size={20} color="#FF9500" />
           <Text style={styles.introTitle}>Creating Your AI Agent</Text>
         </View>
         <Text style={styles.introText}>
@@ -370,9 +372,18 @@ const CreateAgentForm: React.FC<CreateAgentFormProps> = ({ onSuccess, onCancel }
               </View>
             </TouchableOpacity>
             {errors.templateId && <Text style={styles.errorText}>{errors.templateId}</Text>}
-            <Text style={styles.fieldHelp}>
-              The archetype template defines what your agent can do. System templates are pre-built, custom templates are your own creations.
-            </Text>
+            <View style={styles.fieldHelpContainer}>
+              <Text style={styles.fieldHelp}>
+                The archetype template defines what your agent can do. System templates are pre-built, custom templates are your own creations.
+              </Text>
+              <TouchableOpacity 
+                style={styles.manageTemplatesLink}
+                onPress={() => navigation.navigate('Execution Templates' as never)}
+              >
+                <Ionicons name="open-outline" size={14} color="#007AFF" />
+                <Text style={styles.linkText}>Manage Templates</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
@@ -804,6 +815,26 @@ const styles = StyleSheet.create({
     marginTop: 6,
     lineHeight: 18,
   },
+  fieldHelpContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginTop: 6,
+  },
+  manageTemplatesLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 8,
+    padding: 4,
+    borderRadius: 6,
+    backgroundColor: '#F2F2F7',
+  },
+  linkText: {
+    fontSize: 12,
+    color: '#007AFF',
+    fontWeight: '500',
+    marginLeft: 4,
+  },
   selector: {
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
@@ -812,7 +843,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     minHeight: 60,
-    ...shadowPresets.subtle,
+    ...shadowPresets.light,
   },
   selectorContent: {
     flexDirection: 'row',
@@ -941,7 +972,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E1E5E9',
     position: 'relative',
-    ...shadowPresets.subtle,
+    ...shadowPresets.light,
   },
   templateCardSelected: {
     backgroundColor: '#007AFF',
@@ -1003,7 +1034,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E1E5E9',
     position: 'relative',
-    ...shadowPresets.subtle,
+    ...shadowPresets.light,
   },
   statusCardSelected: {
     backgroundColor: '#007AFF',

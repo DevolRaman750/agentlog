@@ -24,6 +24,7 @@ import (
 	"gogent/internal/db"
 	"gogent/internal/gemini"
 	"gogent/internal/github"
+	"gogent/internal/providers"
 	"gogent/internal/types"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -36,12 +37,13 @@ import (
 
 // Client represents the main gogent client that wraps Gemini API calls
 type Client struct {
-	db             *sql.DB
-	queries        *db.Queries
-	config         *types.GeminiClientConfig
-	sessionApiKeys *types.SessionApiKeys // Session API keys for this execution
-	geminiClient   *gemini.GeminiClient
-	mutex          sync.RWMutex
+	db              *sql.DB
+	queries         *db.Queries
+	config          *types.GeminiClientConfig
+	sessionApiKeys  *types.SessionApiKeys // Session API keys for this execution
+	geminiClient    *gemini.GeminiClient
+	providerFactory *providers.ProviderFactory // Provider factory for multi-model support
+	mutex           sync.RWMutex
 	// Add execution context for logging
 	currentExecutionRunID *string
 	currentConfigID       *string
@@ -107,11 +109,12 @@ func NewClient(dbURL string, config *types.GeminiClientConfig, sessionApiKeys *t
 	}
 
 	client := &Client{
-		db:             database,
-		queries:        queries,
-		config:         config,
-		sessionApiKeys: sessionApiKeys,
-		mutex:          sync.RWMutex{},
+		db:              database,
+		queries:         queries,
+		config:          config,
+		sessionApiKeys:  sessionApiKeys,
+		providerFactory: providers.NewProviderFactory(),
+		mutex:           sync.RWMutex{},
 	}
 
 	// Initialize refactored components
@@ -673,23 +676,81 @@ func (c *Client) executeSingleVariation(ctx context.Context, userID string, exec
 	}, err
 }
 
-// callGeminiAPI makes the actual API call to Gemini
+// callGeminiAPI makes the actual API call using the provider abstraction
 func (c *Client) callGeminiAPI(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest) (*types.APIResponse, error) {
-	// Check if we have an API key available
-	var geminiApiKey string
+	// Use provider abstraction to determine which provider to use
+	providerType := c.providerFactory.GetProviderForModel(config.ModelName)
+	log.Printf("🤖 Using %s provider for model: %s", providerType, config.ModelName)
+	log.Printf("🔑 SessionApiKeys available: %v", c.sessionApiKeys != nil)
 	if c.sessionApiKeys != nil {
-		geminiApiKey = c.sessionApiKeys.GeminiApiKey
+		log.Printf("🔑 Available keys: OpenRouter=%v, Gemini=%v",
+			c.sessionApiKeys.OpenRouterApiKey != "", c.sessionApiKeys.GeminiApiKey != "")
 	}
-	if geminiApiKey == "" {
-		log.Printf("No Gemini API key available, using mock responses")
+
+	// Create the appropriate provider
+	provider, err := c.providerFactory.CreateProvider(ctx, config.ModelName, c.sessionApiKeys)
+	if err != nil {
+		log.Printf("❌ Failed to create %s provider: %v", providerType, err)
+		log.Printf("❌ FALLING BACK TO MOCK RESPONSES due to provider creation failure")
+		// Fallback to mock responses
 		return c.callMockGeminiAPI(ctx, config, request)
 	}
 
-	// Force REST API implementation since it works perfectly
-	log.Printf("Using REST API for model: %s with API key: %s...", config.ModelName, geminiApiKey[:10])
+	// Convert request to provider format
+	providerRequest := &providers.ModelRequest{
+		Prompt:              request.Prompt,
+		Context:             request.Context,
+		SystemPrompt:        config.SystemPrompt,
+		Tools:               config.Tools,
+		ConversationHistory: []providers.ConversationMessage{}, // TODO: Add conversation history support
+		SessionApiKeys:      c.sessionApiKeys,
+	}
 
-	// Use our working REST API implementation
-	return c.callGeminiRestAPI(ctx, config, request)
+	// Call the provider
+	providerResponse, err := provider.GenerateContent(ctx, config, providerRequest)
+	if err != nil {
+		log.Printf("❌ Provider %s failed: %v", providerType, err)
+		log.Printf("❌ FALLING BACK TO MOCK RESPONSES due to provider call failure")
+		// Fallback to mock responses
+		return c.callMockGeminiAPI(ctx, config, request)
+	}
+
+	// Convert provider response to API response format
+	apiResponse := &types.APIResponse{
+		ID:             uuid.New().String(),
+		RequestID:      request.ID,
+		ResponseStatus: types.ResponseStatusSuccess,
+		ResponseText:   providerResponse.ResponseText,
+		UsageMetadata:  providerResponse.UsageMetadata,
+		FinishReason:   providerResponse.FinishReason,
+		ResponseTimeMs: providerResponse.ResponseTimeMs,
+		CreatedAt:      time.Now(),
+	}
+
+	// Handle function calls if present
+	if len(providerResponse.FunctionCalls) > 0 {
+		log.Printf("🔧 Processing %d function calls from %s", len(providerResponse.FunctionCalls), providerType)
+
+		// Convert provider function calls to internal format
+		responseParts := make([]ResponsePart, len(providerResponse.FunctionCalls))
+		for i, fc := range providerResponse.FunctionCalls {
+			responseParts[i] = ResponsePart{
+				FunctionCall: struct {
+					Name string                 `json:"name"`
+					Args map[string]interface{} `json:"args"`
+				}{
+					Name: fc.Name,
+					Args: fc.Args,
+				},
+			}
+		}
+
+		// Process function calls using existing iterative logic with the same provider
+		finalResponse, _ := c.processIterativeFunctionCallsWithProvider(ctx, config, request, responseParts, request.Prompt, provider, providerType)
+		apiResponse.ResponseText = finalResponse
+	}
+
+	return apiResponse, nil
 }
 
 // callMockGeminiAPI provides mock responses for testing/demo purposes
@@ -1052,6 +1113,7 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 		// Process function calls - let Gemini decide parallel vs sequential
 		if len(allFunctionCalls) > 0 {
 			log.Printf("🔧 Processing %d function call(s) - executing them and allowing iterative calling", len(allFunctionCalls))
+			// Note: callGeminiRestAPI is a legacy function - should use provider-aware callGeminiAPI instead
 			responseText, functionCallResponse = c.processIterativeFunctionCalls(ctx, config, request, allFunctionCalls, finalPrompt)
 		}
 	}
@@ -1240,6 +1302,61 @@ func (c *Client) processIterativeFunctionCalls(ctx context.Context, config *type
 
 	// Execute the iterative function calling loop
 	return c.executeIterativeFunctionLoop(ctx, config, request, functionCalls, conversationHistory)
+}
+
+// processIterativeFunctionCallsWithProvider handles function calls using the specified provider
+func (c *Client) processIterativeFunctionCallsWithProvider(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest, functionCalls []ResponsePart, originalPrompt string, provider providers.ModelProvider, providerType string) (string, map[string]interface{}) {
+	log.Printf("🔧 Starting iterative function calling with %d initial function(s) using %s provider", len(functionCalls), providerType)
+
+	// Execute all function calls first
+	functionResults := make([]map[string]interface{}, len(functionCalls))
+	for i, funcCall := range functionCalls {
+		result, err := c.executeFunctionCall(ctx, funcCall.FunctionCall.Name, funcCall.FunctionCall.Args)
+		if err != nil {
+			log.Printf("⚠️ Function %s failed: %v", funcCall.FunctionCall.Name, err)
+			result = map[string]interface{}{
+				"error":  err.Error(),
+				"status": "failed",
+			}
+		}
+		functionResults[i] = result
+	}
+
+	// Create a follow-up prompt asking the provider to synthesize the function results
+	synthesisPrompt := fmt.Sprintf("Based on the original request: \"%s\"\n\nI have executed the following functions:\n", originalPrompt)
+
+	for i, funcCall := range functionCalls {
+		resultJSON, _ := json.Marshal(functionResults[i])
+		synthesisPrompt += fmt.Sprintf("\nFunction: %s\nResult: %s\n", funcCall.FunctionCall.Name, string(resultJSON))
+	}
+
+	synthesisPrompt += "\nPlease provide a comprehensive analysis and response based on these function results."
+
+	// Create a new request for the synthesis
+	synthesisRequest := &providers.ModelRequest{
+		Prompt:              synthesisPrompt,
+		Context:             request.Context,
+		SystemPrompt:        config.SystemPrompt,
+		Tools:               []types.Tool{}, // No tools for synthesis
+		ConversationHistory: []providers.ConversationMessage{},
+		SessionApiKeys:      c.sessionApiKeys,
+	}
+
+	// Call the same provider for synthesis
+	synthesisResponse, err := provider.GenerateContent(ctx, config, synthesisRequest)
+	if err != nil {
+		log.Printf("⚠️ Failed to get synthesis from %s provider: %v", providerType, err)
+		// Fallback to simple summary
+		return c.createFallbackSummary(functionCalls, functionResults), nil
+	}
+
+	if synthesisResponse.ResponseText != "" {
+		log.Printf("✅ %s provided synthesis after function execution", providerType)
+		return synthesisResponse.ResponseText, nil
+	}
+
+	// Fallback to simple summary
+	return c.createFallbackSummary(functionCalls, functionResults), nil
 }
 
 // executeIterativeFunctionLoop handles the iterative execution of functions until Gemini provides final response

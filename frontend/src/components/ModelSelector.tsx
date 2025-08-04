@@ -58,6 +58,23 @@ export const SUPPORTED_MODELS: ModelInfo[] = [
     description: 'Lightweight model optimized for speed',
     category: 'gemini',
   },
+  {
+    id: 'moonshotai/kimi-k2-instruct',
+    name: 'moonshotai/kimi-k2-instruct',
+    displayName: 'Kimi K2 Instruct',
+    description: 'Advanced MoE model with excellent tool use and coding capabilities',
+    category: 'kimi',
+    isRecommended: true,
+    isNew: true,
+  },
+  {
+    id: 'moonshotai/kimi-k2',
+    name: 'moonshotai/kimi-k2',
+    displayName: 'Kimi K2',
+    description: '1T parameter MoE model optimized for agentic tasks',
+    category: 'kimi',
+    isNew: true,
+  },
 ];
 
 interface ModelSelectorProps {

@@ -356,6 +356,15 @@ func (s *Server) runAsyncExecution(executionID string, request *types.MultiExecu
 		log.Printf("⚠️ No GitHub API key provided")
 	}
 
+	// Get OpenRouter API key from encrypted headers
+	var openRouterAPIKey string
+	if decryptedKey, exists := encryptedKeys["openRouterApiKey"]; exists && decryptedKey != "" {
+		openRouterAPIKey = decryptedKey
+		log.Printf("🚀 Using decrypted OpenRouter API key from frontend: %s...", openRouterAPIKey[:10])
+	} else {
+		log.Printf("⚠️ No OpenRouter API key provided")
+	}
+
 	ctx := context.Background()
 	var err error
 	var result *types.ExecutionResult
@@ -369,6 +378,7 @@ func (s *Server) runAsyncExecution(executionID string, request *types.MultiExecu
 
 		sessionKeys := &types.SessionApiKeys{
 			GeminiApiKey:      "", // Empty to force mock
+			OpenRouterApiKey:  openRouterAPIKey,
 			OpenWeatherApiKey: openWeatherAPIKey,
 			Neo4jUrl:          neo4jURL,
 			Neo4jUsername:     neo4jUsername,
@@ -405,6 +415,7 @@ func (s *Server) runAsyncExecution(executionID string, request *types.MultiExecu
 
 		sessionKeys := &types.SessionApiKeys{
 			GeminiApiKey:      apiKey,
+			OpenRouterApiKey:  openRouterAPIKey,
 			OpenWeatherApiKey: openWeatherAPIKey,
 			Neo4jUrl:          neo4jURL,
 			Neo4jUsername:     neo4jUsername,
@@ -1871,7 +1882,7 @@ func (s *Server) enableCORS(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Gemini-API-Key, X-OpenWeather-API-Key, X-Neo4j-URL, X-Neo4j-Username, X-Neo4j-Password, X-Neo4j-Database, X-Use-Mock, X-Encrypted-Gemini-API-Key, X-Encrypted-Openweather-API-Key, X-Encrypted-Neo4j-URL, X-Encrypted-Neo4j-Username, X-Encrypted-Neo4j-Password, X-Encrypted-Neo4j-Database, X-Encrypted-Github-Api-Key")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Gemini-API-Key, X-OpenWeather-API-Key, X-Neo4j-URL, X-Neo4j-Username, X-Neo4j-Password, X-Neo4j-Database, X-Use-Mock, X-Encrypted-Gemini-API-Key, X-Encrypted-Openweather-API-Key, X-Encrypted-Neo4j-URL, X-Encrypted-Neo4j-Username, X-Encrypted-Neo4j-Password, X-Encrypted-Neo4j-Database, X-Encrypted-Github-Api-Key, X-Encrypted-Openrouter-Api-Key")
 
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)

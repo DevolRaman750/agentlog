@@ -325,11 +325,11 @@ const ApiKeysScreen: React.FC = () => {
       functions: ['All AI Functions'],
       group: 'model',
     },
-    kimiApiKey: {
-      displayName: 'Kimi + API Key', 
-      description: 'API key for Kimi K2 model',
-      placeholder: 'Enter your Kimi API key',
-      functions: ['All AI Functions'],
+    openRouterApiKey: {
+      displayName: 'OpenRouter API Key', 
+      description: 'API key for Kimi K2 and other models via OpenRouter',
+      placeholder: 'sk-or-your-openrouter-key',
+      functions: ['Kimi K2 Models', 'Future AI Models'],
       group: 'model',
     },
     openWeatherApiKey: {

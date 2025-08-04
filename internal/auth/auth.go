@@ -738,5 +738,16 @@ func (he *HeaderEncryption) GetDecryptedAPIKeysFromHeaders(headers map[string][]
 		}
 	}
 
+	if encryptedKey := getHeader("X-Encrypted-Openrouter-Api-Key"); encryptedKey != "" {
+		if decrypted, err := he.DecryptAPIKey(encryptedKey); err == nil && decrypted != "" {
+			apiKeys["openRouterApiKey"] = decrypted
+			log.Printf("🔓 Successfully decrypted OpenRouter API key: %s...", decrypted[:10])
+		} else {
+			if os.Getenv("GO_ENV") != "test" && !strings.Contains(os.Args[0], ".test") {
+				log.Printf("❌ Failed to decrypt OpenRouter API key: %v", err)
+			}
+		}
+	}
+
 	return apiKeys
 }

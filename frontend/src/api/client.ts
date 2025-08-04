@@ -93,6 +93,13 @@ class GoGentAPI {
             console.log('🔐 Added encrypted GitHub API key to headers');
           }
           
+          // Add encrypted OpenRouter API key to headers if available
+          if (apiKeys.openRouterApiKey) {
+            const encryptedKey = headerEncryption.encryptForHeader(apiKeys.openRouterApiKey);
+            config.headers['X-Encrypted-Openrouter-Api-Key'] = encryptedKey;
+            console.log('🔐 Added encrypted OpenRouter API key to headers');
+          }
+          
           // Add mock flag if needed
           if (appConfigData?.useMockResponses) {
             config.headers['X-Use-Mock'] = 'true';

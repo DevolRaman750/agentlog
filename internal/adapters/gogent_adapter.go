@@ -67,7 +67,7 @@ func (adapter *GoGentClientAdapter) Close() error {
 // ExecutionLogger interface implementation
 
 func (adapter *GoGentClientAdapter) CreateExecutionRun(ctx context.Context, name, description string, enableFunctionCalling bool) (*types.ExecutionRun, error) {
-	return adapter.client.CreateExecutionRun(ctx, adapter.userID, name, description, enableFunctionCalling)
+	return adapter.client.CreateExecutionRun(ctx, adapter.userID, name, description, enableFunctionCalling, nil)
 }
 
 func (adapter *GoGentClientAdapter) LogAPIRequest(ctx context.Context, request *types.APIRequest) error {
