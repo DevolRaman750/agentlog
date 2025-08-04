@@ -523,9 +523,13 @@ const AgentsScreen: React.FC = () => {
 
       {/* Show empty state if no agents */}
       {agents.length === 0 ? (
-        <View style={[styles.listContainer, styles.emptyListContainer]}>
+        <ScrollView 
+          style={styles.emptyScrollContainer}
+          contentContainerStyle={styles.emptyScrollContent}
+          showsVerticalScrollIndicator={false}
+        >
           {renderEmptyState()}
-        </View>
+        </ScrollView>
       ) : (
         <FlatList
           data={[
@@ -662,15 +666,22 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     padding: 16,
+    paddingBottom: 100, // Extra space for tab bar on mobile
   },
-  emptyListContainer: {
+  emptyScrollContainer: {
     flex: 1,
-    justifyContent: 'center',
   },
-
+  emptyScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    minHeight: '100%',
+  },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 60,
+    paddingVertical: 40,
+    paddingHorizontal: 20,
   },
   emptyTitle: {
     fontSize: 24,
@@ -678,6 +689,8 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 16,
     marginBottom: 8,
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
   emptyMessage: {
     fontSize: 16,
@@ -685,6 +698,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 22,
+    paddingHorizontal: 10,
+    maxWidth: 350,
   },
   createButton: {
     flexDirection: 'row',

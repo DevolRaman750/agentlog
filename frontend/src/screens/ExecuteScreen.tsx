@@ -1174,6 +1174,7 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     padding: 16,
+    paddingBottom: 120, // Extra space for tab bar and execute button on mobile
   },
   header: {
     marginBottom: 24,
@@ -1247,7 +1248,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   mainPrompt: {
-    height: 120, // Fixed height for the main prompt
+    minHeight: 120, // Minimum height for the main prompt, allowing growth
   },
   selectorButton: {
     backgroundColor: '#FFFFFF',
@@ -1275,6 +1276,7 @@ const styles = StyleSheet.create({
   },
   executeContainer: {
     marginTop: 20,
+    marginBottom: 40, // Extra margin for mobile scrolling
   },
   executingContainer: {
     backgroundColor: '#FFFFFF',
