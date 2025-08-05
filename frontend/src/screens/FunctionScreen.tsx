@@ -1043,7 +1043,7 @@ LIMIT {{limit}}`;
               </>
             )}
             
-                            {!templatesExpanded && (
+            {!templatesExpanded && (
               <Text style={styles.templatesCollapsedHint}>
                 Tap to browse 4 pre-built templates
               </Text>
