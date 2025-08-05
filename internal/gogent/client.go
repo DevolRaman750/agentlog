@@ -1006,11 +1006,11 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 		}
 		requestBody["tools"] = tools
 
-		// Use ANY mode to force function calling when we have specific tasks that require tool usage
+		// Use ANY mode to allow function calling when we have specific tasks that require tool usage
 		// This is recommended for cases where we definitely want the AI to use available functions
-		toolConfigMode := "ANY" // Force function calling for better reliability
+		toolConfigMode := "ANY" // Allow function calling for better reliability
 		if len(config.Tools) == 1 {
-			// When we have specific single-purpose tools (like GitHub functions), force their usage
+			// When we have specific single-purpose tools (like GitHub functions), allow their usage
 			toolConfigMode = "ANY"
 		}
 
@@ -1600,10 +1600,10 @@ func (c *Client) sendConversationToGeminiForIteration(ctx context.Context, confi
 		}
 		requestBody["tools"] = tools
 
-		// Use AUTO mode to let Gemini decide
+		// Use ANY mode to allow continued function calling during iterations
 		requestBody["toolConfig"] = map[string]interface{}{
 			"functionCallingConfig": map[string]interface{}{
-				"mode": "AUTO",
+				"mode": "ANY",
 			},
 		}
 	}
@@ -3063,42 +3063,93 @@ func (c *Client) executeHTTPFunction(ctx context.Context, funcDef *db.FunctionDe
 			}
 		}
 
-		// Extract repo from args for SHA resolution
-		repo, repoExists := args["repo"]
-		if !repoExists {
-			return nil, fmt.Errorf("repo parameter is required for github_create_branch")
+		// Handle both new (separate owner/repo) and old (combined repo) parameter formats
+		var owner, repo string
+		var repoStr string
+
+		// Check if we have separate owner and repo parameters (new format)
+		if ownerVal, ownerExists := args["owner"]; ownerExists {
+			if repoVal, repoExists := args["repo"]; repoExists {
+				owner = fmt.Sprintf("%v", ownerVal)
+				repo = fmt.Sprintf("%v", repoVal)
+				repoStr = fmt.Sprintf("%s/%s", owner, repo)
+				// Parameters are already separated, no need to modify args
+			} else {
+				return nil, fmt.Errorf("repo parameter is required when owner is provided for github_create_branch")
+			}
+		} else {
+			// Fall back to old combined format for backward compatibility
+			repoParam, repoExists := args["repo"]
+			if !repoExists {
+				return nil, fmt.Errorf("repo parameter is required for github_create_branch")
+			}
+			repoStr = fmt.Sprintf("%v", repoParam)
+
+			// Split repo into owner/repo for URL parameter substitution
+			repoParts := strings.Split(repoStr, "/")
+			if len(repoParts) != 2 {
+				return nil, fmt.Errorf("repo must be in 'owner/repo' format, got: %s", repoStr)
+			}
+			owner = repoParts[0]
+			repo = repoParts[1]
+			args["owner"] = owner
+			args["repo"] = repo // Replace combined repo with just repo name
 		}
-		repoStr := fmt.Sprintf("%v", repo)
 
-		// Split repo into owner/repo for URL parameter substitution
-		repoParts := strings.Split(repoStr, "/")
-		if len(repoParts) != 2 {
-			return nil, fmt.Errorf("repo must be in 'owner/repo' format, got: %s", repoStr)
+		// Handle ref parameter - if not provided, construct from branch parameter
+		if _, refExists := args["ref"]; !refExists {
+			// Check for branch parameter to construct ref
+			branchName := ""
+			if branch, branchExists := args["branch"]; branchExists {
+				branchName = fmt.Sprintf("%v", branch)
+			} else if branchParam, exists := args["branch_name"]; exists {
+				branchName = fmt.Sprintf("%v", branchParam)
+			} else {
+				return nil, fmt.Errorf("ref parameter is required for github_create_branch (or branch/branch_name to construct it)")
+			}
+
+			// Construct full ref for branch creation
+			args["ref"] = fmt.Sprintf("refs/heads/%s", branchName)
+
+			c.logExecutionEvent(types.LogLevelDebug, types.LogCategoryFunctionCall,
+				"Constructed ref from branch name",
+				map[string]interface{}{
+					"branch_name": branchName,
+					"ref":         args["ref"],
+				})
 		}
-		args["owner"] = repoParts[0]
-		args["repo"] = repoParts[1] // Replace combined repo with just repo name
 
-		// Resolve source branch to SHA via GitHub API
-		resolvedSHA, err := c.resolveGitHubBranchToSHA(ctx, repoStr, sourceBranch)
-		if err != nil {
-			return nil, fmt.Errorf("failed to resolve source branch '%s' to SHA: %w", sourceBranch, err)
+		// Handle sha parameter - if not provided, resolve from source branch
+		if _, shaExists := args["sha"]; !shaExists {
+			// Resolve source branch to SHA via GitHub API
+			resolvedSHA, err := c.resolveGitHubBranchToSHA(ctx, repoStr, sourceBranch)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve source branch '%s' to SHA: %w", sourceBranch, err)
+			}
+
+			// Set SHA parameter for GitHub API
+			args["sha"] = resolvedSHA
+
+			c.logExecutionEvent(types.LogLevelDebug, types.LogCategoryFunctionCall,
+				"Resolved GitHub branch to SHA and split repo parameters",
+				map[string]interface{}{
+					"source_branch": sourceBranch,
+					"resolved_sha":  resolvedSHA,
+					"full_repo":     repoStr,
+					"owner":         owner,
+					"repo":          repo,
+				})
 		}
-
-		// Add resolved SHA to args for template processing
-		args["resolved_sha"] = resolvedSHA
-
-		c.logExecutionEvent(types.LogLevelDebug, types.LogCategoryFunctionCall,
-			"Resolved GitHub branch to SHA and split repo parameters",
-			map[string]interface{}{
-				"source_branch": sourceBranch,
-				"resolved_sha":  resolvedSHA,
-				"full_repo":     repoStr,
-				"owner":         repoParts[0],
-				"repo":          repoParts[1],
-			})
 	}
 
 	// Replace URL path parameters (e.g., {owner}, {repo})
+	c.logExecutionEvent(types.LogLevelDebug, types.LogCategoryFunctionCall,
+		fmt.Sprintf("Starting URL parameter replacement for %s", funcDef.Name),
+		map[string]interface{}{
+			"original_url": requestURL,
+			"args":         args,
+		})
+
 	for key, value := range args {
 		placeholder := fmt.Sprintf("{%s}", key)
 		if strings.Contains(requestURL, placeholder) {
@@ -3108,11 +3159,19 @@ func (c *Client) executeHTTPFunction(ctx context.Context, funcDef *db.FunctionDe
 			c.logExecutionEvent(types.LogLevelDebug, types.LogCategoryFunctionCall,
 				fmt.Sprintf("Replaced URL parameter %s", key),
 				map[string]interface{}{
-					"parameter": key,
-					"value":     valueStr,
+					"parameter":             key,
+					"value":                 valueStr,
+					"url_after_replacement": requestURL,
 				})
 		}
 	}
+
+	c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryFunctionCall,
+		fmt.Sprintf("Final URL for %s", funcDef.Name),
+		map[string]interface{}{
+			"final_url": requestURL,
+			"method":    funcDef.HttpMethod.String,
+		})
 
 	if funcDef.HttpMethod.String == "GET" {
 		// Add remaining parameters as query string (excluding those used in URL path)
@@ -3883,22 +3942,35 @@ func (c *Client) executeMCPFunction(ctx context.Context, funcDef *db.FunctionDef
 		return nil, fmt.Errorf("operation parameter is required")
 	}
 
-	// Extract and validate repository
-	repo, ok := args["repo"].(string)
-	if !ok || repo == "" {
-		return nil, fmt.Errorf("repo parameter is required")
-	}
+	// Extract and validate repository - handle both new (separate owner/repo) and old (combined) formats
+	var repoStr string
+	if ownerVal, ownerExists := args["owner"]; ownerExists {
+		if repoVal, repoExists := args["repo"]; repoExists {
+			owner := fmt.Sprintf("%v", ownerVal)
+			repo := fmt.Sprintf("%v", repoVal)
+			repoStr = fmt.Sprintf("%s/%s", owner, repo)
+		} else {
+			return nil, fmt.Errorf("repo parameter is required when owner is provided")
+		}
+	} else {
+		// Fall back to old combined format
+		repo, ok := args["repo"].(string)
+		if !ok || repo == "" {
+			return nil, fmt.Errorf("repo parameter is required")
+		}
+		repoStr = repo
 
-	// Validate repository format (owner/repo)
-	if !strings.Contains(repo, "/") || len(strings.Split(repo, "/")) != 2 {
-		return nil, fmt.Errorf("repo must be in 'owner/repo' format, got: %s", repo)
+		// Validate repository format (owner/repo)
+		if !strings.Contains(repoStr, "/") || len(strings.Split(repoStr, "/")) != 2 {
+			return nil, fmt.Errorf("repo must be in 'owner/repo' format, got: %s", repoStr)
+		}
 	}
 
 	c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryFunctionCall,
 		"Processing MCP GitHub operation",
 		map[string]interface{}{
 			"operation": operation,
-			"repo":      repo,
+			"repo":      repoStr,
 		})
 
 	// Handle different operations

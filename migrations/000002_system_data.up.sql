@@ -3,13 +3,14 @@
 
 -- 1. Create system user for system functions and configurations
 INSERT INTO users (
-    id, email, first_name, last_name, hashed_password, created_at, updated_at
+    id, username, email, password_hash, email_verified, is_temporary, created_at, updated_at
 ) VALUES (
     'system',
+    'system',
     'system@gogent.local',
-    'System',
-    'User',
     '$2a$10$dummy.hash.for.system.user.no.login.allowed',
+    1,
+    0,
     NOW(),
     NOW()
 ) ON DUPLICATE KEY UPDATE updated_at = NOW();
@@ -124,6 +125,163 @@ INSERT INTO function_definitions (
     NOW(),
     NOW()
 ),
+-- GitHub Add Comment Function
+(
+    'func-github-add-comment',
+    'system',
+    'github_add_comment',
+    'GitHub Add Comment',
+    'github',
+    'Add a comment to a GitHub issue or pull request. Perfect for AI agents to provide analysis, updates, or additional information to ongoing discussions.',
+    JSON_OBJECT(
+        'type', 'object',
+        'required', JSON_ARRAY('owner', 'repo', 'issue_number', 'body'),
+        'properties', JSON_OBJECT(
+            'owner', JSON_OBJECT('type', 'string', 'description', 'GitHub username or organization name'),
+            'repo', JSON_OBJECT('type', 'string', 'description', 'Repository name'),
+            'issue_number', JSON_OBJECT('type', 'integer', 'minimum', 1, 'description', 'The issue or pull request number to comment on'),
+            'body', JSON_OBJECT('type', 'string', 'description', 'The comment content. Supports full GitHub Markdown formatting')
+        )
+    ),
+    JSON_OBJECT(
+        'id', 987654321,
+        'url', 'https://api.github.com/repos/owner/repo/issues/comments/987654321',
+        'body', 'I analyzed the code and found the issue is in the authentication logic.',
+        'html_url', 'https://github.com/owner/repo/issues/123#issuecomment-987654321',
+        'created_at', '2025-01-30T15:45:00Z',
+        '_metadata', JSON_OBJECT('source', 'mock')
+    ),
+    'https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/comments',
+    'POST',
+    JSON_OBJECT('Accept', 'application/vnd.github.v3+json', 'User-Agent', 'GoGent-App', 'Content-Type', 'application/json'),
+    JSON_OBJECT(),
+    true,
+    true,
+    JSON_ARRAY('githubApiKey'),
+    JSON_OBJECT('githubApiKey', JSON_OBJECT('required', true, 'description', 'GitHub API token with repository write access')),
+    JSON_OBJECT(
+        'id', 987654321,
+        'body', 'Comment added successfully but GitHub API is currently unavailable.',
+        'html_url', 'https://github.com/owner/repo/issues/123#issuecomment-987654321',
+        'created_at', '2025-01-30T15:45:00Z',
+        '_metadata', JSON_OBJECT('error', 'GitHub API unavailable', 'source', 'fallback')
+    ),
+    NOW(),
+    NOW()
+),
+-- GitHub Update Issue Function
+(
+    'func-github-update-issue',
+    'system',
+    'github_update_issue',
+    'GitHub Update Issue',
+    'github',
+    'Update a GitHub issue with additional analysis, insights, or findings. Perfect for AI agents to enhance issues with code analysis.',
+    JSON_OBJECT(
+        'type', 'object',
+        'required', JSON_ARRAY('owner', 'repo', 'issue_number', 'body'),
+        'properties', JSON_OBJECT(
+            'owner', JSON_OBJECT('type', 'string', 'description', 'GitHub username or organization name'),
+            'repo', JSON_OBJECT('type', 'string', 'description', 'Repository name'),
+            'issue_number', JSON_OBJECT('type', 'integer', 'minimum', 1, 'description', 'The issue number to update'),
+            'body', JSON_OBJECT('type', 'string', 'description', 'Updated issue description/body content'),
+            'title', JSON_OBJECT('type', 'string', 'description', 'New title for the issue (optional)'),
+            'state', JSON_OBJECT('type', 'string', 'enum', JSON_ARRAY('open', 'closed'), 'description', 'Issue state (optional)')
+        )
+    ),
+    JSON_OBJECT(
+        'id', 123,
+        'number', 123,
+        'title', 'Sample Bug Report - Enhanced with Analysis',
+        'body', 'Original issue description with AI analysis appended',
+        'state', 'open',
+        'html_url', 'https://github.com/owner/repo/issues/123',
+        'updated_at', '2025-01-30T15:30:00Z',
+        '_metadata', JSON_OBJECT('source', 'mock')
+    ),
+    'https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}',
+    'PATCH',
+    JSON_OBJECT('Accept', 'application/vnd.github.v3+json', 'User-Agent', 'GoGent-App', 'Content-Type', 'application/json'),
+    JSON_OBJECT(),
+    true,
+    true,
+    JSON_ARRAY('githubApiKey'),
+    JSON_OBJECT('githubApiKey', JSON_OBJECT('required', true, 'description', 'GitHub API token with repository write access')),
+    JSON_OBJECT(
+        'id', 123,
+        'body', 'Issue has been updated with analysis findings.',
+        'title', 'Issue Updated Successfully',
+        'number', 123,
+        'html_url', 'https://github.com/owner/repo/issues/123',
+        'updated_at', '2025-01-30T15:30:00Z',
+        '_metadata', JSON_OBJECT('error', 'GitHub API unavailable', 'source', 'fallback')
+    ),
+    NOW(),
+    NOW()
+),
+-- GitHub Create Branch Function
+(
+    'github-create-branch-uuid',
+    'system',
+    'github_create_branch',
+    'Create GitHub Branch',
+    'github',
+    'Create a new branch in a GitHub repository from an existing branch, tag, or commit',
+    JSON_OBJECT(
+        'type', 'object',
+        'required', JSON_ARRAY('repo', 'branch_name'),
+        'properties', JSON_OBJECT(
+            'repo', JSON_OBJECT('type', 'string', 'description', 'Repository name in format "owner/repo"'),
+            'branch_name', JSON_OBJECT('type', 'string', 'description', 'Name of the new branch to create'),
+            'source_branch', JSON_OBJECT('type', 'string', 'default', 'main', 'description', 'Source branch to create from')
+        )
+    ),
+    JSON_OBJECT('message', 'Branch created successfully', '_metadata', JSON_OBJECT('source', 'mock')),
+    'https://api.github.com/repos/{repo}/git/refs',
+    'POST',
+    JSON_OBJECT('Accept', 'application/vnd.github.v3+json', 'User-Agent', 'GoGent-App'),
+    JSON_OBJECT(),
+    true,
+    true,
+    JSON_ARRAY('github_token'),
+    JSON_OBJECT('github_token', JSON_OBJECT('required', true, 'description', 'GitHub API token')),
+    JSON_OBJECT('error', 'Branch creation failed', '_metadata', JSON_OBJECT('source', 'fallback')),
+    NOW(),
+    NOW()
+),
+-- GitHub Create/Update File Function
+(
+    'github-create-file-uuid',
+    'system',
+    'github_create_update_file',
+    'Create/Update GitHub File',
+    'github',
+    'Create or update a file in a GitHub repository',
+    JSON_OBJECT(
+        'type', 'object',
+        'required', JSON_ARRAY('repo', 'path', 'content', 'message'),
+        'properties', JSON_OBJECT(
+            'repo', JSON_OBJECT('type', 'string', 'description', 'Repository name in format "owner/repo"'),
+            'path', JSON_OBJECT('type', 'string', 'description', 'Path to the file in the repository'),
+            'content', JSON_OBJECT('type', 'string', 'description', 'File content (will be base64 encoded automatically)'),
+            'message', JSON_OBJECT('type', 'string', 'description', 'Commit message for the file change'),
+            'branch', JSON_OBJECT('type', 'string', 'default', 'main', 'description', 'Branch to commit to'),
+            'sha', JSON_OBJECT('type', 'string', 'description', 'SHA of the file being replaced (required for updates)')
+        )
+    ),
+    JSON_OBJECT('message', 'File created/updated successfully', '_metadata', JSON_OBJECT('source', 'mock')),
+    'https://api.github.com/repos/{repo}/contents/{path}',
+    'PUT',
+    JSON_OBJECT('Accept', 'application/vnd.github.v3+json', 'User-Agent', 'GoGent-App'),
+    JSON_OBJECT(),
+    true,
+    true,
+    JSON_ARRAY('github_token'),
+    JSON_OBJECT('github_token', JSON_OBJECT('required', true, 'description', 'GitHub API token')),
+    JSON_OBJECT('error', 'File operation failed', '_metadata', JSON_OBJECT('source', 'fallback')),
+    NOW(),
+    NOW()
+),
 -- OpenWeather Function
 (
     'func-openweather-current',
@@ -200,7 +358,7 @@ INSERT INTO function_definitions (
 -- 3. Add essential API configurations
 INSERT INTO api_configurations (
     id, user_id, variation_name, model_name, system_prompt, 
-    temperature, max_tokens, top_p, generation_config, is_system_resource,
+    temperature, max_tokens, top_p, generation_config,
     created_at, updated_at
 ) VALUES 
 (
@@ -213,7 +371,6 @@ INSERT INTO api_configurations (
     2048,
     0.8,
     JSON_OBJECT('temperature', 0.7, 'maxOutputTokens', 2048, 'topP', 0.8),
-    true,
     NOW(),
     NOW()
 ),
@@ -227,7 +384,6 @@ INSERT INTO api_configurations (
     1024,
     0.9,
     JSON_OBJECT('temperature', 0.5, 'maxOutputTokens', 1024, 'topP', 0.9),
-    true,
     NOW(),
     NOW()
 ); 
