@@ -1,1 +1,0 @@
-ALTER TABLE function_definitions DROP COLUMN function_group; 

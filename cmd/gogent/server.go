@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"gogent/internal/agents"
+	"gogent/internal/apikeys"
 	"gogent/internal/auth"
 	"gogent/internal/db"
 	"gogent/internal/gogent"
@@ -36,6 +37,8 @@ type Server struct {
 	templateIntegration *templates.TemplateIntegration
 	agentsHandler       *agents.AgentsHandler
 	teamsHandler        *teams.TeamsHandler
+	apiKeysService      *apikeys.Service
+	apiKeysHandler      *apikeys.Handler
 }
 
 // ExecutionStatus tracks the status of an async execution
@@ -121,6 +124,13 @@ func NewServer() (*Server, error) {
 	// Create teams handler
 	teamsHandler := teams.NewTeamsHandler(client.GetDB())
 
+	// Create API key service and handler
+	apiKeysService, err := apikeys.NewService(client.GetDB())
+	if err != nil {
+		return nil, fmt.Errorf("failed to create API keys service: %w", err)
+	}
+	apiKeysHandler := apikeys.NewHandler(apiKeysService)
+
 	return &Server{
 		client:              client,
 		config:              config,
@@ -130,6 +140,8 @@ func NewServer() (*Server, error) {
 		templateIntegration: templateIntegration,
 		agentsHandler:       agentsHandler,
 		teamsHandler:        teamsHandler,
+		apiKeysService:      apiKeysService,
+		apiKeysHandler:      apiKeysHandler,
 	}, nil
 }
 
@@ -264,23 +276,8 @@ func (s *Server) runAsyncExecution(executionID string, request *types.MultiExecu
 		return masked
 	}())
 
-	// Use API key from encrypted headers if available, fallback to plain text headers, then server's API key
-	var apiKey string
-	if decryptedGeminiKey, exists := encryptedKeys["geminiApiKey"]; exists && decryptedGeminiKey != "" {
-		apiKey = decryptedGeminiKey
-		log.Printf("🔑 Using decrypted Gemini API key from frontend: %s...", apiKey[:10])
-	} else if plainApiKey := headers.Get("X-Gemini-API-Key"); plainApiKey != "" {
-		apiKey = plainApiKey
-		log.Printf("🔑 Using plain-text Gemini API key from frontend: %s...", apiKey[:10])
-		log.Printf("⚠️ Warning: API key transmitted in plain text - consider upgrading client to use encryption")
-	} else {
-		log.Printf("🔑 No Gemini API key available from frontend")
-	}
-
-	if apiKey == "" {
-		useMock = true
-		log.Printf("⚠️ No Gemini API key available (frontend or server), using mock responses")
-	}
+	// API keys are now managed in database - headers are deprecated
+	log.Printf("🔑 API keys will be loaded from database for user %s (headers are deprecated)", userID)
 
 	// Get OpenWeather API key from encrypted headers first, then fallback to plain text
 	var openWeatherAPIKey string
@@ -369,80 +366,37 @@ func (s *Server) runAsyncExecution(executionID string, request *types.MultiExecu
 	var err error
 	var result *types.ExecutionResult
 
-	if useMock {
-		// Create a client with session keys but force mock mode
-		tempConfig := &types.GeminiClientConfig{
-			MaxRetries:  s.config.MaxRetries,
-			TimeoutSecs: s.config.TimeoutSecs,
-		}
+	// Always try real execution first with database API keys
+	// Create a client that will load API keys from database
+	tempConfig := &types.GeminiClientConfig{
+		MaxRetries:  s.config.MaxRetries,
+		TimeoutSecs: s.config.TimeoutSecs,
+	}
 
-		sessionKeys := &types.SessionApiKeys{
-			GeminiApiKey:      "", // Empty to force mock
-			OpenRouterApiKey:  openRouterAPIKey,
-			OpenWeatherApiKey: openWeatherAPIKey,
-			Neo4jUrl:          neo4jURL,
-			Neo4jUsername:     neo4jUsername,
-			Neo4jPassword:     neo4jPassword,
-			Neo4jDatabase:     neo4jDatabase,
-			GithubApiKey:      githubAPIKey,
-		}
+	log.Printf("Creating client that will load API keys from database")
 
-		log.Printf("Creating mock client for execution with logging")
+	// Get database URL from environment for client
+	dbURL := os.Getenv("DB_URL")
+	tempClient, clientErr := gogent.NewClient(dbURL, tempConfig, nil)
+	if clientErr != nil {
+		log.Printf("Failed to create client: %v", clientErr)
+		s.markExecutionFailed(executionID, fmt.Sprintf("Failed to create client: %v", clientErr))
+		return
+	}
+	defer tempClient.Close()
 
-		// Get database URL from environment for mock client
-		dbURL := os.Getenv("DB_URL")
-		mockClient, clientErr := gogent.NewClient(dbURL, tempConfig, sessionKeys)
-		if clientErr != nil {
-			log.Printf("Failed to create mock client: %v", clientErr)
-			s.markExecutionFailed(executionID, fmt.Sprintf("Failed to create mock client: %v", clientErr))
-			return
-		}
-		defer mockClient.Close()
+	// Load API keys from database for this user
+	if loadErr := tempClient.LoadDatabaseApiKeys(ctx, userID); loadErr != nil {
+		log.Printf("⚠️ Failed to load API keys from database: %v", loadErr)
+		// Continue execution - the client will determine if mock responses are needed
+	}
 
-		log.Printf("Using mock client with logging enabled")
-		result, err = mockClient.ExecuteMultiVariation(ctx, userID, request)
-		if err != nil {
-			log.Printf("Mock execution failed: %v", err)
-			s.markExecutionFailed(executionID, fmt.Sprintf("Mock execution failed: %v", err))
-			return
-		}
-	} else {
-		// Create a temporary client with session API keys
-		tempConfig := &types.GeminiClientConfig{
-			MaxRetries:  s.config.MaxRetries,
-			TimeoutSecs: s.config.TimeoutSecs,
-		}
-
-		sessionKeys := &types.SessionApiKeys{
-			GeminiApiKey:      apiKey,
-			OpenRouterApiKey:  openRouterAPIKey,
-			OpenWeatherApiKey: openWeatherAPIKey,
-			Neo4jUrl:          neo4jURL,
-			Neo4jUsername:     neo4jUsername,
-			Neo4jPassword:     neo4jPassword,
-			Neo4jDatabase:     neo4jDatabase,
-			GithubApiKey:      githubAPIKey,
-		}
-
-		log.Printf("Creating temporary client with API key")
-
-		// Get database URL from environment for temporary client
-		dbURL := os.Getenv("DB_URL")
-		tempClient, clientErr := gogent.NewClient(dbURL, tempConfig, sessionKeys)
-		if clientErr != nil {
-			log.Printf("Failed to create temporary client: %v", clientErr)
-			s.markExecutionFailed(executionID, fmt.Sprintf("Failed to create client: %v", clientErr))
-			return
-		}
-		defer tempClient.Close()
-
-		log.Printf("Using temporary client for real API execution")
-		result, err = tempClient.ExecuteMultiVariation(ctx, userID, request)
-		if err != nil {
-			log.Printf("Execution failed with temporary client: %v", err)
-			s.markExecutionFailed(executionID, fmt.Sprintf("Execution failed: %v", err))
-			return
-		}
+	log.Printf("Using client with database API keys for execution")
+	result, err = tempClient.ExecuteMultiVariation(ctx, userID, request)
+	if err != nil {
+		log.Printf("Execution failed: %v", err)
+		s.markExecutionFailed(executionID, fmt.Sprintf("Execution failed: %v", err))
+		return
 	}
 
 	// Mark execution as completed and store the real execution run ID
@@ -1878,19 +1832,61 @@ func (s *Server) databaseTablesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // CORS middleware
-func (s *Server) enableCORS(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func (s *Server) enableCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Allow requests from any origin
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Gemini-API-Key, X-OpenWeather-API-Key, X-Neo4j-URL, X-Neo4j-Username, X-Neo4j-Password, X-Neo4j-Database, X-Use-Mock, X-Encrypted-Gemini-API-Key, X-Encrypted-Openweather-API-Key, X-Encrypted-Neo4j-URL, X-Encrypted-Neo4j-Username, X-Encrypted-Neo4j-Password, X-Encrypted-Neo4j-Database, X-Encrypted-Github-Api-Key, X-Encrypted-Openrouter-Api-Key")
 
+		// Specify allowed methods
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
+
+		// Specify allowed headers
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-User-ID, X-Gemini-API-Key, X-OpenWeather-API-Key, X-Neo4j-URL, X-Neo4j-Username, X-Neo4j-Password, X-Neo4j-Database, X-Use-Mock, X-Encrypted-Gemini-API-Key, X-Encrypted-Openweather-API-Key, X-Encrypted-Neo4j-URL, X-Encrypted-Neo4j-Username, X-Encrypted-Neo4j-Password, X-Encrypted-Neo4j-Database, X-Encrypted-Github-Api-Key, X-Encrypted-Openrouter-Api-Key")
+
+		// Allow credentials to be sent
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+
+		// Handle preflight requests
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
 
-		next(w, r)
-	}
+		// Pass to next handler
+		next.ServeHTTP(w, r)
+	})
+}
+
+// Auth middleware for API key endpoints that sets X-User-ID header
+func (s *Server) apiKeyAuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Extract token from Authorization header
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			http.Error(w, "Authorization header required", http.StatusUnauthorized)
+			return
+		}
+
+		token, err := auth.ExtractTokenFromHeader(authHeader)
+		if err != nil {
+			http.Error(w, "Invalid authorization header", http.StatusUnauthorized)
+			return
+		}
+
+		// Validate token and get user
+		user, err := s.authService.ValidateToken(token)
+		if err != nil {
+			http.Error(w, "Invalid token", http.StatusUnauthorized)
+			return
+		}
+
+		// Set X-User-ID header for API key handlers
+		r.Header.Set("X-User-ID", user.ID)
+
+		// Add user to context as well (for compatibility)
+		ctx := auth.AddUserToContext(r.Context(), user)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }
 
 // Start the HTTP server
@@ -1901,72 +1897,88 @@ func runServer() {
 	}
 	defer server.Close()
 
+	// Create a new ServeMux
+	mux := http.NewServeMux()
+
 	// Auth middleware for protected routes
 	authMiddleware := auth.AuthMiddleware(server.authService)
 
 	// Set up routes - public endpoints
-	http.HandleFunc("/health", server.enableCORS(server.healthHandler))
-	http.HandleFunc("/test", server.enableCORS(server.testHandler))
+	mux.HandleFunc("/health", server.healthHandler)
+	mux.HandleFunc("/test", server.testHandler)
 
 	// Auth endpoints
-	http.HandleFunc("/api/auth/register", server.enableCORS(server.authHandlers.RegisterHandler))
-	http.HandleFunc("/api/auth/login", server.enableCORS(server.authHandlers.LoginHandler))
-	http.HandleFunc("/api/auth/temp-user", server.enableCORS(server.authHandlers.CreateTemporaryUserHandler))
-	http.HandleFunc("/api/auth/verify-email", server.enableCORS(server.authHandlers.VerifyEmailHandler))
+	mux.HandleFunc("/api/auth/register", server.authHandlers.RegisterHandler)
+	mux.HandleFunc("/api/auth/login", server.authHandlers.LoginHandler)
+	mux.HandleFunc("/api/auth/temp-user", server.authHandlers.CreateTemporaryUserHandler)
+	mux.HandleFunc("/api/auth/verify-email", server.authHandlers.VerifyEmailHandler)
 
 	// Protected auth endpoints
-	http.HandleFunc("/api/auth/current", server.enableCORS(authMiddleware(server.authHandlers.GetCurrentUserHandler)))
-	http.HandleFunc("/api/auth/save-temp", server.enableCORS(authMiddleware(server.authHandlers.SaveTemporaryAccountHandler)))
-	http.HandleFunc("/api/auth/connect-temp-account", server.enableCORS(authMiddleware(server.authHandlers.ConnectTemporaryAccountHandler)))
+	mux.Handle("/api/auth/current", authMiddleware(http.HandlerFunc(server.authHandlers.GetCurrentUserHandler)))
+	mux.Handle("/api/auth/save-temp", authMiddleware(http.HandlerFunc(server.authHandlers.SaveTemporaryAccountHandler)))
+	mux.Handle("/api/auth/connect-temp-account", authMiddleware(http.HandlerFunc(server.authHandlers.ConnectTemporaryAccountHandler)))
 
 	// Protected data endpoints - require authentication
-	http.HandleFunc("/api/execute", server.enableCORS(authMiddleware(server.executeHandler)))
-	http.HandleFunc("/api/execution-runs/", server.enableCORS(authMiddleware(server.executionRunsHandler)))          // Note the trailing slash
-	http.HandleFunc("/api/execution-runs/status/", server.enableCORS(authMiddleware(server.executionStatusHandler))) // Status endpoint
-	http.HandleFunc("/api/execution-runs", server.enableCORS(authMiddleware(server.executionRunsHandler)))
+	mux.Handle("/api/execute", authMiddleware(http.HandlerFunc(server.executeHandler)))
+	mux.Handle("/api/execution-runs/", authMiddleware(http.HandlerFunc(server.executionRunsHandler)))          // Note the trailing slash
+	mux.Handle("/api/execution-runs/status/", authMiddleware(http.HandlerFunc(server.executionStatusHandler))) // Status endpoint
+	mux.Handle("/api/execution-runs", authMiddleware(http.HandlerFunc(server.executionRunsHandler)))
 
 	// Protected function management endpoints
-	http.HandleFunc("/api/functions", server.enableCORS(authMiddleware(server.functionsHandler)))
-	http.HandleFunc("/api/functions/", server.enableCORS(authMiddleware(server.functionByIDHandler)))
-	http.HandleFunc("/api/functions/test/", server.enableCORS(authMiddleware(server.testFunctionHandler)))
+	mux.Handle("/api/functions", authMiddleware(http.HandlerFunc(server.functionsHandler)))
+	mux.Handle("/api/functions/", authMiddleware(http.HandlerFunc(server.functionByIDHandler)))
+	mux.Handle("/api/functions/test/", authMiddleware(http.HandlerFunc(server.testFunctionHandler)))
 
 	// Execution flow graph endpoints
-	http.HandleFunc("/api/execution-flow/", server.enableCORS(authMiddleware(server.executionFlowGraphHandler)))
+	mux.Handle("/api/execution-flow/", authMiddleware(http.HandlerFunc(server.executionFlowGraphHandler)))
 
 	// Configuration-specific logs and flow endpoints
-	http.HandleFunc("/api/execution-logs/", server.enableCORS(authMiddleware(server.executionLogsRouter)))
-	http.HandleFunc("/api/execution-flow-by-config/", server.enableCORS(authMiddleware(server.executionFlowByConfigHandler)))
+	mux.Handle("/api/execution-logs/", authMiddleware(http.HandlerFunc(server.executionLogsRouter)))
+	mux.Handle("/api/execution-flow-by-config/", authMiddleware(http.HandlerFunc(server.executionFlowByConfigHandler)))
 
 	// Protected configuration management endpoints
-	http.HandleFunc("/api/configurations", server.enableCORS(authMiddleware(server.configurationsHandler)))
-	http.HandleFunc("/api/configurations/", server.enableCORS(authMiddleware(server.configurationByIDHandler)))
+	mux.Handle("/api/configurations", authMiddleware(http.HandlerFunc(server.configurationsHandler)))
+	mux.Handle("/api/configurations/", authMiddleware(http.HandlerFunc(server.configurationByIDHandler)))
 
 	// Protected database endpoints
-	http.HandleFunc("/api/database/stats", server.enableCORS(authMiddleware(server.databaseStatsHandler)))
-	http.HandleFunc("/api/database/tables/", server.enableCORS(authMiddleware(server.databaseTableDataHandler))) // Specific table data
-	http.HandleFunc("/api/database/tables", server.enableCORS(authMiddleware(server.databaseTablesHandler)))     // List tables
+	mux.Handle("/api/database/stats", authMiddleware(http.HandlerFunc(server.databaseStatsHandler)))
+	mux.Handle("/api/database/tables/", authMiddleware(http.HandlerFunc(server.databaseTableDataHandler))) // Specific table data
+	mux.Handle("/api/database/tables", authMiddleware(http.HandlerFunc(server.databaseTablesHandler)))     // List tables
 
 	// Protected agent management endpoints
-	http.HandleFunc("/api/agents", server.enableCORS(authMiddleware(server.agentsHandler.HandleAgents)))
-	http.HandleFunc("/api/agents/", server.enableCORS(authMiddleware(server.agentsHandler.HandleAgentByID)))
+	mux.Handle("/api/agents", authMiddleware(http.HandlerFunc(server.agentsHandler.HandleAgents)))
+	mux.Handle("/api/agents/", authMiddleware(http.HandlerFunc(server.agentsHandler.HandleAgentByID)))
 
 	// Protected team management endpoints
-	http.HandleFunc("/api/teams", server.enableCORS(authMiddleware(server.teamsHandler.HandleTeams)))
-	http.HandleFunc("/api/teams/", server.enableCORS(authMiddleware(server.teamsHandler.HandleTeamByID)))
+	mux.Handle("/api/teams", authMiddleware(http.HandlerFunc(server.teamsHandler.HandleTeams)))
+	mux.Handle("/api/teams/", authMiddleware(http.HandlerFunc(server.teamsHandler.HandleTeamByID)))
 
-	// Register execution template routes
-	mux := http.NewServeMux()
-	server.templateIntegration.RegisterRoutes(mux, func(h http.HandlerFunc) http.HandlerFunc {
-		return server.enableCORS(authMiddleware(h))
+	// Protected API key management endpoints
+	apiKeyMux := http.NewServeMux()
+	apiKeyAuthMiddleware := server.apiKeyAuthMiddleware
+
+	apiKeyMux.HandleFunc("/api/user/api-keys", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			server.apiKeysHandler.GetAPIKeys(w, r)
+		case http.MethodPost:
+			server.apiKeysHandler.CreateAPIKey(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
 	})
 
-	// Convert ServeMux routes to http.HandleFunc registrations
-	http.Handle("/api/templates", server.enableCORS(mux.ServeHTTP))
-	http.Handle("/api/templates/", server.enableCORS(mux.ServeHTTP))
-	http.Handle("/api/public/templates/", server.enableCORS(mux.ServeHTTP))
+	apiKeyMux.HandleFunc("/api/user/api-keys/function-groups/status", server.apiKeysHandler.GetFunctionGroupApiKeyStatus)
+	apiKeyMux.HandleFunc("/api/user/api-keys/statistics", server.apiKeysHandler.GetAPIKeyStatistics)
+	apiKeyMux.HandleFunc("/api/user/api-keys/functions/", server.apiKeysHandler.HandleKeyRoutes)
+	apiKeyMux.HandleFunc("/api/user/api-keys/", server.apiKeysHandler.HandleKeyRoutes)
 
-	// Start background tasks for templates
-	go server.templateIntegration.StartBackgroundTasks()
+	mux.Handle("/api/user/api-keys/", apiKeyAuthMiddleware(apiKeyMux))
+
+	// Register execution template routes
+	server.templateIntegration.RegisterRoutes(mux, func(h http.HandlerFunc) http.Handler {
+		return authMiddleware(h)
+	})
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -2010,12 +2022,23 @@ func runServer() {
 	fmt.Printf("   POST /api/teams/{id}/pause-all - Pause all team agents (🔐 Protected)\n")
 	fmt.Printf("   POST /api/teams/{id}/resume-all - Resume all team agents (🔐 Protected)\n")
 	fmt.Printf("   GET  /api/teams/{id}/stats - Get team statistics (🔐 Protected)\n")
+	fmt.Printf("   GET  /api/user/api-keys - List user API keys (🔐 Protected)\n")
+	fmt.Printf("   POST /api/user/api-keys - Create API key (🔐 Protected)\n")
+	fmt.Printf("   GET  /api/user/api-keys/{id} - Get API key by ID (🔐 Protected)\n")
+	fmt.Printf("   PUT  /api/user/api-keys/{id} - Update API key (🔐 Protected)\n")
+	fmt.Printf("   DELETE /api/user/api-keys/{id} - Delete API key (🔐 Protected)\n")
+	fmt.Printf("   POST /api/user/api-keys/{id}/test - Test API key (🔐 Protected)\n")
+	fmt.Printf("   GET  /api/user/api-keys/function-groups/status - Function group key status (🔐 Protected)\n")
+	fmt.Printf("   GET  /api/user/api-keys/statistics - API key usage statistics (🔐 Protected)\n")
 	fmt.Printf("💡 Use X-Use-Mock: true header for mock responses\n")
 	fmt.Printf("🔑 Set GEMINI_API_KEY in config.env for real API calls\n")
 	fmt.Printf("🔐 Most endpoints now require authentication\n")
 	fmt.Println()
 
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	// Apply CORS middleware to the mux
+	handler := server.enableCORS(mux)
+
+	log.Fatal(http.ListenAndServe(":"+port, handler))
 }
 
 // createMockExecutionResult creates mock detailed data based on a real execution run

@@ -40,14 +40,14 @@ func NewTemplateIntegration(db *sql.DB, authService *auth.AuthService, execution
 }
 
 // RegisterRoutes registers all template-related HTTP routes
-func (ti *TemplateIntegration) RegisterRoutes(mux *http.ServeMux, authMiddleware func(http.HandlerFunc) http.HandlerFunc) {
+func (ti *TemplateIntegration) RegisterRoutes(mux *http.ServeMux, authMiddleware func(http.HandlerFunc) http.Handler) {
 	// =============================================================================
 	// AUTHENTICATED ROUTES (Template Management)
 	// =============================================================================
 
 	// Template CRUD operations
-	mux.HandleFunc("/api/templates", authMiddleware(ti.handleTemplateOperations))
-	mux.HandleFunc("/api/templates/", authMiddleware(ti.handleTemplateRoutes))
+	mux.Handle("/api/templates", authMiddleware(http.HandlerFunc(ti.handleTemplateOperations)))
+	mux.Handle("/api/templates/", authMiddleware(http.HandlerFunc(ti.handleTemplateRoutes)))
 
 	// =============================================================================
 	// PUBLIC ROUTES (Template Execution)

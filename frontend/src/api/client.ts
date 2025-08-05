@@ -18,10 +18,16 @@ import {
   TeamFormData,
   TeamWithAgents,
   TeamStats,
+  UserApiKey,
+  CreateApiKeyRequest,
+  UpdateApiKeyRequest,
+  ApiKeyValidationResult,
+  FunctionGroupApiKeyStatus,
+  FunctionApiKeyRequirements,
+  ApiKeyStatistics,
 } from '../types';
 import { User } from '../context/AuthContext';
-import { secureStorage } from '../utils/secureStorage';
-import { headerEncryption } from '../utils/secureStorage';
+import { BackendExecutionKeys } from './backendExecutionKeys';
 
 class GoGentAPI {
   private api: AxiosInstance;
@@ -49,56 +55,11 @@ class GoGentAPI {
             // console.warn('⚠️ No auth token available for request:', config.url);
           }
 
-          // Load API keys from secure storage
-          const apiKeys = await secureStorage.loadApiKeys();
+          // Load app config for mock responses flag
           const appConfig = await AsyncStorage.getItem('appConfig');
           const appConfigData: Partial<AppConfig> = appConfig ? JSON.parse(appConfig) as AppConfig : {};
 
-          // Add encrypted Gemini API key to headers if available
-          if (apiKeys.geminiApiKey) {
-            const encryptedKey = headerEncryption.encryptForHeader(apiKeys.geminiApiKey);
-            config.headers['X-Encrypted-Gemini-Api-Key'] = encryptedKey;
-            console.log('🔐 Added encrypted Gemini API key to headers');
-          }
-          
-          // Add encrypted OpenWeather API key to headers if available
-          if (apiKeys.openWeatherApiKey) {
-            const encryptedKey = headerEncryption.encryptForHeader(apiKeys.openWeatherApiKey);
-            config.headers['X-Encrypted-Openweather-Api-Key'] = encryptedKey;
-            console.log('🔐 Added encrypted OpenWeather API key to headers');
-          }
-          
-          // Add encrypted Neo4j configuration to headers if available
-          if (apiKeys.neo4jUrl) {
-            const encryptedUrl = headerEncryption.encryptForHeader(apiKeys.neo4jUrl);
-            config.headers['X-Encrypted-Neo4j-Url'] = encryptedUrl;
-          }
-          if (apiKeys.neo4jUsername) {
-            const encryptedUsername = headerEncryption.encryptForHeader(apiKeys.neo4jUsername);
-            config.headers['X-Encrypted-Neo4j-Username'] = encryptedUsername;
-          }
-          if (apiKeys.neo4jPassword) {
-            const encryptedPassword = headerEncryption.encryptForHeader(apiKeys.neo4jPassword);
-            config.headers['X-Encrypted-Neo4j-Password'] = encryptedPassword;
-          }
-          if (apiKeys.neo4jDatabase) {
-            const encryptedDatabase = headerEncryption.encryptForHeader(apiKeys.neo4jDatabase);
-            config.headers['X-Encrypted-Neo4j-Database'] = encryptedDatabase;
-          }
-          
-          // Add encrypted GitHub API key to headers if available
-          if (apiKeys.githubApiKey) {
-            const encryptedKey = headerEncryption.encryptForHeader(apiKeys.githubApiKey);
-            config.headers['X-Encrypted-Github-Api-Key'] = encryptedKey;
-            console.log('🔐 Added encrypted GitHub API key to headers');
-          }
-          
-          // Add encrypted OpenRouter API key to headers if available
-          if (apiKeys.openRouterApiKey) {
-            const encryptedKey = headerEncryption.encryptForHeader(apiKeys.openRouterApiKey);
-            config.headers['X-Encrypted-Openrouter-Api-Key'] = encryptedKey;
-            console.log('🔐 Added encrypted OpenRouter API key to headers');
-          }
+          // Note: API keys are now managed by the backend and no longer injected via headers
           
           // Add mock flag if needed
           if (appConfigData?.useMockResponses) {
@@ -1309,6 +1270,228 @@ class GoGentAPI {
         success: false,
         error: error.response?.data?.error || error.message || 'Failed to fetch team stats',
       };
+    }
+  }
+
+  // =============================================================================
+  // API KEY MANAGEMENT METHODS
+  // =============================================================================
+
+  // Create a new API key
+  async createApiKey(request: CreateApiKeyRequest): Promise<ApiResponse<UserApiKey>> {
+    try {
+      console.log('🔐 Creating API key:', request.keyName);
+      const response: AxiosResponse = await this.api.post('/api/user/api-keys/', request);
+      
+      return {
+        success: true,
+        data: response.data.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (createApiKey):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to create API key',
+      };
+    }
+  }
+
+  // Get all API keys for the current user
+  async getApiKeys(): Promise<ApiResponse<UserApiKey[]>> {
+    try {
+      console.log('🔐 Fetching user API keys');
+      const response: AxiosResponse = await this.api.get('/api/user/api-keys/');
+      
+      return {
+        success: true,
+        data: response.data.data || [],
+      };
+    } catch (error: any) {
+      console.error('API Error (getApiKeys):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to fetch API keys',
+      };
+    }
+  }
+
+  // Get API keys for a specific service
+  async getApiKeysByService(serviceName: string): Promise<ApiResponse<UserApiKey[]>> {
+    try {
+      console.log('🔐 Fetching API keys for service:', serviceName);
+      const response: AxiosResponse = await this.api.get(`/api/user/api-keys/?service=${serviceName}`);
+      
+      return {
+        success: true,
+        data: response.data.data || [],
+      };
+    } catch (error: any) {
+      console.error('API Error (getApiKeysByService):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to fetch API keys for service',
+      };
+    }
+  }
+
+  // Get a specific API key by ID
+  async getApiKey(keyId: string): Promise<ApiResponse<UserApiKey>> {
+    try {
+      console.log('🔐 Fetching API key:', keyId);
+      const response: AxiosResponse = await this.api.get(`/api/user/api-keys/${keyId}`);
+      
+      return {
+        success: true,
+        data: response.data.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (getApiKey):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to fetch API key',
+      };
+    }
+  }
+
+  // Update an existing API key
+  async updateApiKey(keyId: string, request: UpdateApiKeyRequest): Promise<ApiResponse<UserApiKey>> {
+    try {
+      console.log('🔐 Updating API key:', keyId);
+      const response: AxiosResponse = await this.api.put(`/api/user/api-keys/${keyId}`, request);
+      
+      return {
+        success: true,
+        data: response.data.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (updateApiKey):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to update API key',
+      };
+    }
+  }
+
+  // Delete an API key
+  async deleteApiKey(keyId: string): Promise<ApiResponse<{ message: string }>> {
+    try {
+      console.log('🔐 Deleting API key:', keyId);
+      const response: AxiosResponse = await this.api.delete(`/api/user/api-keys/${keyId}`);
+      
+      return {
+        success: true,
+        data: response.data.data || { message: 'API key deleted successfully' },
+      };
+    } catch (error: any) {
+      console.error('API Error (deleteApiKey):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to delete API key',
+      };
+    }
+  }
+
+  // Test an API key
+  async testApiKey(keyId: string): Promise<ApiResponse<ApiKeyValidationResult>> {
+    try {
+      console.log('🔐 Testing API key:', keyId);
+      const response: AxiosResponse = await this.api.post(`/api/user/api-keys/${keyId}/test`);
+      
+      return {
+        success: true,
+        data: response.data.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (testApiKey):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to test API key',
+      };
+    }
+  }
+
+  // Get function group API key status
+  async getFunctionGroupApiKeyStatus(): Promise<ApiResponse<FunctionGroupApiKeyStatus[]>> {
+    try {
+      console.log('🔐 Fetching function group API key status');
+      const response: AxiosResponse = await this.api.get('/api/user/api-keys/function-groups/status');
+      
+      return {
+        success: true,
+        data: response.data.data || [],
+      };
+    } catch (error: any) {
+      console.error('API Error (getFunctionGroupApiKeyStatus):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to fetch function group API key status',
+      };
+    }
+  }
+
+  // Get API key requirements for a specific function
+  async getFunctionApiKeyRequirements(functionId: string): Promise<ApiResponse<FunctionApiKeyRequirements>> {
+    try {
+      console.log('🔐 Fetching API key requirements for function:', functionId);
+      const response: AxiosResponse = await this.api.get(`/api/user/api-keys/functions/${functionId}/requirements`);
+      
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (getFunctionApiKeyRequirements):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to fetch function API key requirements',
+      };
+    }
+  }
+
+  // Get API key usage statistics
+  async getApiKeyStatistics(): Promise<ApiResponse<ApiKeyStatistics>> {
+    try {
+      console.log('🔐 Fetching API key statistics');
+      const response: AxiosResponse = await this.api.get('/api/user/api-keys/statistics');
+      
+      return {
+        success: true,
+        data: response.data.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (getApiKeyStatistics):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to fetch API key statistics',
+      };
+    }
+  }
+
+  // Helper method to check if API keys are configured for a service
+  async isServiceConfigured(serviceName: string): Promise<boolean> {
+    try {
+      const result = await this.getApiKeysByService(serviceName);
+      if (result.success && result.data) {
+        return result.data.some(key => key.isActive && key.validationStatus === 'valid');
+      }
+      return false;
+    } catch (error) {
+      console.error('Error checking service configuration:', error);
+      return false;
+    }
+  }
+
+  // Helper method to get the default API key for a service
+  async getDefaultApiKeyForService(serviceName: string): Promise<UserApiKey | null> {
+    try {
+      const result = await this.getApiKeysByService(serviceName);
+      if (result.success && result.data) {
+        return result.data.find(key => key.isDefault && key.isActive) || null;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting default API key:', error);
+      return null;
     }
   }
 }

@@ -218,9 +218,16 @@ describe('API Integration Tests', () => {
       }
 
       const testFunction: FunctionDefinition = {
+        id: 'test-function-id',
         name: 'test_function',
+        displayName: 'Test Function',
         description: 'A test function',
-        parameters: {
+        functionGroup: 'test',
+        functionType: 'api',
+        httpMethod: 'POST',
+        isActive: true,
+        createdAt: new Date(),
+        parametersSchema: {
           type: 'object',
           properties: {
             message: {

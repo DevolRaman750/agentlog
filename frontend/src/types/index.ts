@@ -185,22 +185,10 @@ export interface ScreenProps {
   route: any;
 }
 
-export interface TabParamList {
-  Execute: undefined;
-  Configure: undefined;
-  Functions: undefined;
-  'Execution Templates': undefined;
-  'API Keys': undefined;
-  History: undefined;
-  Database: undefined;
-  Account: undefined;
-  More: undefined;
-  Agents: undefined;
-  TemplateTokenManager: {
-    templateId: string;
-    templateName: string;
-  };
-}
+export type RootStackParamList = {
+  'API Keys': { groupName?: string };
+  // Add other screens here
+};
 
 // UI Component types
 export interface ConfigurationCardProps {
@@ -535,4 +523,183 @@ export interface ExecutionTemplate {
   functionIds?: string[];
   createdAt?: string;
   updatedAt?: string;
+}
+
+// =============================================================================
+// API KEY MANAGEMENT TYPES
+// =============================================================================
+
+// UserApiKey represents a user's API key with full metadata
+export interface UserApiKey {
+  id: string;
+  userId: string;
+  keyName: string;
+  serviceName: string;
+  keyType: 'api_key' | 'access_token' | 'bearer_token' | 'oauth_token' | 'webhook_url' | 'connection_string';
+  
+  // Metadata and configuration
+  displayName: string;
+  description?: string;
+  
+  // Access control
+  accessLevel: 'read' | 'write' | 'admin' | 'read_write';
+  scopes?: string[];
+  permissions?: Record<string, any>;
+  
+  // Lifecycle management
+  expiresAt?: string;
+  lastValidatedAt?: string;
+  validationStatus: 'valid' | 'invalid' | 'expired' | 'untested' | 'rate_limited';
+  validationError?: string;
+  
+  // Usage tracking
+  isActive: boolean;
+  isDefault: boolean;
+  totalUses: number;
+  lastUsedAt?: string;
+  
+  // Service configuration
+  serviceConfig?: Record<string, any>;
+  environment: 'production' | 'staging' | 'development' | 'test';
+  
+  // Rate limiting
+  rateLimitPerHour?: number;
+  rateLimitPerDay?: number;
+  rateLimitBurst?: number;
+  
+  // Audit trail
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: string;
+}
+
+// CreateApiKeyRequest represents a request to create a new API key
+export interface CreateApiKeyRequest {
+  keyName: string;
+  serviceName: string;
+  keyType: 'api_key' | 'access_token' | 'bearer_token' | 'oauth_token' | 'webhook_url' | 'connection_string';
+  keyValue: string; // Plain text - will be encrypted on backend
+  displayName: string;
+  description?: string;
+  accessLevel: 'read' | 'write' | 'admin' | 'read_write';
+  scopes?: string[];
+  permissions?: Record<string, any>;
+  expiresAt?: string;
+  isDefault: boolean;
+  serviceConfig?: Record<string, any>;
+  environment: 'production' | 'staging' | 'development' | 'test';
+  rateLimitPerHour?: number;
+  rateLimitPerDay?: number;
+  rateLimitBurst?: number;
+}
+
+// UpdateApiKeyRequest represents a request to update an existing API key
+export interface UpdateApiKeyRequest {
+  keyName?: string;
+  keyValue?: string; // If provided, will re-encrypt
+  displayName?: string;
+  description?: string;
+  accessLevel?: 'read' | 'write' | 'admin' | 'read_write';
+  scopes?: string[];
+  permissions?: Record<string, any>;
+  expiresAt?: string;
+  isActive?: boolean;
+  isDefault?: boolean;
+  serviceConfig?: Record<string, any>;
+  environment?: 'production' | 'staging' | 'development' | 'test';
+  rateLimitPerHour?: number;
+  rateLimitPerDay?: number;
+  rateLimitBurst?: number;
+}
+
+// ApiKeyValidationResult represents the result of validating an API key
+export interface ApiKeyValidationResult {
+  isValid: boolean;
+  errorMessage?: string;
+  httpStatusCode?: number;
+  responseTimeMs: number;
+  serviceResponse?: Record<string, any>;
+  testedAt: string;
+}
+
+// FunctionGroupApiKeyStatus represents the status of API keys for a function group
+export interface FunctionGroupApiKeyStatus {
+  functionGroup: string;
+  groupDisplayName: string;
+  requiredServices: string[];
+  configuredServices: string[];
+  missingServices: string[];
+  allKeysConfigured: boolean;
+  functionCount: number;
+  serviceDetails: Record<string, ServiceApiKeyStatus>;
+}
+
+// ServiceApiKeyStatus represents the status of API keys for a specific service
+export interface ServiceApiKeyStatus {
+  serviceName: string;
+  hasValidKey: boolean;
+  keyCount: number;
+  defaultKeyId?: string;
+  lastValidated?: string;
+  validationStatus: 'valid' | 'invalid' | 'expired' | 'untested' | 'rate_limited';
+  accessLevel?: 'read' | 'write' | 'admin' | 'read_write';
+  environment?: 'production' | 'staging' | 'development' | 'test';
+}
+
+// FunctionApiKeyRequirements represents API key requirements for a specific function
+export interface FunctionApiKeyRequirements {
+  functionId: string;
+  functionName: string;
+  displayName: string;
+  functionGroup: string;
+  requiredServices: string[];
+  configuredServices: string[];
+  missingServices: string[];
+  allKeysConfigured: boolean;
+  serviceRequirements: Record<string, ServiceRequirement>;
+}
+
+// ServiceRequirement represents the requirements for a specific service
+export interface ServiceRequirement {
+  serviceName: string;
+  required: boolean;
+  minimumAccessLevel: 'read' | 'write' | 'admin' | 'read_write';
+  requiredScopes?: string[];
+  isConfigured: boolean;
+  configuredKeyId?: string;
+  configuredAccessLevel?: 'read' | 'write' | 'admin' | 'read_write';
+}
+
+// ApiKeyStatistics represents usage statistics for API keys
+export interface ApiKeyStatistics {
+  userId: string;
+  totalKeys: number;
+  activeKeys: number;
+  validKeys: number;
+  expiredKeys: number;
+  untestedKeys: number;
+  
+  // Usage in last period
+  last24HourUsage: number;
+  last7DayUsage: number;
+  last30DayUsage: number;
+  
+  // Success rates
+  successRate24Hours: number;
+  successRate7Days: number;
+  
+  // Per service breakdown
+  serviceBreakdown: Record<string, ServiceStatistics>;
+}
+
+// ServiceStatistics represents statistics for a specific service
+export interface ServiceStatistics {
+  serviceName: string;
+  keyCount: number;
+  totalUsage: number;
+  successfulUsage: number;
+  failedUsage: number;
+  successRate: number;
+  averageResponseTime: number;
+  lastUsed?: string;
 } 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,23 +8,145 @@ import {
   TextInput,
   ActivityIndicator,
   Platform,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
-import { secureStorage, API_KEY_VALIDATIONS, FUNCTION_API_KEY_REQUIREMENTS } from '../utils/secureStorage';
 import { AlertAPI } from '../components/CustomAlert';
 import { webInputStyles } from '../styles/containers';
+import { goGentAPI } from '../api/client';
+import { UserApiKey, CreateApiKeyRequest, UpdateApiKeyRequest } from '../types';
+import { RouteProp } from '@react-navigation/native';
+import { RootStackParamList } from '../types';
+import ApiKeyModal from '../components/ApiKeyModal';
+import { useToast } from '../context/ToastContext';
 
-interface ApiKeyStatus {
+type ApiKeysScreenRouteProp = RouteProp<RootStackParamList, 'API Keys'>;
+
+interface ServiceGroup {
   name: string;
   displayName: string;
-  isSet: boolean;
-  isValid: boolean;
-  functions: string[];
+  description: string;
+  services: ServiceInfo[];
+  expanded: boolean;
+}
+
+interface ServiceInfo {
+  name: string;
+  displayName: string;
   description: string;
   placeholder: string;
-  group: string;
+  keyType: 'api_key' | 'access_token' | 'bearer_token' | 'oauth_token' | 'webhook_url' | 'connection_string';
+  defaultAccessLevel: 'read' | 'write' | 'admin' | 'read_write';
+  defaultScopes: string[];
 }
+
+const SERVICE_GROUPS: ServiceGroup[] = [
+  {
+    name: 'ai_models',
+    displayName: 'Model API Keys',
+    description: 'API keys used by Configurations when executing with specific AI models',
+    expanded: true,
+    services: [
+      {
+        name: 'gemini',
+        displayName: 'Google Gemini',
+        description: 'Required for configurations using Gemini models (1.5 Flash, 1.5 Pro, etc.)',
+        placeholder: 'AIzaSy...',
+        keyType: 'api_key',
+        defaultAccessLevel: 'read_write',
+        defaultScopes: ['generate', 'chat', 'function_calling'],
+      },
+      {
+        name: 'openai',
+        displayName: 'OpenAI',
+        description: 'API key for OpenAI GPT models and DALL-E image generation',
+        placeholder: 'sk-...',
+        keyType: 'api_key',
+        defaultAccessLevel: 'read_write',
+        defaultScopes: ['completions', 'images', 'models'],
+      },
+      {
+        name: 'openrouter',
+        displayName: 'OpenRouter',
+        description: 'Required for configurations using Kimi K2 and other OpenRouter models',
+        placeholder: 'sk-or-...',
+        keyType: 'api_key',
+        defaultAccessLevel: 'read_write',
+        defaultScopes: ['chat', 'completions'],
+      },
+    ],
+  },
+  {
+    name: 'communication',
+    displayName: 'Communication',
+    description: 'API keys for messaging and notification services',
+    expanded: false,
+    services: [
+      {
+        name: 'slack',
+        displayName: 'Slack',
+        description: 'Bot token for sending messages to Slack channels',
+        placeholder: 'xoxb-...',
+        keyType: 'bearer_token',
+        defaultAccessLevel: 'write',
+        defaultScopes: ['chat:write', 'channels:read'],
+      },
+      {
+        name: 'discord',
+        displayName: 'Discord',
+        description: 'Webhook URL for sending messages to Discord channels',
+        placeholder: 'https://discord.com/api/webhooks/...',
+        keyType: 'webhook_url',
+        defaultAccessLevel: 'write',
+        defaultScopes: ['messages'],
+      },
+    ],
+  },
+  {
+    name: 'data_services',
+    displayName: 'Data Services',
+    description: 'API keys for data and external services',
+    expanded: false,
+    services: [
+      {
+        name: 'openweather',
+        displayName: 'OpenWeather',
+        description: 'API key for weather data and forecasts',
+        placeholder: 'Enter your OpenWeather API key',
+        keyType: 'api_key',
+        defaultAccessLevel: 'read',
+        defaultScopes: ['current_weather', 'forecasts'],
+      },
+      {
+        name: 'neo4j',
+        displayName: 'Neo4j',
+        description: 'Connection string for Neo4j graph database',
+        placeholder: 'bolt://username:password@localhost:7687',
+        keyType: 'connection_string',
+        defaultAccessLevel: 'read_write',
+        defaultScopes: ['read', 'write'],
+      },
+    ],
+  },
+  {
+    name: 'development',
+    displayName: 'Development',
+    description: 'API keys for development and code management',
+    expanded: false,
+    services: [
+      {
+        name: 'github',
+        displayName: 'GitHub',
+        description: 'Personal access token for GitHub API',
+        placeholder: 'ghp_...',
+        keyType: 'access_token',
+        defaultAccessLevel: 'read_write',
+        defaultScopes: ['repo', 'issues', 'pull_requests'],
+      },
+    ],
+  },
+];
 
 const styles = StyleSheet.create({
   container: {
@@ -49,613 +171,507 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    paddingBottom: 16,
-  },
-  headerInfo: {
-    flex: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '700',
-    color: '#1A1A1A',
+    color: '#000000',
   },
   headerSubtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#8E8E93',
     marginTop: 4,
   },
-  statusBadge: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  statusText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  infoSection: {
-    flexDirection: 'row',
-    backgroundColor: '#E8F4FD',
-    margin: 20,
-    marginTop: 0,
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'flex-start',
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#1A1A1A',
-    marginLeft: 12,
-    lineHeight: 20,
-  },
-  keysSection: {
-    paddingHorizontal: 20,
-    gap: 16,
-  },
-  keyCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  keyHeader: {
-    marginBottom: 12,
-  },
-  keyTitleSection: {
-    flex: 1,
-  },
-  keyTitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  keyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    flex: 1,
-  },
-  statusIndicators: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  keyDescription: {
-    fontSize: 14,
-    color: '#8E8E93',
-    lineHeight: 18,
-  },
-  functionsSection: {
-    marginBottom: 16,
-  },
-  functionsLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#8E8E93',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  functionTags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  functionTag: {
-    backgroundColor: '#F2F2F7',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  functionTagText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#007AFF',
-  },
-  editSection: {
-    gap: 12,
-  },
-  editInput: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    borderWidth: 1,
-    borderColor: '#E1E5E9',
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    ...webInputStyles,
-  },
-  editActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  viewSection: {
-    gap: 8,
-  },
-  keyValueSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    padding: 12,
-  },
-  keyValue: {
-    fontSize: 14,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    color: '#1A1A1A',
-    flex: 1,
-  },
-  keyActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  iconButton: {
-    padding: 4,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    gap: 6,
-  },
   addButton: {
-    backgroundColor: '#F0F8FF',
-    borderWidth: 1,
-    borderColor: '#007AFF',
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   addButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#007AFF',
-  },
-  saveButton: {
-    backgroundColor: '#34C759',
-    flex: 1,
-  },
-  saveButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
     color: '#FFFFFF',
-  },
-  cancelButton: {
-    backgroundColor: '#FFF0F0',
-    borderWidth: 1,
-    borderColor: '#FF3B30',
-    flex: 1,
-  },
-  cancelButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#FF3B30',
-  },
-  actionsSection: {
-    padding: 20,
-    paddingTop: 32,
-  },
-  clearAllButton: {
-    backgroundColor: '#FFF0F0',
-    borderWidth: 1,
-    borderColor: '#FF3B30',
-  },
-  clearAllButtonText: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#FF3B30',
+    fontWeight: '600',
+    marginLeft: 4,
   },
-  // Group styles for API key organization
   groupContainer: {
-    marginBottom: 16,
+    marginTop: 20,
+    marginHorizontal: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   groupHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#F8F9FA',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 8,
+    backgroundColor: '#F8F8F8',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
   },
   groupHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  groupHeaderText: {
-    marginLeft: 12,
     flex: 1,
   },
   groupTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
     color: '#000000',
   },
   groupDescription: {
+    fontSize: 14,
+    color: '#8E8E93',
+    marginTop: 2,
+  },
+  groupStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  groupStatsText: {
+    fontSize: 12,
+    color: '#8E8E93',
+    marginLeft: 4,
+  },
+  expandIcon: {
+    marginLeft: 8,
+  },
+  serviceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  serviceIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  serviceIconConfigured: {
+    backgroundColor: '#34C759',
+  },
+  serviceIconUnconfigured: {
+    backgroundColor: '#FF3B30',
+  },
+  serviceIconPartial: {
+    backgroundColor: '#FF9500',
+  },
+  serviceDetails: {
+    flex: 1,
+  },
+  serviceName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+  },
+  serviceDescription: {
+    fontSize: 14,
+    color: '#8E8E93',
+    marginTop: 2,
+  },
+  serviceStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  serviceStatusText: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginLeft: 4,
+  },
+  serviceStatusConfigured: {
+    color: '#34C759',
+  },
+  serviceStatusUnconfigured: {
+    color: '#FF3B30',
+  },
+  serviceStatusPartial: {
+    color: '#FF9500',
+  },
+  serviceActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  actionButton: {
+    padding: 8,
+    marginLeft: 4,
+  },
+  keyList: {
+    marginTop: 8,
+    paddingHorizontal: 16,
+  },
+  keyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#F8F8F8',
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  keyInfo: {
+    flex: 1,
+  },
+  keyName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000000',
+  },
+  keyDetails: {
     fontSize: 12,
     color: '#8E8E93',
     marginTop: 2,
   },
-  groupHeaderRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  keyBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 8,
   },
-  groupCount: {
-    fontSize: 12,
-    fontWeight: '500',
+  keyBadgeDefault: {
+    backgroundColor: '#007AFF',
+  },
+  keyBadgeNormal: {
+    backgroundColor: '#E5E5EA',
+  },
+  keyBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  keyBadgeTextDefault: {
+    color: '#FFFFFF',
+  },
+  keyBadgeTextNormal: {
     color: '#8E8E93',
   },
-  groupContent: {
-    marginTop: 8,
-    gap: 8,
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+    paddingVertical: 60,
+  },
+  emptyStateIcon: {
+    marginBottom: 16,
+  },
+  emptyStateTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#000000',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#8E8E93',
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });
 
-const ApiKeysScreen: React.FC = () => {
+const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) => {
+  const { groupName } = route.params || {};
   const { user } = useAuth();
-  const [apiKeyStatuses, setApiKeyStatuses] = useState<ApiKeyStatus[]>([]);
+  const { showSuccess, showError } = useToast();
+  const [apiKeys, setApiKeys] = useState<UserApiKey[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [editingKey, setEditingKey] = useState<string | null>(null);
-  const [editingValue, setEditingValue] = useState('');
-  const [showValue, setShowValue] = useState<Record<string, boolean>>({});
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [editingKey, setEditingKey] = useState<UserApiKey | null>(null);
+  const [modalInitialService, setModalInitialService] = useState<string>('');
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
-    model: true,
-    weather: false,
-    graph: false,
-    github: false,
+    ai_models: true,
+    communication: false,
+    data_services: false,
     development: false,
   });
 
-  const API_KEY_INFO = {
-    geminiApiKey: {
-      displayName: 'Gemini + API Key',
-      description: 'API key for Google Gemini model',
-      placeholder: 'Enter your Google Gemini API key',
-      functions: ['All AI Functions'],
-      group: 'model',
-    },
-    openRouterApiKey: {
-      displayName: 'OpenRouter API Key', 
-      description: 'API key for Kimi K2 and other models via OpenRouter',
-      placeholder: 'sk-or-your-openrouter-key',
-      functions: ['Kimi K2 Models', 'Future AI Models'],
-      group: 'model',
-    },
-    openWeatherApiKey: {
-      displayName: 'OpenWeather API Key',
-      description: 'For weather-related functions and data',
-      placeholder: 'Enter your OpenWeather API key',
-      functions: ['get_current_weather'],
-      group: 'weather',
-    },
-    neo4jUrl: {
-      displayName: 'Neo4j Database URL',
-      description: 'Connection URL for Neo4j graph database',
-      placeholder: 'bolt://localhost:7687',
-      functions: ['neo4j_node_lookup'],
-      group: 'graph',
-    },
-    neo4jUsername: {
-      displayName: 'Neo4j Username',
-      description: 'Username for Neo4j database authentication',
-      placeholder: 'neo4j',
-      functions: ['neo4j_node_lookup'],
-      group: 'graph',
-    },
-    neo4jPassword: {
-      displayName: 'Neo4j Password',
-      description: 'Password for Neo4j database authentication',
-      placeholder: 'Enter Neo4j password',
-      functions: ['neo4j_node_lookup'],
-      group: 'graph',
-    },
-    githubApiKey: {
-      displayName: 'GitHub API Key',
-      description: 'For GitHub repository and organization functions',
-      placeholder: 'Enter your GitHub personal access token',
-      functions: ['github_repo_info'],
-      group: 'github',
-    },
-    mcpServerEndpoint: {
-      displayName: 'MCP Server Endpoint',
-      description: 'Model Context Protocol server URL for advanced GitHub operations and software engineering tasks',
-      placeholder: 'http://localhost:3001',
-      functions: ['mcp_github_operations', 'Software Engineer Template'],
-      group: 'development',
-    },
-  };
-
-  useEffect(() => {
-    loadApiKeyStatuses();
+  const loadApiKeys = useCallback(async () => {
+    try {
+      const response = await goGentAPI.getApiKeys();
+      if (response.success && response.data) {
+        setApiKeys(response.data);
+      } else {
+        console.error('Failed to load API keys:', response.error);
+        AlertAPI.alert('Error', response.error || 'Failed to load API keys');
+      }
+    } catch (error) {
+      console.error('Failed to load API keys:', error);
+      AlertAPI.alert('Error', 'Failed to load API keys');
+    }
   }, []);
 
-  const loadApiKeyStatuses = async () => {
-    setIsLoading(true);
-    try {
-      const storedKeys = await secureStorage.loadApiKeys();
-      
-      const statuses: ApiKeyStatus[] = Object.entries(API_KEY_INFO).map(([keyName, info]) => {
-        const value = storedKeys[keyName as keyof typeof storedKeys] || '';
-        // Skip validation for Neo4j URL, validate all other keys
-        let isValid = true;
-        if (value && keyName !== 'neo4jUrl') {
-          const validationResult = secureStorage.validateApiKey(keyName as keyof typeof storedKeys, value);
-          isValid = typeof validationResult === 'boolean' ? validationResult : validationResult.isValid;
-        } else if (value && keyName === 'neo4jUrl') {
-          // Always consider Neo4j URL as valid if it has a value
-          isValid = true;
-        } else {
-          isValid = false;
-        }
-        
-        return {
-          name: keyName,
-          displayName: info.displayName,
-          isSet: !!value,
-          isValid,
-          functions: info.functions,
-          description: info.description,
-          placeholder: info.placeholder,
-          group: info.group,
-        };
-      });
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await loadApiKeys();
+    setIsRefreshing(false);
+  }, [loadApiKeys]);
 
-      setApiKeyStatuses(statuses);
-    } catch (error) {
-      console.error('Failed to load API key statuses:', error);
-      AlertAPI.alert('Error', 'Failed to load API key information');
-    } finally {
+  useEffect(() => {
+    const initializeScreen = async () => {
+      setIsLoading(true);
+      await loadApiKeys();
       setIsLoading(false);
+    };
+
+    initializeScreen();
+  }, [loadApiKeys]);
+
+  useEffect(() => {
+    if (groupName) {
+      setExpandedGroups(prev => ({
+        ...prev,
+        [groupName]: true,
+      }));
     }
-  };
+  }, [groupName]);
 
-  // Group API keys by their group
-  const groupedApiKeys = apiKeyStatuses.reduce((acc, keyStatus) => {
-    if (!acc[keyStatus.group]) {
-      acc[keyStatus.group] = [];
-    }
-    acc[keyStatus.group].push(keyStatus);
-    return acc;
-  }, {} as Record<string, ApiKeyStatus[]>);
-
-  // Define group display information
-  const GROUP_INFO = {
-    model: {
-      title: 'Model Configuration',
-      description: 'API keys for AI models and language services',
-      icon: 'hardware-chip-outline' as const,
-    },
-    weather: {
-      title: 'Weather Services',
-      description: 'API keys for weather data providers',
-      icon: 'partly-sunny-outline' as const,
-    },
-    graph: {
-      title: 'Graph Database',
-      description: 'Connection credentials for Neo4j database',
-      icon: 'git-network-outline' as const,
-    },
-    github: {
-      title: 'GitHub Integration',
-      description: 'API keys for GitHub repository access',
-      icon: 'logo-github' as const,
-    },
-    development: {
-      title: 'Development Tools',
-      description: 'Configuration for development and advanced features',
-      icon: 'code-outline' as const,
-    },
-  };
-
-  const toggleGroup = (groupName: string) => {
+  const toggleGroupExpansion = (groupName: string) => {
     setExpandedGroups(prev => ({
       ...prev,
       [groupName]: !prev[groupName],
     }));
   };
 
-  const handleEditKey = (keyName: string, currentValue: string = '') => {
-    setEditingKey(keyName);
-    setEditingValue(currentValue);
+  const getServiceKeys = (serviceName: string): UserApiKey[] => {
+    return apiKeys.filter(key => key.serviceName === serviceName);
   };
 
-  const handleSaveKey = async () => {
-    if (!editingKey) return;
+  const getServiceStatus = (serviceName: string): 'configured' | 'unconfigured' | 'partial' => {
+    const keys = getServiceKeys(serviceName);
+    if (keys.length === 0) return 'unconfigured';
+    
+    // Consider a service configured if it has active keys (regardless of validation status)
+    const activeKeys = keys.filter(key => key.isActive);
+    if (activeKeys.length === 0) return 'partial';
+    
+    return 'configured';
+  };
 
-    try {
-      const trimmedValue = editingValue.trim();
-      
-      if (trimmedValue) {
-        // Skip validation for Neo4j URL, validate all other keys
-        if (editingKey !== 'neo4jUrl') {
-          const validationResult = secureStorage.validateApiKey(editingKey as keyof typeof API_KEY_INFO, trimmedValue);
-          const isValid = typeof validationResult === 'boolean' ? validationResult : validationResult.isValid;
-          
-          if (!isValid) {
-            AlertAPI.alert(
-              'Invalid API Key',
-              `The ${API_KEY_INFO[editingKey as keyof typeof API_KEY_INFO]?.displayName} format appears to be invalid. Please check and try again.`
-            );
-            return;
-          }
-        }
-
-        // Save the key
-        await secureStorage.updateApiKey(editingKey as keyof typeof API_KEY_INFO, trimmedValue);
-        
-        AlertAPI.alert(
-          '✅ API Key Saved',
-          `${API_KEY_INFO[editingKey as keyof typeof API_KEY_INFO]?.displayName} has been saved successfully.`
-        );
-      } else {
-        // Remove the key if empty
-        await secureStorage.removeApiKey(editingKey as keyof typeof API_KEY_INFO);
-        
-        AlertAPI.alert(
-          '🗑️ API Key Removed',
-          `${API_KEY_INFO[editingKey as keyof typeof API_KEY_INFO]?.displayName} has been removed.`
-        );
-      }
-
-      setEditingKey(null);
-      setEditingValue('');
-      await loadApiKeyStatuses();
-    } catch (error) {
-      console.error('Failed to save API key:', error);
-      AlertAPI.alert('Error', 'Failed to save API key');
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'configured':
+        return 'checkmark-circle';
+      case 'partial':
+        return 'warning';
+      case 'unconfigured':
+      default:
+        return 'close-circle';
     }
   };
 
-  const handleCancelEdit = () => {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'configured':
+        return '#34C759';
+      case 'partial':
+        return '#FF9500';
+      case 'unconfigured':
+      default:
+        return '#FF3B30';
+    }
+  };
+
+  const handleAddKey = (serviceName: string) => {
+    setModalInitialService(serviceName);
     setEditingKey(null);
-    setEditingValue('');
+    setShowApiKeyModal(true);
   };
 
-  const toggleShowValue = (keyName: string) => {
-    setShowValue(prev => ({ ...prev, [keyName]: !prev[keyName] }));
+  const handleEditKey = (keyId: string) => {
+    const key = apiKeys.find(k => k.id === keyId);
+    if (key) {
+      setEditingKey(key);
+      setModalInitialService('');
+      setShowApiKeyModal(true);
+    }
   };
 
-  const handleClearAllKeys = () => {
-    AlertAPI.alert(
-      '⚠️ Clear All API Keys',
-      'This will remove all stored API keys. You will need to re-enter them to use functions that require API access.\n\nThis action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear All',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await secureStorage.clearAllApiKeys();
-              await loadApiKeyStatuses();
-              AlertAPI.alert('✅ Cleared', 'All API keys have been removed.');
-            } catch (error) {
-              AlertAPI.alert('Error', 'Failed to clear API keys');
-            }
-          },
-        },
-      ]
+  const handleTestKey = async (keyId: string) => {
+    try {
+      const response = await goGentAPI.testApiKey(keyId);
+      if (response.success && response.data) {
+        const result = response.data;
+        if (result.isValid) {
+          AlertAPI.alert('✅ Key Valid', `API key tested successfully in ${result.responseTimeMs}ms`);
+        } else {
+          AlertAPI.alert('❌ Key Invalid', result.errorMessage || 'API key validation failed');
+        }
+      } else {
+        AlertAPI.alert('Error', response.error || 'Failed to test API key');
+      }
+      // Refresh to update validation status
+      await loadApiKeys();
+    } catch (error) {
+      console.error('Failed to test API key:', error);
+      AlertAPI.alert('Error', 'Failed to test API key');
+    }
+  };
+
+  const renderServiceItem = (service: ServiceInfo) => {
+    const keys = getServiceKeys(service.name);
+    const status = getServiceStatus(service.name);
+    const statusColor = getStatusColor(status);
+
+    return (
+      <View key={service.name}>
+        <TouchableOpacity 
+          style={styles.serviceItem}
+          onPress={() => handleAddKey(service.name)}
+        >
+          <View style={[
+            styles.serviceIcon,
+            status === 'configured' ? styles.serviceIconConfigured :
+            status === 'partial' ? styles.serviceIconPartial :
+            styles.serviceIconUnconfigured
+          ]}>
+            <Ionicons 
+              name={getStatusIcon(status)} 
+              size={20} 
+              color="#FFFFFF" 
+            />
+          </View>
+          
+          <View style={styles.serviceDetails}>
+            <Text style={styles.serviceName}>{service.displayName}</Text>
+            <Text style={styles.serviceDescription}>{service.description}</Text>
+            
+            <View style={styles.serviceStatus}>
+              <Ionicons 
+                name={getStatusIcon(status)} 
+                size={12} 
+                color={statusColor} 
+              />
+              <Text style={[
+                styles.serviceStatusText,
+                status === 'configured' ? styles.serviceStatusConfigured :
+                status === 'partial' ? styles.serviceStatusPartial :
+                styles.serviceStatusUnconfigured
+              ]}>
+                {keys.length} key{keys.length !== 1 ? 's' : ''} configured
+              </Text>
+            </View>
+          </View>
+          
+          <View style={styles.serviceActions}>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => handleAddKey(service.name)}
+            >
+              <Ionicons name="add" size={20} color="#007AFF" />
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+        
+        {keys.length > 0 && (
+          <View style={styles.keyList}>
+            {keys.map((key) => (
+              <TouchableOpacity 
+                key={key.id}
+                style={styles.keyItem}
+                onPress={() => handleEditKey(key.id)}
+              >
+                <View style={styles.keyInfo}>
+                  <Text style={styles.keyName}>{key.displayName}</Text>
+                  <Text style={styles.keyDetails}>
+                    {key.environment} • {key.accessLevel} • {key.validationStatus}
+                    {key.lastUsedAt && ` • Used ${new Date(key.lastUsedAt).toLocaleDateString()}`}
+                  </Text>
+                </View>
+                
+                {key.isDefault && (
+                  <View style={[styles.keyBadge, styles.keyBadgeDefault]}>
+                    <Text style={[styles.keyBadgeText, styles.keyBadgeTextDefault]}>
+                      DEFAULT
+                    </Text>
+                  </View>
+                )}
+                
+                <TouchableOpacity 
+                  style={styles.actionButton}
+                  onPress={() => handleTestKey(key.id)}
+                >
+                  <Ionicons name="flask" size={16} color="#007AFF" />
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.actionButton}
+                  onPress={() => handleEditKey(key.id)}
+                >
+                  <Ionicons name="pencil" size={16} color="#8E8E93" />
+                </TouchableOpacity>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </View>
     );
   };
 
-  const renderApiKeyCard = (keyStatus: ApiKeyStatus) => {
-    const isEditing = editingKey === keyStatus.name;
-    const shouldShow = showValue[keyStatus.name];
+  const renderGroup = (group: ServiceGroup) => {
+    const isExpanded = expandedGroups[group.name];
+    const totalKeys = group.services.reduce((sum, service) => 
+      sum + getServiceKeys(service.name).length, 0
+    );
+    const configuredServices = group.services.filter(service => 
+      getServiceStatus(service.name) === 'configured'
+    ).length;
 
     return (
-      <View key={keyStatus.name} style={styles.keyCard}>
-        <View style={styles.keyHeader}>
-          <View style={styles.keyTitleSection}>
-            <View style={styles.keyTitleRow}>
-              <Text style={styles.keyTitle}>{keyStatus.displayName}</Text>
-              <View style={styles.statusIndicators}>
-                {keyStatus.isSet && (
-                  <Ionicons
-                    name={keyStatus.isValid ? "checkmark-circle" : "warning-outline"}
-                    size={20}
-                    color={keyStatus.isValid ? "#34C759" : "#FF9500"}
-                  />
-                )}
-                <Ionicons
-                  name={keyStatus.isSet ? "key" : "key-outline"}
-                  size={18}
-                  color={keyStatus.isSet ? "#007AFF" : "#8E8E93"}
-                />
-              </View>
-            </View>
-            <Text style={styles.keyDescription}>{keyStatus.description}</Text>
-          </View>
-        </View>
-
-        <View style={styles.functionsSection}>
-          <Text style={styles.functionsLabel}>Used by:</Text>
-          <View style={styles.functionTags}>
-            {keyStatus.functions.map((func, index) => (
-              <View key={index} style={styles.functionTag}>
-                <Text style={styles.functionTagText}>{func}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {isEditing ? (
-          <View style={styles.editSection}>
-            <TextInput
-              style={styles.editInput}
-              value={editingValue}
-              onChangeText={setEditingValue}
-              placeholder={keyStatus.placeholder}
-              secureTextEntry={!shouldShow}
-              autoCapitalize="none"
-              autoCorrect={false}
-              multiline={keyStatus.name === 'neo4jUrl'}
-              numberOfLines={keyStatus.name === 'neo4jUrl' ? 2 : 1}
-            />
-            <View style={styles.editActions}>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.cancelButton]}
-                onPress={handleCancelEdit}
-              >
-                <Ionicons name="close" size={16} color="#FF3B30" />
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.saveButton]}
-                onPress={handleSaveKey}
-              >
-                <Ionicons name="checkmark" size={16} color="#FFFFFF" />
-                <Text style={styles.saveButtonText}>Save</Text>
-              </TouchableOpacity>
+      <View key={group.name} style={styles.groupContainer}>
+        <TouchableOpacity 
+          style={styles.groupHeader}
+          onPress={() => toggleGroupExpansion(group.name)}
+        >
+          <View style={styles.groupHeaderLeft}>
+            <Text style={styles.groupTitle}>{group.displayName}</Text>
+            <Text style={styles.groupDescription}>{group.description}</Text>
+            
+            <View style={styles.groupStats}>
+              <Ionicons 
+                name={configuredServices === group.services.length ? "checkmark-circle" : "warning"} 
+                size={12} 
+                color={configuredServices === group.services.length ? "#34C759" : "#FF9500"} 
+              />
+              <Text style={styles.groupStatsText}>
+                {configuredServices}/{group.services.length} services • {totalKeys} keys
+              </Text>
             </View>
           </View>
-        ) : (
-          <View style={styles.viewSection}>
-            {keyStatus.isSet ? (
-              <View style={styles.keyValueSection}>
-                <Text style={styles.keyValue}>
-                  {shouldShow ? '••••••••••••••••' : '••••••••••••••••'}
-                </Text>
-                <View style={styles.keyActions}>
-                  <TouchableOpacity
-                    style={styles.iconButton}
-                    onPress={() => toggleShowValue(keyStatus.name)}
-                  >
-                    <Ionicons
-                      name={shouldShow ? "eye-off" : "eye"}
-                      size={20}
-                      color="#8E8E93"
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.iconButton}
-                    onPress={() => handleEditKey(keyStatus.name, '***')}
-                  >
-                    <Ionicons name="pencil" size={20} color="#007AFF" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={[styles.actionButton, styles.addButton]}
-                onPress={() => handleEditKey(keyStatus.name)}
-              >
-                <Ionicons name="add" size={16} color="#007AFF" />
-                <Text style={styles.addButtonText}>Add API Key</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
+          
+          <Ionicons 
+            name={isExpanded ? "chevron-up" : "chevron-down"} 
+            size={20} 
+            color="#8E8E93"
+            style={styles.expandIcon}
+          />
+        </TouchableOpacity>
+        
+        {isExpanded && group.services.map(renderServiceItem)}
       </View>
     );
   };
@@ -664,92 +680,78 @@ const ApiKeysScreen: React.FC = () => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Loading API Keys...</Text>
+        <Text style={styles.loadingText}>Loading API keys...</Text>
       </View>
     );
   }
 
-  const setKeysCount = apiKeyStatuses.filter(k => k.isSet).length;
-  const totalKeysCount = apiKeyStatuses.length;
-
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <View style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.headerInfo}>
+        <View>
           <Text style={styles.headerTitle}>API Keys</Text>
           <Text style={styles.headerSubtitle}>
-            Manage your API keys for external services
+            {apiKeys.length} keys configured across {SERVICE_GROUPS.length} categories
           </Text>
         </View>
-        <View style={styles.statusBadge}>
-          <Text style={styles.statusText}>
-            {setKeysCount}/{totalKeysCount} Set
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.infoSection}>
-        <Ionicons name="information-circle" size={20} color="#007AFF" />
-        <Text style={styles.infoText}>
-          API keys are encrypted and stored securely on your device. They are transmitted encrypted to our servers only when making API calls on your behalf and are never stored permanently on our servers.
-          {user?.is_temporary ? ' Connect your account to an email to preserve your data in the platform' : ' Your data is preserved across sessions.'}
-        </Text>
-      </View>
-
-      <View style={styles.keysSection}>
-        {Object.entries(groupedApiKeys).map(([groupName, keys]) => {
-          const groupInfo = GROUP_INFO[groupName as keyof typeof GROUP_INFO];
-          if (!groupInfo || keys.length === 0) return null;
-
-          return (
-            <View key={groupName} style={styles.groupContainer}>
-              <TouchableOpacity
-                style={styles.groupHeader}
-                onPress={() => toggleGroup(groupName)}
-              >
-                <View style={styles.groupHeaderLeft}>
-                  <Ionicons 
-                    name={groupInfo.icon} 
-                    size={20} 
-                    color="#007AFF" 
-                  />
-                  <View style={styles.groupHeaderText}>
-                    <Text style={styles.groupTitle}>{groupInfo.title}</Text>
-                    <Text style={styles.groupDescription}>{groupInfo.description}</Text>
-                  </View>
-                </View>
-                <View style={styles.groupHeaderRight}>
-                  <Text style={styles.groupCount}>
-                    {keys.filter(k => k.isSet).length}/{keys.length}
-                  </Text>
-                  <Ionicons
-                    name={expandedGroups[groupName] ? "chevron-up" : "chevron-down"}
-                    size={20}
-                    color="#8E8E93"
-                  />
-                </View>
-              </TouchableOpacity>
-              
-              {expandedGroups[groupName] && (
-                <View style={styles.groupContent}>
-                  {keys.map(renderApiKeyCard)}
-                </View>
-              )}
-            </View>
-          );
-        })}
-      </View>
-
-      <View style={styles.actionsSection}>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.clearAllButton]}
-          onPress={handleClearAllKeys}
+        
+        <TouchableOpacity 
+          style={styles.addButton}
+          onPress={() => handleAddKey('gemini')} // Default to Gemini as it's most common
         >
-          <Ionicons name="trash-outline" size={20} color="#FF3B30" />
-          <Text style={styles.clearAllButtonText}>Clear All Keys</Text>
+          <Ionicons name="add" size={20} color="#FFFFFF" />
+          <Text style={styles.addButtonText}>Add Key</Text>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+
+      <ScrollView
+        style={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor="#007AFF"
+          />
+        }
+      >
+        {apiKeys.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons 
+              name="key-outline" 
+              size={64} 
+              color="#C7C7CC" 
+              style={styles.emptyStateIcon}
+            />
+            <Text style={styles.emptyStateTitle}>No API Keys Yet</Text>
+            <Text style={styles.emptyStateText}>
+              Add your first API key to start using external services with your functions. 
+              API keys are stored securely and encrypted.
+            </Text>
+          </View>
+        ) : (
+          SERVICE_GROUPS.map(renderGroup)
+        )}
+      </ScrollView>
+
+      {/* API Key Management Modal */}
+      <ApiKeyModal
+        visible={showApiKeyModal}
+        onClose={() => {
+          setShowApiKeyModal(false);
+          setEditingKey(null);
+          setModalInitialService('');
+        }}
+        onSave={async () => {
+          // Refresh the API keys list
+          setShowApiKeyModal(false);
+          setEditingKey(null);
+          setModalInitialService('');
+          await handleRefresh();
+        }}
+        editingKey={editingKey}
+        initialService={modalInitialService}
+      />
+    </View>
   );
 };
 

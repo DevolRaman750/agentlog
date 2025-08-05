@@ -8,7 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { FunctionDefinition } from '../types';
+import { FunctionDefinition, FunctionApiKeyRequirements } from '../types';
 
 export interface GroupedFunctionListProps {
   functions: FunctionDefinition[];
@@ -19,9 +19,12 @@ export interface GroupedFunctionListProps {
   showSelectionCheckboxes?: boolean;
   showTypeLabels?: boolean;
   showEditActions?: boolean;
+  showApiKeyStatus?: boolean; // New prop to show API key status
+  apiKeyRequirements?: Record<string, FunctionApiKeyRequirements>; // Function ID -> requirements
   onEdit?: (func: FunctionDefinition) => void;
   onDelete?: (functionId: string) => void;
   onTest?: (func: FunctionDefinition) => void;
+  onConfigureApiKeys?: (func: FunctionDefinition) => void; // New callback for API key configuration
   emptyMessage?: string;
   defaultFunctionType?: 'api' | 'mcp'; // Default type for functions missing functionType
   style?: any;
@@ -47,9 +50,12 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
   showSelectionCheckboxes = false,
   showTypeLabels = true,
   showEditActions = false,
+  showApiKeyStatus = false,
+  apiKeyRequirements,
   onEdit,
   onDelete,
   onTest,
+  onConfigureApiKeys,
   emptyMessage = 'No functions available',
   defaultFunctionType = 'api',
   style,
@@ -70,10 +76,7 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
                           func.functionType === 'api' ? 'api' : 
                           defaultFunctionType; // Use prop default for missing/invalid types
       
-      // Log warning for functions with missing critical data
-      if (!func.functionType) {
-        console.warn(`GroupedFunctionList: Function missing functionType, defaulting to "${defaultFunctionType}":`, func.name || func.id);
-      }
+      // Most functions from backend don't have functionType set, which is fine - they default to 'api'
       if (!func.functionGroup) {
         console.warn('GroupedFunctionList: Function missing functionGroup, defaulting to "general":', func.name || func.id);
       }
@@ -128,6 +131,61 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
     return type === 'api' ? '#007AFF' : '#34C759';
   };
 
+  // API Key Status Helper Functions
+  const getApiKeyStatus = (func: FunctionDefinition): 'configured' | 'partial' | 'missing' | 'unknown' => {
+    if (!showApiKeyStatus || !apiKeyRequirements) return 'unknown';
+    
+    const requirements = apiKeyRequirements[func.id];
+    if (!requirements) return 'unknown';
+    
+    if (requirements.allKeysConfigured) return 'configured';
+    if (requirements.configuredServices.length > 0) return 'partial';
+    return 'missing';
+  };
+
+  const getApiKeyStatusIcon = (status: string) => {
+    switch (status) {
+      case 'configured':
+        return 'checkmark-circle';
+      case 'partial':
+        return 'warning';
+      case 'missing':
+        return 'close-circle';
+      case 'unknown':
+      default:
+        return 'help-circle';
+    }
+  };
+
+  const getApiKeyStatusColor = (status: string) => {
+    switch (status) {
+      case 'configured':
+        return '#34C759';
+      case 'partial':
+        return '#FF9500';
+      case 'missing':
+        return '#FF3B30';
+      case 'unknown':
+      default:
+        return '#8E8E93';
+    }
+  };
+
+  const getApiKeyStatusText = (func: FunctionDefinition): string => {
+    if (!showApiKeyStatus || !apiKeyRequirements) return '';
+    
+    const requirements = apiKeyRequirements[func.id];
+    if (!requirements) return 'Unknown';
+    
+    if (requirements.allKeysConfigured) {
+      return `${requirements.configuredServices.length} keys ready`;
+    } else if (requirements.configuredServices.length > 0) {
+      return `${requirements.configuredServices.length}/${requirements.requiredServices.length} keys`;
+    } else {
+      return `${requirements.requiredServices.length} keys needed`;
+    }
+  };
+
   const isSelected = (functionId: string) => {
     return selectedFunctions.includes(functionId);
   };
@@ -145,6 +203,7 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
     const safeType = func.functionType === 'mcp' ? 'mcp' : 
                     func.functionType === 'api' ? 'api' : 
                     defaultFunctionType;
+    const apiKeyStatus = getApiKeyStatus(func);
     
     return (
       <TouchableOpacity
@@ -183,12 +242,32 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
                   <Ionicons name="code-outline" size={12} color="#8E8E93" />
                   <Text style={styles.metaText}>{func.httpMethod || 'GET'}</Text>
                 </View>
+                {showApiKeyStatus && (
+                  <View style={styles.metaItem}>
+                    <Ionicons 
+                      name={getApiKeyStatusIcon(apiKeyStatus)} 
+                      size={12} 
+                      color={getApiKeyStatusColor(apiKeyStatus)} 
+                    />
+                    <Text style={[styles.metaText, { color: getApiKeyStatusColor(apiKeyStatus) }]}>
+                      {getApiKeyStatusText(func)}
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
           </View>
 
           {showEditActions && (
             <View style={styles.actionButtons}>
+              {showApiKeyStatus && apiKeyStatus !== 'configured' && onConfigureApiKeys && (
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => onConfigureApiKeys(func)}
+                >
+                  <Ionicons name="key-outline" size={18} color="#FF9500" />
+                </TouchableOpacity>
+              )}
               {onTest && (
                 <TouchableOpacity
                   style={styles.actionButton}

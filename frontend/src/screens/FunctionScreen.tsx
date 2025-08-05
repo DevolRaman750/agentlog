@@ -18,14 +18,19 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { FunctionDefinition, getResourceOwnership, ResourceOwnership } from '../types';
+import { FunctionDefinition, getResourceOwnership, ResourceOwnership, FunctionApiKeyRequirements } from '../types';
 import TemplateLibraryScreen from './TemplateLibraryScreen';
 import { goGentAPI } from '../api/client';
+import { restAPI } from '../api';
 import LoadingScreen from '../components/LoadingScreen';
 import JsonEditor from '../components/JsonEditor';
 import { AlertAPI } from '../components/CustomAlert';
 import { containerStyles, shadowPresets } from '../styles/containers';
 import GroupedFunctionList from '../components/GroupedFunctionList';
+import ApiKeyModal from '../components/ApiKeyModal';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../types';
 
 const { width } = Dimensions.get('window');
 
@@ -45,10 +50,47 @@ interface FunctionFormData {
   fallbackData: string;
 }
 
+type FunctionScreenNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  'API Keys'
+>;
+
+// Map backend service names to modal service names
+const mapBackendServicesToModalServices = (backendServices: string[]): string[] => {
+  const serviceMap: Record<string, string> = {
+    'SCHEDULER_API_KEY': 'openweather', // Temp mapping until we have a scheduler service
+    'SENDGRID_API_KEY': 'openweather',  // Temp mapping until we have email service
+    'SLACK_BOT_TOKEN': 'slack',
+    'DISCORD_WEBHOOK_URL': 'discord',
+    'openWeatherApiKey': 'openweather',
+    'githubApiKey': 'github',
+    'GOOGLE_VISION_API_KEY': 'openai',  // Temp mapping until we have vision service
+    'TEXT_ANALYTICS_API_KEY': 'openai', // Temp mapping until we have text analytics
+    'GOOGLE_CALENDAR_API_KEY': 'openweather', // Temp mapping
+    'HUBSPOT_API_KEY': 'openweather',   // Temp mapping
+    'OPENAI_API_KEY': 'openai',
+    'GEMINI_API_KEY': 'gemini',
+    'GOOGLE_TRANSLATE_API_KEY': 'openweather', // Temp mapping
+    'neo4jUrl': 'neo4j',
+    'neo4jUsername': 'neo4j',
+    'neo4jPassword': 'neo4j',
+    'neo4jDatabase': 'neo4j',
+  };
+
+  const modalServices = new Set<string>();
+  backendServices.forEach(service => {
+    const modalService = serviceMap[service] || 'openweather'; // Default fallback
+    modalServices.add(modalService);
+  });
+
+  return Array.from(modalServices);
+};
+
 const FunctionScreen: React.FC = () => {
   const { state } = useApp();
   const { user, isLoading: authLoading } = useAuth();
   const { showSuccess, showError, showWarning, showInfo } = useToast();
+  const navigation = useNavigation<FunctionScreenNavigationProp>();
 
   // Show loading screen while auth is loading
   if (authLoading) {
@@ -61,6 +103,10 @@ const FunctionScreen: React.FC = () => {
   const [viewingFunction, setViewingFunction] = useState<FunctionDefinition | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [apiKeyRequirements, setApiKeyRequirements] = useState<Record<string, FunctionApiKeyRequirements>>({});
+  const [loadingApiKeyStatus, setLoadingApiKeyStatus] = useState(false);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [apiKeyModalFunction, setApiKeyModalFunction] = useState<FunctionDefinition | null>(null);
 
   useEffect(() => {
     // Load functions on mount - not dependent on connection state
@@ -107,10 +153,14 @@ const FunctionScreen: React.FC = () => {
         
         setFunctions(functionsArray);
         console.log('✅ Loaded functions from backend:', functionsArray.length);
+        
+        // Load API key requirements for the functions
+        loadApiKeyRequirements(functionsArray);
       } else {
         console.error('Failed to load functions:', response.error);
         // FIXED: Function loading failures should NOT affect main app connection status
         setFunctions([]); // Ensure it's always an array
+        setApiKeyRequirements({}); // Clear API key requirements
         console.warn('⚠️ Functions unavailable but app connection remains independent');
       }
     } catch (error) {
@@ -119,10 +169,75 @@ const FunctionScreen: React.FC = () => {
       // Show user-friendly error but don't impact overall connectivity
       showWarning('Functions Unavailable', 'Failed to load functions. This does not affect your app connectivity.');
       setFunctions([]); // Ensure it's always an array
+      setApiKeyRequirements({}); // Clear API key requirements
       console.warn('⚠️ Function loading failed but app connection status is independent');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Load API key requirements for functions
+  const loadApiKeyRequirements = async (functionList: FunctionDefinition[]) => {
+    if (!functionList.length) {
+      setApiKeyRequirements({});
+      return;
+    }
+
+    setLoadingApiKeyStatus(true);
+    try {
+      const requirements: Record<string, FunctionApiKeyRequirements> = {};
+      
+      // Load requirements for each function (could be optimized with a batch endpoint)
+      await Promise.all(
+        functionList.map(async (func) => {
+          try {
+            const response = await restAPI.getFunctionApiKeyRequirements(func.id);
+            if (response.success && response.data) {
+              requirements[func.id] = response.data;
+            }
+          } catch (error) {
+            console.warn(`Failed to load API key requirements for function ${func.name}:`, error);
+          }
+        })
+      );
+      
+      setApiKeyRequirements(requirements);
+      console.log('✅ Loaded API key requirements for', Object.keys(requirements).length, 'functions');
+    } catch (error) {
+      console.error('Error loading API key requirements:', error);
+    } finally {
+      setLoadingApiKeyStatus(false);
+    }
+  };
+
+  // Handle configuring API keys for a function
+  const handleConfigureApiKeys = async (func: FunctionDefinition) => {
+    setApiKeyModalFunction(func);
+    
+    // Ensure we have API key requirements for this function before showing the modal
+    if (!apiKeyRequirements[func.id]) {
+      console.log('🔄 Loading API key requirements for function:', func.name);
+      try {
+        const response = await restAPI.getFunctionApiKeyRequirements(func.id);
+        if (response.success && response.data) {
+          setApiKeyRequirements(prev => ({
+            ...prev,
+            [func.id]: response.data!
+          }));
+          console.log('✅ Loaded API key requirements for function:', func.name, response.data.requiredServices);
+        } else {
+          console.warn('⚠️ Failed to load API key requirements for function:', func.name, response.error);
+          showWarning('API Key Requirements', `Could not load API key requirements for ${func.displayName || func.name}`);
+          return;
+        }
+      } catch (error) {
+        console.error('❌ Error loading API key requirements:', error);
+        showError('Error', `Failed to load API key requirements for ${func.displayName || func.name}`);
+        return;
+      }
+    }
+    
+    setShowApiKeyModal(true);
   };
 
   // Group functions by functionGroup and filter based on search
@@ -341,6 +456,8 @@ const FunctionScreen: React.FC = () => {
       <GroupedFunctionList
         functions={filteredFunctions}
         showEditActions={true}
+        showApiKeyStatus={true}
+        apiKeyRequirements={apiKeyRequirements}
         onFunctionPress={(func) => setViewingFunction(func)}
         onEdit={(func) => {
           const ownership = getResourceOwnership(func, user?.id);
@@ -362,6 +479,7 @@ const FunctionScreen: React.FC = () => {
           }
         }}
         onTest={(func) => setTestingFunction(func)}
+        onConfigureApiKeys={handleConfigureApiKeys}
         emptyMessage={searchQuery ? 'No functions match your search' : 'No functions found. Create your first function to get started.'}
         style={{ flex: 1, paddingBottom: 100 }}
       />
@@ -444,6 +562,26 @@ const FunctionScreen: React.FC = () => {
         visible={viewingFunction !== null}
         function={viewingFunction}
         onClose={() => setViewingFunction(null)}
+      />
+
+      {/* API Key Configuration Modal */}
+      <ApiKeyModal
+        visible={showApiKeyModal}
+        onClose={() => {
+          setShowApiKeyModal(false);
+          setApiKeyModalFunction(null);
+        }}
+        onSave={() => {
+          // Reload API key requirements after saving
+          if (apiKeyModalFunction) {
+            loadApiKeyRequirements([apiKeyModalFunction]);
+          }
+        }}
+        requiredServices={
+          apiKeyModalFunction && apiKeyRequirements[apiKeyModalFunction.id] 
+            ? mapBackendServicesToModalServices(apiKeyRequirements[apiKeyModalFunction.id].requiredServices)
+            : undefined
+        }
       />
     </View>
   );

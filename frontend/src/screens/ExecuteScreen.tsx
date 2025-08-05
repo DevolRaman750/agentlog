@@ -16,17 +16,21 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { useFormState } from '../context/FormStateContext';
+import { useToast } from '../context/ToastContext';
 import LoadingScreen from '../components/LoadingScreen';
 import { goGentAPI } from '../api/client';
 import { secureStorage } from '../utils/secureStorage';
-import { ExecutionResult, APIConfiguration, ComparisonMetric, FunctionDefinition, Agent } from '../types';
+import { backendApiKeys } from '../utils/backendApiKeys';
+import { ExecutionResult, APIConfiguration, ComparisonMetric, FunctionDefinition, Agent, FunctionApiKeyRequirements, UserApiKey } from '../types';
 import { AlertAPI } from '../components/CustomAlert';
 import AgentAvatar from '../components/AgentAvatar';
 import ExecutionResultsViewer from '../components/ExecutionResultsViewer';
 import TextEditor from '../components/TextEditor';
 import ExecutionLoadingIndicator from '../components/ExecutionLoadingIndicator';
 import LiveExecutionViewer from '../components/LiveExecutionViewer';
+import ModelKeyModal from '../components/ModelKeyModal';
 import { webInputStyles } from '../styles/containers';
+import { getModelKeyRequirements, areModelKeysConfigured, ModelKeyRequirement } from '../utils/modelKeyUtils';
 
 interface ParameterValue {
   name: string;
@@ -57,9 +61,22 @@ const ExecuteScreen: React.FC = () => {
   const [showExecutionResults, setShowExecutionResults] = useState(false);
   const [showOptionalFields, setShowOptionalFields] = useState(false);
   const [availableFunctions, setAvailableFunctions] = useState<FunctionDefinition[]>([]);
-  const [apiKeyStatus, setApiKeyStatus] = useState<{ hasGeminiKey: boolean; hasFunctionKeys: boolean }>({ 
+  
+  // Model key validation state
+  const [backendApiKeys, setBackendApiKeys] = useState<UserApiKey[]>([]);
+  const [showModelKeyModal, setShowModelKeyModal] = useState(false);
+  const [missingModelKey, setMissingModelKey] = useState<ModelKeyRequirement | null>(null);
+  const [pendingConfiguration, setPendingConfiguration] = useState<APIConfiguration | null>(null);
+  const [apiKeyStatus, setApiKeyStatus] = useState<{ 
+    hasGeminiKey: boolean; 
+    hasFunctionKeys: boolean;
+    missingServices: string[];
+    validationErrors: string[];
+  }>({ 
     hasGeminiKey: false, 
-    hasFunctionKeys: false 
+    hasFunctionKeys: false,
+    missingServices: [],
+    validationErrors: []
   });
   
   // Parameter state for template functionality
@@ -80,6 +97,31 @@ const ExecuteScreen: React.FC = () => {
   // Ref to prevent multiple concurrent API calls
   const isLoadingFunctions = useRef(false);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Load backend API keys for validation
+  const loadBackendApiKeys = useCallback(async () => {
+    try {
+      const response = await goGentAPI.getApiKeys();
+      if (response.success && response.data) {
+        setBackendApiKeys(response.data);
+      }
+    } catch (error) {
+      console.error('Error loading backend API keys:', error);
+    }
+  }, []);
+
+  // Validate model keys for selected configurations
+  const validateModelKeys = useCallback((selectedConfigs: APIConfiguration[]): ModelKeyRequirement | null => {
+    for (const config of selectedConfigs) {
+      const requirements = getModelKeyRequirements(config, backendApiKeys);
+      const missingRequirement = requirements.find(req => !req.isConfigured);
+      if (missingRequirement) {
+        setPendingConfiguration(config);
+        return missingRequirement;
+      }
+    }
+    return null;
+  }, [backendApiKeys]);
 
   // Auto-detect parameters from prompt text
   const detectParametersFromPrompt = useCallback((promptText: string) => {
@@ -185,6 +227,11 @@ const ExecuteScreen: React.FC = () => {
     }
   }, []);
 
+  // Load API keys on mount and when screen is focused
+  useEffect(() => {
+    loadBackendApiKeys();
+  }, [loadBackendApiKeys]);
+
   // Show loading screen while auth is loading
   if (authLoading) {
     return <LoadingScreen message="Loading execution interface..." />;
@@ -217,10 +264,10 @@ const ExecuteScreen: React.FC = () => {
     }
   }, [user?.id, isAuthenticated]);
 
-  // Check API key status
+  // Check API key status when functions change
   useEffect(() => {
     checkApiKeyStatus();
-  }, []);
+  }, [formState.selectedFunctions]);
 
   // Resume polling if there's an active execution when component mounts or user returns
   useEffect(() => {
@@ -303,36 +350,32 @@ const ExecuteScreen: React.FC = () => {
     }
   };
 
+  // Legacy API key status check - replaced by model key validation
   const checkApiKeyStatus = async () => {
     try {
-      const apiKeys = await secureStorage.loadApiKeys();
-      const hasGeminiKey = !!(apiKeys.geminiApiKey && apiKeys.geminiApiKey.trim());
+      // Simplified function validation - just check for missing services
+      const validation = { missingServices: [], errors: [] };
       
-      // Check function-specific keys
-      let hasFunctionKeys = true;
-      if (formState.selectedFunctions.length > 0) {
-        const selectedFuncs = availableFunctions.filter(f => 
-          formState.selectedFunctions.includes(f.id)
-        );
-        
-        for (const func of selectedFuncs) {
-          if (func.requiredApiKeys && func.requiredApiKeys.length > 0) {
-            for (const keyType of func.requiredApiKeys) {
-              const keyName = `${keyType}ApiKey` as keyof typeof apiKeys;
-              if (!apiKeys[keyName] || !apiKeys[keyName]?.trim()) {
-                hasFunctionKeys = false;
-                break;
-              }
-            }
-          }
-          if (!hasFunctionKeys) break;
-        }
-      }
+      setApiKeyStatus({
+        hasGeminiKey: true, // Now validated per-configuration 
+        hasFunctionKeys: validation.missingServices.length === 0,
+        missingServices: validation.missingServices,
+        validationErrors: validation.errors
+      });
       
-      setApiKeyStatus({ hasGeminiKey, hasFunctionKeys });
+      console.log('🔐 Function API key status:', {
+        hasFunctionKeys: validation.missingServices.length === 0,
+        missingServices: validation.missingServices,
+        errors: validation.errors
+      });
     } catch (error) {
-      console.warn('🟡 API key check failed:', error);
-      setApiKeyStatus({ hasGeminiKey: false, hasFunctionKeys: false });
+      console.error('Failed to load function API key status:', error);
+      setApiKeyStatus({ 
+        hasGeminiKey: true, // Now validated per-configuration
+        hasFunctionKeys: false,
+        missingServices: [],
+        validationErrors: ['Failed to validate function API keys']
+      });
     }
   };
 
@@ -480,13 +523,27 @@ const ExecuteScreen: React.FC = () => {
       return;
     }
 
-    if (!apiKeyStatus.hasGeminiKey) {
-      AlertAPI.alert('Missing API Key', 'Please add your Gemini API key in the API Keys section');
+    // Model API key validation is now handled above via validateModelKeys
+
+    if (formState.selectedFunctions.length > 0 && apiKeyStatus.missingServices.length > 0) {
+      const missingServiceNames = apiKeyStatus.missingServices.join(', ');
+      AlertAPI.alert(
+        'Missing API Keys',
+        `The selected functions require API keys for: ${missingServiceNames}. Please configure these keys before execution.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Go to API Keys', onPress: () => {} }
+        ]
+      );
       return;
     }
 
-    if (formState.selectedFunctions.length > 0 && !apiKeyStatus.hasFunctionKeys) {
-      AlertAPI.alert('Missing API Keys', 'Please add the required API keys for the selected functions');
+    if (apiKeyStatus.validationErrors.length > 0) {
+      AlertAPI.alert(
+        'API Key Validation Failed',
+        apiKeyStatus.validationErrors.join('\n'),
+        [{ text: 'OK', style: 'default' }]
+      );
       return;
     }
 
@@ -501,6 +558,14 @@ const ExecuteScreen: React.FC = () => {
       const selectedConfigurations = configurations.filter(config =>
         formState.selectedConfigs.includes(config.id || '')
       );
+
+      // Validate model API keys before execution
+      const missingModelKey = validateModelKeys(selectedConfigurations);
+      if (missingModelKey) {
+        setMissingModelKey(missingModelKey);
+        setShowModelKeyModal(true);
+        return; // Stop execution until API key is provided
+      }
 
       // Template the prompt with parameter values
       const templatedPrompt = parameterValues.length > 0 
@@ -1150,6 +1215,32 @@ const ExecuteScreen: React.FC = () => {
       {/* Modals */}
       {renderConfigurationSelector()}
       {renderFunctionSelector()}
+      
+      {/* Model Key Modal */}
+      {missingModelKey && pendingConfiguration && (
+        <ModelKeyModal
+          visible={showModelKeyModal}
+          onClose={() => {
+            setShowModelKeyModal(false);
+            setMissingModelKey(null);
+            setPendingConfiguration(null);
+          }}
+          onSuccess={() => {
+            setShowModelKeyModal(false);
+            setMissingModelKey(null);
+            setPendingConfiguration(null);
+            // Reload API keys and retry execution
+            loadBackendApiKeys().then(() => {
+              // Trigger execution again after key is saved
+              setTimeout(() => {
+                handleReExecute({});
+              }, 500);
+            });
+          }}
+          requirement={missingModelKey}
+          configurationName={pendingConfiguration.variationName}
+        />
+      )}
       
       {/* Full Execution Results Viewer */}
       {currentExecution?.executionResult && showExecutionResults && (

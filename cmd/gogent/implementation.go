@@ -655,17 +655,23 @@ func (bl *BusinessLogic) runAsyncExecution(executionID string, request *types.Mu
 		log.Printf("Using real Gemini API for execution")
 	}
 
-	// Create client with session API keys
+	// Create client that will load API keys from database
 	dbURL := os.Getenv("DB_URL")
-	tempClient, err := gogent.NewClient(dbURL, tempConfig, sessionKeys)
+	tempClient, err := gogent.NewClient(dbURL, tempConfig, nil)
 	if err != nil {
 		bl.markExecutionFailed(executionID, fmt.Sprintf("Failed to create client: %v", err))
 		return
 	}
 	defer tempClient.Close()
 
-	// Execute the request
+	// Load API keys from database for this user
 	ctx := context.Background()
+	if loadErr := tempClient.LoadDatabaseApiKeys(ctx, bl.userID); loadErr != nil {
+		log.Printf("⚠️ Failed to load API keys from database: %v", loadErr)
+		// Continue execution - the client will use mock responses if no keys available
+	}
+
+	// Execute the request
 	result, err := tempClient.ExecuteMultiVariation(ctx, bl.userID, request)
 	if err != nil {
 		log.Printf("❌ Execution failed: %v", err)

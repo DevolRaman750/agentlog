@@ -20,6 +20,7 @@ import (
 	"sync"
 	"time"
 
+	"gogent/internal/apikeys"
 	"gogent/internal/code_analysis"
 	"gogent/internal/db"
 	"gogent/internal/gemini"
@@ -40,7 +41,9 @@ type Client struct {
 	db              *sql.DB
 	queries         *db.Queries
 	config          *types.GeminiClientConfig
-	sessionApiKeys  *types.SessionApiKeys // Session API keys for this execution
+	sessionApiKeys  *types.SessionApiKeys // DEPRECATED: Will be removed - use database keys
+	databaseApiKeys *types.SessionApiKeys // API keys loaded from database
+	currentUserID   string                // Current user ID for loading API keys
 	geminiClient    *gemini.GeminiClient
 	providerFactory *providers.ProviderFactory // Provider factory for multi-model support
 	mutex           sync.RWMutex
@@ -150,6 +153,98 @@ func (c *Client) Close() error {
 		c.geminiClient.Close()
 	}
 	return c.db.Close()
+}
+
+// LoadDatabaseApiKeys loads API keys from the database for the current user
+func (c *Client) LoadDatabaseApiKeys(ctx context.Context, userID string) error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	c.currentUserID = userID
+
+	// Create API key service
+	apiKeyService, err := apikeys.NewService(c.db)
+	if err != nil {
+		log.Printf("⚠️ Failed to create API key service: %v", err)
+		return fmt.Errorf("failed to create API key service: %w", err)
+	}
+
+	// Get all API keys for the user
+	userApiKeys, err := apiKeyService.GetAPIKeys(ctx, userID)
+	if err != nil {
+		log.Printf("⚠️ Failed to load API keys for user %s: %v", userID, err)
+		// Don't fail completely - continue with empty keys
+		c.databaseApiKeys = &types.SessionApiKeys{}
+		return nil
+	}
+
+	log.Printf("🔑 Loaded %d API keys from database for user %s", len(userApiKeys), userID)
+
+	// Convert database API keys to session format
+	sessionKeys := &types.SessionApiKeys{}
+
+	for _, apiKey := range userApiKeys {
+		if !apiKey.IsActive || apiKey.ValidationStatus == "invalid" {
+			continue
+		}
+
+		// Get decrypted key value
+		decryptedKey, err := apiKeyService.GetDecryptedAPIKey(ctx, userID, apiKey.ID)
+		if err != nil {
+			log.Printf("⚠️ Failed to decrypt API key %s: %v", apiKey.KeyName, err)
+			continue
+		}
+
+		// Map service names to session key fields
+		switch apiKey.ServiceName {
+		case "gemini":
+			sessionKeys.GeminiApiKey = decryptedKey
+			log.Printf("🔑 Loaded Gemini API key from database - Length: %d, Prefix: %s",
+				len(decryptedKey),
+				func() string {
+					if len(decryptedKey) >= 10 {
+						return decryptedKey[:10] + "..."
+					} else if len(decryptedKey) > 0 {
+						return decryptedKey + "..."
+					}
+					return "EMPTY"
+				}())
+		case "openweather":
+			sessionKeys.OpenWeatherApiKey = decryptedKey
+			log.Printf("🔑 Loaded OpenWeather API key from database")
+		case "github":
+			sessionKeys.GithubApiKey = decryptedKey
+			log.Printf("🔑 Loaded GitHub API key from database")
+		case "openrouter":
+			sessionKeys.OpenRouterApiKey = decryptedKey
+			log.Printf("🔑 Loaded OpenRouter API key from database")
+		case "neo4j":
+			// For Neo4j, we need to handle the connection details differently
+			// This is a simplified version - you might want to parse the connection string
+			sessionKeys.Neo4jUrl = decryptedKey
+			log.Printf("🔑 Loaded Neo4j connection from database")
+		}
+	}
+
+	c.databaseApiKeys = sessionKeys
+	log.Printf("🔑 Database API keys loaded: Gemini=%v, OpenWeather=%v, GitHub=%v, OpenRouter=%v",
+		sessionKeys.GeminiApiKey != "",
+		sessionKeys.OpenWeatherApiKey != "",
+		sessionKeys.GithubApiKey != "",
+		sessionKeys.OpenRouterApiKey != "")
+
+	return nil
+}
+
+// getEffectiveApiKeys returns the database API keys
+func (c *Client) getEffectiveApiKeys() *types.SessionApiKeys {
+	// Use database keys only - session keys are no longer supported
+	if c.databaseApiKeys != nil {
+		return c.databaseApiKeys
+	}
+
+	// Return empty keys if none available
+	return &types.SessionApiKeys{}
 }
 
 // CreateExecutionRun creates a new execution run for grouping related API calls
@@ -681,11 +776,9 @@ func (c *Client) callGeminiAPI(ctx context.Context, config *types.APIConfigurati
 	// Use provider abstraction to determine which provider to use
 	providerType := c.providerFactory.GetProviderForModel(config.ModelName)
 	log.Printf("🤖 Using %s provider for model: %s", providerType, config.ModelName)
-	log.Printf("🔑 SessionApiKeys available: %v", c.sessionApiKeys != nil)
-	if c.sessionApiKeys != nil {
-		log.Printf("🔑 Available keys: OpenRouter=%v, Gemini=%v",
-			c.sessionApiKeys.OpenRouterApiKey != "", c.sessionApiKeys.GeminiApiKey != "")
-	}
+	effectiveKeys := c.getEffectiveApiKeys()
+	log.Printf("🔑 API keys available: Gemini=%v, OpenRouter=%v",
+		effectiveKeys.GeminiApiKey != "", effectiveKeys.OpenRouterApiKey != "")
 
 	// TEMPORARY FIX: For Gemini models, use the original working implementation instead of the broken provider
 	if providerType == "gemini" {
@@ -694,7 +787,7 @@ func (c *Client) callGeminiAPI(ctx context.Context, config *types.APIConfigurati
 	}
 
 	// For non-Gemini models, use the provider pattern
-	provider, err := c.providerFactory.CreateProvider(ctx, config.ModelName, c.sessionApiKeys)
+	provider, err := c.providerFactory.CreateProvider(ctx, config.ModelName, effectiveKeys)
 	if err != nil {
 		log.Printf("❌ Failed to create %s provider: %v", providerType, err)
 		log.Printf("❌ FALLING BACK TO MOCK RESPONSES due to provider creation failure")
@@ -709,7 +802,7 @@ func (c *Client) callGeminiAPI(ctx context.Context, config *types.APIConfigurati
 		SystemPrompt:        config.SystemPrompt,
 		Tools:               config.Tools,
 		ConversationHistory: []providers.ConversationMessage{}, // TODO: Add conversation history support
-		SessionApiKeys:      c.sessionApiKeys,
+		SessionApiKeys:      effectiveKeys,
 	}
 
 	// Call the provider
@@ -854,18 +947,28 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 	startTime := time.Now()
 
 	fmt.Printf("\n🚀 USING REST API IMPLEMENTATION - Model: '%s'\n", config.ModelName)
-	var geminiApiKey string
-	if c.sessionApiKeys != nil {
-		geminiApiKey = c.sessionApiKeys.GeminiApiKey
+	effectiveKeys := c.getEffectiveApiKeys()
+	geminiApiKey := effectiveKeys.GeminiApiKey
+	apiKeyDisplay := "NOT_PROVIDED"
+	if len(geminiApiKey) >= 10 {
+		apiKeyDisplay = geminiApiKey[:10] + "..."
+	} else if len(geminiApiKey) > 0 {
+		apiKeyDisplay = geminiApiKey[:len(geminiApiKey)] + "..."
 	}
-	log.Printf("🚀 REST API CALLED - Model: '%s', API Key: %s...", config.ModelName, geminiApiKey[:10])
+	log.Printf("🚀 REST API CALLED - Model: '%s', API Key: %s", config.ModelName, apiKeyDisplay)
 
 	// Log Gemini API call start flow event
+	apiKeyPrefix := "NOT_PROVIDED"
+	if len(geminiApiKey) >= 10 {
+		apiKeyPrefix = geminiApiKey[:10]
+	} else if len(geminiApiKey) > 0 {
+		apiKeyPrefix = geminiApiKey
+	}
 	c.logExecutionFlowEvent("gemini_api_call_start", c.getNextSequenceNumber(), "pending", nil, map[string]interface{}{
 		"modelName":    config.ModelName,
 		"temperature":  config.Temperature,
 		"maxTokens":    config.MaxTokens,
-		"apiKeyPrefix": geminiApiKey[:10],
+		"apiKeyPrefix": apiKeyPrefix,
 	}, nil, nil)
 
 	if config.ModelName == "" {
@@ -886,17 +989,14 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 		}, fmt.Errorf("model name is empty")
 	}
 
-	// Use the API key from session keys
-	var apiKey string
-	if c.sessionApiKeys != nil {
-		apiKey = c.sessionApiKeys.GeminiApiKey
-	}
+	// Use the API key from effective keys (already loaded at top of function)
+	apiKey := geminiApiKey
 	if apiKey == "" {
 		log.Printf("❌ No Gemini API key available for REST API call")
 		return c.callMockGeminiAPI(ctx, config, request)
 	}
 
-	log.Printf("✅ Using API key: %s... for model: '%s'", apiKey[:10], config.ModelName)
+	log.Printf("✅ Using API key: %s for model: '%s'", apiKeyDisplay, config.ModelName)
 
 	// Build the REST API request - start with the base prompt
 	prompt := request.Prompt
@@ -1006,12 +1106,12 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 		}
 		requestBody["tools"] = tools
 
-		// Use ANY mode to allow function calling when we have specific tasks that require tool usage
-		// This is recommended for cases where we definitely want the AI to use available functions
-		toolConfigMode := "ANY" // Allow function calling for better reliability
+		// Use AUTO mode to allow Gemini to choose whether to call functions or provide text responses
+		// This prevents getting stuck in iteration loops when Gemini doesn't need to call more functions
+		toolConfigMode := "AUTO" // Allow Gemini to choose function calling vs text response
 		if len(config.Tools) == 1 {
-			// When we have specific single-purpose tools (like GitHub functions), allow their usage
-			toolConfigMode = "ANY"
+			// Even with single-purpose tools, allow Gemini to decide when to stop calling functions
+			toolConfigMode = "AUTO"
 		}
 
 		requestBody["toolConfig"] = map[string]interface{}{
@@ -1021,7 +1121,11 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 		}
 
 		log.Printf("🔧 Final tools in request body: %+v", tools)
-		log.Printf("🔧 Added toolConfig with mode: %s (forcing function usage for reliability)", toolConfigMode)
+		log.Printf("🔧 Added toolConfig with mode: %s (allowing Gemini to choose function vs text response)", toolConfigMode)
+		log.Printf("🔧 DEBUG: Function calling enabled with %d tools and mode=%s", len(config.Tools), toolConfigMode)
+		for i, tool := range config.Tools {
+			log.Printf("🔧 DEBUG: Tool %d - Name: %s, Description: %s", i+1, tool.Name, tool.Description)
+		}
 	} else {
 		log.Printf("⚠️  No tools provided to Gemini API call")
 	}
@@ -1033,12 +1137,6 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 	}
 
 	log.Printf("🔧 Complete Gemini API request body: %s", string(reqBodyBytes))
-	if len(config.Tools) > 0 {
-		log.Printf("🔧 DEBUG: Function calling enabled with %d tools and mode=ANY", len(config.Tools))
-		for i, tool := range config.Tools {
-			log.Printf("🔧 DEBUG: Tool %d - Name: %s, Description: %s", i+1, tool.Name, tool.Description)
-		}
-	}
 
 	// Make HTTP request to Gemini REST API
 	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent", config.ModelName)
@@ -1052,6 +1150,18 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-goog-api-key", apiKey)
+
+	// Debug: Log the exact API key being sent (safely)
+	log.Printf("🔍 HTTP Request Debug - API Key length: %d, starts with: %s",
+		len(apiKey),
+		func() string {
+			if len(apiKey) >= 15 {
+				return apiKey[:15] + "..."
+			} else if len(apiKey) > 0 {
+				return apiKey + "..."
+			}
+			return "EMPTY"
+		}())
 
 	client := &http.Client{Timeout: 10 * time.Minute} // Very tolerant for async execution
 	resp, err := client.Do(req)
@@ -1127,7 +1237,7 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 
 		log.Printf("🔧 DEBUG: Found %d function calls in response", len(allFunctionCalls))
 		if len(config.Tools) > 0 && len(allFunctionCalls) == 0 {
-			log.Printf("⚠️ WARNING: Expected function calls but Gemini returned text-only response despite toolConfig mode=ANY")
+			log.Printf("⚠️ WARNING: Expected function calls but Gemini returned text-only response despite toolConfig mode=AUTO")
 		}
 
 		// Process function calls - let Gemini decide parallel vs sequential
@@ -1352,6 +1462,9 @@ func (c *Client) processIterativeFunctionCallsWithProvider(ctx context.Context, 
 
 	synthesisPrompt += "\nPlease provide a comprehensive analysis and response based on these function results."
 
+	// Get effective API keys for the synthesis request
+	effectiveKeys := c.getEffectiveApiKeys()
+
 	// Create a new request for the synthesis
 	synthesisRequest := &providers.ModelRequest{
 		Prompt:              synthesisPrompt,
@@ -1359,7 +1472,7 @@ func (c *Client) processIterativeFunctionCallsWithProvider(ctx context.Context, 
 		SystemPrompt:        config.SystemPrompt,
 		Tools:               []types.Tool{}, // No tools for synthesis
 		ConversationHistory: []providers.ConversationMessage{},
-		SessionApiKeys:      c.sessionApiKeys,
+		SessionApiKeys:      effectiveKeys,
 	}
 
 	// Call the same provider for synthesis
@@ -1381,7 +1494,7 @@ func (c *Client) processIterativeFunctionCallsWithProvider(ctx context.Context, 
 
 // executeIterativeFunctionLoop handles the iterative execution of functions until Gemini provides final response
 func (c *Client) executeIterativeFunctionLoop(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest, functionCalls []ResponsePart, conversationHistory []map[string]interface{}) (string, map[string]interface{}) {
-	maxIterations := 5 // Prevent infinite loops
+	maxIterations := 3 // Reduced to prevent context overflow and MALFORMED_FUNCTION_CALL
 	iteration := 0
 
 	for iteration < maxIterations {
@@ -1419,13 +1532,29 @@ func (c *Client) executeIterativeFunctionLoop(ctx context.Context, config *types
 			"parts": modelParts,
 		})
 
-		// Add function responses to conversation
+		// Add function responses to conversation with size limits
 		functionResponseParts := make([]map[string]interface{}, len(functionCalls))
 		for i, funcCall := range functionCalls {
+			// Limit function response size to prevent context overflow
+			response := functionResults[i]
+			responseStr := fmt.Sprintf("%+v", response)
+			maxResponseSize := 5000 // Limit each function response to ~1250 tokens
+
+			if len(responseStr) > maxResponseSize {
+				log.Printf("⚠️ Function %s response too large (%d chars), truncating", funcCall.FunctionCall.Name, len(responseStr))
+				// Create truncated response with summary
+				truncatedResponse := map[string]interface{}{
+					"status":  "success",
+					"summary": fmt.Sprintf("Response truncated due to size (%d chars). Function executed successfully.", len(responseStr)),
+					"data":    responseStr[:maxResponseSize] + "... [TRUNCATED]",
+				}
+				response = truncatedResponse
+			}
+
 			functionResponseParts[i] = map[string]interface{}{
 				"functionResponse": map[string]interface{}{
 					"name":     funcCall.FunctionCall.Name,
-					"response": functionResults[i],
+					"response": response,
 				},
 			}
 		}
@@ -1445,59 +1574,8 @@ func (c *Client) executeIterativeFunctionLoop(ctx context.Context, config *types
 
 		// Check if Gemini provided a text response (done) or more function calls
 		if nextResponse.TextResponse != "" {
-			// Check if this looks like a complete response for the complex task
-			responseLength := len(strings.TrimSpace(nextResponse.TextResponse))
-			if responseLength < 100 {
-				log.Printf("⚠️ Response seems incomplete (only %d chars), encouraging continuation", responseLength)
-				// Add a follow-up message to encourage completion - using user's context if available
-				continuationPrompt := "Please continue and complete your response to fully address the original request."
-				if request.Context != "" {
-					continuationPrompt = fmt.Sprintf("Please continue and complete your response. %s", request.Context)
-				}
-
-				conversationHistory = append(conversationHistory, map[string]interface{}{
-					"role": "user",
-					"parts": []map[string]interface{}{
-						{"text": continuationPrompt},
-					},
-				})
-				// Continue iteration
-			} else {
-				// Before returning, ask Gemini to provide a comprehensive summary of ALL work completed
-				log.Printf("🔧 Requesting comprehensive summary of all work completed in %d iterations", iteration)
-
-				// Add a summary request to the conversation - respecting user's original request context
-				summaryPrompt := "Thank you for completing the tasks! Please provide a comprehensive summary of what you accomplished."
-				if request.Prompt != "" {
-					// Use the original user prompt to guide the summary
-					summaryPrompt = fmt.Sprintf("Thank you for completing the tasks! Please provide a comprehensive summary of what you accomplished based on the original request: \"%s\"",
-						strings.TrimSpace(request.Prompt))
-				}
-
-				conversationHistory = append(conversationHistory, map[string]interface{}{
-					"role": "user",
-					"parts": []map[string]interface{}{
-						{"text": summaryPrompt},
-					},
-				})
-
-				// Get the comprehensive summary
-				finalSummary, err := c.sendConversationToGeminiForIteration(ctx, config, conversationHistory)
-				if err != nil {
-					log.Printf("⚠️ Failed to get final summary: %v", err)
-					// Return original response as fallback
-					return nextResponse.TextResponse, nil
-				}
-
-				if finalSummary.TextResponse != "" {
-					log.Printf("✅ Gemini provided comprehensive summary after %d iterations", iteration+1)
-					return finalSummary.TextResponse, nil
-				}
-
-				// Fallback to original response
-				log.Printf("✅ Gemini provided final response after %d iterations", iteration)
-				return nextResponse.TextResponse, nil
-			}
+			log.Printf("✅ Gemini provided final response after %d iterations", iteration)
+			return nextResponse.TextResponse, nil
 		}
 
 		if len(nextResponse.FunctionCalls) > 0 {
@@ -1508,6 +1586,11 @@ func (c *Client) executeIterativeFunctionLoop(ctx context.Context, config *types
 
 		// If we get here, Gemini didn't provide text or function calls - something went wrong
 		log.Printf("⚠️ Gemini provided neither text nor function calls, ending iteration")
+		log.Printf("🔧 DEBUG: nextResponse.TextResponse length: %d, FunctionCalls count: %d",
+			len(nextResponse.TextResponse), len(nextResponse.FunctionCalls))
+		if nextResponse.TextResponse != "" {
+			log.Printf("🔧 DEBUG: TextResponse content: %q", nextResponse.TextResponse[:min(100, len(nextResponse.TextResponse))])
+		}
 		break
 	}
 
@@ -1524,6 +1607,57 @@ type GeminiIterationResponse struct {
 // sendConversationToGeminiForIteration sends conversation to Gemini and parses response for iteration
 func (c *Client) sendConversationToGeminiForIteration(ctx context.Context, config *types.APIConfiguration, conversationHistory []map[string]interface{}) (*GeminiIterationResponse, error) {
 	// Build request body with conversation history
+	log.Printf("🔧 DEBUG: Conversation history has %d messages", len(conversationHistory))
+
+	// Calculate approximate token count and implement context management
+	totalChars := 0
+	for i, message := range conversationHistory {
+		messageStr := fmt.Sprintf("%+v", message)
+		totalChars += len(messageStr)
+		if i < 3 || i >= len(conversationHistory)-3 {
+			log.Printf("🔧 DEBUG: Message %d (%s): %d chars", i, message["role"], len(messageStr))
+		} else if i == 3 {
+			log.Printf("🔧 DEBUG: ... (%d messages skipped) ...", len(conversationHistory)-6)
+		}
+	}
+
+	estimatedTokens := totalChars / 4
+	log.Printf("🔧 DEBUG: Total conversation chars: %d (approx %d tokens)", totalChars, estimatedTokens)
+
+	// Implement context management to prevent MALFORMED_FUNCTION_CALL errors
+	maxContextTokens := 25000 // Safe limit below Gemini's ~30K limit
+	if estimatedTokens > maxContextTokens {
+		log.Printf("⚠️ Context too large (%d tokens), implementing smart truncation", estimatedTokens)
+
+		// Keep first message (user prompt) and last 4 messages (recent context)
+		if len(conversationHistory) > 6 {
+			truncatedHistory := make([]map[string]interface{}, 0, 6)
+			// Keep first message (original user prompt)
+			truncatedHistory = append(truncatedHistory, conversationHistory[0])
+
+			// Add context break message
+			truncatedHistory = append(truncatedHistory, map[string]interface{}{
+				"role": "user",
+				"parts": []map[string]interface{}{
+					{"text": "[Previous conversation context was truncated to manage token limits. Continuing with recent function calls...]"},
+				},
+			})
+
+			// Keep last 4 messages (recent function calls and responses)
+			startIdx := len(conversationHistory) - 4
+			if startIdx < 1 {
+				startIdx = 1
+			}
+			for i := startIdx; i < len(conversationHistory); i++ {
+				truncatedHistory = append(truncatedHistory, conversationHistory[i])
+			}
+
+			originalLength := len(conversationHistory)
+			conversationHistory = truncatedHistory
+			log.Printf("🔧 Truncated conversation from %d to %d messages", originalLength, len(truncatedHistory))
+		}
+	}
+
 	requestBody := map[string]interface{}{
 		"contents": conversationHistory,
 	}
@@ -1600,10 +1734,11 @@ func (c *Client) sendConversationToGeminiForIteration(ctx context.Context, confi
 		}
 		requestBody["tools"] = tools
 
-		// Use ANY mode to allow continued function calling during iterations
+		// Use AUTO mode to allow Gemini to choose between function calling or text response during iterations
+		// This prevents getting stuck when Gemini doesn't need to call more functions
 		requestBody["toolConfig"] = map[string]interface{}{
 			"functionCallingConfig": map[string]interface{}{
-				"mode": "ANY",
+				"mode": "AUTO",
 			},
 		}
 	}
@@ -1614,11 +1749,9 @@ func (c *Client) sendConversationToGeminiForIteration(ctx context.Context, confi
 		return nil, fmt.Errorf("failed to marshal request body: %w", err)
 	}
 
-	// Get API key from session keys (same pattern as existing code)
-	apiKey := ""
-	if c.sessionApiKeys != nil {
-		apiKey = c.sessionApiKeys.GeminiApiKey
-	}
+	// Get API key from database API keys
+	effectiveKeys := c.getEffectiveApiKeys()
+	apiKey := effectiveKeys.GeminiApiKey
 
 	// Make HTTP request to Gemini REST API
 	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent", config.ModelName)
@@ -1641,6 +1774,13 @@ func (c *Client) sendConversationToGeminiForIteration(ctx context.Context, confi
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	log.Printf("🔧 DEBUG: Gemini iteration response status: %d, body length: %d", resp.StatusCode, len(body))
+	if len(body) > 0 && len(body) < 500 {
+		log.Printf("🔧 DEBUG: Gemini iteration response body: %s", string(body))
+	} else if len(body) > 500 {
+		log.Printf("🔧 DEBUG: Gemini iteration response body (truncated): %s...", string(body[:500]))
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -1667,16 +1807,33 @@ func (c *Client) sendConversationToGeminiForIteration(ctx context.Context, confi
 		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
 
+	log.Printf("🔧 DEBUG: Parsed Gemini response - candidates: %d", len(geminiResp.Candidates))
+
 	response := &GeminiIterationResponse{}
 
 	if len(geminiResp.Candidates) > 0 {
 		candidate := geminiResp.Candidates[0]
+		log.Printf("🔧 DEBUG: Candidate finish reason: %s, parts: %d", candidate.FinishReason, len(candidate.Content.Parts))
 
-		for _, part := range candidate.Content.Parts {
+		// Handle MALFORMED_FUNCTION_CALL specifically
+		if candidate.FinishReason == "MALFORMED_FUNCTION_CALL" {
+			log.Printf("⚠️ MALFORMED_FUNCTION_CALL detected - providing graceful fallback")
+			response.TextResponse = "I encountered an issue with function calling due to context size. Let me provide a summary of the completed work instead."
+			return response, nil
+		}
+
+		for i, part := range candidate.Content.Parts {
+			log.Printf("🔧 DEBUG: Part %d - Text length: %d, FunctionCall: %s", i, len(part.Text), part.FunctionCall.Name)
 			if part.Text != "" {
 				response.TextResponse = part.Text
+				if len(part.Text) < 200 {
+					log.Printf("🔧 DEBUG: Text content: %q", part.Text)
+				} else {
+					log.Printf("🔧 DEBUG: Text content (truncated): %q...", part.Text[:200])
+				}
 			}
 			if part.FunctionCall.Name != "" {
+				log.Printf("🔧 DEBUG: Function call: %s with %d args", part.FunctionCall.Name, len(part.FunctionCall.Args))
 				// Convert to ResponsePart format
 				responsePart := ResponsePart{
 					Text: "",
@@ -1691,7 +1848,12 @@ func (c *Client) sendConversationToGeminiForIteration(ctx context.Context, confi
 				response.FunctionCalls = append(response.FunctionCalls, responsePart)
 			}
 		}
+	} else {
+		log.Printf("🔧 DEBUG: No candidates in Gemini response!")
 	}
+
+	log.Printf("🔧 DEBUG: Final iteration response - Text: %d chars, FunctionCalls: %d",
+		len(response.TextResponse), len(response.FunctionCalls))
 
 	return response, nil
 }
@@ -1830,10 +1992,8 @@ func (c *Client) sendConversationToGemini(ctx context.Context, config *types.API
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	var geminiApiKey string
-	if c.sessionApiKeys != nil {
-		geminiApiKey = c.sessionApiKeys.GeminiApiKey
-	}
+	effectiveKeys := c.getEffectiveApiKeys()
+	geminiApiKey := effectiveKeys.GeminiApiKey
 	req.Header.Set("x-goog-api-key", geminiApiKey)
 
 	client := &http.Client{Timeout: 2 * time.Minute}
@@ -1893,10 +2053,8 @@ func (c *Client) executeLegacyFunction(ctx context.Context, functionName string,
 		}
 
 		// Call real weather API
-		var openWeatherApiKey string
-		if c.sessionApiKeys != nil {
-			openWeatherApiKey = c.sessionApiKeys.OpenWeatherApiKey
-		}
+		effectiveKeys := c.getEffectiveApiKeys()
+		openWeatherApiKey := effectiveKeys.OpenWeatherApiKey
 		result, err := c.callWeatherAPI(ctx, location, openWeatherApiKey)
 		if err != nil {
 			c.logExecutionEvent(types.LogLevelError, types.LogCategoryFunctionCall,
@@ -2454,14 +2612,15 @@ func (c *Client) getLocationSuggestion(location string, statusCode int, response
 
 // callNeo4jAPI executes a Cypher query against a Neo4j database
 func (c *Client) callNeo4jAPI(ctx context.Context, query string, limit int) (map[string]interface{}, error) {
-	if c.sessionApiKeys == nil || c.sessionApiKeys.Neo4jUrl == "" {
+	effectiveKeys := c.getEffectiveApiKeys()
+	if effectiveKeys == nil || effectiveKeys.Neo4jUrl == "" {
 		return nil, fmt.Errorf("Neo4j URL not configured")
 	}
 
-	log.Printf("🔗 Connecting to Neo4j at: %s", c.sessionApiKeys.Neo4jUrl)
+	log.Printf("🔗 Connecting to Neo4j at: %s", effectiveKeys.Neo4jUrl)
 
 	// Create Neo4j driver
-	driver, err := neo4j.NewDriverWithContext(c.sessionApiKeys.Neo4jUrl, neo4j.BasicAuth(c.sessionApiKeys.Neo4jUsername, c.sessionApiKeys.Neo4jPassword, ""))
+	driver, err := neo4j.NewDriverWithContext(effectiveKeys.Neo4jUrl, neo4j.BasicAuth(effectiveKeys.Neo4jUsername, effectiveKeys.Neo4jPassword, ""))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Neo4j driver: %w", err)
 	}
@@ -2475,7 +2634,7 @@ func (c *Client) callNeo4jAPI(ctx context.Context, query string, limit int) (map
 	// Create session
 	sessionConfig := neo4j.SessionConfig{
 		AccessMode:   neo4j.AccessModeRead,
-		DatabaseName: c.sessionApiKeys.Neo4jDatabase,
+		DatabaseName: effectiveKeys.Neo4jDatabase,
 	}
 	session := driver.NewSession(ctx, sessionConfig)
 	defer session.Close(ctx)
@@ -3447,22 +3606,23 @@ func (c *Client) buildCypherQuery(functionName string, args map[string]interface
 
 // addAPIKeyAuthentication adds appropriate API key authentication
 func (c *Client) addAPIKeyAuthentication(req *http.Request, endpointURL string, args map[string]interface{}) error {
-	if c.sessionApiKeys == nil {
+	effectiveKeys := c.getEffectiveApiKeys()
+	if effectiveKeys == nil {
 		c.logExecutionEvent(types.LogLevelWarn, types.LogCategoryAPICall,
-			"No session API keys available for authentication",
+			"No API keys available for authentication",
 			map[string]interface{}{"endpoint": endpointURL})
 		return nil
 	}
 
 	// GitHub API
 	if strings.Contains(endpointURL, "api.github.com") {
-		if c.sessionApiKeys.GithubApiKey != "" {
-			req.Header.Set("Authorization", "token "+c.sessionApiKeys.GithubApiKey)
+		if effectiveKeys.GithubApiKey != "" {
+			req.Header.Set("Authorization", "token "+effectiveKeys.GithubApiKey)
 			c.logExecutionEvent(types.LogLevelDebug, types.LogCategoryAPICall,
 				"Added GitHub API authentication",
 				map[string]interface{}{
 					"endpoint":       endpointURL,
-					"api_key_masked": "***" + c.sessionApiKeys.GithubApiKey[len(c.sessionApiKeys.GithubApiKey)-4:],
+					"api_key_masked": "***" + effectiveKeys.GithubApiKey[len(effectiveKeys.GithubApiKey)-4:],
 				})
 		} else {
 			c.logExecutionEvent(types.LogLevelWarn, types.LogCategoryAPICall,
@@ -3473,14 +3633,14 @@ func (c *Client) addAPIKeyAuthentication(req *http.Request, endpointURL string, 
 
 	// OpenWeather API
 	if strings.Contains(endpointURL, "openweathermap.org") {
-		if c.sessionApiKeys.OpenWeatherApiKey != "" {
+		if effectiveKeys.OpenWeatherApiKey != "" {
 			// Add API key as query parameter
 			u, err := url.Parse(req.URL.String())
 			if err != nil {
 				return fmt.Errorf("failed to parse URL for OpenWeather API key: %w", err)
 			}
 			q := u.Query()
-			q.Set("appid", c.sessionApiKeys.OpenWeatherApiKey)
+			q.Set("appid", effectiveKeys.OpenWeatherApiKey)
 			u.RawQuery = q.Encode()
 			req.URL = u
 
@@ -3488,7 +3648,7 @@ func (c *Client) addAPIKeyAuthentication(req *http.Request, endpointURL string, 
 				"Added OpenWeather API authentication",
 				map[string]interface{}{
 					"endpoint":       endpointURL,
-					"api_key_masked": "***" + c.sessionApiKeys.OpenWeatherApiKey[len(c.sessionApiKeys.OpenWeatherApiKey)-4:],
+					"api_key_masked": "***" + effectiveKeys.OpenWeatherApiKey[len(effectiveKeys.OpenWeatherApiKey)-4:],
 				})
 		} else {
 			c.logExecutionEvent(types.LogLevelWarn, types.LogCategoryAPICall,
@@ -4843,10 +5003,8 @@ func (c *Client) sendFunctionResultToGemini(ctx context.Context, config *types.A
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	var geminiApiKey string
-	if c.sessionApiKeys != nil {
-		geminiApiKey = c.sessionApiKeys.GeminiApiKey
-	}
+	effectiveKeys := c.getEffectiveApiKeys()
+	geminiApiKey := effectiveKeys.GeminiApiKey
 	req.Header.Set("x-goog-api-key", geminiApiKey)
 
 	client := &http.Client{Timeout: 10 * time.Minute} // Very tolerant for async follow-up calls
@@ -5032,10 +5190,8 @@ func (c *Client) sendCombinedFunctionResultsToGemini(ctx context.Context, config
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	var geminiApiKey string
-	if c.sessionApiKeys != nil {
-		geminiApiKey = c.sessionApiKeys.GeminiApiKey
-	}
+	effectiveKeys := c.getEffectiveApiKeys()
+	geminiApiKey := effectiveKeys.GeminiApiKey
 	req.Header.Set("x-goog-api-key", geminiApiKey)
 
 	client := &http.Client{Timeout: 10 * time.Minute}
