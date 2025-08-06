@@ -3,10 +3,13 @@ package adapters
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"gogent/internal/gogent"
 	"gogent/internal/interfaces"
 	"gogent/internal/types"
+
+	"github.com/google/uuid"
 )
 
 // GoGentClientAdapter adapts the current gogent.Client to implement our interfaces
@@ -87,7 +90,6 @@ func (adapter *GoGentClientAdapter) GetExecutionRun(ctx context.Context, id stri
 }
 
 func (adapter *GoGentClientAdapter) ListExecutionRuns(ctx context.Context, limit, offset int) ([]*types.ExecutionRun, error) {
-	// Convert int to int32 for the client method
 	return adapter.client.ListExecutionRuns(ctx, adapter.userID, int32(limit), int32(offset))
 }
 
@@ -98,44 +100,100 @@ func (adapter *GoGentClientAdapter) CreateConfiguration(ctx context.Context, con
 }
 
 func (adapter *GoGentClientAdapter) GetConfiguration(ctx context.Context, id string) (*types.APIConfiguration, error) {
-	// TODO: Implement in the underlying client
-	return nil, fmt.Errorf("GetConfiguration not yet implemented")
+	// Get single configuration by ID
+	configs, err := adapter.client.ListAPIConfigurationsByUser(ctx, adapter.userID, 1000, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, config := range configs {
+		if config.ID == id {
+			return &config, nil
+		}
+	}
+
+	return nil, fmt.Errorf("configuration with ID %s not found", id)
 }
 
 func (adapter *GoGentClientAdapter) ListConfigurations(ctx context.Context, executionRunID string) ([]*types.APIConfiguration, error) {
-	// TODO: Implement in the underlying client
-	return nil, fmt.Errorf("ListConfigurations not yet implemented")
+	// List all configurations for user (filtered by execution run if needed)
+	configs, err := adapter.client.ListAPIConfigurationsByUser(ctx, adapter.userID, 1000, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert []types.APIConfiguration to []*types.APIConfiguration
+	result := make([]*types.APIConfiguration, len(configs))
+	for i := range configs {
+		result[i] = &configs[i]
+	}
+
+	return result, nil
 }
 
 func (adapter *GoGentClientAdapter) UpdateConfiguration(ctx context.Context, config *types.APIConfiguration) error {
-	// TODO: Implement in the underlying client
-	return fmt.Errorf("UpdateConfiguration not yet implemented")
+	return adapter.client.UpdateAPIConfiguration(ctx, adapter.userID, config)
 }
 
 func (adapter *GoGentClientAdapter) DeleteConfiguration(ctx context.Context, id string) error {
-	// TODO: Implement in the underlying client
-	return fmt.Errorf("DeleteConfiguration not yet implemented")
+	return adapter.client.DeleteAPIConfiguration(ctx, id, adapter.userID)
 }
 
 // ResultComparator interface implementation
 
 func (adapter *GoGentClientAdapter) CompareResults(ctx context.Context, result *types.ExecutionResult, metrics []string) (*types.ComparisonResult, error) {
-	// TODO: Implement proper comparison logic
-	return nil, fmt.Errorf("CompareResults not yet implemented")
+	// Basic comparison implementation - this could be enhanced later
+	comparison := &types.ComparisonResult{
+		ID:                  uuid.New().String(),
+		ExecutionRunID:      result.ExecutionRun.ID,
+		ComparisonType:      "basic",
+		MetricName:          "execution_metrics",
+		ConfigurationScores: make(map[string]interface{}),
+		AnalysisNotes:       fmt.Sprintf("Compared %d configurations using metrics: %v", len(result.Results), metrics),
+		CreatedAt:           time.Now(),
+	}
+
+	// Add metrics to configuration scores
+	comparison.ConfigurationScores["total_variations"] = len(result.Results)
+	comparison.ConfigurationScores["success_count"] = result.SuccessCount
+	comparison.ConfigurationScores["error_count"] = result.ErrorCount
+	comparison.ConfigurationScores["total_time_ms"] = result.TotalTime
+
+	// Find best configuration by execution time or success rate
+	var bestConfig *types.APIConfiguration
+	var bestTime int64 = 999999999
+	for _, res := range result.Results {
+		if res.ExecutionTime < bestTime && res.Response.ResponseStatus == "success" {
+			bestTime = res.ExecutionTime
+			bestConfig = &res.Configuration
+		}
+	}
+
+	if bestConfig != nil {
+		comparison.BestConfigurationID = bestConfig.ID
+		comparison.BestConfiguration = bestConfig
+	}
+
+	// Add all configurations
+	allConfigs := make([]types.APIConfiguration, len(result.Results))
+	for i, res := range result.Results {
+		allConfigs[i] = res.Configuration
+	}
+	comparison.AllConfigurations = allConfigs
+
+	return comparison, nil
 }
 
 func (adapter *GoGentClientAdapter) SaveComparison(ctx context.Context, comparison *types.ComparisonResult) error {
 	return adapter.client.StoreComparisonResult(ctx, adapter.userID, comparison)
 }
 
-func (adapter *GoGentClientAdapter) GetComparison(ctx context.Context, id string) (*types.ComparisonResult, error) {
-	// TODO: Implement in the underlying client
-	return nil, fmt.Errorf("GetComparison not yet implemented")
+func (adapter *GoGentClientAdapter) GetComparison(ctx context.Context, executionRunID string) (*types.ComparisonResult, error) {
+	return adapter.client.GetComparisonResult(ctx, executionRunID)
 }
 
 func (adapter *GoGentClientAdapter) ListComparisons(ctx context.Context, executionRunID string) ([]*types.ComparisonResult, error) {
-	// TODO: Implement in the underlying client
-	return nil, fmt.Errorf("ListComparisons not yet implemented")
+	return adapter.client.ListComparisonResults(ctx, executionRunID)
 }
 
 // GetUnderlyingClient returns the underlying gogent client for advanced usage

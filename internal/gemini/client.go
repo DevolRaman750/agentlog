@@ -36,7 +36,7 @@ func (c *GeminiClient) Close() error {
 	return nil
 }
 
-// GenerateContent generates content using the Gemini REST API (matches official documentation)
+// GenerateContent generates content using the Gemini REST API with full function calling support
 func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APIConfiguration, prompt, contextStr string) (*types.APIResponse, error) {
 	startTime := time.Now()
 
@@ -49,7 +49,7 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 		fullPrompt = fmt.Sprintf("%s\n\nContext: %s", fullPrompt, contextStr)
 	}
 
-	log.Printf("Gemini REST API call - Model: %s, Prompt length: %d", config.ModelName, len(fullPrompt))
+	log.Printf("Gemini REST API call - Model: %s, Prompt length: %d, Tools: %d", config.ModelName, len(fullPrompt), len(config.Tools))
 
 	// Build the REST API request (following official documentation format)
 	requestBody := map[string]interface{}{
@@ -57,7 +57,7 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 			{
 				"parts": []map[string]interface{}{
 					{"text": fullPrompt},
-			},
+				},
 			},
 		},
 	}
@@ -78,6 +78,39 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 	}
 	if len(generationConfig) > 0 {
 		requestBody["generationConfig"] = generationConfig
+	}
+
+	// Add tools support for function calling
+	if len(config.Tools) > 0 {
+		// Create function declarations array - ALL functions go in ONE array
+		functionDeclarations := make([]map[string]interface{}, len(config.Tools))
+		for i, tool := range config.Tools {
+			// Sanitize the parameters to remove unsupported fields
+			sanitizedParams := c.sanitizeToolParameters(tool.Parameters)
+
+			functionDeclarations[i] = map[string]interface{}{
+				"name":        tool.Name,
+				"description": tool.Description,
+				"parameters":  sanitizedParams,
+			}
+		}
+
+		// Create the correct tools structure: ONE tools array with ONE functionDeclarations array
+		tools := []map[string]interface{}{
+			{
+				"functionDeclarations": functionDeclarations,
+			},
+		}
+		requestBody["tools"] = tools
+
+		// Use AUTO mode to allow Gemini to choose between function calling or text response
+		requestBody["toolConfig"] = map[string]interface{}{
+			"functionCallingConfig": map[string]interface{}{
+				"mode": "AUTO",
+			},
+		}
+
+		log.Printf("🔧 Added %d tools to Gemini request", len(config.Tools))
 	}
 
 	// Serialize request
@@ -140,12 +173,16 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 		}, nil
 	}
 
-	// Parse response (following official documentation format)
+	// Parse response with function calling support
 	var geminiResp struct {
 		Candidates []struct {
 			Content struct {
 				Parts []struct {
-					Text string `json:"text"`
+					Text         string `json:"text,omitempty"`
+					FunctionCall *struct {
+						Name string                 `json:"name"`
+						Args map[string]interface{} `json:"args"`
+					} `json:"functionCall,omitempty"`
 				} `json:"parts"`
 			} `json:"content"`
 			FinishReason string `json:"finishReason"`
@@ -166,15 +203,26 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 		}, nil
 	}
 
-	// Extract response text
+	// Extract response text and function calls
 	var responseText string
 	var finishReason string
+	var functionCalls []map[string]interface{}
+
 	if len(geminiResp.Candidates) > 0 {
 		candidate := geminiResp.Candidates[0]
-		if len(candidate.Content.Parts) > 0 {
-			responseText = candidate.Content.Parts[0].Text
-		}
 		finishReason = candidate.FinishReason
+
+		for _, part := range candidate.Content.Parts {
+			if part.Text != "" {
+				responseText = part.Text
+			}
+			if part.FunctionCall != nil {
+				functionCalls = append(functionCalls, map[string]interface{}{
+					"name": part.FunctionCall.Name,
+					"args": part.FunctionCall.Args,
+				})
+			}
+		}
 	}
 
 	// Build usage metadata
@@ -184,13 +232,118 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 		"total_tokens":      geminiResp.UsageMetadata.TotalTokenCount,
 	}
 
-	log.Printf("REST API - Success! Response length: %d chars", len(responseText))
+	if len(functionCalls) > 0 {
+		log.Printf("REST API - Success! Found %d function calls", len(functionCalls))
+	} else {
+		log.Printf("REST API - Success! Response length: %d chars", len(responseText))
+	}
 
-	return &types.APIResponse{
+	apiResponse := &types.APIResponse{
 		ResponseStatus: types.ResponseStatusSuccess,
 		ResponseText:   responseText,
 		UsageMetadata:  usageMetadata,
 		FinishReason:   finishReason,
 		ResponseTimeMs: int32(responseTime.Milliseconds()),
-	}, nil
+	}
+
+	// Add function calls to response body if present
+	if len(functionCalls) > 0 {
+		if apiResponse.ResponseBody == nil {
+			apiResponse.ResponseBody = make(map[string]interface{})
+		}
+		apiResponse.ResponseBody["function_calls"] = functionCalls
+	}
+
+	return apiResponse, nil
+}
+
+// sanitizeToolParameters removes fields that are not supported by the Gemini API
+func (c *GeminiClient) sanitizeToolParameters(params map[string]interface{}) map[string]interface{} {
+	if params == nil {
+		return params
+	}
+
+	// Create a copy to avoid modifying the original
+	sanitized := make(map[string]interface{})
+
+	// Copy allowed fields at the top level
+	allowedTopLevel := map[string]bool{
+		"type":        true,
+		"properties":  true,
+		"required":    true,
+		"description": true,
+	}
+
+	for key, value := range params {
+		if allowedTopLevel[key] {
+			if key == "properties" {
+				// Recursively sanitize properties
+				if props, ok := value.(map[string]interface{}); ok {
+					sanitizedProps := make(map[string]interface{})
+					for propName, propValue := range props {
+						if propMap, ok := propValue.(map[string]interface{}); ok {
+							sanitizedProps[propName] = c.sanitizePropertySchema(propMap)
+						} else {
+							sanitizedProps[propName] = propValue
+						}
+					}
+					sanitized[key] = sanitizedProps
+				} else {
+					sanitized[key] = value
+				}
+			} else {
+				sanitized[key] = value
+			}
+		}
+	}
+
+	return sanitized
+}
+
+// sanitizePropertySchema removes unsupported fields from individual property schemas
+func (c *GeminiClient) sanitizePropertySchema(propSchema map[string]interface{}) map[string]interface{} {
+	sanitized := make(map[string]interface{})
+
+	// Allow these fields for property definitions
+	allowedFields := map[string]bool{
+		"type":        true,
+		"description": true,
+		"enum":        true,
+		"format":      true,
+		"items":       true,
+		"properties":  true,
+		"required":    true,
+	}
+
+	for key, value := range propSchema {
+		if allowedFields[key] {
+			if key == "properties" && value != nil {
+				// Recursively sanitize nested properties
+				if nestedProps, ok := value.(map[string]interface{}); ok {
+					sanitizedNested := make(map[string]interface{})
+					for nestedName, nestedValue := range nestedProps {
+						if nestedMap, ok := nestedValue.(map[string]interface{}); ok {
+							sanitizedNested[nestedName] = c.sanitizePropertySchema(nestedMap)
+						} else {
+							sanitizedNested[nestedName] = nestedValue
+						}
+					}
+					sanitized[key] = sanitizedNested
+				} else {
+					sanitized[key] = value
+				}
+			} else if key == "items" && value != nil {
+				// Sanitize array item schema
+				if itemSchema, ok := value.(map[string]interface{}); ok {
+					sanitized[key] = c.sanitizePropertySchema(itemSchema)
+				} else {
+					sanitized[key] = value
+				}
+			} else {
+				sanitized[key] = value
+			}
+		}
+	}
+
+	return sanitized
 }

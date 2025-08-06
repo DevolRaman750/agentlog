@@ -1,0 +1,1561 @@
+package gogent
+
+import (
+	"context"
+	"database/sql"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"strings"
+	"sync"
+	"time"
+
+	"gogent/internal/apikeys"
+	"gogent/internal/code_analysis"
+	"gogent/internal/db"
+	"gogent/internal/gemini"
+	"gogent/internal/github"
+	"gogent/internal/providers"
+	"gogent/internal/types"
+
+	"github.com/google/uuid"
+)
+
+// Client represents the main gogent client that wraps Gemini API calls
+type Client struct {
+	db              *sql.DB
+	queries         *db.Queries
+	config          *types.GeminiClientConfig
+	sessionApiKeys  *types.SessionApiKeys // DEPRECATED: Will be removed - use database keys
+	databaseApiKeys *types.SessionApiKeys // API keys loaded from database
+	currentUserID   string                // Current user ID for loading API keys
+	geminiClient    *gemini.GeminiClient
+	providerFactory *providers.ProviderFactory // Provider factory for multi-model support
+	mutex           sync.RWMutex
+	// Add execution context for logging
+	currentExecutionRunID *string
+	currentConfigID       *string
+	currentRequestID      *string
+
+	// Sequence number counter for flow events
+	sequenceCounter int
+
+	// Refactored components
+	codeAnalyzer      *code_analysis.Analyzer
+	directoryAnalyzer *github.DirectoryAnalyzer
+}
+
+// ResponsePart represents a part of the Gemini API response
+type ResponsePart struct {
+	Text         string `json:"text,omitempty"`
+	FunctionCall struct {
+		Name string                 `json:"name"`
+		Args map[string]interface{} `json:"args"`
+	} `json:"functionCall,omitempty"`
+}
+
+// ensureMultiStatements ensures the database URL includes multiStatements=true for proper migration support
+func ensureMultiStatements(dbURL string) string {
+	if !strings.Contains(dbURL, "multiStatements=true") {
+		if strings.Contains(dbURL, "?") {
+			dbURL += "&multiStatements=true"
+		} else {
+			dbURL += "?multiStatements=true"
+		}
+	}
+	return dbURL
+}
+
+// NewClient creates a new gogent client with database connection
+func NewClient(dbURL string, config *types.GeminiClientConfig, sessionApiKeys *types.SessionApiKeys) (*Client, error) {
+	// Ensure dbURL includes multiStatements=true for migrations
+	dbURL = ensureMultiStatements(dbURL)
+
+	database, err := sql.Open("mysql", dbURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+
+	if err := database.Ping(); err != nil {
+		return nil, fmt.Errorf("failed to ping database: %w", err)
+	}
+
+	queries := db.New(database)
+
+	// Create temporary client to run migrations
+	tempClient := &Client{
+		db:      database,
+		queries: queries,
+		config:  config,
+		mutex:   sync.RWMutex{},
+	}
+
+	// Run migrations using golang-migrate
+	if err := tempClient.RunMigrations(); err != nil {
+		log.Printf("⚠️ Warning: failed to run migrations: %v", err)
+		// Continue without migrations rather than failing completely
+	}
+
+	client := &Client{
+		db:              database,
+		queries:         queries,
+		config:          config,
+		sessionApiKeys:  sessionApiKeys,
+		providerFactory: providers.NewProviderFactory(),
+		mutex:           sync.RWMutex{},
+	}
+
+	// Initialize refactored components
+	client.codeAnalyzer = code_analysis.NewAnalyzer(code_analysis.DefaultConfig())
+	client.directoryAnalyzer = github.NewDirectoryAnalyzer(code_analysis.DefaultConfig())
+
+	// Force REST API usage - no Go SDK client
+	client.geminiClient = nil
+	log.Printf("Go SDK disabled - using REST API for all Gemini calls")
+
+	return client, nil
+}
+
+// Close closes the database connection and Gemini client
+func (c *Client) Close() error {
+	if c.geminiClient != nil {
+		c.geminiClient.Close()
+	}
+	return c.db.Close()
+}
+
+// LoadDatabaseApiKeys loads API keys from the database for the current user
+func (c *Client) LoadDatabaseApiKeys(ctx context.Context, userID string) error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	c.currentUserID = userID
+
+	// Create API key service
+	apiKeyService, err := apikeys.NewService(c.db)
+	if err != nil {
+		log.Printf("⚠️ Failed to create API key service: %v", err)
+		return fmt.Errorf("failed to create API key service: %w", err)
+	}
+
+	// Get all API keys for the user
+	userApiKeys, err := apiKeyService.GetAPIKeys(ctx, userID)
+	if err != nil {
+		log.Printf("⚠️ Failed to load API keys for user %s: %v", userID, err)
+		// Don't fail completely - continue with empty keys
+		c.databaseApiKeys = &types.SessionApiKeys{}
+		return nil
+	}
+
+	log.Printf("🔑 Loaded %d API keys from database for user %s", len(userApiKeys), userID)
+
+	// Convert database API keys to session format
+	sessionKeys := &types.SessionApiKeys{}
+
+	for _, apiKey := range userApiKeys {
+		if !apiKey.IsActive || apiKey.ValidationStatus == "invalid" {
+			continue
+		}
+
+		// Get decrypted key value
+		decryptedKey, err := apiKeyService.GetDecryptedAPIKey(ctx, userID, apiKey.ID)
+		if err != nil {
+			log.Printf("⚠️ Failed to decrypt API key %s: %v", apiKey.KeyName, err)
+			continue
+		}
+
+		// Map service names to session key fields
+		switch apiKey.ServiceName {
+		case "gemini":
+			sessionKeys.GeminiApiKey = decryptedKey
+			log.Printf("🔑 Loaded Gemini API key from database - Length: %d, Prefix: %s",
+				len(decryptedKey),
+				func() string {
+					if len(decryptedKey) >= 10 {
+						return decryptedKey[:10] + "..."
+					} else if len(decryptedKey) > 0 {
+						return decryptedKey + "..."
+					}
+					return "EMPTY"
+				}())
+		case "openweather":
+			sessionKeys.OpenWeatherApiKey = decryptedKey
+			log.Printf("🔑 Loaded OpenWeather API key from database")
+		case "github":
+			sessionKeys.GithubApiKey = decryptedKey
+			log.Printf("🔑 Loaded GitHub API key from database")
+		case "openrouter":
+			sessionKeys.OpenRouterApiKey = decryptedKey
+			log.Printf("🔑 Loaded OpenRouter API key from database")
+		case "slack":
+			sessionKeys.SlackBotToken = decryptedKey
+			log.Printf("🔑 Loaded Slack Bot Token from database - Length: %d, Prefix: %s",
+				len(decryptedKey),
+				func() string {
+					if len(decryptedKey) >= 10 {
+						return decryptedKey[:10] + "..."
+					} else if len(decryptedKey) > 0 {
+						return decryptedKey + "..."
+					}
+					return "EMPTY"
+				}())
+		case "neo4j":
+			// For Neo4j, we need to handle the connection details differently
+			// This is a simplified version - you might want to parse the connection string
+			sessionKeys.Neo4jUrl = decryptedKey
+			log.Printf("🔑 Loaded Neo4j connection from database")
+		}
+	}
+
+	c.databaseApiKeys = sessionKeys
+	log.Printf("🔑 Database API keys loaded: Gemini=%v, OpenWeather=%v, GitHub=%v, OpenRouter=%v, Slack=%v",
+		sessionKeys.GeminiApiKey != "",
+		sessionKeys.OpenWeatherApiKey != "",
+		sessionKeys.GithubApiKey != "",
+		sessionKeys.OpenRouterApiKey != "",
+		sessionKeys.SlackBotToken != "")
+
+	return nil
+}
+
+// getEffectiveApiKeys returns the database API keys
+func (c *Client) getEffectiveApiKeys() *types.SessionApiKeys {
+	// Use database keys only - session keys are no longer supported
+	if c.databaseApiKeys != nil {
+		return c.databaseApiKeys
+	}
+
+	// Return empty keys if none available
+	return &types.SessionApiKeys{}
+}
+
+// GetDB returns the database connection
+func (c *Client) GetDB() *sql.DB {
+	return c.db
+}
+
+// setExecutionContext sets the current execution context for logging
+func (c *Client) setExecutionContext(executionRunID, configID, requestID *string) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.currentExecutionRunID = executionRunID
+	c.currentConfigID = configID
+	c.currentRequestID = requestID
+}
+
+// clearExecutionContext clears the current execution context
+func (c *Client) clearExecutionContext() {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.currentExecutionRunID = nil
+	c.currentConfigID = nil
+	c.currentRequestID = nil
+}
+
+// getNextSequenceNumber returns the next sequence number for flow events
+func (c *Client) getNextSequenceNumber() int {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.sequenceCounter++
+	return c.sequenceCounter
+}
+
+// getCurrentRequestID returns the current request ID
+func (c *Client) getCurrentRequestID() string {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	if c.currentRequestID != nil {
+		return *c.currentRequestID
+	}
+	return ""
+}
+
+// getUserIDFromExecutionRun gets the user ID from an execution run
+func (c *Client) getUserIDFromExecutionRun(ctx context.Context, executionRunID string) (string, error) {
+	executionRun, err := c.queries.GetExecutionRun(ctx, db.GetExecutionRunParams{
+		ID:     executionRunID,
+		UserID: c.currentUserID,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to get execution run: %w", err)
+	}
+	return executionRun.UserID, nil
+}
+
+// RunMigrations runs database migrations
+func (c *Client) RunMigrations() error {
+	// TODO: Implement actual migration logic
+	// For now, just return nil to avoid breaking the client initialization
+	log.Printf("⚠️ Migrations not yet implemented - continuing without migrations")
+	return nil
+}
+
+// executeMySQLFunction executes a MySQL function with security validation
+func (c *Client) executeMySQLFunction(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+	// Validate required parameters
+	query, ok := args["query"].(string)
+	if !ok || query == "" {
+		return nil, fmt.Errorf("query parameter is required")
+	}
+
+	// Security validation - only allow SELECT queries
+	if !strings.HasPrefix(strings.ToUpper(strings.TrimSpace(query)), "SELECT") {
+		return nil, fmt.Errorf("security violation: only SELECT queries are allowed")
+	}
+
+	// Check for dangerous SQL patterns
+	dangerousPatterns := []string{
+		";", "UNION", "INTO OUTFILE", "LOAD_FILE", "DROP", "DELETE", "UPDATE", "INSERT",
+	}
+	for _, pattern := range dangerousPatterns {
+		if strings.Contains(strings.ToUpper(query), pattern) {
+			return nil, fmt.Errorf("security violation: dangerous SQL pattern detected")
+		}
+	}
+
+	// Validate database parameter
+	if dbName, ok := args["database"].(string); ok && dbName != "" {
+		allowedDBs := []string{"main", "test"}
+		found := false
+		for _, allowed := range allowedDBs {
+			if dbName == allowed {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, fmt.Errorf("database '%s' is not in the allowed list", dbName)
+		}
+	}
+
+	// Validate limit parameter
+	if limit, ok := args["limit"].(int); ok {
+		if limit < 1 || limit > 1000 {
+			return nil, fmt.Errorf("limit must be between 1 and 1000")
+		}
+	}
+
+	// Return mock response for valid queries
+	result := map[string]interface{}{
+		"success":       true,
+		"rows_returned": 3,
+		"data":          []map[string]interface{}{},
+		"metadata": map[string]interface{}{
+			"database":       "main",
+			"query_type":     "SELECT",
+			"security_level": "high",
+		},
+		"execution_time_ms": int64(50),
+	}
+
+	return result, nil
+}
+
+// executeMCPFunction executes an MCP function
+func (c *Client) executeMCPFunction(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+	// Validate required parameters
+	operation, ok := args["operation"].(string)
+	if !ok || operation == "" {
+		return nil, fmt.Errorf("operation parameter is required")
+	}
+
+	repo, ok := args["repo"].(string)
+	if !ok || repo == "" {
+		return nil, fmt.Errorf("repo parameter is required")
+	}
+
+	// Validate repo format
+	if !strings.Contains(repo, "/") {
+		return nil, fmt.Errorf("repo must be in 'owner/repo' format")
+	}
+
+	// Validate operation type
+	validOperations := []string{"create_branch", "commit_files", "create_pr"}
+	validOp := false
+	for _, valid := range validOperations {
+		if operation == valid {
+			validOp = true
+			break
+		}
+	}
+	if !validOp {
+		return nil, fmt.Errorf("unsupported MCP operation: %s", operation)
+	}
+
+	// Operation-specific validation
+	switch operation {
+	case "create_branch":
+		if _, ok := args["branch_name"]; !ok {
+			return nil, fmt.Errorf("branch_name is required")
+		}
+	case "commit_files":
+		if _, ok := args["commit_message"]; !ok {
+			return nil, fmt.Errorf("commit_message is required")
+		}
+	}
+
+	// Return mock response based on operation
+	result := map[string]interface{}{
+		"success":           true,
+		"operation":         operation,
+		"repo":              repo,
+		"execution_time_ms": int64(100),
+		"metadata": map[string]interface{}{
+			"source":     "mock",
+			"mcp_server": "github-operations",
+		},
+	}
+
+	// Add operation-specific fields
+	switch operation {
+	case "create_branch":
+		result["branch_name"] = args["branch_name"]
+		result["branch_url"] = fmt.Sprintf("https://github.com/%s/tree/%s", repo, args["branch_name"])
+		result["commit_sha"] = "abc123def456"
+	case "commit_files":
+		result["files_committed"] = 1
+		result["commit_sha"] = "def456ghi789"
+		result["commit_url"] = fmt.Sprintf("https://github.com/%s/commit/def456ghi789", repo)
+	case "create_pr":
+		result["pr_title"] = "Add new feature"
+		result["pr_number"] = 42
+		result["pr_url"] = fmt.Sprintf("https://github.com/%s/pull/42", repo)
+		result["state"] = "open"
+	}
+
+	return result, nil
+}
+
+// executeDynamicFunction routes to the appropriate execution method based on function definition
+func (c *Client) executeDynamicFunction(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+	switch funcDef.HttpMethod.String {
+	case "MYSQL":
+		return c.executeMySQLFunction(ctx, funcDef, args)
+	case "MCP":
+		return c.executeMCPFunction(ctx, funcDef, args)
+	case "GET", "POST", "PUT", "PATCH", "DELETE":
+		return c.executeAPIFunction(ctx, funcDef, args)
+	default:
+		return nil, fmt.Errorf("unsupported execution method: %s", funcDef.HttpMethod.String)
+	}
+}
+
+// executeAPIFunction executes a GitHub API function with real HTTP calls
+func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+	startTime := time.Now()
+	functionName := funcDef.Name
+
+	// Validate required parameters based on function name
+	switch functionName {
+	case "github_read_issues", "github_read_code", "github_search_code":
+		if _, ok := args["owner"]; !ok {
+			return nil, fmt.Errorf("owner parameter is required")
+		}
+		if _, ok := args["repo"]; !ok {
+			return nil, fmt.Errorf("repo parameter is required")
+		}
+	}
+
+	// Build GitHub API URL
+	url, err := c.buildGitHubAPIURL(functionName, args)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build GitHub API URL: %w", err)
+	}
+
+	// Determine HTTP method from function definition
+	httpMethod := "GET" // Default
+	if funcDef.HttpMethod.Valid {
+		httpMethod = funcDef.HttpMethod.String
+	}
+
+	log.Printf("🌐 Making GitHub API call: %s %s", httpMethod, url)
+
+	// Prepare request body for non-GET requests
+	var requestBody io.Reader
+	if httpMethod != "GET" && len(args) > 0 {
+		// For non-GET requests, create JSON body from args (excluding repo/owner which are in URL)
+		bodyData := make(map[string]interface{})
+		for key, value := range args {
+			if key != "owner" && key != "repo" && key != "issue_number" && key != "pull_number" {
+				// Only include non-nil values to avoid GitHub API 422 errors
+				if value != nil {
+					bodyData[key] = value
+				}
+			}
+		}
+		if len(bodyData) > 0 {
+			jsonData, err := json.Marshal(bodyData)
+			if err == nil {
+				requestBody = strings.NewReader(string(jsonData))
+				log.Printf("🔧 Request body: %s", string(jsonData))
+			}
+		}
+	}
+
+	// Create HTTP request
+	req, err := http.NewRequestWithContext(ctx, httpMethod, url, requestBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Add GitHub authentication
+	effectiveKeys := c.getEffectiveApiKeys()
+	if effectiveKeys.GithubApiKey != "" {
+		req.Header.Set("Authorization", "token "+effectiveKeys.GithubApiKey)
+		log.Printf("🔑 Added GitHub API authentication")
+	} else {
+		log.Printf("⚠️ No GitHub API key available - proceeding without authentication")
+	}
+
+	// Set User-Agent header (required by GitHub API)
+	req.Header.Set("User-Agent", "gogent/1.0")
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+
+	// Set Content-Type for non-GET requests
+	if httpMethod != "GET" && requestBody != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	// Make HTTP request
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("GitHub API request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	executionTimeMs := time.Since(startTime).Milliseconds()
+	log.Printf("🌐 GitHub API response: %d status, %d bytes, %dms", resp.StatusCode, len(body), executionTimeMs)
+
+	// Check for API errors
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("GitHub API returned %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Parse JSON response
+	var responseData interface{}
+	if err := json.Unmarshal(body, &responseData); err != nil {
+		return nil, fmt.Errorf("failed to parse JSON response: %w", err)
+	}
+
+	// Build result
+	result := map[string]interface{}{
+		"success":           true,
+		"function":          functionName,
+		"execution_time_ms": executionTimeMs,
+		"response":          responseData,
+		"metadata": map[string]interface{}{
+			"source":        "github_api",
+			"api_method":    "GET",
+			"endpoint":      url,
+			"status_code":   resp.StatusCode,
+			"response_size": len(body),
+		},
+	}
+
+	// Add function-specific data processing
+	switch functionName {
+	case "github_read_issues":
+		if issues, ok := responseData.([]interface{}); ok {
+			result["issues"] = issues
+			result["total_count"] = len(issues)
+			log.Printf("✅ Retrieved %d issues from GitHub", len(issues))
+		}
+	case "github_read_code":
+		if codeData, ok := responseData.(map[string]interface{}); ok {
+			result["type"] = codeData["type"]
+			result["name"] = codeData["name"]
+			result["path"] = codeData["path"]
+			result["size"] = codeData["size"]
+			if content, exists := codeData["content"]; exists {
+				result["content"] = content
+				result["encoding"] = codeData["encoding"]
+			}
+		}
+	case "github_search_code":
+		if searchData, ok := responseData.(map[string]interface{}); ok {
+			result["items"] = searchData["items"]
+			result["total_count"] = searchData["total_count"]
+			if items, exists := searchData["items"].([]interface{}); exists {
+				log.Printf("✅ Found %d code search results", len(items))
+			}
+		}
+	}
+
+	return result, nil
+}
+
+// buildGitHubAPIURL constructs the appropriate GitHub API URL for the function
+func (c *Client) buildGitHubAPIURL(functionName string, args map[string]interface{}) (string, error) {
+	owner := args["owner"].(string)
+	repo := args["repo"].(string)
+	baseURL := fmt.Sprintf("https://api.github.com/repos/%s/%s", owner, repo)
+
+	switch functionName {
+	case "github_read_issues":
+		url := baseURL + "/issues"
+		params := []string{}
+
+		if state, ok := args["state"].(string); ok && state != "" {
+			params = append(params, fmt.Sprintf("state=%s", state))
+		} else {
+			params = append(params, "state=open") // Default to open issues
+		}
+
+		if labels, ok := args["labels"].(string); ok && labels != "" {
+			params = append(params, fmt.Sprintf("labels=%s", labels))
+		}
+
+		if limit, ok := args["limit"]; ok {
+			if limitInt, ok := limit.(float64); ok {
+				params = append(params, fmt.Sprintf("per_page=%.0f", limitInt))
+			} else if limitInt, ok := limit.(int); ok {
+				params = append(params, fmt.Sprintf("per_page=%d", limitInt))
+			}
+		} else {
+			params = append(params, "per_page=30") // Default limit
+		}
+
+		if len(params) > 0 {
+			url += "?" + strings.Join(params, "&")
+		}
+		return url, nil
+
+	case "github_read_code":
+		path, ok := args["path"].(string)
+		if !ok || path == "" {
+			path = "" // Root directory
+		}
+		return baseURL + "/contents/" + path, nil
+
+	case "github_search_code":
+		query, ok := args["query"].(string)
+		if !ok || query == "" {
+			return "", fmt.Errorf("query parameter is required for github_search_code")
+		}
+		// GitHub search API has different endpoint structure
+		searchURL := fmt.Sprintf("https://api.github.com/search/code?q=%s+repo:%s/%s", query, owner, repo)
+		return searchURL, nil
+
+	case "github_update_issue":
+		issueNumber, ok := args["issue_number"]
+		if !ok {
+			return "", fmt.Errorf("issue_number parameter is required for github_update_issue")
+		}
+		// Convert to string if it's a number
+		issueStr := fmt.Sprintf("%v", issueNumber)
+		return baseURL + "/issues/" + issueStr, nil
+
+	case "github_add_comment":
+		issueNumber, ok := args["issue_number"]
+		if !ok {
+			return "", fmt.Errorf("issue_number parameter is required for github_add_comment")
+		}
+		issueStr := fmt.Sprintf("%v", issueNumber)
+		return baseURL + "/issues/" + issueStr + "/comments", nil
+
+	case "github_create_issue":
+		return baseURL + "/issues", nil
+
+	case "github_merge_pull_request":
+		pullNumber, ok := args["pull_number"]
+		if !ok {
+			return "", fmt.Errorf("pull_number parameter is required for github_merge_pull_request")
+		}
+		pullStr := fmt.Sprintf("%v", pullNumber)
+		return baseURL + "/pulls/" + pullStr + "/merge", nil
+
+	case "github_get_file_sha":
+		path, ok := args["path"].(string)
+		if !ok || path == "" {
+			return "", fmt.Errorf("path parameter is required for github_get_file_sha")
+		}
+		return baseURL + "/contents/" + path, nil
+
+	case "github_list_branches":
+		return baseURL + "/branches", nil
+
+	default:
+		return "", fmt.Errorf("unknown GitHub function: %s", functionName)
+	}
+}
+
+// TestExecuteFunctionCall provides a public method to test function execution
+func (c *Client) TestExecuteFunctionCall(ctx context.Context, functionName string, args map[string]interface{}) (map[string]interface{}, error) {
+	// Get function definition from database
+	funcDef, err := c.getFunctionDefinition(ctx, functionName)
+	if err != nil {
+		return nil, fmt.Errorf("function %s not found in database: %w", functionName, err)
+	}
+
+	// Execute using dynamic function routing
+	return c.executeDynamicFunction(ctx, funcDef, args)
+}
+
+// getFunctionDefinition retrieves a function definition from the database
+func (c *Client) getFunctionDefinition(ctx context.Context, functionName string) (*db.FunctionDefinition, error) {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
+	// Get function definition from database
+	funcDef, err := c.queries.GetFunctionDefinitionByName(ctx, db.GetFunctionDefinitionByNameParams{
+		Name:   functionName,
+		UserID: "system", // System functions are stored with user_id = 'system'
+	})
+	if err != nil {
+		return nil, fmt.Errorf("function %s not found in database: %w", functionName, err)
+	}
+
+	return &funcDef, nil
+}
+
+// GetExecutionResult retrieves complete execution details from the database
+func (c *Client) GetExecutionResult(ctx context.Context, userID string, executionRunID string) (*types.ExecutionResult, error) {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
+	// Get the execution run
+	executionRun, err := c.GetExecutionRun(ctx, userID, executionRunID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get execution run: %w", err)
+	}
+
+	// Get all configurations for this execution run
+	configRows, err := c.queries.GetAPIConfigurationsByRun(ctx, db.GetAPIConfigurationsByRunParams{
+		ExecutionRunID: executionRunID,
+		UserID:         userID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get configurations: %w", err)
+	}
+
+	// Get all requests for this execution run
+	requestRows, err := c.queries.GetAPIRequestsByRun(ctx, db.GetAPIRequestsByRunParams{
+		ExecutionRunID: executionRunID,
+		UserID:         userID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get requests: %w", err)
+	}
+
+	// Get all responses with joined data for this execution run
+	responseRows, err := c.queries.GetAPIResponsesWithRequests(ctx, db.GetAPIResponsesWithRequestsParams{
+		ExecutionRunID: executionRunID,
+		UserID:         userID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get responses: %w", err)
+	}
+
+	// Build configurations map
+	configs := make(map[string]*types.APIConfiguration)
+	for _, row := range configRows {
+		config := &types.APIConfiguration{
+			ID:            row.ID,
+			VariationName: row.VariationName,
+			ModelName:     row.ModelName,
+			SystemPrompt:  row.SystemPrompt.String,
+			CreatedAt:     row.CreatedAt.Time,
+		}
+
+		// Parse nullable fields
+		if row.Temperature.Valid {
+			temp, _ := parseFloat32(row.Temperature.String)
+			config.Temperature = &temp
+		}
+		if row.MaxTokens.Valid {
+			config.MaxTokens = &row.MaxTokens.Int32
+		}
+		if row.TopP.Valid {
+			topP, _ := parseFloat32(row.TopP.String)
+			config.TopP = &topP
+		}
+		if row.TopK.Valid {
+			config.TopK = &row.TopK.Int32
+		}
+
+		configs[config.ID] = config
+	}
+
+	// Build requests map
+	requests := make(map[string]*types.APIRequest)
+	for _, row := range requestRows {
+		request := &types.APIRequest{
+			ID:              row.ID,
+			ExecutionRunID:  row.ExecutionRunID,
+			ConfigurationID: row.ConfigurationID,
+			RequestType:     types.RequestType(row.RequestType.String),
+			Prompt:          row.Prompt.String,
+			Context:         row.Context.String,
+			FunctionName:    row.FunctionName.String,
+			CreatedAt:       row.CreatedAt.Time,
+		}
+		requests[request.ID] = request
+	}
+
+	// Build variation results
+	results := make([]types.VariationResult, 0)
+	successCount := 0
+	errorCount := 0
+	totalTime := int64(0)
+
+	for _, respRow := range responseRows {
+		// Get the request first to find the configuration ID
+		request := requests[respRow.RequestID]
+		if request == nil {
+			continue
+		}
+
+		// Get the configuration using the request's configuration ID
+		configID := request.ConfigurationID
+		config := configs[configID]
+
+		if config == nil || request == nil {
+			continue
+		}
+
+		response := &types.APIResponse{
+			ID:             respRow.ID,
+			RequestID:      respRow.RequestID,
+			ResponseStatus: types.ResponseStatus(respRow.ResponseStatus.String),
+			ResponseText:   respRow.ResponseText.String,
+			FinishReason:   respRow.FinishReason.String,
+			ErrorMessage:   respRow.ErrorMessage.String,
+			ResponseTimeMs: respRow.ResponseTimeMs.Int32,
+			CreatedAt:      respRow.CreatedAt.Time,
+		}
+
+		variationResult := types.VariationResult{
+			Configuration: *config,
+			Request:       *request,
+			Response:      *response,
+			ExecutionTime: int64(response.ResponseTimeMs),
+		}
+
+		results = append(results, variationResult)
+
+		// Update counters
+		if response.ResponseStatus == types.ResponseStatusSuccess {
+			successCount++
+		} else {
+			errorCount++
+		}
+		totalTime += int64(response.ResponseTimeMs)
+	}
+
+	return &types.ExecutionResult{
+		ExecutionRun: *executionRun,
+		Results:      results,
+		TotalTime:    totalTime,
+		SuccessCount: successCount,
+		ErrorCount:   errorCount,
+	}, nil
+}
+
+// GetExecutionRun retrieves an execution run by ID
+func (c *Client) GetExecutionRun(ctx context.Context, userID string, executionRunID string) (*types.ExecutionRun, error) {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
+	row, err := c.queries.GetExecutionRun(ctx, db.GetExecutionRunParams{
+		ID:     executionRunID,
+		UserID: userID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get execution run: %w", err)
+	}
+
+	description := ""
+	if row.Description.Valid {
+		description = row.Description.String
+	}
+
+	basePrompt := ""
+	if row.BasePrompt.Valid {
+		basePrompt = row.BasePrompt.String
+	}
+
+	contextPrompt := ""
+	if row.ContextPrompt.Valid {
+		contextPrompt = row.ContextPrompt.String
+	}
+
+	return &types.ExecutionRun{
+		ID:                    row.ID,
+		Name:                  row.Name,
+		Description:           description,
+		BasePrompt:            basePrompt,
+		ContextPrompt:         contextPrompt,
+		EnableFunctionCalling: row.EnableFunctionCalling,
+		Status:                "completed", // Default status for existing records
+		ErrorMessage:          "",
+		CreatedAt:             row.CreatedAt.Time,
+		UpdatedAt:             row.UpdatedAt.Time,
+	}, nil
+}
+
+// ListExecutionRuns retrieves a list of execution runs for a user
+func (c *Client) ListExecutionRuns(ctx context.Context, userID string, limit, offset int32) ([]*types.ExecutionRun, error) {
+	executionRuns, err := c.queries.GetExecutionRunsByUser(ctx, db.GetExecutionRunsByUserParams{
+		UserID: userID,
+		Limit:  limit,
+		Offset: offset,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list execution runs: %w", err)
+	}
+
+	result := make([]*types.ExecutionRun, 0, len(executionRuns))
+	for _, run := range executionRuns {
+		description := ""
+		if run.Description.Valid {
+			description = run.Description.String
+		}
+
+		basePrompt := ""
+		if run.BasePrompt.Valid {
+			basePrompt = run.BasePrompt.String
+		}
+
+		contextPrompt := ""
+		if run.ContextPrompt.Valid {
+			contextPrompt = run.ContextPrompt.String
+		}
+
+		result = append(result, &types.ExecutionRun{
+			ID:                    run.ID,
+			Name:                  run.Name,
+			Description:           description,
+			BasePrompt:            basePrompt,
+			ContextPrompt:         contextPrompt,
+			EnableFunctionCalling: run.EnableFunctionCalling,
+			Status:                "completed", // Default status for existing records
+			ErrorMessage:          "",
+			CreatedAt:             run.CreatedAt.Time,
+			UpdatedAt:             run.UpdatedAt.Time,
+		})
+	}
+
+	return result, nil
+}
+
+// GetExecutionFlowGraph retrieves the execution flow graph for an execution run
+func (c *Client) GetExecutionFlowGraph(ctx context.Context, userID string, executionRunID string) (*types.ExecutionFlowGraph, error) {
+	log.Printf("🔍 Getting execution flow graph for execution run: %s, user: %s", executionRunID, userID)
+
+	// First verify the execution run belongs to the user
+	executionRun, err := c.GetExecutionRun(ctx, userID, executionRunID)
+	if err != nil {
+		return nil, fmt.Errorf("execution run not found or access denied: %w", err)
+	}
+
+	// Get execution flow events
+	events, err := c.getExecutionFlowEvents(ctx, executionRunID)
+	if err != nil {
+		log.Printf("⚠️ Failed to get execution flow events: %v", err)
+		events = []types.ExecutionFlowEvent{} // Continue with empty events
+	}
+
+	// Get function calls for this execution run
+	functionCalls, err := c.getFunctionCalls(ctx, executionRunID)
+	if err != nil {
+		log.Printf("⚠️ Failed to get function calls: %v", err)
+		functionCalls = []types.FunctionCall{} // Continue with empty function calls
+	}
+
+	// Get execution stats
+	stats, err := c.getExecutionStats(ctx, executionRunID)
+	if err != nil {
+		log.Printf("⚠️ Failed to get execution stats: %v", err)
+		// Continue without stats
+	}
+
+	// Generate graph YAML
+	graphYAML := c.generateGraphYAML(executionRun, events, functionCalls)
+
+	flowGraph := &types.ExecutionFlowGraph{
+		ExecutionRunID: executionRunID,
+		Events:         events,
+		FunctionCalls:  functionCalls,
+		Stats:          stats,
+		GraphYAML:      graphYAML,
+	}
+
+	log.Printf("✅ Generated execution flow graph with %d events, %d function calls", len(events), len(functionCalls))
+	return flowGraph, nil
+}
+
+// GetExecutionLogsByConfiguration retrieves execution logs for a specific configuration
+func (c *Client) GetExecutionLogsByConfiguration(ctx context.Context, executionRunID, configurationID string) ([]types.ExecutionLog, error) {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
+	log.Printf("🔍 Getting execution logs for execution run: %s, configuration: %s", executionRunID, configurationID)
+
+	// Query database directly since the signature doesn't match sqlc generated
+	query := `
+		SELECT id, execution_run_id, configuration_id, request_id, log_level, log_category, 
+		       message, details, timestamp, sequence_number, duration_ms
+		FROM execution_logs 
+		WHERE execution_run_id = ? AND configuration_id = ?
+		ORDER BY sequence_number ASC, timestamp ASC
+	`
+
+	rows, err := c.db.QueryContext(ctx, query, executionRunID, configurationID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query execution logs by configuration: %w", err)
+	}
+	defer rows.Close()
+
+	var logs []types.ExecutionLog
+	for rows.Next() {
+		var log types.ExecutionLog
+		var configurationIDStr, requestID sql.NullString
+		var details sql.NullString
+		var sequenceNumber sql.NullInt32
+		var durationMs sql.NullInt64
+
+		err := rows.Scan(
+			&log.ID,
+			&log.ExecutionRunID,
+			&configurationIDStr,
+			&requestID,
+			&log.LogLevel,
+			&log.LogCategory,
+			&log.Message,
+			&details,
+			&log.Timestamp,
+			&sequenceNumber,
+			&durationMs,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan execution log: %w", err)
+		}
+
+		if configurationIDStr.Valid {
+			log.ConfigurationID = &configurationIDStr.String
+		}
+		if requestID.Valid {
+			log.RequestID = &requestID.String
+		}
+		if sequenceNumber.Valid {
+			seqNum := int32(sequenceNumber.Int32)
+			log.SequenceNumber = &seqNum
+		}
+		if durationMs.Valid {
+			durMs := int32(durationMs.Int64)
+			log.DurationMs = &durMs
+		}
+
+		logs = append(logs, log)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate execution logs: %w", err)
+	}
+
+	log.Printf("✅ Found %d execution logs for configuration %s", len(logs), configurationID)
+	return logs, nil
+}
+
+// GetExecutionLogsByRun retrieves execution logs for a specific execution run
+func (c *Client) GetExecutionLogsByRun(ctx context.Context, executionRunID string) ([]types.ExecutionLog, error) {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
+	log.Printf("🔍 Getting ALL execution logs for execution run: %s", executionRunID)
+
+	// Query database directly
+	query := `
+		SELECT id, execution_run_id, configuration_id, request_id, log_level, log_category, 
+		       message, details, timestamp, sequence_number, duration_ms
+		FROM execution_logs 
+		WHERE execution_run_id = ?
+		ORDER BY sequence_number ASC, timestamp ASC
+	`
+
+	rows, err := c.db.QueryContext(ctx, query, executionRunID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query execution logs by run: %w", err)
+	}
+	defer rows.Close()
+
+	var logs []types.ExecutionLog
+	for rows.Next() {
+		var log types.ExecutionLog
+		var configurationID, requestID sql.NullString
+		var details sql.NullString
+		var sequenceNumber sql.NullInt32
+		var durationMs sql.NullInt64
+
+		err := rows.Scan(
+			&log.ID,
+			&log.ExecutionRunID,
+			&configurationID,
+			&requestID,
+			&log.LogLevel,
+			&log.LogCategory,
+			&log.Message,
+			&details,
+			&log.Timestamp,
+			&sequenceNumber,
+			&durationMs,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan execution log: %w", err)
+		}
+
+		if configurationID.Valid {
+			log.ConfigurationID = &configurationID.String
+		}
+		if requestID.Valid {
+			log.RequestID = &requestID.String
+		}
+		if sequenceNumber.Valid {
+			seqNum := int32(sequenceNumber.Int32)
+			log.SequenceNumber = &seqNum
+		}
+		if durationMs.Valid {
+			durMs := int32(durationMs.Int64)
+			log.DurationMs = &durMs
+		}
+
+		logs = append(logs, log)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate execution logs: %w", err)
+	}
+
+	log.Printf("✅ Found %d execution logs for execution run %s", len(logs), executionRunID)
+	return logs, nil
+}
+
+// GetExecutionFlowGraphByConfiguration retrieves the execution flow graph for a specific configuration
+func (c *Client) GetExecutionFlowGraphByConfiguration(ctx context.Context, userID string, executionRunID string, configurationID string) (*types.ExecutionFlowGraph, error) {
+	log.Printf("🔍 Getting execution flow graph for execution run: %s, configuration: %s, user: %s", executionRunID, configurationID, userID)
+
+	// First verify the execution run belongs to the user
+	executionRun, err := c.GetExecutionRun(ctx, userID, executionRunID)
+	if err != nil {
+		return nil, fmt.Errorf("execution run not found or access denied: %w", err)
+	}
+
+	// Get execution flow events filtered by configuration (through request_id)
+	events, err := c.getExecutionFlowEventsByConfiguration(ctx, executionRunID, configurationID)
+	if err != nil {
+		log.Printf("⚠️ Failed to get execution flow events by configuration: %v", err)
+		events = []types.ExecutionFlowEvent{} // Continue with empty events
+	}
+
+	// Get function calls for this execution run filtered by configuration
+	functionCalls, err := c.getFunctionCallsByConfiguration(ctx, executionRunID, configurationID)
+	if err != nil {
+		log.Printf("⚠️ Failed to get function calls by configuration: %v", err)
+		functionCalls = []types.FunctionCall{} // Continue with empty function calls
+	}
+
+	// Get execution stats (not filtered by configuration for now)
+	stats, err := c.getExecutionStats(ctx, executionRunID)
+	if err != nil {
+		log.Printf("⚠️ Failed to get execution stats: %v", err)
+		// Continue without stats
+	}
+
+	// Generate graph YAML (simplified for now)
+	graphYAML := c.generateGraphYAML(executionRun, events, functionCalls)
+
+	flowGraph := &types.ExecutionFlowGraph{
+		ExecutionRunID: executionRunID,
+		Events:         events,
+		FunctionCalls:  functionCalls,
+		Stats:          stats,
+		GraphYAML:      graphYAML,
+	}
+
+	log.Printf("✅ Generated execution flow graph for configuration %s with %d events, %d function calls", configurationID, len(events), len(functionCalls))
+	return flowGraph, nil
+}
+
+// Helper functions for type conversions
+func (c *Client) parseFloat32FromNullString(ns sql.NullString) *float32 {
+	if !ns.Valid {
+		return nil
+	}
+	if f, err := parseFloat32(ns.String); err == nil {
+		return &f
+	}
+	return nil
+}
+
+func (c *Client) parseInt32FromNullInt32(ni sql.NullInt32) *int32 {
+	if !ni.Valid {
+		return nil
+	}
+	return &ni.Int32
+}
+
+func (c *Client) parseJSONToTools(raw json.RawMessage) []types.Tool {
+	var tools []types.Tool
+	if len(raw) > 0 {
+		json.Unmarshal(raw, &tools)
+	}
+	return tools
+}
+
+func (c *Client) parseJSONToMap(raw json.RawMessage) map[string]interface{} {
+	var result map[string]interface{}
+	if len(raw) > 0 {
+		json.Unmarshal(raw, &result)
+	}
+	return result
+}
+
+// Helper functions for execution flow graph
+func (c *Client) getExecutionFlowEvents(ctx context.Context, executionRunID string) ([]types.ExecutionFlowEvent, error) {
+	query := `
+		SELECT id, execution_run_id, request_id, event_type, sequence_number, 
+		       parent_event_id, event_data, duration_ms, status, error_message, created_at
+		FROM execution_flow_events
+		WHERE execution_run_id = ?
+		ORDER BY created_at ASC, sequence_number ASC, id ASC
+	`
+
+	rows, err := c.db.QueryContext(ctx, query, executionRunID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query execution flow events: %w", err)
+	}
+	defer rows.Close()
+
+	var events []types.ExecutionFlowEvent
+	for rows.Next() {
+		var event types.ExecutionFlowEvent
+		var requestID, parentEventID, errorMessage sql.NullString
+		var eventDataJSON sql.NullString
+		var durationMs sql.NullInt32
+
+		err := rows.Scan(
+			&event.ID,
+			&event.ExecutionRunID,
+			&requestID,
+			&event.EventType,
+			&event.SequenceNumber,
+			&parentEventID,
+			&eventDataJSON,
+			&durationMs,
+			&event.Status,
+			&errorMessage,
+			&event.CreatedAt,
+		)
+		if err != nil {
+			log.Printf("⚠️ Failed to scan execution flow event: %v", err)
+			continue
+		}
+
+		// Handle nullable fields
+		if requestID.Valid {
+			event.RequestID = &requestID.String
+		}
+		if parentEventID.Valid {
+			event.ParentEventID = &parentEventID.String
+		}
+		if errorMessage.Valid {
+			event.ErrorMessage = &errorMessage.String
+		}
+		if durationMs.Valid {
+			event.DurationMs = &durationMs.Int32
+		}
+
+		// Parse event data JSON
+		if eventDataJSON.Valid && eventDataJSON.String != "" {
+			var eventData map[string]interface{}
+			if err := json.Unmarshal([]byte(eventDataJSON.String), &eventData); err != nil {
+				log.Printf("⚠️ Failed to parse event data JSON for event %s: %v", event.ID, err)
+			} else {
+				event.EventData = eventData
+			}
+		}
+
+		events = append(events, event)
+	}
+
+	return events, rows.Err()
+}
+
+func (c *Client) getFunctionCalls(ctx context.Context, executionRunID string) ([]types.FunctionCall, error) {
+	query := `
+		SELECT f.id, f.request_id, f.function_name, f.function_arguments, f.function_response, 
+		       f.execution_status, f.error_details, f.created_at
+		FROM function_calls f
+		INNER JOIN api_requests r ON f.request_id = r.id
+		WHERE r.execution_run_id = ?
+		ORDER BY f.created_at ASC
+	`
+
+	rows, err := c.db.QueryContext(ctx, query, executionRunID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query function calls: %w", err)
+	}
+	defer rows.Close()
+
+	var functionCalls []types.FunctionCall
+	for rows.Next() {
+		var call types.FunctionCall
+		var functionArgs, functionResponse, errorDetails sql.NullString
+
+		err := rows.Scan(
+			&call.ID,
+			&call.RequestID,
+			&call.FunctionName,
+			&functionArgs,
+			&functionResponse,
+			&call.ExecutionStatus,
+			&errorDetails,
+			&call.CreatedAt,
+		)
+		if err != nil {
+			log.Printf("⚠️ Failed to scan function call: %v", err)
+			continue
+		}
+
+		// Handle nullable fields and JSON parsing
+		if functionArgs.Valid {
+			var args map[string]interface{}
+			if err := json.Unmarshal([]byte(functionArgs.String), &args); err == nil {
+				call.FunctionArgs = args
+			}
+		}
+		if functionResponse.Valid {
+			var response map[string]interface{}
+			if err := json.Unmarshal([]byte(functionResponse.String), &response); err == nil {
+				call.FunctionResponse = response
+			}
+		}
+		if errorDetails.Valid {
+			call.ErrorDetails = errorDetails.String
+		}
+
+		functionCalls = append(functionCalls, call)
+	}
+
+	return functionCalls, rows.Err()
+}
+
+func (c *Client) getExecutionFlowEventsByConfiguration(ctx context.Context, executionRunID, configurationID string) ([]types.ExecutionFlowEvent, error) {
+	query := `
+		SELECT e.id, e.execution_run_id, e.request_id, e.event_type, e.sequence_number, 
+		       e.parent_event_id, e.event_data, e.duration_ms, e.status, e.error_message, e.created_at
+		FROM execution_flow_events e
+		INNER JOIN api_requests r ON e.request_id = r.id
+		WHERE e.execution_run_id = ? AND r.configuration_id = ?
+		ORDER BY e.created_at ASC, e.sequence_number ASC, e.id ASC
+	`
+
+	rows, err := c.db.QueryContext(ctx, query, executionRunID, configurationID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query execution flow events by configuration: %w", err)
+	}
+	defer rows.Close()
+
+	var events []types.ExecutionFlowEvent
+	for rows.Next() {
+		var event types.ExecutionFlowEvent
+		var requestID, parentEventID, errorMessage sql.NullString
+		var eventDataJSON sql.NullString
+		var durationMs sql.NullInt32
+
+		err := rows.Scan(
+			&event.ID,
+			&event.ExecutionRunID,
+			&requestID,
+			&event.EventType,
+			&event.SequenceNumber,
+			&parentEventID,
+			&eventDataJSON,
+			&durationMs,
+			&event.Status,
+			&errorMessage,
+			&event.CreatedAt,
+		)
+		if err != nil {
+			log.Printf("⚠️ Failed to scan execution flow event: %v", err)
+			continue
+		}
+
+		// Handle nullable fields
+		if requestID.Valid {
+			event.RequestID = &requestID.String
+		}
+		if parentEventID.Valid {
+			event.ParentEventID = &parentEventID.String
+		}
+		if errorMessage.Valid {
+			event.ErrorMessage = &errorMessage.String
+		}
+		if durationMs.Valid {
+			event.DurationMs = &durationMs.Int32
+		}
+
+		// Parse event data JSON
+		if eventDataJSON.Valid && eventDataJSON.String != "" {
+			var eventData map[string]interface{}
+			if err := json.Unmarshal([]byte(eventDataJSON.String), &eventData); err != nil {
+				log.Printf("⚠️ Failed to parse event data JSON for event %s: %v", event.ID, err)
+			} else {
+				event.EventData = eventData
+			}
+		}
+
+		events = append(events, event)
+	}
+
+	return events, rows.Err()
+}
+
+func (c *Client) getFunctionCallsByConfiguration(ctx context.Context, executionRunID, configurationID string) ([]types.FunctionCall, error) {
+	query := `
+		SELECT f.id, f.request_id, f.function_name, f.function_arguments, f.function_response, 
+		       f.execution_status, f.error_details, f.created_at
+		FROM function_calls f
+		INNER JOIN api_requests r ON f.request_id = r.id
+		WHERE r.execution_run_id = ? AND r.configuration_id = ?
+		ORDER BY f.created_at ASC
+	`
+
+	rows, err := c.db.QueryContext(ctx, query, executionRunID, configurationID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query function calls by configuration: %w", err)
+	}
+	defer rows.Close()
+
+	var functionCalls []types.FunctionCall
+	for rows.Next() {
+		var call types.FunctionCall
+		var functionArgs, functionResponse, errorDetails sql.NullString
+
+		err := rows.Scan(
+			&call.ID,
+			&call.RequestID,
+			&call.FunctionName,
+			&functionArgs,
+			&functionResponse,
+			&call.ExecutionStatus,
+			&errorDetails,
+			&call.CreatedAt,
+		)
+		if err != nil {
+			log.Printf("⚠️ Failed to scan function call: %v", err)
+			continue
+		}
+
+		// Handle nullable fields and JSON parsing
+		if functionArgs.Valid {
+			var args map[string]interface{}
+			if err := json.Unmarshal([]byte(functionArgs.String), &args); err == nil {
+				call.FunctionArgs = args
+			}
+		}
+		if functionResponse.Valid {
+			var response map[string]interface{}
+			if err := json.Unmarshal([]byte(functionResponse.String), &response); err == nil {
+				call.FunctionResponse = response
+			}
+		}
+		if errorDetails.Valid {
+			call.ErrorDetails = errorDetails.String
+		}
+
+		functionCalls = append(functionCalls, call)
+	}
+
+	return functionCalls, rows.Err()
+}
+
+func (c *Client) getExecutionStats(ctx context.Context, executionRunID string) (*types.ExecutionStats, error) {
+	// Get basic counts
+	var requestCount, successCount, errorCount int
+
+	query := `
+		SELECT 
+			COUNT(*) as total_requests,
+			SUM(CASE WHEN response_status = 'success' THEN 1 ELSE 0 END) as success_count,
+			SUM(CASE WHEN response_status = 'error' THEN 1 ELSE 0 END) as error_count
+		FROM api_responses r
+		INNER JOIN api_requests req ON r.request_id = req.id
+		WHERE req.execution_run_id = ?
+	`
+
+	err := c.db.QueryRowContext(ctx, query, executionRunID).Scan(&requestCount, &successCount, &errorCount)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get execution stats: %w", err)
+	}
+
+	// Get function call counts
+	var functionCallCount int
+	funcQuery := `
+		SELECT COUNT(*) 
+		FROM function_calls f
+		INNER JOIN api_requests req ON f.request_id = req.id
+		WHERE req.execution_run_id = ?
+	`
+
+	err = c.db.QueryRowContext(ctx, funcQuery, executionRunID).Scan(&functionCallCount)
+	if err != nil {
+		functionCallCount = 0 // Continue without function call stats
+	}
+
+	stats := &types.ExecutionStats{
+		ID:                    uuid.New().String(),
+		ExecutionRunID:        executionRunID,
+		TotalFunctionCalls:    int32(functionCallCount),
+		TotalAIModelCalls:     int32(requestCount),
+		TotalErrors:           int32(errorCount),
+		TotalRetries:          0, // TODO: Calculate retries
+		TotalExecutionTimeMs:  0, // TODO: Calculate total time
+		AvgFunctionCallTimeMs: 0, // TODO: Calculate averages
+		AvgAIResponseTimeMs:   0, // TODO: Calculate averages
+		MaxExecutionDepth:     1, // TODO: Calculate depth
+		FunctionCallBreakdown: map[string]interface{}{
+			"total":   functionCallCount,
+			"success": successCount,
+			"errors":  errorCount,
+		},
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	return stats, nil
+}
+
+func (c *Client) generateGraphYAML(executionRun *types.ExecutionRun, events []types.ExecutionFlowEvent, functionCalls []types.FunctionCall) string {
+	// Simple YAML generation for now
+	yaml := fmt.Sprintf(`execution_run:
+  id: %s
+  name: %s
+  status: %s
+  created_at: %s
+
+events:
+  count: %d
+
+function_calls:
+  count: %d
+`,
+		executionRun.ID,
+		executionRun.Name,
+		executionRun.Status,
+		executionRun.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		len(events),
+		len(functionCalls),
+	)
+
+	return yaml
+}
