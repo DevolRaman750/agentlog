@@ -241,13 +241,14 @@ type FunctionCall struct {
 // SessionApiKeys represents API keys passed with each request (not stored on backend)
 type SessionApiKeys struct {
 	GeminiApiKey      string `json:"geminiApiKey,omitempty"`
-	OpenRouterApiKey  string `json:"openRouterApiKey,omitempty"`  // For Kimi K2 and other models via OpenRouter
+	OpenRouterApiKey  string `json:"openRouterApiKey,omitempty"` // For Kimi K2 and other models via OpenRouter
 	OpenWeatherApiKey string `json:"openWeatherApiKey,omitempty"`
 	Neo4jUrl          string `json:"neo4jUrl,omitempty"`
 	Neo4jUsername     string `json:"neo4jUsername,omitempty"`
 	Neo4jPassword     string `json:"neo4jPassword,omitempty"`
 	Neo4jDatabase     string `json:"neo4jDatabase,omitempty"`
 	GithubApiKey      string `json:"githubApiKey,omitempty"`
+	SlackBotToken     string `json:"slackBotToken,omitempty"` // Slack Bot Token (xoxb-...)
 }
 
 // GeminiClientConfig represents the configuration for the Gemini client

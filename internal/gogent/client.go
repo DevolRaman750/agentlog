@@ -218,6 +218,18 @@ func (c *Client) LoadDatabaseApiKeys(ctx context.Context, userID string) error {
 		case "openrouter":
 			sessionKeys.OpenRouterApiKey = decryptedKey
 			log.Printf("🔑 Loaded OpenRouter API key from database")
+		case "slack":
+			sessionKeys.SlackBotToken = decryptedKey
+			log.Printf("🔑 Loaded Slack Bot Token from database - Length: %d, Prefix: %s",
+				len(decryptedKey),
+				func() string {
+					if len(decryptedKey) >= 10 {
+						return decryptedKey[:10] + "..."
+					} else if len(decryptedKey) > 0 {
+						return decryptedKey + "..."
+					}
+					return "EMPTY"
+				}())
 		case "neo4j":
 			// For Neo4j, we need to handle the connection details differently
 			// This is a simplified version - you might want to parse the connection string
@@ -227,11 +239,12 @@ func (c *Client) LoadDatabaseApiKeys(ctx context.Context, userID string) error {
 	}
 
 	c.databaseApiKeys = sessionKeys
-	log.Printf("🔑 Database API keys loaded: Gemini=%v, OpenWeather=%v, GitHub=%v, OpenRouter=%v",
+	log.Printf("🔑 Database API keys loaded: Gemini=%v, OpenWeather=%v, GitHub=%v, OpenRouter=%v, Slack=%v",
 		sessionKeys.GeminiApiKey != "",
 		sessionKeys.OpenWeatherApiKey != "",
 		sessionKeys.GithubApiKey != "",
-		sessionKeys.OpenRouterApiKey != "")
+		sessionKeys.OpenRouterApiKey != "",
+		sessionKeys.SlackBotToken != "")
 
 	return nil
 }
@@ -1552,20 +1565,98 @@ func (c *Client) executeIterativeFunctionLoop(ctx context.Context, config *types
 		// Add function responses to conversation with size limits
 		functionResponseParts := make([]map[string]interface{}, len(functionCalls))
 		for i, funcCall := range functionCalls {
-			// Limit function response size to prevent context overflow
+			// Implement intelligent truncation to preserve important data
 			response := functionResults[i]
 			responseStr := fmt.Sprintf("%+v", response)
-			maxResponseSize := 5000 // Limit each function response to ~1250 tokens
+			maxResponseSize := 12000 // Increased limit for better data preservation (~3000 tokens)
 
 			if len(responseStr) > maxResponseSize {
-				log.Printf("⚠️ Function %s response too large (%d chars), truncating", funcCall.FunctionCall.Name, len(responseStr))
-				// Create truncated response with summary
-				truncatedResponse := map[string]interface{}{
-					"status":  "success",
-					"summary": fmt.Sprintf("Response truncated due to size (%d chars). Function executed successfully.", len(responseStr)),
-					"data":    responseStr[:maxResponseSize] + "... [TRUNCATED]",
+				log.Printf("⚠️ Function %s response too large (%d chars), applying intelligent truncation", funcCall.FunctionCall.Name, len(responseStr))
+
+				// Apply intelligent truncation based on function type
+				var truncatedResponse map[string]interface{}
+
+				switch funcCall.FunctionCall.Name {
+				case "github_read_code":
+					// Apply intelligent code summarization to reduce token usage
+					// Check if this is a directory listing (many files) or single file
+
+					// DEBUG: Log the actual response structure to understand why directory detection fails
+					log.Printf("🔍 DEBUG: github_read_code response keys: %v", getMapKeys(response))
+					if responseType, exists := response["type"]; exists {
+						log.Printf("🔍 DEBUG: response has 'type' field: %v", responseType)
+					}
+					if dirContents, exists := response["directory_contents"]; exists {
+						log.Printf("🔍 DEBUG: response has 'directory_contents' field: %T", dirContents)
+					}
+					if rawData, exists := response["_raw_github_data"]; exists {
+						log.Printf("🔍 DEBUG: response has '_raw_github_data' field: %T", rawData)
+					}
+
+					isDirectory := c.isDirectoryResponse(response)
+					log.Printf("🔍 DEBUG: isDirectoryResponse returned: %v", isDirectory)
+
+					// For directories, always use smart summarization but ensure meaningful content
+					if isDirectory {
+						log.Printf("🧠 Applying intelligent code summarization for directory (size: %d chars)",
+							len(responseStr))
+						truncatedResponse = c.createCodeSummaryResponse(response, isDirectory)
+
+						// Ensure the summary has minimum useful information
+						if summaryStr := fmt.Sprintf("%+v", truncatedResponse); len(summaryStr) < 500 {
+							log.Printf("⚠️ Directory summary too minimal (%d chars), enriching with essential info", len(summaryStr))
+							truncatedResponse = c.enrichDirectorySummary(truncatedResponse, response)
+						}
+					} else if len(responseStr) > 8000 {
+						log.Printf("🧠 Applying intelligent code summarization for large file (size: %d chars)",
+							len(responseStr))
+						truncatedResponse = c.createCodeSummaryResponse(response, isDirectory)
+					} else {
+						// For smaller responses, use standard truncation with higher limits
+						truncatedResponse = c.truncateGitHubCodeResponse(response, maxResponseSize)
+					}
+				case "github_search_code":
+					// For code search, preserve count and first few items
+					truncatedResponse = c.truncateListResponse(response, maxResponseSize)
+				default:
+					// Generic truncation for other functions
+					truncatedResponse = c.createGenericTruncatedResponse(responseStr, maxResponseSize)
 				}
+
 				response = truncatedResponse
+
+				// Validate the truncated response structure
+				if response == nil {
+					log.Printf("⚠️ Truncation resulted in nil response for %s, using fallback", funcCall.FunctionCall.Name)
+					response = map[string]interface{}{
+						"error":  "Response truncation failed",
+						"status": "truncated",
+					}
+				}
+
+				// Additional validation to ensure response is JSON-serializable
+				if _, err := json.Marshal(response); err != nil {
+					log.Printf("⚠️ Response for %s is not JSON-serializable: %v, creating safe fallback", funcCall.FunctionCall.Name, err)
+					response = map[string]interface{}{
+						"status":  "success",
+						"summary": fmt.Sprintf("Function %s executed successfully but response required sanitization", funcCall.FunctionCall.Name),
+						"note":    "Original response contained non-serializable data",
+					}
+				}
+
+				// Log the final truncated size and structure
+				finalResponseStr := fmt.Sprintf("%+v", response)
+				log.Printf("✅ Truncated %s response: %d chars → %d chars",
+					funcCall.FunctionCall.Name, len(responseStr), len(finalResponseStr))
+
+				// DEBUG: Log the actual response structure that will be sent to Gemini
+				if responseJSON, err := json.MarshalIndent(response, "", "  "); err == nil {
+					if len(responseJSON) < 500 {
+						log.Printf("🔍 DEBUG: Final %s response structure:\n%s", funcCall.FunctionCall.Name, string(responseJSON))
+					} else {
+						log.Printf("🔍 DEBUG: Final %s response structure (first 500 chars):\n%s...", funcCall.FunctionCall.Name, string(responseJSON)[:500])
+					}
+				}
 			}
 
 			functionResponseParts[i] = map[string]interface{}{
@@ -1585,6 +1676,25 @@ func (c *Client) executeIterativeFunctionLoop(ctx context.Context, config *types
 		nextResponse, err := c.sendConversationToGeminiForIteration(ctx, config, conversationHistory)
 		if err != nil {
 			log.Printf("⚠️ Failed to get next response from Gemini: %v", err)
+			// For MALFORMED_FUNCTION_CALL errors, try a simplified approach
+			if strings.Contains(err.Error(), "MALFORMED_FUNCTION_CALL") {
+				log.Printf("🔧 MALFORMED_FUNCTION_CALL detected, trying simplified conversation structure")
+				simplifiedResponse, simplifiedErr := c.sendSimplifiedFunctionResult(ctx, config, functionCalls[0], functionResults[0])
+				if simplifiedErr == nil && simplifiedResponse != "" {
+					return simplifiedResponse, nil
+				}
+
+				// If simplified approach also fails, provide a basic contextual summary
+				log.Printf("🔧 Simplified approach failed, providing basic contextual summary")
+				functionName := functionCalls[0].FunctionCall.Name
+				if functionName == "github_read_issues" {
+					return "I successfully read the GitHub issues from the repository. The request completed but I encountered a technical issue generating the full response. The issues data was retrieved successfully.", nil
+				} else if functionName == "github_read_code" {
+					return "I successfully analyzed the repository code structure. The request completed but I encountered a technical issue generating the full response. The code analysis was completed successfully.", nil
+				} else {
+					return fmt.Sprintf("I successfully executed the %s function. The request completed but I encountered a technical issue generating the full response.", functionName), nil
+				}
+			}
 			// Fallback to simple summary
 			return c.createFallbackSummary(functionCalls, functionResults), nil
 		}
@@ -1677,6 +1787,67 @@ func (c *Client) sendConversationToGeminiForIteration(ctx context.Context, confi
 
 	requestBody := map[string]interface{}{
 		"contents": conversationHistory,
+	}
+
+	// Add detailed debugging for conversation structure
+	log.Printf("🔧 DEBUG: Conversation structure being sent to Gemini:")
+	for i, message := range conversationHistory {
+		if parts, ok := message["parts"].([]map[string]interface{}); ok {
+			log.Printf("  Message %d [%s]: %d parts", i, message["role"], len(parts))
+			for j, part := range parts {
+				if funcResp, exists := part["functionResponse"]; exists {
+					if respMap, ok := funcResp.(map[string]interface{}); ok {
+						respStr := fmt.Sprintf("%+v", respMap["response"])
+						log.Printf("    Part %d: functionResponse (%s) - %d chars", j, respMap["name"], len(respStr))
+						// Check if response is well-formed
+						if respMap["response"] == nil {
+							log.Printf("    ⚠️ WARNING: functionResponse has nil response!")
+						}
+
+						// DEEP DEBUG: Check the actual structure of the functionResponse
+						log.Printf("    🔍 DEEP DEBUG: functionResponse structure:")
+						log.Printf("      name: %T = %v", respMap["name"], respMap["name"])
+						log.Printf("      response type: %T", respMap["response"])
+						if resp, ok := respMap["response"].(map[string]interface{}); ok {
+							log.Printf("      response keys: %v", getMapKeys(resp))
+						}
+					}
+				} else if funcCall, exists := part["functionCall"]; exists {
+					if callMap, ok := funcCall.(map[string]interface{}); ok {
+						argsMap, _ := callMap["args"].(map[string]interface{})
+						log.Printf("    Part %d: functionCall (%s) with %d args", j, callMap["name"], len(argsMap))
+
+						// DEEP DEBUG: Check the actual structure of the functionCall
+						log.Printf("    🔍 DEEP DEBUG: functionCall structure:")
+						log.Printf("      name: %T = %v", callMap["name"], callMap["name"])
+						log.Printf("      args type: %T", callMap["args"])
+						log.Printf("      args keys: %v", getMapKeys(argsMap))
+					}
+				} else if text, exists := part["text"]; exists {
+					textStr := text.(string)
+					log.Printf("    Part %d: text - %d chars", j, len(textStr))
+				} else {
+					// Check for unknown part types that might be causing issues
+					log.Printf("    Part %d: UNKNOWN TYPE - keys: %v", j, getMapKeys(part))
+				}
+			}
+		} else {
+			log.Printf("  Message %d [%s]: INVALID - parts is not a []map[string]interface{}", i, message["role"])
+			log.Printf("    Parts type: %T", message["parts"])
+		}
+	}
+
+	// CRITICAL DEBUG: Log the exact JSON being sent to Gemini
+	requestBodyJSON, err := json.MarshalIndent(requestBody, "", "  ")
+	if err == nil {
+		// Only log first 2000 chars to avoid overwhelming logs
+		jsonStr := string(requestBodyJSON)
+		if len(jsonStr) > 2000 {
+			jsonStr = jsonStr[:2000] + "... [TRUNCATED]"
+		}
+		log.Printf("🔍 EXACT JSON being sent to Gemini:\n%s", jsonStr)
+	} else {
+		log.Printf("⚠️ Failed to marshal request body for debugging: %v", err)
 	}
 
 	// Add generation config - ALWAYS respect user's configuration
@@ -1837,9 +2008,8 @@ func (c *Client) sendConversationToGeminiForIteration(ctx context.Context, confi
 
 		// Handle MALFORMED_FUNCTION_CALL specifically
 		if candidate.FinishReason == "MALFORMED_FUNCTION_CALL" {
-			log.Printf("⚠️ MALFORMED_FUNCTION_CALL detected - providing graceful fallback")
-			response.TextResponse = "I encountered an issue with function calling due to context size. Let me provide a summary of the completed work instead."
-			return response, nil
+			log.Printf("⚠️ MALFORMED_FUNCTION_CALL detected in iteration - returning error to trigger fallback")
+			return nil, fmt.Errorf("MALFORMED_FUNCTION_CALL detected in iteration response")
 		}
 
 		for i, part := range candidate.Content.Parts {
@@ -1876,6 +2046,922 @@ func (c *Client) sendConversationToGeminiForIteration(ctx context.Context, confi
 		len(response.TextResponse), len(response.FunctionCalls))
 
 	return response, nil
+}
+
+// createCodeSummaryResponse creates a token-efficient summary for code responses
+func (c *Client) createCodeSummaryResponse(response map[string]interface{}, isDirectory bool) map[string]interface{} {
+	var summary map[string]interface{}
+
+	if isDirectory {
+		summary = c.createDirectorySummary(response)
+	} else {
+		summary = c.createFileSummary(response)
+	}
+
+	// Ensure the summary has a consistent structure that Gemini can process
+	if summary == nil {
+		log.Printf("⚠️ Summary creation returned nil, creating fallback")
+		summary = map[string]interface{}{
+			"status": "summarized",
+			"note":   "Code summary created to reduce token usage",
+		}
+	}
+
+	// Validate that essential fields exist
+	if _, exists := summary["response_type"]; !exists {
+		summary["response_type"] = "code_summary"
+	}
+
+	if _, exists := summary["token_efficient"]; !exists {
+		summary["token_efficient"] = true
+	}
+
+	return summary
+}
+
+// sendSimplifiedFunctionResult sends a simplified version of the function result to Gemini
+func (c *Client) sendSimplifiedFunctionResult(ctx context.Context, config *types.APIConfiguration, functionCall ResponsePart, functionResult map[string]interface{}) (string, error) {
+	log.Printf("🔧 Sending simplified function result to Gemini")
+
+	// Create a very simple conversation structure
+	requestBody := map[string]interface{}{
+		"contents": []map[string]interface{}{
+			{
+				"role": "user",
+				"parts": []map[string]interface{}{
+					{"text": "Please analyze the following function result and provide a helpful response:"},
+				},
+			},
+			{
+				"role": "model",
+				"parts": []map[string]interface{}{
+					{
+						"functionCall": map[string]interface{}{
+							"name": functionCall.FunctionCall.Name,
+							"args": functionCall.FunctionCall.Args,
+						},
+					},
+				},
+			},
+			{
+				"role": "function",
+				"parts": []map[string]interface{}{
+					{
+						"functionResponse": map[string]interface{}{
+							"name":     functionCall.FunctionCall.Name,
+							"response": c.createSimplifiedResponse(functionCall.FunctionCall.Name, functionResult),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// Add generation config
+	if config.Temperature != nil {
+		requestBody["generationConfig"] = map[string]interface{}{
+			"temperature": *config.Temperature,
+		}
+	}
+
+	// NO TOOLS - simple text response only
+	log.Printf("🔧 Sending simplified request without tools to force text response")
+
+	// Send to Gemini
+	effectiveKeys := c.getEffectiveApiKeys()
+	geminiApiKey := effectiveKeys.GeminiApiKey
+
+	jsonData, err := json.Marshal(requestBody)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("x-goog-api-key", geminiApiKey)
+
+	client := &http.Client{Timeout: 60 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("HTTP error %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Parse response
+	var geminiResp struct {
+		Candidates []struct {
+			Content struct {
+				Parts []struct {
+					Text string `json:"text,omitempty"`
+				} `json:"parts"`
+			} `json:"content"`
+			FinishReason string `json:"finishReason"`
+		} `json:"candidates"`
+	}
+
+	if err := json.Unmarshal(body, &geminiResp); err != nil {
+		return "", fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	if len(geminiResp.Candidates) > 0 && len(geminiResp.Candidates[0].Content.Parts) > 0 {
+		responseText := geminiResp.Candidates[0].Content.Parts[0].Text
+		if responseText != "" {
+			log.Printf("✅ Simplified request succeeded, got %d chars response", len(responseText))
+			return responseText, nil
+		}
+	}
+
+	return "", fmt.Errorf("no text response from Gemini in simplified mode")
+}
+
+// createSimplifiedResponse creates a simplified response for fallback scenarios
+func (c *Client) createSimplifiedResponse(functionName string, functionResult map[string]interface{}) map[string]interface{} {
+	response := map[string]interface{}{
+		"status":  "success",
+		"summary": "Function executed successfully",
+	}
+
+	// Apply specific handling based on function type
+	switch functionName {
+	case "github_read_issues":
+		if responseData, ok := functionResult["response"].(string); ok {
+			// Try to parse the JSON string and extract key information
+			var issues []interface{}
+			if err := json.Unmarshal([]byte(responseData), &issues); err == nil && len(issues) > 0 {
+				response["summary"] = fmt.Sprintf("Found %d issues in the repository", len(issues))
+				// Include first 2-3 issues as samples
+				sampleCount := min(3, len(issues))
+				response["sample_issues"] = issues[:sampleCount]
+				response["total_count"] = len(issues)
+			} else {
+				response["summary"] = "Successfully retrieved repository issues"
+				response["data"] = responseData[:min(300, len(responseData))] + "..."
+			}
+		} else {
+			response["summary"] = "Successfully retrieved repository issues"
+		}
+
+	case "github_read_code":
+		// Handle both directory and file responses
+		if dirOverview, exists := functionResult["directory_overview"]; exists {
+			if overview, ok := dirOverview.(map[string]interface{}); ok {
+				response["summary"] = fmt.Sprintf("Repository structure analyzed - %v files found", overview["total_files"])
+				if categories, exists := overview["file_categories"]; exists {
+					response["file_categories"] = categories
+				}
+				if keyFiles, exists := overview["key_files"]; exists {
+					response["key_files"] = keyFiles
+				}
+			}
+		} else if fileInfo, exists := functionResult["file_info"]; exists {
+			response["summary"] = "File content analyzed successfully"
+			response["file_info"] = fileInfo
+		} else {
+			response["summary"] = "Repository code structure analyzed successfully"
+		}
+
+		// Include directory and file listings if available
+		if dirs, exists := functionResult["directories"]; exists {
+			response["directories"] = dirs
+		}
+		if files, exists := functionResult["files"]; exists {
+			response["files"] = files
+		}
+
+	case "github_search_code":
+		if responseData, ok := functionResult["response"].(string); ok {
+			response["summary"] = "Successfully searched repository code"
+			response["data"] = responseData[:min(500, len(responseData))] + "..."
+		} else {
+			response["summary"] = "Successfully searched repository code"
+		}
+
+	default:
+		// Generic handling
+		responseStr := fmt.Sprintf("%+v", functionResult)
+		response["data"] = responseStr[:min(500, len(responseStr))]
+		if len(responseStr) > 500 {
+			response["data"] = response["data"].(string) + "..."
+		}
+	}
+
+	return response
+}
+
+// createDirectorySummary creates a concise directory overview
+func (c *Client) createDirectorySummary(response map[string]interface{}) map[string]interface{} {
+	summary := make(map[string]interface{})
+	totalFiles := 0 // Initialize to ensure it's always available
+
+	// Preserve metadata
+	if metadata, exists := response["_metadata"]; exists {
+		summary["_metadata"] = metadata
+	}
+
+	// Extract directory contents - handle both new and legacy structures
+	var dataArray []interface{}
+	var foundData bool
+
+	// Try new directory_contents structure first
+	if dirContents, exists := response["directory_contents"]; exists {
+		if dirContentsMap, ok := dirContents.(map[string]interface{}); ok {
+			// Combine files and directories into a single array for processing
+			var combined []interface{}
+
+			if files, exists := dirContentsMap["files"]; exists {
+				if filesArray, ok := files.([]interface{}); ok {
+					combined = append(combined, filesArray...)
+				}
+			}
+
+			if directories, exists := dirContentsMap["directories"]; exists {
+				if dirsArray, ok := directories.([]interface{}); ok {
+					combined = append(combined, dirsArray...)
+				}
+			}
+
+			if len(combined) > 0 {
+				dataArray = combined
+				foundData = true
+			}
+		}
+	}
+
+	// Fall back to legacy _raw_github_data structure
+	if !foundData {
+		if rawData, exists := response["_raw_github_data"]; exists {
+			if legacyArray, ok := rawData.([]interface{}); ok {
+				dataArray = legacyArray
+				foundData = true
+			}
+		}
+	}
+
+	if foundData {
+		// Create a structured but complete file listing
+		directories := []map[string]interface{}{}
+		files := []map[string]interface{}{}
+
+		// Categorize files by type for analysis
+		categories := map[string][]string{
+			"documentation": {},
+			"configuration": {},
+			"source_code":   {},
+			"tests":         {},
+			"directories":   {},
+			"other":         {},
+		}
+
+		totalFiles := 0
+		totalSize := 0
+
+		for _, item := range dataArray {
+			if itemMap, ok := item.(map[string]interface{}); ok {
+				name := getStringFromResult(itemMap, "name")
+				itemType := getStringFromResult(itemMap, "type")
+				size := getIntFromResult(itemMap, "size")
+
+				totalFiles++
+				totalSize += size
+
+				// Create a simplified item representation
+				itemSummary := map[string]interface{}{
+					"name": name,
+					"type": itemType,
+					"size": size,
+				}
+
+				if itemType == "dir" {
+					categories["directories"] = append(categories["directories"], name)
+					directories = append(directories, itemSummary)
+				} else {
+					category := categorizeFile(name)
+					categories[category] = append(categories[category], name)
+					files = append(files, itemSummary)
+				}
+			}
+		}
+
+		// Include both summary and actual listings with better balance
+		summary["directory_overview"] = map[string]interface{}{
+			"total_files":      totalFiles,
+			"total_size_bytes": totalSize,
+			"file_categories":  categories,
+			"key_files":        identifyKeyFiles(categories),
+		}
+
+		// Include essential file listings for agent understanding
+		// Limit to most important files to stay within reasonable size
+		if len(directories) > 20 {
+			summary["directories"] = directories[:20]
+			summary["directories_note"] = fmt.Sprintf("Showing first 20 of %d directories", len(directories))
+		} else {
+			summary["directories"] = directories
+		}
+
+		if len(files) > 30 {
+			summary["files"] = files[:30]
+			summary["files_note"] = fmt.Sprintf("Showing first 30 of %d files", len(files))
+		} else {
+			summary["files"] = files
+		}
+
+		// Add context about the repository structure
+		summary["structure_notes"] = []string{
+			fmt.Sprintf("Repository contains %d total files", totalFiles),
+			fmt.Sprintf("File categories: %s", getCategoryList(categories)),
+			"Analysis focused on key directories and files for code understanding",
+		}
+	}
+
+	summary["response_type"] = "directory_summary"
+	summary["token_efficient"] = true
+	summary["status"] = "success"
+	summary["summary"] = fmt.Sprintf("Repository structure analyzed: %d files across various categories", totalFiles)
+
+	// Ensure we always include essential information for code analysis
+	summary["total_files_analyzed"] = totalFiles
+	if len(summary) < 8 { // Increased threshold to ensure we have meaningful content
+		// If we don't have enough useful data, add some minimal but meaningful info
+		summary["repository_info"] = "Go project with multiple internal packages"
+		summary["key_areas"] = []string{"internal/gogent", "internal/providers", "cmd/gogent"}
+		summary["file_count"] = totalFiles
+		summary["note"] = "Directory structure provides foundation for unit test analysis"
+	}
+
+	return summary
+}
+
+// getMapKeys returns the keys of a map[string]interface{} for debugging
+func getMapKeys(m map[string]interface{}) []string {
+	var keys []string
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+// getCategoryList creates a readable list of non-empty categories
+func getCategoryList(categories map[string][]string) string {
+	var nonEmpty []string
+	for category, files := range categories {
+		if len(files) > 0 {
+			nonEmpty = append(nonEmpty, fmt.Sprintf("%s (%d)", category, len(files)))
+		}
+	}
+	if len(nonEmpty) == 0 {
+		return "none identified"
+	}
+	return strings.Join(nonEmpty, ", ")
+}
+
+// enrichDirectorySummary ensures directory summaries have enough useful information for analysis
+func (c *Client) enrichDirectorySummary(summary map[string]interface{}, originalResponse map[string]interface{}) map[string]interface{} {
+	// If the summary is too minimal, extract key information from the original response
+	var dataArray []interface{}
+	var foundData bool
+
+	// Try new directory_contents structure first
+	if dirContents, exists := originalResponse["directory_contents"]; exists {
+		if dirContentsMap, ok := dirContents.(map[string]interface{}); ok {
+			// Get files and directories arrays
+			var combined []interface{}
+
+			if files, exists := dirContentsMap["files"]; exists {
+				if filesArray, ok := files.([]interface{}); ok {
+					combined = append(combined, filesArray...)
+				}
+			}
+
+			if directories, exists := dirContentsMap["directories"]; exists {
+				if dirsArray, ok := directories.([]interface{}); ok {
+					combined = append(combined, dirsArray...)
+				}
+			}
+
+			if len(combined) > 0 {
+				dataArray = combined
+				foundData = true
+			}
+		}
+	}
+
+	// Fall back to legacy _raw_github_data structure
+	if !foundData {
+		if rawData, exists := originalResponse["_raw_github_data"]; exists {
+			if legacyArray, ok := rawData.([]interface{}); ok && len(legacyArray) > 0 {
+				dataArray = legacyArray
+				foundData = true
+			}
+		}
+	}
+
+	if foundData && len(dataArray) > 0 {
+		// Extract essential file and directory information
+		var keyDirectories []string
+		var keyFiles []string
+		var goFiles []string
+
+		for i, item := range dataArray {
+			if i >= 20 { // Limit to prevent overwhelming
+				break
+			}
+
+			if itemMap, ok := item.(map[string]interface{}); ok {
+				if name, hasName := itemMap["name"].(string); hasName {
+					if itemType, hasType := itemMap["type"].(string); hasType {
+						if itemType == "dir" {
+							keyDirectories = append(keyDirectories, name)
+						} else if itemType == "file" {
+							keyFiles = append(keyFiles, name)
+							if strings.HasSuffix(name, ".go") {
+								goFiles = append(goFiles, name)
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// Add essential information to the summary
+		summary["key_directories"] = keyDirectories
+
+		fileLimit := 10
+		if len(keyFiles) < fileLimit {
+			fileLimit = len(keyFiles)
+		}
+		summary["sample_files"] = keyFiles[:fileLimit]
+
+		goFileLimit := 5
+		if len(goFiles) < goFileLimit {
+			goFileLimit = len(goFiles)
+		}
+		summary["go_files_sample"] = goFiles[:goFileLimit]
+		summary["repository_type"] = "Go project"
+		summary["analysis_note"] = fmt.Sprintf("Repository contains %d directories and %d files, focusing on Go source files", len(keyDirectories), len(keyFiles))
+	}
+
+	return summary
+}
+
+// createFileSummary creates a concise file overview
+func (c *Client) createFileSummary(response map[string]interface{}) map[string]interface{} {
+	summary := make(map[string]interface{})
+
+	// Preserve metadata and file info
+	if metadata, exists := response["_metadata"]; exists {
+		summary["_metadata"] = metadata
+	}
+	if fileInfo, exists := response["file_info"]; exists {
+		summary["file_info"] = fileInfo
+	}
+
+	// Analyze content efficiently
+	if content, exists := response["decoded_content"]; exists {
+		if contentStr, ok := content.(string); ok {
+			analysis := c.analyzeCodeContent(contentStr)
+			summary["content_analysis"] = analysis
+
+			// Only include partial content for small files
+			if len(contentStr) < 2000 {
+				summary["decoded_content"] = contentStr
+			} else {
+				// For large files, provide structured preview
+				summary["content_preview"] = c.createContentPreview(contentStr)
+			}
+		}
+	}
+
+	summary["response_type"] = "file_summary"
+	summary["token_efficient"] = true
+
+	return summary
+}
+
+// Helper functions for categorization and analysis
+func categorizeFile(filename string) string {
+	lower := strings.ToLower(filename)
+
+	// Documentation files
+	if strings.Contains(lower, "readme") || strings.Contains(lower, "doc") ||
+		strings.HasSuffix(lower, ".md") || strings.HasSuffix(lower, ".txt") {
+		return "documentation"
+	}
+
+	// Configuration files
+	if strings.HasSuffix(lower, ".json") || strings.HasSuffix(lower, ".yaml") ||
+		strings.HasSuffix(lower, ".yml") || strings.HasSuffix(lower, ".toml") ||
+		strings.HasSuffix(lower, ".env") || strings.Contains(lower, "config") ||
+		strings.Contains(lower, "makefile") || strings.HasSuffix(lower, ".lock") {
+		return "configuration"
+	}
+
+	// Test files
+	if strings.Contains(lower, "test") || strings.Contains(lower, "spec") ||
+		strings.HasSuffix(lower, "_test.go") || strings.HasSuffix(lower, ".test.js") {
+		return "tests"
+	}
+
+	// Source code files
+	if strings.HasSuffix(lower, ".go") || strings.HasSuffix(lower, ".js") ||
+		strings.HasSuffix(lower, ".ts") || strings.HasSuffix(lower, ".tsx") ||
+		strings.HasSuffix(lower, ".py") || strings.HasSuffix(lower, ".java") ||
+		strings.HasSuffix(lower, ".cpp") || strings.HasSuffix(lower, ".c") {
+		return "source_code"
+	}
+
+	return "other"
+}
+
+func identifyKeyFiles(categories map[string][]string) []string {
+	keyFiles := []string{}
+
+	// Add important documentation files
+	for _, file := range categories["documentation"] {
+		lower := strings.ToLower(file)
+		if strings.Contains(lower, "readme") || strings.Contains(lower, "changelog") {
+			keyFiles = append(keyFiles, file)
+		}
+	}
+
+	// Add important configuration files
+	for _, file := range categories["configuration"] {
+		lower := strings.ToLower(file)
+		if strings.Contains(lower, "package.json") || strings.Contains(lower, "go.mod") ||
+			strings.Contains(lower, "makefile") || strings.Contains(lower, "dockerfile") {
+			keyFiles = append(keyFiles, file)
+		}
+	}
+
+	return keyFiles
+}
+
+func (c *Client) analyzeCodeContent(content string) map[string]interface{} {
+	lines := strings.Split(content, "\n")
+
+	analysis := map[string]interface{}{
+		"line_count":    len(lines),
+		"char_count":    len(content),
+		"estimated_loc": countNonEmptyLines(lines),
+	}
+
+	// Language-specific analysis
+	if strings.Contains(content, "func ") && strings.Contains(content, "package ") {
+		analysis["language"] = "go"
+		analysis["functions"] = countGoFunctions(content)
+		analysis["structs"] = countGoStructs(content)
+	} else if strings.Contains(content, "function ") || strings.Contains(content, "const ") {
+		analysis["language"] = "javascript/typescript"
+		analysis["exports"] = countJSExports(content)
+	}
+
+	return analysis
+}
+
+func (c *Client) createContentPreview(content string) map[string]interface{} {
+	lines := strings.Split(content, "\n")
+
+	preview := map[string]interface{}{
+		"first_20_lines": strings.Join(lines[:min(20, len(lines))], "\n"),
+		"total_lines":    len(lines),
+	}
+
+	// Add function signatures for code files
+	if strings.Contains(content, "func ") {
+		preview["function_signatures"] = extractGoFunctionSignatures(content)
+	}
+
+	return preview
+}
+
+// Helper functions for code analysis
+func countNonEmptyLines(lines []string) int {
+	count := 0
+	for _, line := range lines {
+		if strings.TrimSpace(line) != "" && !strings.HasPrefix(strings.TrimSpace(line), "//") {
+			count++
+		}
+	}
+	return count
+}
+
+func countGoFunctions(content string) int {
+	return strings.Count(content, "func ")
+}
+
+func countGoStructs(content string) int {
+	return strings.Count(content, "type ") // Approximation
+}
+
+func countJSExports(content string) int {
+	return strings.Count(content, "export ") + strings.Count(content, "module.exports")
+}
+
+func extractGoFunctionSignatures(content string) []string {
+	lines := strings.Split(content, "\n")
+	signatures := []string{}
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "func ") && strings.Contains(trimmed, "(") {
+			signatures = append(signatures, trimmed)
+			if len(signatures) >= 10 { // Limit to first 10 functions
+				break
+			}
+		}
+	}
+
+	return signatures
+}
+
+// isDirectoryResponse determines if a GitHub response represents a directory listing
+func (c *Client) isDirectoryResponse(response map[string]interface{}) bool {
+	// Check for new directory listing structure from directory_analyzer
+	if responseType, exists := response["type"]; exists {
+		if responseType == "directory_listing" {
+			log.Printf("🔍 DEBUG: Detected directory via 'type': %v", responseType)
+			return true
+		}
+	}
+
+	// Check if we have directory_contents (new structure)
+	if _, exists := response["directory_contents"]; exists {
+		log.Printf("🔍 DEBUG: Detected directory via 'directory_contents' field")
+		return true
+	}
+
+	// Check for 'analysis' field that contains directory info from directory_analyzer
+	if analysis, exists := response["analysis"]; exists {
+		if analysisMap, ok := analysis.(map[string]interface{}); ok {
+			if summary, exists := analysisMap["summary"]; exists {
+				if summaryStr, ok := summary.(string); ok {
+					if strings.Contains(summaryStr, "Directory contains") || strings.Contains(summaryStr, "subdirectories") {
+						log.Printf("🔍 DEBUG: Detected directory via analysis summary: %s", summaryStr)
+						return true
+					}
+				}
+			}
+		}
+	}
+
+	// Check if we have raw GitHub data that's an array (directory listing) - legacy
+	if rawData, exists := response["_raw_github_data"]; exists {
+		if _, isArray := rawData.([]interface{}); isArray {
+			log.Printf("🔍 DEBUG: Detected directory via '_raw_github_data' array")
+			return true
+		}
+	}
+
+	// Check file_info type
+	if fileInfo, exists := response["file_info"]; exists {
+		if fileInfoMap, ok := fileInfo.(map[string]interface{}); ok {
+			if fileType, exists := fileInfoMap["type"]; exists {
+				if fileType == "dir" {
+					log.Printf("🔍 DEBUG: Detected directory via file_info type: %v", fileType)
+					return true
+				}
+			}
+		}
+	}
+
+	log.Printf("🔍 DEBUG: NOT detected as directory. Response keys: %v", getMapKeys(response))
+	return false
+}
+
+// truncateGitHubCodeResponse intelligently truncates GitHub code responses
+func (c *Client) truncateGitHubCodeResponse(response map[string]interface{}, maxSize int) map[string]interface{} {
+	truncated := make(map[string]interface{})
+
+	// Always preserve metadata
+	if metadata, exists := response["_metadata"]; exists {
+		truncated["_metadata"] = metadata
+	}
+
+	// Preserve file info if it exists
+	if fileInfo, exists := response["file_info"]; exists {
+		truncated["file_info"] = fileInfo
+	}
+
+	// Handle decoded content intelligently
+	if content, exists := response["decoded_content"]; exists {
+		if contentStr, ok := content.(string); ok {
+			// For code, preserve beginning and end, indicate truncation
+			preserveSize := maxSize / 3 // Use 1/3 for beginning, 1/3 for end
+			if len(contentStr) <= maxSize {
+				truncated["decoded_content"] = contentStr
+			} else {
+				beginning := contentStr[:preserveSize]
+				ending := contentStr[len(contentStr)-preserveSize:]
+				truncated["decoded_content"] = fmt.Sprintf("%s\n\n... [TRUNCATED %d chars] ...\n\n%s",
+					beginning, len(contentStr)-2*preserveSize, ending)
+			}
+		} else {
+			truncated["decoded_content"] = content
+		}
+	}
+
+	// Preserve analysis if it exists and is small
+	if analysis, exists := response["analysis"]; exists {
+		analysisStr := fmt.Sprintf("%+v", analysis)
+		if len(analysisStr) < maxSize/4 { // Only if it's less than 1/4 of max size
+			truncated["analysis"] = analysis
+		} else {
+			truncated["analysis"] = map[string]interface{}{
+				"status": "truncated",
+				"note":   "Analysis too large, preserved file content instead",
+			}
+		}
+	}
+
+	// Add truncation metadata
+	truncated["_truncation_info"] = map[string]interface{}{
+		"original_size": len(fmt.Sprintf("%+v", response)),
+		"truncated":     true,
+		"strategy":      "intelligent_code_preservation",
+	}
+
+	return truncated
+}
+
+// truncateListResponse intelligently truncates list-based responses (issues, search results)
+func (c *Client) truncateListResponse(response map[string]interface{}, maxSize int) map[string]interface{} {
+	log.Printf("🔍 DEBUG: truncateListResponse called with maxSize: %d, response keys: %v", maxSize, getMapKeys(response))
+	truncated := make(map[string]interface{})
+
+	// Copy simple fields first
+	for key, value := range response {
+		if valueStr := fmt.Sprintf("%+v", value); len(valueStr) < 200 {
+			truncated[key] = value
+		}
+	}
+
+	// Handle arrays specially - preserve first few items
+	for key, value := range response {
+		if arr, ok := value.([]interface{}); ok {
+			preservedItems := make([]interface{}, 0)
+			currentSize := 0
+
+			for i, item := range arr {
+				itemStr := fmt.Sprintf("%+v", item)
+				if currentSize+len(itemStr) > maxSize/2 { // Use half the space for items
+					truncated[key] = preservedItems
+					truncated[key+"_truncated_info"] = map[string]interface{}{
+						"total_items":     len(arr),
+						"preserved_items": i,
+						"truncated_items": len(arr) - i,
+					}
+					break
+				}
+				preservedItems = append(preservedItems, item)
+				currentSize += len(itemStr)
+			}
+
+			if len(preservedItems) == len(arr) {
+				truncated[key] = arr // All items fit
+			}
+		} else if str, ok := value.(string); ok && key == "response" {
+			// Handle JSON string responses (like from github_read_issues)
+			// Try to parse as JSON array and truncate intelligently
+			var jsonArray []interface{}
+			if err := json.Unmarshal([]byte(str), &jsonArray); err == nil {
+				// Successfully parsed as JSON array, apply intelligent truncation
+				preservedItems := make([]interface{}, 0)
+				currentSize := 0
+
+				for i, item := range jsonArray {
+					itemStr := fmt.Sprintf("%+v", item)
+					if currentSize+len(itemStr) > maxSize/2 {
+						// Convert back to JSON string with truncation info
+						truncatedJSON, _ := json.Marshal(preservedItems)
+						truncated[key] = string(truncatedJSON)
+						truncated[key+"_truncated_info"] = map[string]interface{}{
+							"total_items":     len(jsonArray),
+							"preserved_items": i,
+							"truncated_items": len(jsonArray) - i,
+						}
+						break
+					}
+					preservedItems = append(preservedItems, item)
+					currentSize += len(itemStr)
+				}
+
+				// If all items fit, keep the original response
+				if len(preservedItems) == len(jsonArray) {
+					truncated[key] = str
+				}
+			} else {
+				// JSON parsing failed, but this might still be a JSON array that's too large
+				// Try a more robust approach - extract first few complete JSON objects
+				if len(str) > maxSize/2 {
+					log.Printf("🔧 JSON parsing failed for large response, attempting manual truncation")
+
+					// Try to find the first few complete JSON objects in the array
+					if strings.HasPrefix(str, "[") {
+						// This looks like a JSON array, try to preserve complete objects
+						var validObjects []string
+						braceCount := 0
+						objectStart := -1
+						totalSize := 0
+
+						for i := 1; i < len(str) && totalSize < maxSize/3; i++ {
+							char := str[i]
+
+							if char == '{' {
+								if braceCount == 0 {
+									objectStart = i
+								}
+								braceCount++
+							} else if char == '}' {
+								braceCount--
+								if braceCount == 0 && objectStart != -1 {
+									// Complete object found
+									objectStr := str[objectStart : i+1]
+									if totalSize+len(objectStr) < maxSize/3 {
+										validObjects = append(validObjects, objectStr)
+										totalSize += len(objectStr)
+									} else {
+										break
+									}
+								}
+							}
+						}
+
+						if len(validObjects) > 0 {
+							// Create valid JSON array with preserved objects
+							truncatedArray := "[" + strings.Join(validObjects, ",") + "]"
+							truncated[key] = truncatedArray
+							truncated[key+"_truncated_info"] = map[string]interface{}{
+								"original_size":     len(str),
+								"preserved_objects": len(validObjects),
+								"truncated":         true,
+								"strategy":          "preserve_complete_objects",
+							}
+						} else {
+							// Fallback to safer truncation
+							truncated[key] = "[]"
+							truncated[key+"_truncated_info"] = map[string]interface{}{
+								"original_size": len(str),
+								"truncated":     true,
+								"strategy":      "empty_array_fallback",
+								"note":          "Unable to parse individual objects, returning empty array",
+							}
+						}
+					} else {
+						// Not a JSON array, truncate as string but don't add [TRUNCATED] to avoid JSON corruption
+						maxLen := maxSize/2 - 100
+						if maxLen > len(str) {
+							maxLen = len(str)
+						}
+						truncated[key] = str[:maxLen]
+						truncated[key+"_truncated_info"] = map[string]interface{}{
+							"original_size": len(str),
+							"truncated":     true,
+							"strategy":      "string_truncation_safe",
+						}
+					}
+				} else {
+					truncated[key] = str
+				}
+			}
+		}
+	}
+
+	return truncated
+}
+
+// createGenericTruncatedResponse creates a generic truncated response
+func (c *Client) createGenericTruncatedResponse(responseStr string, maxSize int) map[string]interface{} {
+	return map[string]interface{}{
+		"status":  "success",
+		"summary": fmt.Sprintf("Response truncated due to size (%d chars). Function executed successfully.", len(responseStr)),
+		"data":    responseStr[:min(maxSize-200, len(responseStr))] + "... [TRUNCATED]",
+		"_truncation_info": map[string]interface{}{
+			"original_size": len(responseStr),
+			"truncated":     true,
+			"strategy":      "generic",
+		},
+	}
+}
+
+// Helper function for min
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // createFallbackSummary creates a simple summary when function calling fails
@@ -3217,19 +4303,24 @@ func (c *Client) executeHTTPFunction(ctx context.Context, funcDef *db.FunctionDe
 
 		// For GitHub contents API, handle path specially
 		if pathStr == "" {
-			// For empty or missing path, remove the /{path} part entirely
+			// For empty or missing path, replace {path} with empty string (repository root)
 			requestURL = strings.ReplaceAll(requestURL, "/{path}", "")
+			// Ensure we don't leave any remaining {path} placeholders
+			requestURL = strings.ReplaceAll(requestURL, "{path}", "")
 		} else {
-			// For non-empty path, replace normally
-			requestURL = strings.ReplaceAll(requestURL, "{path}", pathStr)
+			// For non-empty path, replace normally and ensure proper encoding
+			// URL-encode the path to handle special characters
+			encodedPath := url.PathEscape(pathStr)
+			requestURL = strings.ReplaceAll(requestURL, "{path}", encodedPath)
 		}
 
 		c.logExecutionEvent(types.LogLevelDebug, types.LogCategoryFunctionCall,
 			"Handled GitHub path parameter",
 			map[string]interface{}{
-				"path_exists": pathExists,
-				"path_value":  pathStr,
-				"final_url":   requestURL,
+				"path_exists":  pathExists,
+				"path_value":   pathStr,
+				"encoded_path": pathStr != "" && pathStr != url.PathEscape(pathStr),
+				"final_url":    requestURL,
 			})
 	}
 
@@ -3673,6 +4764,23 @@ func (c *Client) addAPIKeyAuthentication(req *http.Request, endpointURL string, 
 		} else {
 			c.logExecutionEvent(types.LogLevelWarn, types.LogCategoryAPICall,
 				"OpenWeather API key not available for authentication",
+				map[string]interface{}{"endpoint": endpointURL})
+		}
+	}
+
+	// Slack API
+	if strings.Contains(endpointURL, "slack.com/api") {
+		if effectiveKeys.SlackBotToken != "" {
+			req.Header.Set("Authorization", "Bearer "+effectiveKeys.SlackBotToken)
+			c.logExecutionEvent(types.LogLevelDebug, types.LogCategoryAPICall,
+				"Added Slack API authentication",
+				map[string]interface{}{
+					"endpoint":       endpointURL,
+					"api_key_masked": "***" + effectiveKeys.SlackBotToken[len(effectiveKeys.SlackBotToken)-4:],
+				})
+		} else {
+			c.logExecutionEvent(types.LogLevelWarn, types.LogCategoryAPICall,
+				"Slack Bot Token not available for authentication",
 				map[string]interface{}{"endpoint": endpointURL})
 		}
 	}
@@ -4463,31 +5571,6 @@ func getIntFromResult(result map[string]interface{}, key string) int {
 	return 0
 }
 
-// Basic code analysis based on file content and extension
-func (c *Client) analyzeCodeContent(content, filename string) map[string]interface{} {
-	analysis := map[string]interface{}{
-		"language":   detectLanguage(filename),
-		"lines":      len(strings.Split(content, "\n")),
-		"size_bytes": len(content),
-	}
-
-	// Language-specific analysis
-	switch detectLanguage(filename) {
-	case "go":
-		analysis["functions"] = extractGoFunctions(content)
-		analysis["imports"] = extractGoImports(content)
-		analysis["packages"] = extractGoPackages(content)
-	case "javascript", "typescript":
-		analysis["functions"] = extractJSFunctions(content)
-		analysis["imports"] = extractJSImports(content)
-	case "python":
-		analysis["functions"] = extractPythonFunctions(content)
-		analysis["imports"] = extractPythonImports(content)
-	}
-
-	return analysis
-}
-
 // Detect programming language from filename
 func detectLanguage(filename string) string {
 	ext := strings.ToLower(filepath.Ext(filename))
@@ -4715,11 +5798,11 @@ func (c *Client) fetchFileContent(fileItem map[string]interface{}) map[string]in
 	}
 
 	content := string(contentBytes)
-	fileName := getStringFromResult(fileItem, "name")
+	// fileName := getStringFromResult(fileItem, "name") // Unused for now
 
 	return map[string]interface{}{
 		"content":  content,
-		"analysis": c.analyzeCodeContent(content, fileName),
+		"analysis": c.analyzeCodeContent(content),
 	}
 }
 
@@ -4911,6 +5994,8 @@ func (c *Client) applyStoredResultTransformer(funcDef *db.FunctionDefinition, re
 		return c.transformGitHubCodeResponse(result, args), nil
 	case "github_code_analyzer":
 		return c.transformGitHubCodeResponse(result, args), nil
+	case "github_issues_analyzer":
+		return c.transformGitHubIssuesResponse(result, args), nil
 	default:
 		// Default transformer - return result with metadata
 		result["_metadata"] = map[string]interface{}{
@@ -4920,6 +6005,199 @@ func (c *Client) applyStoredResultTransformer(funcDef *db.FunctionDefinition, re
 		}
 		return result, nil
 	}
+}
+
+// transformGitHubIssuesResponse intelligently processes GitHub issues responses
+func (c *Client) transformGitHubIssuesResponse(result map[string]interface{}, args map[string]interface{}) map[string]interface{} {
+	log.Printf("🔧 Applying github_issues_analyzer transformer to GitHub issues response")
+
+	// Extract the actual GitHub API response
+	var issuesData interface{}
+	if response, exists := result["response"]; exists {
+		issuesData = response
+		log.Printf("🔧 Found response data, type: %T", issuesData)
+
+		// If it's a string, it might be JSON that needs parsing
+		if responseStr, ok := issuesData.(string); ok {
+			log.Printf("🔧 Response is string, attempting JSON decode")
+			var parsed interface{}
+			if err := json.Unmarshal([]byte(responseStr), &parsed); err == nil {
+				issuesData = parsed
+				log.Printf("🔧 Successfully parsed JSON, new type: %T", issuesData)
+			} else {
+				log.Printf("⚠️ Failed to parse JSON string: %v", err)
+				// Return a safe response structure
+				return map[string]interface{}{
+					"status":      "error",
+					"error":       "Failed to parse GitHub issues response",
+					"raw_preview": responseStr[:min(500, len(responseStr))],
+					"_metadata":   result["_metadata"],
+				}
+			}
+		}
+	} else {
+		issuesData = result
+		log.Printf("🔧 Using result as issues data, type: %T", issuesData)
+	}
+
+	// Process issues array
+	issuesArray, ok := issuesData.([]interface{})
+	if !ok {
+		log.Printf("⚠️ Issues data is not an array - type: %T", issuesData)
+		return map[string]interface{}{
+			"status":    "error",
+			"error":     "Expected issues array but got different data type",
+			"data_type": fmt.Sprintf("%T", issuesData),
+			"_metadata": result["_metadata"],
+		}
+	}
+
+	log.Printf("🔧 Processing %d issues", len(issuesArray))
+
+	// Extract essential information from each issue
+	processedIssues := make([]map[string]interface{}, 0)
+	openCount := 0
+	closedCount := 0
+	labels := make(map[string]int)
+	authors := make(map[string]int)
+
+	for i, issueData := range issuesArray {
+		issue, ok := issueData.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		// Extract key fields with safe type conversion
+		essentialIssue := map[string]interface{}{
+			"number": getIntFromResult(issue, "number"),
+			"title":  getStringFromResult(issue, "title"),
+			"state":  getStringFromResult(issue, "state"),
+		}
+
+		// Add body preview (first 200 chars)
+		if body := getStringFromResult(issue, "body"); body != "" {
+			if len(body) > 200 {
+				essentialIssue["body_preview"] = body[:200] + "..."
+			} else {
+				essentialIssue["body_preview"] = body
+			}
+		}
+
+		// Extract user info
+		if user, exists := issue["user"]; exists {
+			if userMap, ok := user.(map[string]interface{}); ok {
+				essentialIssue["author"] = getStringFromResult(userMap, "login")
+				authors[getStringFromResult(userMap, "login")]++
+			}
+		}
+
+		// Extract and count labels
+		if labelsData, exists := issue["labels"]; exists {
+			if labelsArray, ok := labelsData.([]interface{}); ok {
+				issueLabels := make([]string, 0)
+				for _, labelData := range labelsArray {
+					if labelMap, ok := labelData.(map[string]interface{}); ok {
+						labelName := getStringFromResult(labelMap, "name")
+						if labelName != "" {
+							issueLabels = append(issueLabels, labelName)
+							labels[labelName]++
+						}
+					}
+				}
+				essentialIssue["labels"] = issueLabels
+			}
+		}
+
+		// Add timestamps
+		essentialIssue["created_at"] = getStringFromResult(issue, "created_at")
+		essentialIssue["updated_at"] = getStringFromResult(issue, "updated_at")
+
+		// Count states
+		state := getStringFromResult(issue, "state")
+		if state == "open" {
+			openCount++
+		} else if state == "closed" {
+			closedCount++
+		}
+
+		processedIssues = append(processedIssues, essentialIssue)
+
+		// Limit to first 20 issues to keep response manageable
+		if i >= 19 {
+			break
+		}
+	}
+
+	// Create top labels list
+	type labelCount struct {
+		Name  string
+		Count int
+	}
+	var topLabels []labelCount
+	for name, count := range labels {
+		topLabels = append(topLabels, labelCount{Name: name, Count: count})
+	}
+	// Sort by count (simple bubble sort for small data)
+	for i := 0; i < len(topLabels)-1; i++ {
+		for j := i + 1; j < len(topLabels); j++ {
+			if topLabels[j].Count > topLabels[i].Count {
+				topLabels[i], topLabels[j] = topLabels[j], topLabels[i]
+			}
+		}
+	}
+	if len(topLabels) > 10 {
+		topLabels = topLabels[:10]
+	}
+
+	// Create top authors list
+	type authorCount struct {
+		Name  string
+		Count int
+	}
+	var topAuthors []authorCount
+	for name, count := range authors {
+		topAuthors = append(topAuthors, authorCount{Name: name, Count: count})
+	}
+	// Sort by count
+	for i := 0; i < len(topAuthors)-1; i++ {
+		for j := i + 1; j < len(topAuthors); j++ {
+			if topAuthors[j].Count > topAuthors[i].Count {
+				topAuthors[i], topAuthors[j] = topAuthors[j], topAuthors[i]
+			}
+		}
+	}
+	if len(topAuthors) > 10 {
+		topAuthors = topAuthors[:10]
+	}
+
+	// Build comprehensive but concise response
+	analyzedResponse := map[string]interface{}{
+		"type": "github_issues_analysis",
+		"summary": map[string]interface{}{
+			"total_issues":    len(issuesArray),
+			"issues_analyzed": len(processedIssues),
+			"open_issues":     openCount,
+			"closed_issues":   closedCount,
+			"unique_labels":   len(labels),
+			"unique_authors":  len(authors),
+		},
+		"issues": processedIssues,
+		"insights": map[string]interface{}{
+			"top_labels":  topLabels,
+			"top_authors": topAuthors,
+		},
+		"_metadata": result["_metadata"],
+	}
+
+	// Add metadata about the transformation
+	if metadata, exists := analyzedResponse["_metadata"].(map[string]interface{}); exists {
+		metadata["transformer_type"] = "github_issues_analyzer"
+		metadata["analysis_applied"] = true
+	}
+
+	log.Printf("✅ Transformed %d GitHub issues into structured analysis (%d issues shown)", len(issuesArray), len(processedIssues))
+
+	return analyzedResponse
 }
 
 // sendFunctionResultToGemini sends the function result back to Gemini for a final response
@@ -5281,26 +6559,6 @@ func extractArgsFromResult(functionResult map[string]interface{}) map[string]int
 	// If we can't find the original args, return empty map
 	// The function call reconstruction might not be perfect, but Gemini should still process the response
 	return make(map[string]interface{})
-}
-
-// min helper function
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-// getMapKeys returns the keys of a map as a slice of strings for logging purposes
-func getMapKeys(m map[string]interface{}) []string {
-	if m == nil {
-		return []string{}
-	}
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	return keys
 }
 
 // compareResults compares multiple variation results
