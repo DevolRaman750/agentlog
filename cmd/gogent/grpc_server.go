@@ -674,12 +674,102 @@ func (s *GRPCServer) convertExecutionResultToProto(result *types.ExecutionResult
 	// Convert comparison result
 	var protoComparison *pb.ComparisonResult
 	if result.Comparison != nil {
+		// Convert ConfigurationScores map to protobuf Struct
+		configScoresStruct, err := structpb.NewStruct(result.Comparison.ConfigurationScores)
+		if err != nil {
+			log.Printf("⚠️ Warning: failed to convert configuration scores to protobuf struct: %v", err)
+			configScoresStruct = &structpb.Struct{}
+		}
+
+		// Convert BestConfiguration
+		var protoBestConfig *pb.APIConfiguration
+		if result.Comparison.BestConfiguration != nil {
+			config := result.Comparison.BestConfiguration
+
+			// Handle pointer types safely
+			var temperature float32
+			if config.Temperature != nil {
+				temperature = *config.Temperature
+			}
+
+			var maxTokens int32
+			if config.MaxTokens != nil {
+				maxTokens = *config.MaxTokens
+			}
+
+			var topP float32
+			if config.TopP != nil {
+				topP = *config.TopP
+			}
+
+			var topK int32
+			if config.TopK != nil {
+				topK = *config.TopK
+			}
+
+			protoBestConfig = &pb.APIConfiguration{
+				Id:            config.ID,
+				UserId:        config.UserID,
+				VariationName: config.VariationName,
+				ModelName:     config.ModelName,
+				SystemPrompt:  config.SystemPrompt,
+				Temperature:   temperature,
+				MaxTokens:     maxTokens,
+				TopP:          topP,
+				TopK:          topK,
+				CreatedAt:     timestamppb.New(config.CreatedAt),
+				UpdatedAt:     timestamppb.New(config.UpdatedAt),
+			}
+		}
+
+		// Convert AllConfigurations
+		var protoAllConfigs []*pb.APIConfiguration
+		for _, config := range result.Comparison.AllConfigurations {
+			// Handle pointer types safely
+			var temperature float32
+			if config.Temperature != nil {
+				temperature = *config.Temperature
+			}
+
+			var maxTokens int32
+			if config.MaxTokens != nil {
+				maxTokens = *config.MaxTokens
+			}
+
+			var topP float32
+			if config.TopP != nil {
+				topP = *config.TopP
+			}
+
+			var topK int32
+			if config.TopK != nil {
+				topK = *config.TopK
+			}
+
+			protoAllConfigs = append(protoAllConfigs, &pb.APIConfiguration{
+				Id:            config.ID,
+				UserId:        config.UserID,
+				VariationName: config.VariationName,
+				ModelName:     config.ModelName,
+				SystemPrompt:  config.SystemPrompt,
+				Temperature:   temperature,
+				MaxTokens:     maxTokens,
+				TopP:          topP,
+				TopK:          topK,
+				CreatedAt:     timestamppb.New(config.CreatedAt),
+				UpdatedAt:     timestamppb.New(config.UpdatedAt),
+			})
+		}
+
 		protoComparison = &pb.ComparisonResult{
 			Id:                  result.Comparison.ID,
 			ExecutionRunId:      result.Comparison.ExecutionRunID,
 			ComparisonType:      result.Comparison.ComparisonType,
 			MetricName:          result.Comparison.MetricName,
+			ConfigurationScores: configScoresStruct,
 			BestConfigurationId: result.Comparison.BestConfigurationID,
+			BestConfiguration:   protoBestConfig,
+			AllConfigurations:   protoAllConfigs,
 			AnalysisNotes:       result.Comparison.AnalysisNotes,
 			CreatedAt:           timestamppb.New(result.Comparison.CreatedAt),
 		}

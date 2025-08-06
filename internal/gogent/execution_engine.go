@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"strconv"
 	"strings"
 	"time"
 
@@ -375,27 +376,481 @@ func (c *Client) executeSingleVariation(ctx context.Context, userID string, exec
 	}, err
 }
 
-// compareResults compares the results of multiple variations
+// compareResults compares the results of multiple variations with comprehensive metrics
 func (c *Client) compareResults(ctx context.Context, result *types.ExecutionResult) (*types.ComparisonResult, error) {
-	// TODO: Implement proper comparison logic
-	// For now, return a basic comparison result
 	comparison := &types.ComparisonResult{
 		ID:                  uuid.New().String(),
 		ExecutionRunID:      result.ExecutionRun.ID,
-		ComparisonType:      "basic",
-		MetricName:          "execution_time",
+		ComparisonType:      "comprehensive",
+		MetricName:          "multi_metric_analysis",
 		ConfigurationScores: make(map[string]interface{}),
-		AnalysisNotes:       "Basic comparison completed",
 		CreatedAt:           time.Now(),
 	}
 
-	// Add basic metrics to configuration scores
-	comparison.ConfigurationScores["total_variations"] = len(result.Results)
-	comparison.ConfigurationScores["success_count"] = result.SuccessCount
-	comparison.ConfigurationScores["error_count"] = result.ErrorCount
-	comparison.ConfigurationScores["total_time_ms"] = result.TotalTime
+	if len(result.Results) == 0 {
+		comparison.AnalysisNotes = "No results to compare"
+		return comparison, nil
+	}
+
+	// Collect all configurations for reference
+	var allConfigs []types.APIConfiguration
+	for _, res := range result.Results {
+		allConfigs = append(allConfigs, res.Configuration)
+	}
+	comparison.AllConfigurations = allConfigs
+
+	// Calculate comprehensive metrics
+	var bestByTime *types.VariationResult
+	var bestByTokens *types.VariationResult
+	var bestOverall *types.VariationResult
+	var bestScore float64 = -1
+	var totalPromptTokens, totalCompletionTokens, totalTokens int64
+	var totalCost float64
+
+	configMetrics := make(map[string]map[string]interface{})
+
+	for i, res := range result.Results {
+		// Calculate comprehensive quality scores
+		responseTimeScore := c.calculateResponseTimeScore(res.Response.ResponseTimeMs)
+		creativityScore := c.calculateCreativityScore(res.Configuration, res.Response)
+		coherenceScore := c.calculateCoherenceScore(res.Response.ResponseText)
+		tokenEfficiencyScore := c.calculateTokenEfficiencyScore(res.Response)
+		safetyScore := c.calculateSafetyScore(res.Response.ResponseText)
+		costEffectivenessScore := c.calculateCostEffectivenessScore(res.Response)
+
+		// Calculate overall score (weighted average)
+		overallScore := (responseTimeScore*0.2 +
+			creativityScore*0.25 +
+			coherenceScore*0.25 +
+			tokenEfficiencyScore*0.15 +
+			safetyScore*0.1 +
+			costEffectivenessScore*0.05)
+
+		// Track best overall configuration
+		if bestOverall == nil || overallScore > bestScore {
+			bestOverall = &result.Results[i]
+			bestScore = overallScore
+		}
+
+		configID := res.Configuration.ID
+		metrics := make(map[string]interface{})
+
+		// Performance metrics
+		metrics["response_time_ms"] = res.Response.ResponseTimeMs
+		metrics["execution_time_ms"] = res.ExecutionTime
+		metrics["status"] = string(res.Response.ResponseStatus)
+
+		// Quality scores
+		metrics["response_time_score"] = responseTimeScore
+		metrics["creativity_score"] = creativityScore
+		metrics["coherence_score"] = coherenceScore
+		metrics["token_efficiency"] = tokenEfficiencyScore
+		metrics["safety_score"] = safetyScore
+		metrics["cost_effectiveness"] = costEffectivenessScore
+		metrics["overall_score"] = overallScore
+
+		// Configuration details
+		metrics["temperature"] = res.Configuration.Temperature
+		metrics["model_name"] = res.Configuration.ModelName
+		metrics["variation_name"] = res.Configuration.VariationName
+
+		// Token usage metrics (with both snake_case and camelCase for frontend compatibility)
+		if res.Response.UsageMetadata != nil {
+			if promptTokens, ok := res.Response.UsageMetadata["prompt_tokens"]; ok {
+				var tokens int
+				if t, ok := promptTokens.(int); ok {
+					tokens = t
+				} else if t, ok := promptTokens.(float64); ok {
+					tokens = int(t)
+				}
+				if tokens > 0 {
+					metrics["prompt_tokens"] = tokens
+					metrics["promptTokens"] = tokens // camelCase for frontend
+					totalPromptTokens += int64(tokens)
+				}
+			}
+
+			if completionTokens, ok := res.Response.UsageMetadata["completion_tokens"]; ok {
+				var tokens int
+				if t, ok := completionTokens.(int); ok {
+					tokens = t
+				} else if t, ok := completionTokens.(float64); ok {
+					tokens = int(t)
+				}
+				if tokens > 0 {
+					metrics["completion_tokens"] = tokens
+					metrics["completionTokens"] = tokens     // camelCase for frontend
+					metrics["candidatesTokenCount"] = tokens // alternative naming
+					totalCompletionTokens += int64(tokens)
+				}
+			}
+
+			if totalTok, ok := res.Response.UsageMetadata["total_tokens"]; ok {
+				var tokens int
+				if t, ok := totalTok.(int); ok {
+					tokens = t
+				} else if t, ok := totalTok.(float64); ok {
+					tokens = int(t)
+				}
+				if tokens > 0 {
+					metrics["total_tokens"] = tokens
+					metrics["totalTokens"] = tokens // camelCase for frontend
+					totalTokens += int64(tokens)
+				}
+			}
+
+			// Add full usage metadata for reference
+			metrics["usage_metadata"] = res.Response.UsageMetadata
+		}
+
+		// Calculate estimated cost
+		estimatedCost := c.calculateEstimatedCost(res.Response)
+		metrics["estimated_cost_usd"] = estimatedCost
+		totalCost += estimatedCost
+
+		// Response quality metrics
+		metrics["response_length"] = len(res.Response.ResponseText)
+		metrics["has_error"] = res.Response.ResponseStatus == types.ResponseStatusError
+
+		configMetrics[configID] = metrics
+
+		// Track best performers by individual metrics
+		if res.Response.ResponseStatus == types.ResponseStatusSuccess {
+			if bestByTime == nil || res.Response.ResponseTimeMs < bestByTime.Response.ResponseTimeMs {
+				bestByTime = &result.Results[i]
+			}
+
+			if bestByTokens == nil {
+				bestByTokens = &result.Results[i]
+			} else if currentTokens, ok := metrics["total_tokens"].(int); ok {
+				if bestTokens, ok := configMetrics[bestByTokens.Configuration.ID]["total_tokens"].(int); ok {
+					if currentTokens < bestTokens {
+						bestByTokens = &result.Results[i]
+					}
+				}
+			}
+		}
+
+		// Log detailed scoring for debugging
+		log.Printf("📊 Configuration %s (%s): Overall=%.2f, Time=%dms, Creativity=%.2f, Coherence=%.2f",
+			res.Configuration.VariationName,
+			res.Configuration.ID[:8],
+			overallScore*100,
+			res.Response.ResponseTimeMs,
+			creativityScore*100,
+			coherenceScore*100)
+
+		// Debug: Log token information
+		if res.Response.UsageMetadata != nil {
+			log.Printf("🔍 Token data for %s: %+v", res.Configuration.VariationName, res.Response.UsageMetadata)
+		} else {
+			log.Printf("⚠️ No token data for %s", res.Configuration.VariationName)
+		}
+	}
+
+	// Store per-configuration metrics directly at the top level for frontend compatibility
+	// Frontend expects: configurationScores[configId] = metrics
+	frontendCompatibleScores := make(map[string]interface{})
+
+	// Add individual configuration metrics
+	for configID, metrics := range configMetrics {
+		frontendCompatibleScores[configID] = metrics
+	}
+
+	// Add summary data under a special key
+	frontendCompatibleScores["_summary"] = map[string]interface{}{
+		"total_variations":           len(result.Results),
+		"success_count":              result.SuccessCount,
+		"error_count":                result.ErrorCount,
+		"total_time_ms":              result.TotalTime,
+		"total_prompt_tokens":        totalPromptTokens,
+		"total_completion_tokens":    totalCompletionTokens,
+		"total_tokens":               totalTokens,
+		"estimated_total_cost_usd":   totalCost,
+		"average_cost_per_variation": totalCost / float64(len(result.Results)),
+	}
+
+	comparison.ConfigurationScores = frontendCompatibleScores
+
+	// Set best configuration and detailed analysis notes (use bestOverall from quality scoring)
+	if bestOverall != nil {
+		comparison.BestConfigurationID = bestOverall.Configuration.ID
+		comparison.BestConfiguration = &bestOverall.Configuration
+
+		// Log the best configuration ID for debugging
+		log.Printf("🏆 Best Configuration Selected: %s (ID: %s)", bestOverall.Configuration.VariationName, bestOverall.Configuration.ID)
+
+		// Create detailed analysis notes matching original format
+		analysis := fmt.Sprintf("🏆 Best Configuration: %s\n", bestOverall.Configuration.VariationName)
+		analysis += fmt.Sprintf("📋 Configuration ID: %s\n\n", bestOverall.Configuration.ID)
+		analysis += fmt.Sprintf("📊 Overall Score: %.2f/100\n", bestScore*100)
+		analysis += fmt.Sprintf("⚡ Response Time: %dms\n", bestOverall.Response.ResponseTimeMs)
+
+		if metrics, ok := configMetrics[bestOverall.Configuration.ID]; ok {
+			if creativityScore, ok := metrics["creativity_score"].(float64); ok {
+				analysis += fmt.Sprintf("🎨 Creativity Score: %.1f/100\n", creativityScore*100)
+			}
+			if coherenceScore, ok := metrics["coherence_score"].(float64); ok {
+				analysis += fmt.Sprintf("🧠 Coherence Score: %.1f/100\n", coherenceScore*100)
+			}
+			if tokenEfficiency, ok := metrics["token_efficiency"].(float64); ok {
+				analysis += fmt.Sprintf("💡 Token Efficiency: %.1f/100\n", tokenEfficiency*100)
+			}
+			if estimatedCost, ok := metrics["estimated_cost_usd"].(float64); ok {
+				analysis += fmt.Sprintf("💰 Estimated Cost: $%.6f\n", estimatedCost)
+			}
+			// Add token details
+			if totalTokens, ok := metrics["total_tokens"].(int); ok {
+				analysis += fmt.Sprintf("🎯 Total Tokens: %d\n", totalTokens)
+				if promptTokens, ok := metrics["prompt_tokens"].(int); ok {
+					if completionTokens, ok := metrics["completion_tokens"].(int); ok {
+						analysis += fmt.Sprintf("📝 Token Breakdown: %d prompt + %d completion\n", promptTokens, completionTokens)
+					}
+				}
+			}
+		}
+
+		// Add comparison insights
+		analysis += "\n📈 Key Insights:\n"
+		fastest := c.findFastest(result.Results)
+		if fastest != nil && fastest.Configuration.ID != bestOverall.Configuration.ID {
+			analysis += fmt.Sprintf("• Fastest: %s (%dms)\n", fastest.Configuration.VariationName, fastest.Response.ResponseTimeMs)
+		}
+
+		// Build scores map for finding most creative
+		scores := make(map[string]interface{})
+		for _, res := range result.Results {
+			if metrics, ok := configMetrics[res.Configuration.ID]; ok {
+				scores[res.Configuration.VariationName] = metrics
+			}
+		}
+		mostCreative := c.findMostCreative(scores)
+		if mostCreative != "" && mostCreative != bestOverall.Configuration.VariationName {
+			analysis += fmt.Sprintf("• Most Creative: %s\n", mostCreative)
+		}
+
+		analysis += fmt.Sprintf("• Best Overall: %s (balanced performance)\n", bestOverall.Configuration.VariationName)
+		analysis += fmt.Sprintf("• Total Cost: ~$%.6f across %d variations\n", totalCost, len(result.Results))
+		analysis += fmt.Sprintf("• Average Cost/Variation: $%.6f", totalCost/float64(len(result.Results)))
+
+		comparison.AnalysisNotes = analysis
+	} else {
+		comparison.AnalysisNotes = fmt.Sprintf("All %d variations failed | Total attempted cost: ~$%.6f",
+			len(result.Results), totalCost)
+	}
 
 	return comparison, nil
+}
+
+// Helper functions for calculating different metrics
+func (c *Client) calculateResponseTimeScore(responseTimeMs int32) float64 {
+	// Lower response time = higher score (max 1000ms = 100 points)
+	if responseTimeMs <= 0 {
+		return 0.0
+	}
+	score := 1000.0 / float64(responseTimeMs)
+	if score > 1.0 {
+		score = 1.0
+	}
+	return score
+}
+
+func (c *Client) calculateCreativityScore(config types.APIConfiguration, response types.APIResponse) float64 {
+	// Higher temperature = higher creativity potential
+	baseScore := 0.5
+	if config.Temperature != nil {
+		baseScore = float64(*config.Temperature)
+	}
+
+	// Boost score based on response characteristics
+	text := response.ResponseText
+	creativityIndicators := []string{"imagine", "creative", "artistic", "vivid", "colorful", "metaphor", "poetry", "story", "narrative"}
+	indicatorCount := 0
+	for _, indicator := range creativityIndicators {
+		if strings.Contains(strings.ToLower(text), indicator) {
+			indicatorCount++
+		}
+	}
+
+	// Boost score by up to 0.3 based on creativity indicators
+	boost := float64(indicatorCount) * 0.03
+	if boost > 0.3 {
+		boost = 0.3
+	}
+
+	return baseScore + boost
+}
+
+func (c *Client) calculateCoherenceScore(responseText string) float64 {
+	// Simple coherence scoring based on text structure
+	if len(responseText) < 50 {
+		return 0.3
+	}
+
+	// Check for logical structure indicators
+	coherenceIndicators := []string{"first", "second", "third", "however", "therefore", "because", "although", "furthermore", "in conclusion"}
+	indicatorCount := 0
+	for _, indicator := range coherenceIndicators {
+		if strings.Contains(strings.ToLower(responseText), indicator) {
+			indicatorCount++
+		}
+	}
+
+	baseScore := 0.6
+	boost := float64(indicatorCount) * 0.05
+	if boost > 0.4 {
+		boost = 0.4
+	}
+
+	return baseScore + boost
+}
+
+func (c *Client) calculateTokenEfficiencyScore(response types.APIResponse) float64 {
+	// Higher token efficiency = higher score
+	if response.UsageMetadata == nil {
+		return 0.5 // Default score if no metadata
+	}
+
+	// Extract token information
+	totalTokens := c.getTokenCount(response.UsageMetadata, "total_tokens")
+	if totalTokens <= 0 {
+		return 0.5
+	}
+
+	// Score based on response length vs tokens used
+	responseLength := len(response.ResponseText)
+	if responseLength == 0 {
+		return 0.0
+	}
+
+	// Higher ratio of characters per token = better efficiency
+	efficiencyRatio := float64(responseLength) / float64(totalTokens)
+
+	// Normalize to 0-1 scale (typical range is 2-8 characters per token)
+	if efficiencyRatio > 8.0 {
+		efficiencyRatio = 8.0
+	}
+
+	return efficiencyRatio / 8.0
+}
+
+func (c *Client) calculateSafetyScore(responseText string) float64 {
+	// Simple safety scoring - avoid potentially problematic content
+	text := strings.ToLower(responseText)
+
+	// Check for potentially unsafe content
+	unsafeIndicators := []string{"harm", "danger", "illegal", "inappropriate", "offensive", "violent"}
+	unsafeCount := 0
+	for _, indicator := range unsafeIndicators {
+		if strings.Contains(text, indicator) {
+			unsafeCount++
+		}
+	}
+
+	// Base score is high, reduce for unsafe indicators
+	baseScore := 0.9
+	penalty := float64(unsafeCount) * 0.1
+	if penalty > 0.9 {
+		penalty = 0.9
+	}
+
+	return baseScore - penalty
+}
+
+func (c *Client) calculateCostEffectivenessScore(response types.APIResponse) float64 {
+	// Lower cost = higher score (based on tokens used)
+	if response.UsageMetadata == nil {
+		return 0.5
+	}
+
+	totalTokens := c.getTokenCount(response.UsageMetadata, "total_tokens")
+	if totalTokens <= 0 {
+		return 0.5
+	}
+
+	// Score based on token usage (fewer tokens = better cost effectiveness)
+	// Assume 1000 tokens as baseline for "good" cost effectiveness
+	if totalTokens <= 100 {
+		return 1.0
+	} else if totalTokens <= 500 {
+		return 0.8
+	} else if totalTokens <= 1000 {
+		return 0.6
+	} else {
+		return 0.3
+	}
+}
+
+func (c *Client) calculateEstimatedCost(response types.APIResponse) float64 {
+	if response.UsageMetadata == nil {
+		return 0.0
+	}
+
+	promptTokens := c.getTokenCount(response.UsageMetadata, "prompt_tokens")
+	completionTokens := c.getTokenCount(response.UsageMetadata, "completion_tokens")
+
+	// Gemini 1.5 Pro pricing
+	return (float64(promptTokens) * 3.50 / 1000000) + (float64(completionTokens) * 10.50 / 1000000)
+}
+
+// Helper functions
+func (c *Client) getScoreFromMap(scores map[string]interface{}, configName, scoreKey string) float64 {
+	if config, exists := scores[configName]; exists {
+		if configMap, ok := config.(map[string]interface{}); ok {
+			if score, exists := configMap[scoreKey]; exists {
+				if scoreFloat, ok := score.(float64); ok {
+					return scoreFloat
+				}
+			}
+		}
+	}
+	return 0.0
+}
+
+func (c *Client) getTokenCount(metadata map[string]interface{}, key string) int {
+	if value, exists := metadata[key]; exists {
+		switch v := value.(type) {
+		case float64:
+			return int(v)
+		case int:
+			return v
+		case string:
+			if parsed, err := strconv.Atoi(v); err == nil {
+				return parsed
+			}
+		}
+	}
+	return 0
+}
+
+func (c *Client) findFastest(results []types.VariationResult) *types.VariationResult {
+	var fastest *types.VariationResult
+	for i := range results {
+		if fastest == nil || results[i].Response.ResponseTimeMs < fastest.Response.ResponseTimeMs {
+			fastest = &results[i]
+		}
+	}
+	return fastest
+}
+
+func (c *Client) findMostCreative(scores map[string]interface{}) string {
+	var mostCreative string
+	var highestScore float64 = -1
+
+	for configName, configData := range scores {
+		if configMap, ok := configData.(map[string]interface{}); ok {
+			if score, exists := configMap["creativity_score"]; exists {
+				if scoreFloat, ok := score.(float64); ok {
+					if scoreFloat > highestScore {
+						highestScore = scoreFloat
+						mostCreative = configName
+					}
+				}
+			}
+		}
+	}
+
+	return mostCreative
 }
 
 // StoreComparisonResult stores a comparison result in the database
@@ -934,8 +1389,10 @@ func (c *Client) processIterativeFunctionCalls(ctx context.Context, config *type
 }
 
 // processIterativeFunctionCallsWithSynthesis executes functions and gets LLM synthesis using Gemini REST API
+// Current max depth is set to 8 - this allows complex multi-step workflows while preventing runaway costs
 func (c *Client) processIterativeFunctionCallsWithSynthesis(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest, functionCalls []ResponsePart, originalPrompt string) string {
-	return c.processIterativeFunctionCallsWithSynthesisRecursive(ctx, config, request, functionCalls, originalPrompt, 0, 3)
+	const maxIterationDepth = 8 // Configurable limit - can be increased for more complex workflows
+	return c.processIterativeFunctionCallsWithSynthesisRecursive(ctx, config, request, functionCalls, originalPrompt, 0, maxIterationDepth)
 }
 
 // processIterativeFunctionCallsWithSynthesisRecursive handles recursive function calling with depth limiting

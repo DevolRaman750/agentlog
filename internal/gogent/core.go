@@ -833,6 +833,48 @@ func (c *Client) GetExecutionResult(ctx context.Context, userID string, executio
 			CreatedAt:      respRow.CreatedAt.Time,
 		}
 
+		// Parse and set UsageMetadata from database
+		if respRow.UsageMetadata != nil {
+			var usageMetadata map[string]interface{}
+			if err := json.Unmarshal(respRow.UsageMetadata, &usageMetadata); err == nil {
+				response.UsageMetadata = usageMetadata
+				log.Printf("✅ Successfully loaded token data for response %s: %+v", respRow.ID, usageMetadata)
+			} else {
+				log.Printf("⚠️ Failed to parse usage metadata for response %s: %v", respRow.ID, err)
+			}
+		} else {
+			log.Printf("⚠️ No usage metadata found for response %s", respRow.ID)
+		}
+
+		// Parse and set other JSON fields if needed
+		if respRow.FunctionCallResponse != nil {
+			var functionCallResponse map[string]interface{}
+			if err := json.Unmarshal(respRow.FunctionCallResponse, &functionCallResponse); err == nil {
+				response.FunctionCallResponse = functionCallResponse
+			}
+		}
+
+		if respRow.SafetyRatings != nil {
+			var safetyRatings map[string]interface{}
+			if err := json.Unmarshal(respRow.SafetyRatings, &safetyRatings); err == nil {
+				response.SafetyRatings = safetyRatings
+			}
+		}
+
+		if respRow.ResponseHeaders != nil {
+			var responseHeaders map[string]interface{}
+			if err := json.Unmarshal(respRow.ResponseHeaders, &responseHeaders); err == nil {
+				response.ResponseHeaders = responseHeaders
+			}
+		}
+
+		if respRow.ResponseBody != nil {
+			var responseBody map[string]interface{}
+			if err := json.Unmarshal(respRow.ResponseBody, &responseBody); err == nil {
+				response.ResponseBody = responseBody
+			}
+		}
+
 		variationResult := types.VariationResult{
 			Configuration: *config,
 			Request:       *request,
@@ -851,9 +893,70 @@ func (c *Client) GetExecutionResult(ctx context.Context, userID string, executio
 		totalTime += int64(response.ResponseTimeMs)
 	}
 
+	// Try to fetch comparison result for this execution run
+	var comparison *types.ComparisonResult
+	comparisonRow, err := c.queries.GetComparisonResult(ctx, executionRunID)
+	if err == nil {
+		// Parse the comparison data
+		comparison = &types.ComparisonResult{
+			ID:             comparisonRow.ID,
+			ExecutionRunID: comparisonRow.ExecutionRunID,
+		}
+
+		// Handle nullable string fields
+		if comparisonRow.ComparisonType.Valid {
+			comparison.ComparisonType = comparisonRow.ComparisonType.String
+		}
+		if comparisonRow.MetricName.Valid {
+			comparison.MetricName = comparisonRow.MetricName.String
+		}
+		if comparisonRow.BestConfigurationID.Valid {
+			comparison.BestConfigurationID = comparisonRow.BestConfigurationID.String
+		}
+		if comparisonRow.AnalysisNotes.Valid {
+			comparison.AnalysisNotes = comparisonRow.AnalysisNotes.String
+		}
+		if comparisonRow.CreatedAt.Valid {
+			comparison.CreatedAt = comparisonRow.CreatedAt.Time
+		}
+
+		// Parse configuration_scores JSON
+		if comparisonRow.ConfigurationScores != nil {
+			var configScores map[string]interface{}
+			if err := json.Unmarshal(comparisonRow.ConfigurationScores, &configScores); err == nil {
+				comparison.ConfigurationScores = configScores
+			}
+		}
+
+		// Parse best_configuration_data JSON if available
+		if comparisonRow.BestConfigurationData != nil {
+			if dataStr, ok := comparisonRow.BestConfigurationData.(string); ok && dataStr != "" {
+				var bestConfig types.APIConfiguration
+				if err := json.Unmarshal([]byte(dataStr), &bestConfig); err == nil {
+					comparison.BestConfiguration = &bestConfig
+				}
+			}
+		}
+
+		// Parse all_configurations_data JSON if available
+		if comparisonRow.AllConfigurationsData != nil {
+			if dataStr, ok := comparisonRow.AllConfigurationsData.(string); ok && dataStr != "" {
+				var allConfigs []types.APIConfiguration
+				if err := json.Unmarshal([]byte(dataStr), &allConfigs); err == nil {
+					comparison.AllConfigurations = allConfigs
+				}
+			}
+		}
+
+		log.Printf("✅ Successfully loaded comparison result for execution run %s", executionRunID)
+	} else {
+		log.Printf("⚠️ No comparison result found for execution run %s: %v", executionRunID, err)
+	}
+
 	return &types.ExecutionResult{
 		ExecutionRun: *executionRun,
 		Results:      results,
+		Comparison:   comparison,
 		TotalTime:    totalTime,
 		SuccessCount: successCount,
 		ErrorCount:   errorCount,

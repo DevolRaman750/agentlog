@@ -651,7 +651,7 @@ func convertExecutionResultToMap(result *pb.ExecutionResult) map[string]interfac
 
 	// Convert comparison if available
 	if result.Comparison != nil {
-		resultMap["comparison"] = map[string]interface{}{
+		comparisonMap := map[string]interface{}{
 			"id":                  result.Comparison.Id,
 			"executionRunId":      result.Comparison.ExecutionRunId,
 			"comparisonType":      result.Comparison.ComparisonType,
@@ -659,6 +659,58 @@ func convertExecutionResultToMap(result *pb.ExecutionResult) map[string]interfac
 			"bestConfigurationId": result.Comparison.BestConfigurationId,
 			"analysisNotes":       result.Comparison.AnalysisNotes,
 		}
+
+		log.Printf("🔍 [DEBUG] Comparison basic fields: bestConfigurationId=%s, analysisNotes=%s",
+			result.Comparison.BestConfigurationId, result.Comparison.AnalysisNotes)
+
+		// Convert ConfigurationScores from protobuf Struct to map
+		if result.Comparison.ConfigurationScores != nil {
+			configScores := result.Comparison.ConfigurationScores.AsMap()
+			comparisonMap["configurationScores"] = configScores
+			log.Printf("🔍 [DEBUG] ConfigurationScores: %+v", configScores)
+		} else {
+			log.Printf("⚠️ [DEBUG] ConfigurationScores is nil")
+		}
+
+		// Convert BestConfiguration
+		if result.Comparison.BestConfiguration != nil {
+			comparisonMap["bestConfiguration"] = map[string]interface{}{
+				"id":            result.Comparison.BestConfiguration.Id,
+				"userId":        result.Comparison.BestConfiguration.UserId,
+				"variationName": result.Comparison.BestConfiguration.VariationName,
+				"modelName":     result.Comparison.BestConfiguration.ModelName,
+				"systemPrompt":  result.Comparison.BestConfiguration.SystemPrompt,
+				"temperature":   result.Comparison.BestConfiguration.Temperature,
+				"maxTokens":     result.Comparison.BestConfiguration.MaxTokens,
+				"topP":          result.Comparison.BestConfiguration.TopP,
+				"topK":          result.Comparison.BestConfiguration.TopK,
+				"createdAt":     result.Comparison.BestConfiguration.CreatedAt,
+				"updatedAt":     result.Comparison.BestConfiguration.UpdatedAt,
+			}
+		}
+
+		// Convert AllConfigurations
+		if len(result.Comparison.AllConfigurations) > 0 {
+			allConfigs := make([]map[string]interface{}, len(result.Comparison.AllConfigurations))
+			for i, config := range result.Comparison.AllConfigurations {
+				allConfigs[i] = map[string]interface{}{
+					"id":            config.Id,
+					"userId":        config.UserId,
+					"variationName": config.VariationName,
+					"modelName":     config.ModelName,
+					"systemPrompt":  config.SystemPrompt,
+					"temperature":   config.Temperature,
+					"maxTokens":     config.MaxTokens,
+					"topP":          config.TopP,
+					"topK":          config.TopK,
+					"createdAt":     config.CreatedAt,
+					"updatedAt":     config.UpdatedAt,
+				}
+			}
+			comparisonMap["allConfigurations"] = allConfigs
+		}
+
+		resultMap["comparison"] = comparisonMap
 	}
 
 	return resultMap
