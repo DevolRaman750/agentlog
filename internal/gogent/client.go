@@ -1085,7 +1085,7 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 	// Add tools for function calling if provided
 	if len(config.Tools) > 0 {
 		log.Printf("🔧 Adding %d tools to Gemini request", len(config.Tools))
-		
+
 		// Create function declarations array - ALL functions go in ONE array
 		functionDeclarations := make([]map[string]interface{}, len(config.Tools))
 		for i, tool := range config.Tools {
@@ -1093,12 +1093,12 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 
 			// Sanitize the parameters to remove unsupported fields and validate structure
 			sanitizedParams := sanitizeToolParameters(tool.Parameters)
-			
+
 			// Validate that we have a proper schema structure
 			if sanitizedParams == nil {
 				log.Printf("⚠️ Tool %s has nil parameters, using empty object", tool.Name)
 				sanitizedParams = map[string]interface{}{
-					"type": "object",
+					"type":       "object",
 					"properties": map[string]interface{}{},
 				}
 			}
@@ -1110,7 +1110,7 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 			}
 			log.Printf("🔧 Function declaration %d (sanitized): %+v", i+1, functionDeclarations[i])
 		}
-		
+
 		// Create the correct tools structure: ONE tools array with ONE functionDeclarations array
 		tools := []map[string]interface{}{
 			{
@@ -1731,23 +1731,26 @@ func (c *Client) sendConversationToGeminiForIteration(ctx context.Context, confi
 		}
 	}
 
-	// Include tools to allow more function calls (using same pattern as existing code)
+	// Include tools to allow more function calls (using correct structure)
 	if len(config.Tools) > 0 {
-		tools := make([]map[string]interface{}, len(config.Tools))
+		// Create function declarations array - ALL functions go in ONE array
+		functionDeclarations := make([]map[string]interface{}, len(config.Tools))
 		for i, tool := range config.Tools {
 			// Sanitize the parameters to remove unsupported fields
 			sanitizedParams := sanitizeToolParameters(tool.Parameters)
 
-			toolDeclaration := map[string]interface{}{
-				"functionDeclarations": []map[string]interface{}{
-					{
-						"name":        tool.Name,
-						"description": tool.Description,
-						"parameters":  sanitizedParams,
-					},
-				},
+			functionDeclarations[i] = map[string]interface{}{
+				"name":        tool.Name,
+				"description": tool.Description,
+				"parameters":  sanitizedParams,
 			}
-			tools[i] = toolDeclaration
+		}
+
+		// Create the correct tools structure: ONE tools array with ONE functionDeclarations array
+		tools := []map[string]interface{}{
+			{
+				"functionDeclarations": functionDeclarations,
+			},
 		}
 		requestBody["tools"] = tools
 
@@ -4977,21 +4980,25 @@ func (c *Client) sendFunctionResultToGemini(ctx context.Context, config *types.A
 	// But use a different toolConfig mode to make it optional rather than required
 	if len(config.Tools) > 0 {
 		log.Printf("🔧 Adding %d tools to follow-up Gemini request for potential function chaining", len(config.Tools))
-		tools := make([]map[string]interface{}, len(config.Tools))
+
+		// Create function declarations array - ALL functions go in ONE array
+		functionDeclarations := make([]map[string]interface{}, len(config.Tools))
 		for i, tool := range config.Tools {
 			// Sanitize the parameters to remove unsupported fields
 			sanitizedParams := sanitizeToolParameters(tool.Parameters)
 
-			toolDeclaration := map[string]interface{}{
-				"functionDeclarations": []map[string]interface{}{
-					{
-						"name":        tool.Name,
-						"description": tool.Description,
-						"parameters":  sanitizedParams,
-					},
-				},
+			functionDeclarations[i] = map[string]interface{}{
+				"name":        tool.Name,
+				"description": tool.Description,
+				"parameters":  sanitizedParams,
 			}
-			tools[i] = toolDeclaration
+		}
+
+		// Create the correct tools structure: ONE tools array with ONE functionDeclarations array
+		tools := []map[string]interface{}{
+			{
+				"functionDeclarations": functionDeclarations,
+			},
 		}
 		requestBody["tools"] = tools
 
@@ -5003,6 +5010,7 @@ func (c *Client) sendFunctionResultToGemini(ctx context.Context, config *types.A
 			},
 		}
 		log.Printf("🔧 Added tools with AUTO mode to allow Gemini to choose between function calls and text response")
+		log.Printf("🔧 DEBUG: Follow-up tools structure - 1 tools array with 1 functionDeclarations array containing %d functions", len(functionDeclarations))
 	} else {
 		log.Printf("🔧 No tools available - Gemini will only provide text response")
 	}
