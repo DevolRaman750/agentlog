@@ -200,7 +200,7 @@ const OtherOptionsModal: React.FC<OtherOptionsModalProps> = ({
           {/* Usage Tips */}
           <View style={styles.tipsContainer}>
             <View style={styles.tipsHeader}>
-              <Ionicons name="lightbulb" size={16} color="#FF9500" />
+              <Ionicons name="bulb" size={16} color="#FF9500" />
               <Text style={styles.tipsTitle}>Tips</Text>
             </View>
             

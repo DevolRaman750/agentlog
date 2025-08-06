@@ -9,6 +9,15 @@ import (
 	"gogent/internal/types"
 )
 
+// ExecutionRunWithTokens extends ExecutionRun with token information
+type ExecutionRunWithTokens struct {
+	types.ExecutionRun
+	TotalTokens      int     `json:"totalTokens,omitempty"`
+	PromptTokens     int     `json:"promptTokens,omitempty"`
+	CompletionTokens int     `json:"completionTokens,omitempty"`
+	AvgResponseTime  float64 `json:"avgResponseTime,omitempty"`
+}
+
 // getAgents retrieves all agents for a user without statistics
 func (h *AgentsHandler) getAgents(userID string) ([]types.Agent, error) {
 	query := `
@@ -329,14 +338,24 @@ func (h *AgentsHandler) verifyTemplateAccess(userID, templateID string) error {
 }
 
 // getExecutionsByAgentID retrieves executions for an agent with pagination
-func (h *AgentsHandler) getExecutionsByAgentID(agentID string, limit, offset int) ([]types.ExecutionRun, error) {
+func (h *AgentsHandler) getExecutionsByAgentID(agentID string, limit, offset int) ([]ExecutionRunWithTokens, error) {
 	query := `
-		SELECT id, name, description, base_prompt, context_prompt,
-		       enable_function_calling, status, error_message,
-		       created_at, updated_at
-		FROM execution_runs
-		WHERE agent_id = ?
-		ORDER BY created_at DESC
+		SELECT 
+			er.id, er.name, er.description, er.base_prompt, er.context_prompt,
+			er.enable_function_calling, er.status, er.error_message,
+			er.created_at, er.updated_at,
+			COALESCE(SUM(CAST(JSON_UNQUOTE(JSON_EXTRACT(resp.usage_metadata, '$.total_tokens')) AS UNSIGNED)), 0) as total_tokens,
+			COALESCE(SUM(CAST(JSON_UNQUOTE(JSON_EXTRACT(resp.usage_metadata, '$.prompt_tokens')) AS UNSIGNED)), 0) as prompt_tokens,
+			COALESCE(SUM(CAST(JSON_UNQUOTE(JSON_EXTRACT(resp.usage_metadata, '$.completion_tokens')) AS UNSIGNED)), 0) as completion_tokens,
+			COALESCE(AVG(req.response_time_ms), 0) as avg_response_time
+		FROM execution_runs er
+		LEFT JOIN api_requests req ON er.id = req.execution_run_id
+		LEFT JOIN api_responses resp ON req.id = resp.request_id
+		WHERE er.agent_id = ?
+		GROUP BY er.id, er.name, er.description, er.base_prompt, er.context_prompt,
+		         er.enable_function_calling, er.status, er.error_message,
+		         er.created_at, er.updated_at
+		ORDER BY er.created_at DESC
 		LIMIT ? OFFSET ?
 	`
 
@@ -346,15 +365,18 @@ func (h *AgentsHandler) getExecutionsByAgentID(agentID string, limit, offset int
 	}
 	defer rows.Close()
 
-	var executions []types.ExecutionRun
+	var executions []ExecutionRunWithTokens
 	for rows.Next() {
-		var exec types.ExecutionRun
+		var exec ExecutionRunWithTokens
 		var description, basePrompt, contextPrompt, errorMessage sql.NullString
+		var totalTokens, promptTokens, completionTokens sql.NullInt64
+		var avgResponseTime sql.NullFloat64
 
 		err := rows.Scan(
-			&exec.ID, &exec.Name, &description, &basePrompt, &contextPrompt,
-			&exec.EnableFunctionCalling, &exec.Status, &errorMessage,
-			&exec.CreatedAt, &exec.UpdatedAt,
+			&exec.ExecutionRun.ID, &exec.ExecutionRun.Name, &description, &basePrompt, &contextPrompt,
+			&exec.ExecutionRun.EnableFunctionCalling, &exec.ExecutionRun.Status, &errorMessage,
+			&exec.ExecutionRun.CreatedAt, &exec.ExecutionRun.UpdatedAt,
+			&totalTokens, &promptTokens, &completionTokens, &avgResponseTime,
 		)
 		if err != nil {
 			return nil, err
@@ -362,16 +384,30 @@ func (h *AgentsHandler) getExecutionsByAgentID(agentID string, limit, offset int
 
 		// Handle nullable fields
 		if description.Valid {
-			exec.Description = description.String
+			exec.ExecutionRun.Description = description.String
 		}
 		if basePrompt.Valid {
-			exec.BasePrompt = basePrompt.String
+			exec.ExecutionRun.BasePrompt = basePrompt.String
 		}
 		if contextPrompt.Valid {
-			exec.ContextPrompt = contextPrompt.String
+			exec.ExecutionRun.ContextPrompt = contextPrompt.String
 		}
 		if errorMessage.Valid {
-			exec.ErrorMessage = errorMessage.String
+			exec.ExecutionRun.ErrorMessage = errorMessage.String
+		}
+
+		// Set token information
+		if totalTokens.Valid {
+			exec.TotalTokens = int(totalTokens.Int64)
+		}
+		if promptTokens.Valid {
+			exec.PromptTokens = int(promptTokens.Int64)
+		}
+		if completionTokens.Valid {
+			exec.CompletionTokens = int(completionTokens.Int64)
+		}
+		if avgResponseTime.Valid {
+			exec.AvgResponseTime = avgResponseTime.Float64
 		}
 
 		executions = append(executions, exec)

@@ -11,13 +11,13 @@ import {
   Platform,
   Switch,
   FlatList,
-  Alert,
   Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import TextEditor from './TextEditor';
 import { FunctionSelector } from './FunctionSelector';
+import { AlertAPI } from './CustomAlert';
 
 import { ExecutionTemplate, TemplateFormData, TemplateParameter } from '../types/templates';
 import { FunctionDefinition, GEMINI_MODELS } from '../types';
@@ -83,6 +83,20 @@ const TEMPLATE_VARIABLES = [
 const sanitizeInput = (input: string, maxLength: number = 1000): string => {
   if (!input || typeof input !== 'string') return '';
   return input.trim().slice(0, maxLength);
+};
+
+// Extract parameters from template prompt
+const extractParametersFromPrompt = (prompt: string): string[] => {
+  const regex = /\{\{([^}]+)\}\}/g;
+  const matches: string[] = [];
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(prompt)) !== null) {
+    const paramName = match[1].trim();
+    if (paramName && !matches.includes(paramName)) {
+      matches.push(paramName);
+    }
+  }
+  return matches;
 };
 
 // Validation rules
@@ -169,15 +183,19 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
       setFormData(initialFormData);
       
       if (template?.parameters) {
-        const sanitizedParams = template.parameters.map(p => ({
-          name: sanitizeInput(p.name, VALIDATION_RULES.parameterName.maxLength),
-          parameterType: p.parameterType || p.type || 'text',
-          type: p.type || p.parameterType || 'text',
-          description: sanitizeInput(p.description || ''),
-          defaultValue: sanitizeInput(p.defaultValue || ''),
-          isRequired: Boolean(p.isRequired),
-          options: Array.isArray(p.options) ? p.options : [],
-        }));
+        const sanitizedParams = template.parameters.map(p => {
+          // Convert legacy 'text' type to 'string' to match database enum
+          const paramType = (p.parameterType || p.type || 'string') === 'text' ? 'string' : (p.parameterType || p.type || 'string');
+          return {
+            name: sanitizeInput(p.name, VALIDATION_RULES.parameterName.maxLength),
+            parameterType: paramType,
+            type: paramType,
+            description: sanitizeInput(p.description || ''),
+            defaultValue: sanitizeInput(p.defaultValue || ''),
+            isRequired: Boolean(p.isRequired),
+            options: Array.isArray(p.options) ? p.options : [],
+          };
+        });
         setParameters(sanitizedParams);
       }
 
@@ -186,6 +204,40 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
       }
     }
   }, [initialFormData, template]);
+
+  // Auto-detect parameters from prompt changes
+  useEffect(() => {
+    if (!isViewMode && formData.prompt) {
+      const extractedParams = extractParametersFromPrompt(formData.prompt);
+      const currentParamNames = parameters.map(p => p.name);
+      
+      // Check if there are any changes needed
+      const hasNewParams = extractedParams.some(paramName => !currentParamNames.includes(paramName));
+      const hasRemovedParams = currentParamNames.some(paramName => !extractedParams.includes(paramName));
+      
+      if (hasNewParams || hasRemovedParams) {
+        // Add new parameters that were detected
+        const newParameters = extractedParams.filter(paramName => 
+          !currentParamNames.includes(paramName)
+        ).map(paramName => ({
+          name: paramName,
+          parameterType: 'string' as const,
+          type: 'string' as const,
+          description: `Auto-detected parameter: ${paramName}`,
+          defaultValue: '',
+          isRequired: false,
+          options: [],
+        }));
+        
+        // Keep existing parameters that are still in the prompt
+        const filteredParameters = parameters.filter(param => 
+          extractedParams.includes(param.name)
+        );
+        
+        setParameters([...filteredParameters, ...newParameters]);
+      }
+    }
+  }, [formData.prompt, isViewMode]);
 
   // Enhanced validation with detailed error messages
   const validateForm = useCallback((): ValidationError[] => {
@@ -256,7 +308,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
         scrollViewRef.current?.scrollTo({ y: 0, animated: true });
         
         // Show error alert
-        Alert.alert(
+        AlertAPI.alert(
           'Validation Error',
           validationErrors[0].message,
           [{ text: 'OK' }]
@@ -290,7 +342,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
     } catch (error) {
       console.error('Error saving template:', error);
       if (isMountedRef.current) {
-        Alert.alert(
+        AlertAPI.alert(
           'Save Error',
           'An error occurred while saving the template. Please try again.',
           [{ text: 'OK' }]
@@ -307,8 +359,8 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
   const addParameter = useCallback(() => {
     const newParam: Omit<TemplateParameter, 'id'> = {
       name: '',
-      parameterType: 'text',
-      type: 'text',
+      parameterType: 'string',
+      type: 'string',
       description: '',
       defaultValue: '',
       isRequired: false,
@@ -330,7 +382,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
   }, []);
 
   const removeParameter = useCallback((index: number) => {
-    Alert.alert(
+    AlertAPI.alert(
       'Remove Parameter',
       'Are you sure you want to remove this parameter?',
       [
@@ -395,7 +447,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
     },
     prompt: {
       title: "Main Prompt",
-      content: "The core AI instruction that will be executed. Use variables like {{user_input}} for dynamic content. This is the primary instruction that guides the AI's response. Minimum 10 characters required.",
+      content: "The core AI instruction that will be executed. Use variables like {{user_input}} for dynamic content. Parameters are automatically detected when you type {{parameter_name}} and will appear below. Minimum 10 characters required.",
       icon: "chatbox"
     },
     context: {
@@ -405,7 +457,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
     },
     model: {
       title: "AI Model Selection",
-      content: "Choose the AI model that will process this template. Different models have varying capabilities, speed, and cost. Gemini 1.5 Flash is recommended for most use cases.",
+      content: "Choose the AI model that will process this template. Different models have varying capabilities, speed, and cost. Consider your use case when selecting a model.",
       icon: "hardware-chip"
     },
     functions: {
@@ -415,10 +467,58 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
     },
     parameters: {
       title: "Template Parameters",
-      content: "Define input variables that users can provide when executing this template. Parameters make templates flexible and reusable for different scenarios. Parameter names can only contain letters, numbers, and underscores.",
+      content: "Parameters are automatically detected from your prompt when you use {{variable}} syntax. You can edit their descriptions and settings here. Parameter names can only contain letters, numbers, and underscores.",
       icon: "options"
     }
   }), []);
+
+  // Enhanced model info with use cases and benefits
+  const getEnhancedModelInfo = useCallback((modelName: string) => {
+    const model = GEMINI_MODELS.find(m => m.value === modelName);
+    const baseInfo = {
+      name: model?.label || modelName,
+      description: model?.description || '',
+      maxTokens: model?.maxTokens || 'Unknown',
+      isRecommended: modelName === 'gemini-1.5-flash',
+      useCases: [] as string[],
+      benefits: [] as string[],
+      idealFor: undefined as string | undefined,
+    };
+
+    // Add detailed use cases and benefits
+    switch (modelName) {
+      case 'gemini-1.5-flash':
+        return {
+          ...baseInfo,
+          useCases: ['Quick responses', 'Simple tasks', 'High-frequency API calls', 'Real-time applications'],
+          benefits: ['Fastest response time', 'Most cost-effective', 'Excellent for production'],
+          idealFor: 'Most templates and general use cases'
+        };
+      case 'gemini-1.5-pro':
+        return {
+          ...baseInfo,
+          useCases: ['Complex reasoning', 'Long documents', 'Advanced analysis', 'Creative writing'],
+          benefits: ['Superior reasoning', 'Larger context window', 'Better for complex tasks'],
+          idealFor: 'Complex analysis and reasoning tasks'
+        };
+      case 'gemini-1.0-pro':
+        return {
+          ...baseInfo,
+          useCases: ['Stable production', 'Proven workflows', 'Legacy applications'],
+          benefits: ['Battle-tested reliability', 'Consistent performance', 'Well-documented'],
+          idealFor: 'Production systems requiring stability'
+        };
+      case 'gemini-1.5-flash-8b':
+        return {
+          ...baseInfo,
+          useCases: ['Simple tasks', 'High-volume processing', 'Resource-constrained environments'],
+          benefits: ['Ultra-fast processing', 'Minimal resource usage', 'Optimized efficiency'],
+          idealFor: 'Simple tasks requiring maximum speed'
+        };
+      default:
+        return baseInfo;
+    }
+  }, []);
 
   const renderHeader = () => (
     <View style={styles.header}>
@@ -549,6 +649,27 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
       {getFieldError('prompt') && (
         <Text style={styles.errorText}>{getFieldError('prompt')}</Text>
       )}
+      
+      {/* Real-time parameter detection feedback */}
+      {formData.prompt && !isViewMode && (
+        (() => {
+          const detectedParams = extractParametersFromPrompt(formData.prompt);
+          return detectedParams.length > 0 ? (
+            <View style={styles.detectedParametersContainer}>
+              <Text style={styles.detectedParametersLabel}>
+                🔍 Detected Parameters ({detectedParams.length}):
+              </Text>
+              <View style={styles.detectedParametersList}>
+                {detectedParams.map((param, index) => (
+                  <View key={index} style={styles.detectedParameterChip}>
+                    <Text style={styles.detectedParameterText}>{`{{${param}}}`}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null;
+        })()
+      )}
     </View>
   );
 
@@ -588,7 +709,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
   );
 
   const renderModelSection = () => {
-    const modelInfo = getModelInfo(formData.modelName);
+    const modelInfo = getEnhancedModelInfo(formData.modelName);
     
     return (
       <View style={styles.section}>
@@ -601,19 +722,26 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
         </View>
 
         <TouchableOpacity
-          style={styles.selectorButton}
+          style={styles.enhancedSelectorButton}
           onPress={() => setShowModelSelector(true)}
           disabled={isViewMode}
         >
-          <View style={styles.selectorContent}>
-            <View style={styles.selectorMain}>
-              <Text style={styles.selectorLabel}>Selected Model</Text>
-              <Text style={styles.selectorValue}>{modelInfo.name}</Text>
-              {modelInfo.isRecommended && (
-                <View style={styles.recommendedBadge}>
-                  <Text style={styles.badgeText}>Recommended</Text>
-                </View>
+          <View style={styles.modelSelectorContent}>
+            <View style={styles.modelSelectorMain}>
+              <View style={styles.modelSelectorHeader}>
+                <Text style={styles.modelSelectorLabel}>Selected Model</Text>
+                {modelInfo.isRecommended && (
+                  <View style={styles.recommendedBadge}>
+                    <Text style={styles.badgeText}>Recommended</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.modelSelectorValue}>{modelInfo.name}</Text>
+              <Text style={styles.modelSelectorDescription}>{modelInfo.description}</Text>
+              {modelInfo.idealFor && (
+                <Text style={styles.modelIdealFor}>💡 {modelInfo.idealFor}</Text>
               )}
+              <Text style={styles.modelTokenInfo}>Context: {modelInfo.maxTokens?.toLocaleString() || 'Unknown'} tokens</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
           </View>
@@ -707,32 +835,48 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
         </TouchableOpacity>
       </View>
 
+      {parameters.length > 0 ? (
+        <View style={styles.parametersInfo}>
+          <Text style={styles.parametersInfoText}>
+            Parameters are automatically detected from your prompt. Edit their details below:
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.parametersInfo}>
+          <Text style={styles.parametersInfoText}>
+            💡 Add parameters to your prompt using {`{{parameter_name}}`} syntax and they will appear here automatically.
+          </Text>
+        </View>
+      )}
+
       {parameters.map((param, index) => (
         <View key={index} style={styles.parameterCard}>
           <View style={styles.parameterHeader}>
-            <Text style={styles.parameterTitle}>Parameter {index + 1}</Text>
-            <TouchableOpacity
-              onPress={() => removeParameter(index)}
-              disabled={isViewMode}
-              style={styles.removeButton}
-            >
-              <Ionicons name="trash" size={16} color="#FF3B30" />
-            </TouchableOpacity>
+            <View style={styles.parameterHeaderLeft}>
+              <Ionicons name="cube-outline" size={16} color="#007AFF" />
+              <Text style={styles.parameterTitle}>{`{{${param.name}}}`}</Text>
+              <View style={styles.autoDetectedBadge}>
+                <Text style={styles.autoDetectedText}>Auto-detected</Text>
+              </View>
+            </View>
+            {!isViewMode && (
+              <TouchableOpacity
+                onPress={() => removeParameter(index)}
+                style={styles.removeButton}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="trash" size={16} color="#FF3B30" />
+              </TouchableOpacity>
+            )}
           </View>
           
           <View style={styles.parameterRow}>
             <View style={styles.parameterField}>
-              <Text style={styles.parameterFieldLabel}>Name</Text>
-              <TextEditor
-                value={param.name}
-                onChangeText={(text) => updateParameter(index, 'name', text)}
-                placeholder="parameter_name"
-                style={[textInputStyles.base, styles.parameterInput]}
-                editable={!isViewMode}
-              />
-              {getFieldError(`parameter_${index}_name`) && (
-                <Text style={styles.errorText}>{getFieldError(`parameter_${index}_name`)}</Text>
-              )}
+              <Text style={styles.parameterFieldLabel}>Parameter Name</Text>
+              <View style={styles.parameterNameContainer}>
+                <Text style={styles.parameterNameValue}>{param.name}</Text>
+                <Text style={styles.parameterNameNote}>Detected from prompt</Text>
+              </View>
             </View>
             <View style={styles.parameterField}>
               <Text style={styles.parameterFieldLabel}>Type</Text>
@@ -743,34 +887,31 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
                   enabled={!isViewMode}
                   style={styles.picker}
                 >
-                  <Picker.Item label="Text" value="text" />
+                  <Picker.Item label="String" value="string" />
                   <Picker.Item label="Number" value="number" />
                   <Picker.Item label="Boolean" value="boolean" />
-                  <Picker.Item label="Select" value="select" />
+                  <Picker.Item label="Array" value="array" />
+                  <Picker.Item label="Object" value="object" />
                 </Picker>
               </View>
             </View>
           </View>
 
-          <TextEditor
-            value={param.description}
-            onChangeText={(text) => updateParameter(index, 'description', text)}
-            placeholder="Parameter description"
-            style={[textInputStyles.base, styles.parameterInput]}
-            editable={!isViewMode}
-          />
+          <View style={styles.parameterDescriptionContainer}>
+            <Text style={styles.parameterFieldLabel}>Description</Text>
+            <TextEditor
+              value={param.description}
+              onChangeText={(text) => updateParameter(index, 'description', text)}
+              placeholder="Describe what this parameter is used for..."
+              style={[textInputStyles.base, styles.parameterDescriptionInput]}
+              editable={!isViewMode}
+            />
+          </View>
           {getFieldError(`parameter_${index}_description`) && (
             <Text style={styles.errorText}>{getFieldError(`parameter_${index}_description`)}</Text>
           )}
         </View>
       ))}
-
-      {!isViewMode && (
-        <TouchableOpacity style={styles.addParameterButton} onPress={addParameter}>
-          <Ionicons name="add" size={20} color="#007AFF" />
-          <Text style={styles.addParameterText}>Add Parameter</Text>
-        </TouchableOpacity>
-      )}
     </View>
   );
 
@@ -791,39 +932,70 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
           data={GEMINI_MODELS}
           style={styles.modelList}
           keyExtractor={(item) => item.value}
+          showsVerticalScrollIndicator={false}
           renderItem={({ item }) => {
             const isSelected = formData.modelName === item.value;
-            const isRecommended = item.value === 'gemini-1.5-flash';
+            const enhancedInfo = getEnhancedModelInfo(item.value);
             
             return (
               <TouchableOpacity
-                style={[styles.modelCard, isSelected && styles.modelCardSelected]}
+                style={[styles.enhancedModelCard, isSelected && styles.enhancedModelCardSelected]}
                 onPress={() => {
                   updateFormData('modelName', item.value);
                   setShowModelSelector(false);
                 }}
+                activeOpacity={0.7}
               >
-                <View style={styles.modelCardHeader}>
-                  <Text style={[styles.modelCardTitle, isSelected && styles.modelCardTitleSelected]}>
-                    {item.label}
-                  </Text>
-                  {isRecommended && (
-                    <View style={styles.recommendedBadge}>
-                      <Text style={styles.badgeText}>Recommended</Text>
-                    </View>
-                  )}
+                <View style={styles.enhancedModelCardHeader}>
+                  <View style={styles.modelCardTitleRow}>
+                    <Text style={[styles.enhancedModelCardTitle, isSelected && styles.enhancedModelCardTitleSelected]}>
+                      {item.label}
+                    </Text>
+                    {enhancedInfo.isRecommended && (
+                      <View style={styles.recommendedBadge}>
+                        <Text style={styles.badgeText}>Recommended</Text>
+                      </View>
+                    )}
+                  </View>
                   {isSelected && (
                     <View style={styles.selectedIndicator}>
-                      <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
+                      <Ionicons name="checkmark-circle" size={24} color="#007AFF" />
                     </View>
                   )}
                 </View>
-                <Text style={[styles.modelCardDescription, isSelected && styles.modelCardDescriptionSelected]}>
+                
+                <Text style={[styles.enhancedModelCardDescription, isSelected && styles.enhancedModelCardDescriptionSelected]}>
                   {item.description}
                 </Text>
-                <Text style={[styles.modelCardTokens, isSelected && styles.modelCardDescriptionSelected]}>
-                  Max tokens: {item.maxTokens?.toLocaleString() || 'Unknown'}
-                </Text>
+                
+                {enhancedInfo.idealFor && (
+                  <Text style={[styles.modelIdealForCard, isSelected && styles.enhancedModelCardDescriptionSelected]}>
+                    💡 {enhancedInfo.idealFor}
+                  </Text>
+                )}
+                
+                <View style={styles.modelDetailsRow}>
+                  <Text style={[styles.modelCardTokens, isSelected && styles.enhancedModelCardDescriptionSelected]}>
+                    Context: {item.maxTokens?.toLocaleString() || 'Unknown'} tokens
+                  </Text>
+                </View>
+                
+                {enhancedInfo.useCases && enhancedInfo.useCases.length > 0 && (
+                  <View style={styles.useCasesContainer}>
+                    <Text style={[styles.useCasesTitle, isSelected && styles.enhancedModelCardDescriptionSelected]}>
+                      Best for:
+                    </Text>
+                    <View style={styles.useCasesList}>
+                      {enhancedInfo.useCases.slice(0, 3).map((useCase: string, index: number) => (
+                        <View key={index} style={styles.useCaseChip}>
+                          <Text style={[styles.useCaseText, isSelected && styles.useCaseTextSelected]}>
+                            {useCase}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
               </TouchableOpacity>
             );
           }}
@@ -846,15 +1018,16 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
         ref={scrollViewRef} 
         style={styles.content} 
         showsVerticalScrollIndicator={false}
-        onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
         {renderTemplateOverview()}
         {renderBasicInfo()}
         {renderPromptSection()}
+        {renderParametersSection()}
         {renderContextSection()}
         {renderModelSection()}
         {renderFunctionsSection()}
-        {renderParametersSection()}
       </ScrollView>
 
       {renderModelSelector()}
@@ -1009,6 +1182,41 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#FFFFFF',
   },
+  
+  // Detected Parameters Feedback
+  detectedParametersContainer: {
+    backgroundColor: '#F0F9FF',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#0EA5E9',
+  },
+  detectedParametersLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#0369A1',
+    marginBottom: 8,
+  },
+  detectedParametersList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  detectedParameterChip: {
+    backgroundColor: '#E0F2FE',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#0EA5E9',
+  },
+  detectedParameterText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#0369A1',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
   selectorButton: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
@@ -1035,6 +1243,59 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     color: '#1A1A1A',
+  },
+  
+  // Enhanced Model Selector
+  enhancedSelectorButton: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E1E5E9',
+    ...shadowPresets.subtle,
+  },
+  modelSelectorContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  modelSelectorMain: {
+    flex: 1,
+    marginRight: 12,
+  },
+  modelSelectorHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  modelSelectorLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#8E8E93',
+  },
+  modelSelectorValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 4,
+  },
+  modelSelectorDescription: {
+    fontSize: 14,
+    color: '#5A6C7D',
+    lineHeight: 18,
+    marginBottom: 4,
+  },
+  modelIdealFor: {
+    fontSize: 12,
+    color: '#007AFF',
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  modelTokenInfo: {
+    fontSize: 11,
+    color: '#8E8E93',
+    fontWeight: '400',
   },
   switchContainer: {
     flexDirection: 'row',
@@ -1195,6 +1456,66 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#007AFF',
   },
+  
+  // Enhanced Parameter Styles
+  parametersInfo: {
+    backgroundColor: '#F0F7FF',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#007AFF',
+  },
+  parametersInfoText: {
+    fontSize: 14,
+    color: '#2C5282',
+    lineHeight: 18,
+  },
+  parameterHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 8,
+  },
+  autoDetectedBadge: {
+    backgroundColor: '#E8F5E8',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#4CAF50',
+  },
+  autoDetectedText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#2E7D32',
+  },
+  parameterNameContainer: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E1E5E9',
+  },
+  parameterNameValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  parameterNameNote: {
+    fontSize: 12,
+    color: '#8E8E93',
+    marginTop: 2,
+  },
+  parameterDescriptionContainer: {
+    marginTop: 12,
+  },
+  parameterDescriptionInput: {
+    fontSize: 14,
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
   errorText: {
     fontSize: 12,
     color: '#FF3B30',
@@ -1288,8 +1609,100 @@ const styles = StyleSheet.create({
   },
   selectedIndicator: {
     position: 'absolute',
-    top: 12,
-    right: 12,
+    top: 16,
+    right: 16,
+  },
+  
+  // Enhanced Model Card
+  enhancedModelCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E1E5E9',
+    position: 'relative',
+    ...shadowPresets.subtle,
+  },
+  enhancedModelCardSelected: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#007AFF',
+    borderWidth: 2,
+    ...shadowPresets.dramatic,
+  },
+  enhancedModelCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  modelCardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 12,
+  },
+  enhancedModelCardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    flex: 1,
+  },
+  enhancedModelCardTitleSelected: {
+    color: '#007AFF',
+  },
+  enhancedModelCardDescription: {
+    fontSize: 15,
+    color: '#5A6C7D',
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  enhancedModelCardDescriptionSelected: {
+    color: '#5A6C7D',
+    opacity: 1,
+  },
+  modelIdealForCard: {
+    fontSize: 13,
+    color: '#007AFF',
+    fontWeight: '600',
+    marginBottom: 8,
+    fontStyle: 'italic',
+  },
+  modelDetailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  useCasesContainer: {
+    marginTop: 8,
+  },
+  useCasesTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#5A6C7D',
+    marginBottom: 8,
+  },
+  useCasesList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  useCaseChip: {
+    backgroundColor: '#F0F7FF',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#B3D9FF',
+  },
+  useCaseText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#2C5282',
+  },
+  useCaseTextSelected: {
+    color: '#2C5282',
   },
   
   // Tooltip Styles

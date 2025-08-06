@@ -99,6 +99,11 @@ export interface ExecutionRun {
   created_at?: string;
   createdAt: Date;
   updatedAt: Date;
+  // Token usage fields
+  totalTokens?: number;
+  promptTokens?: number;
+  completionTokens?: number;
+  estimatedCost?: number;
 }
 
 export interface APIRequest {

@@ -87,6 +87,18 @@ const ExecuteScreen: React.FC = () => {
   const [parameterValues, setParameterValues] = useState<ParameterValue[]>([]);
   const [showParameters, setShowParameters] = useState(false);
   
+  // Template/Agent execution state
+  const [templateExecutionData, setTemplateExecutionData] = useState<{
+    isTemplateExecution: boolean;
+    isAgentExecution: boolean;
+    templateId?: string;
+    templateParameters?: any[];
+    originalPrompt?: string;
+  }>({ 
+    isTemplateExecution: false, 
+    isAgentExecution: false 
+  });
+  
   // Agent execution state
   const [agentData, setAgentData] = useState<{
     agent: any;
@@ -143,31 +155,57 @@ const ExecuteScreen: React.FC = () => {
     return Array.from(detectedParams);
   }, []);
 
-  // Update parameter values when prompt changes
+  // Update parameter values when prompt changes or template data is set
   useEffect(() => {
-    const detectedParams = detectParametersFromPrompt(formState.prompt || '');
-    const currentParamNames = parameterValues.map(p => p.name);
-    
-    // Keep existing parameter values that are still in the prompt
-    const existingParams = parameterValues.filter(p => detectedParams.includes(p.name));
-    
-    // Add new parameters that were detected but don't exist yet
-    const newParams = detectedParams
-      .filter(paramName => !currentParamNames.includes(paramName))
-      .map(paramName => ({
-        name: paramName,
-        value: '',
-        isRequired: true,
-        description: `Value for ${paramName}`,
-      }));
-    
-    // Update parameters list
-    const updatedParams = [...existingParams, ...newParams];
-    setParameterValues(updatedParams);
-    
-    // Show parameters section if we have any
-    setShowParameters(updatedParams.length > 0);
-  }, [formState.prompt, detectParametersFromPrompt]);
+    if (templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution) {
+      // For template/agent executions, use template parameters
+      if (templateExecutionData.templateParameters && templateExecutionData.templateParameters.length > 0) {
+        const templateParams = templateExecutionData.templateParameters.map(param => ({
+          name: param.name || param.parameter_name || '',
+          value: param.defaultValue || param.default_value || '',
+          isRequired: param.isRequired ?? param.is_required ?? true,
+          description: param.description || `Template parameter: ${param.name || param.parameter_name}`,
+        }));
+        setParameterValues(templateParams);
+        setShowParameters(templateParams.length > 0);
+      } else {
+        // Detect parameters from the original template prompt
+        const detectedParams = detectParametersFromPrompt(templateExecutionData.originalPrompt || formState.prompt || '');
+        const newParams = detectedParams.map(paramName => ({
+          name: paramName,
+          value: '',
+          isRequired: true,
+          description: `Template parameter: ${paramName}`,
+        }));
+        setParameterValues(newParams);
+        setShowParameters(newParams.length > 0);
+      }
+    } else {
+      // For free-form executions, detect parameters from current prompt
+      const detectedParams = detectParametersFromPrompt(formState.prompt || '');
+      const currentParamNames = parameterValues.map(p => p.name);
+      
+      // Keep existing parameter values that are still in the prompt
+      const existingParams = parameterValues.filter(p => detectedParams.includes(p.name));
+      
+      // Add new parameters that were detected but don't exist yet
+      const newParams = detectedParams
+        .filter(paramName => !currentParamNames.includes(paramName))
+        .map(paramName => ({
+          name: paramName,
+          value: '',
+          isRequired: true,
+          description: `Value for ${paramName}`,
+        }));
+      
+      // Update parameters list
+      const updatedParams = [...existingParams, ...newParams];
+      setParameterValues(updatedParams);
+      
+      // Show parameters section if we have any
+      setShowParameters(updatedParams.length > 0);
+    }
+  }, [formState.prompt, detectParametersFromPrompt, templateExecutionData]);
 
   // Update parameter value
   const updateParameterValue = (paramName: string, value: string) => {
@@ -377,6 +415,26 @@ const ExecuteScreen: React.FC = () => {
 
 
   const handleReExecute = async (reExecutionData: any) => {
+    // Set template/agent execution state
+    const isTemplateExec = reExecutionData.isTemplateExecution || false;
+    const isAgentExec = reExecutionData.isAgentExecution || false;
+    
+    setTemplateExecutionData({
+      isTemplateExecution: isTemplateExec,
+      isAgentExecution: isAgentExec,
+      templateId: reExecutionData.templateId,
+      templateParameters: reExecutionData.templateParameters || [],
+      originalPrompt: reExecutionData.basePrompt
+    });
+    
+    console.log('🔧 Template execution data set:', {
+      isTemplateExecution: isTemplateExec,
+      isAgentExecution: isAgentExec,
+      templateId: reExecutionData.templateId,
+      parametersCount: (reExecutionData.templateParameters || []).length,
+      hasOriginalPrompt: !!reExecutionData.basePrompt
+    });
+    
     // Check if this is an agent execution
     if (reExecutionData.isAgentExecution && reExecutionData.agentId) {
       try {
@@ -411,6 +469,12 @@ const ExecuteScreen: React.FC = () => {
     updateField('description', reExecutionData.description);
     updateField('prompt', reExecutionData.basePrompt);
     updateField('context', reExecutionData.context);
+    
+    console.log('📝 Form fields updated:', {
+      executionName: reExecutionData.executionRunName,
+      basePrompt: reExecutionData.basePrompt ? reExecutionData.basePrompt.substring(0, 100) + '...' : 'EMPTY',
+      promptLength: reExecutionData.basePrompt?.length || 0
+    });
     
     // Find and select the configurations
     console.log('🔧 Configuration selection debug:', {
@@ -741,22 +805,47 @@ const ExecuteScreen: React.FC = () => {
         </View>
 
         {/* Main Prompt - First and Most Prominent */}
-        <View style={[styles.fieldContainer, styles.primaryField]}>
+        <View style={[styles.fieldContainer, styles.primaryField, (templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution) && styles.readOnlyField]}>
           <View style={styles.labelContainer}>
             <Ionicons name="chatbubble-ellipses" size={18} color="#007AFF" />
-            <Text style={[styles.fieldLabel, styles.primaryFieldLabel]}>What do you want the AI to do?</Text>
-            <Text style={styles.requiredText}>Required</Text>
+            <Text style={[styles.fieldLabel, styles.primaryFieldLabel]}>
+              {(templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution) 
+                ? (templateExecutionData.isAgentExecution ? 'Agent Prompt Template' : 'Template Prompt')
+                : 'What do you want the AI to do?'
+              }
+            </Text>
+            {(templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution) ? (
+              <View style={styles.templateBadge}>
+                <Text style={styles.templateBadgeText}>Template</Text>
+              </View>
+            ) : (
+              <Text style={styles.requiredText}>Required</Text>
+            )}
           </View>
+          
+          {(templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution) && parameterValues.length > 0 && (
+            <Text style={styles.templateDescription}>
+              This prompt is from a template. Use the parameter inputs below to customize the execution.
+            </Text>
+          )}
+          
           <TextEditor
             value={formState.prompt}
-            onChangeText={(text) => updateField('prompt', text)}
-            placeholder="Write a compelling product description for a sustainable water bottle that highlights its eco-friendly features..."
-            minHeight={140}
-            maxHeight={400}
-            allowFullscreen={true}
-            showCharacterCount={true}
-            showWordCount={true}
+            onChangeText={(templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution) 
+              ? () => {} // Read-only for template executions
+              : (text) => updateField('prompt', text)
+            }
+            placeholder={(templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution)
+              ? "This prompt is configured in the template..."
+              : "Write a compelling product description for a sustainable water bottle that highlights its eco-friendly features..."
+            }
+            minHeight={200}
+            maxHeight={600}
+            allowFullscreen={!(templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution)}
+            showCharacterCount={!(templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution)}
+            showWordCount={!(templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution)}
             showLineNumbers={false}
+            editable={!(templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution)}
           />
         </View>
 
@@ -1589,6 +1678,30 @@ const styles = StyleSheet.create({
   },
   headerCompact: {
     marginBottom: 16,
+  },
+  // Template execution styles
+  readOnlyField: {
+    borderColor: '#8E8E93',
+    backgroundColor: '#F8F9FA',
+  },
+  templateBadge: {
+    backgroundColor: '#E3F2FD',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginLeft: 8,
+  },
+  templateBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1976D2',
+  },
+  templateDescription: {
+    fontSize: 14,
+    color: '#6B6B6B',
+    lineHeight: 18,
+    marginBottom: 12,
+    fontStyle: 'italic',
   },
 });
 

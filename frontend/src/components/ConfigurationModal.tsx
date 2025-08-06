@@ -54,7 +54,7 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
   };
 
   const selectAll = () => {
-    onSelectionChange(filteredConfigurations.map(config => config.id));
+    onSelectionChange(filteredConfigurations.map(config => config.id).filter((id): id is string => !!id));
   };
 
   const clearAll = () => {
@@ -62,13 +62,13 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
   };
 
   const renderConfigurationCard = (config: APIConfiguration) => {
-    const isSelected = selectedConfigurations.includes(config.id);
+    const isSelected = config.id ? selectedConfigurations.includes(config.id) : false;
     
     return (
       <TouchableOpacity
         key={config.id}
         style={[styles.configCard, isSelected && styles.configCardSelected]}
-        onPress={() => toggleConfiguration(config.id)}
+        onPress={() => config.id && toggleConfiguration(config.id)}
         activeOpacity={0.7}
       >
         <View style={styles.configHeader}>

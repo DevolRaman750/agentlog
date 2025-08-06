@@ -22,6 +22,7 @@ interface AgentDetailViewProps {
   onDelete: () => void;
   onRefresh?: () => void;
   onNavigateToTemplate?: (templateId: string) => void;
+  onNavigateToExecution?: (executionId: string) => void;
 }
 
 const AgentDetailView: React.FC<AgentDetailViewProps> = ({ 
@@ -30,11 +31,19 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({
   onClose, 
   onDelete,
   onRefresh,
-  onNavigateToTemplate 
+  onNavigateToTemplate,
+  onNavigateToExecution
 }) => {
   const [executions, setExecutions] = useState<ExecutionRun[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [agentStats, setAgentStats] = useState<{
+    totalExecutions: number;
+    completedExecutions: number;
+    failedExecutions: number;
+    totalTokensUsed: number;
+    averageExecutionTime: number;
+  } | null>(null);
 
   useEffect(() => {
     loadExecutions();
@@ -43,9 +52,21 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({
   const loadExecutions = async () => {
     try {
       setIsLoading(true);
-      const response = await goGentAPI.getAgentExecutions(agent.id, 20, 0);
+      const response = await goGentAPI.getAgentExecutions(agent.id, 50, 0);
       if (response.success && response.data) {
         setExecutions(response.data);
+        
+        // Calculate agent statistics
+        const stats = {
+          totalExecutions: response.data.length,
+          completedExecutions: response.data.filter(e => e.status?.toLowerCase() === 'completed').length,
+          failedExecutions: response.data.filter(e => e.status?.toLowerCase() === 'failed').length,
+          totalTokensUsed: response.data.reduce((sum, e) => sum + (e.totalTokens || 0), 0),
+          averageExecutionTime: response.data.length > 0 
+            ? response.data.reduce((sum, e) => sum + (e.total_time || 0), 0) / response.data.length / 1000
+            : 0
+        };
+        setAgentStats(stats);
       } else {
         console.error('Failed to load agent executions:', response.error);
       }
@@ -109,14 +130,40 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({
     }
   };
 
+  const handleExecutionPress = (execution: ExecutionRun) => {
+    if (onNavigateToExecution) {
+      onNavigateToExecution(execution.id);
+    } else {
+      console.log('Navigate to execution details:', execution.id);
+      AlertAPI.alert(
+        'Navigation Not Available',
+        'Execution details navigation is not implemented in this context.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
   const renderExecutionItem = ({ item: execution }: { item: ExecutionRun }) => (
-    <View style={styles.executionCard}>
+    <TouchableOpacity 
+      style={styles.executionCard}
+      onPress={() => handleExecutionPress(execution)}
+      activeOpacity={0.7}
+    >
       <View style={styles.executionHeader}>
-        <Text style={styles.executionName}>{execution.name || 'Execution'}</Text>
+        <Text style={styles.executionName} numberOfLines={1}>
+          {execution.name || 'Execution'}
+        </Text>
         <View style={[styles.executionStatus, { backgroundColor: getExecutionStatusColor(execution.status || 'unknown') }]}>
           <Text style={styles.executionStatusText}>{execution.status?.toUpperCase() || 'UNKNOWN'}</Text>
         </View>
       </View>
+      
+      {execution.description && (
+        <Text style={styles.executionDescription} numberOfLines={2}>
+          {execution.description}
+        </Text>
+      )}
+      
       <View style={styles.executionDetails}>
         <View style={styles.executionDetailRow}>
           <Ionicons name="time-outline" size={14} color="#666" />
@@ -124,6 +171,7 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({
             {formatDate(execution.created_at || execution.createdAt || '')}
           </Text>
         </View>
+        
         {execution.total_time && (
           <View style={styles.executionDetailRow}>
             <Ionicons name="speedometer-outline" size={14} color="#666" />
@@ -132,8 +180,30 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({
             </Text>
           </View>
         )}
+        
+        {execution.totalTokens && (
+          <View style={styles.executionDetailRow}>
+            <Ionicons name="flash-outline" size={14} color="#666" />
+            <Text style={styles.executionDetailText}>
+              {execution.totalTokens.toLocaleString()} tokens
+            </Text>
+          </View>
+        )}
+        
+        {execution.enableFunctionCalling && (
+          <View style={styles.executionDetailRow}>
+            <Ionicons name="extension-puzzle-outline" size={14} color="#007AFF" />
+            <Text style={[styles.executionDetailText, { color: '#007AFF' }]}>
+              Functions
+            </Text>
+          </View>
+        )}
       </View>
-    </View>
+      
+      <View style={styles.executionActions}>
+        <Ionicons name="chevron-forward" size={16} color="#ccc" />
+      </View>
+    </TouchableOpacity>
   );
 
   const renderEmptyExecutions = () => (
@@ -214,6 +284,54 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({
           <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
         }
       >
+        {/* Performance Statistics */}
+        {agentStats && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Performance Statistics</Text>
+            <View style={styles.statsGrid}>
+              <View style={styles.statCard}>
+                <Ionicons name="analytics" size={24} color="#007AFF" />
+                <Text style={styles.statValue}>{agentStats.totalExecutions}</Text>
+                <Text style={styles.statLabel}>Total Executions</Text>
+              </View>
+              
+              <View style={styles.statCard}>
+                <Ionicons name="checkmark-circle" size={24} color="#28a745" />
+                <Text style={styles.statValue}>{agentStats.completedExecutions}</Text>
+                <Text style={styles.statLabel}>Completed</Text>
+              </View>
+              
+              <View style={styles.statCard}>
+                <Ionicons name="close-circle" size={24} color="#dc3545" />
+                <Text style={styles.statValue}>{agentStats.failedExecutions}</Text>
+                <Text style={styles.statLabel}>Failed</Text>
+              </View>
+              
+              <View style={styles.statCard}>
+                <Ionicons name="flash" size={24} color="#FF9500" />
+                <Text style={styles.statValue}>{agentStats.totalTokensUsed.toLocaleString()}</Text>
+                <Text style={styles.statLabel}>Tokens Used</Text>
+              </View>
+              
+              <View style={styles.statCard}>
+                <Ionicons name="speedometer" size={24} color="#6f42c1" />
+                <Text style={styles.statValue}>{agentStats.averageExecutionTime.toFixed(1)}s</Text>
+                <Text style={styles.statLabel}>Avg Duration</Text>
+              </View>
+              
+              <View style={styles.statCard}>
+                <Ionicons name="trending-up" size={24} color="#17a2b8" />
+                <Text style={styles.statValue}>
+                  {agentStats.totalExecutions > 0 
+                    ? Math.round((agentStats.completedExecutions / agentStats.totalExecutions) * 100)
+                    : 0}%
+                </Text>
+                <Text style={styles.statLabel}>Success Rate</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* Status & Configuration */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Status & Configuration</Text>
@@ -443,6 +561,35 @@ const styles = StyleSheet.create({
     color: '#000',
     marginBottom: 16,
   },
+  // Stats Grid Styles
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    minWidth: '30%',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#000',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
   statusGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -513,10 +660,17 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   executionCard: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   executionHeader: {
     flexDirection: 'row',
@@ -525,10 +679,17 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   executionName: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 16,
+    fontWeight: '600',
     color: '#000',
     flex: 1,
+    marginRight: 12,
+  },
+  executionDescription: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+    marginBottom: 12,
   },
   executionStatus: {
     paddingHorizontal: 8,
@@ -542,7 +703,13 @@ const styles = StyleSheet.create({
   },
   executionDetails: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 16,
+    marginBottom: 8,
+  },
+  executionActions: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
   },
   executionDetailRow: {
     flexDirection: 'row',

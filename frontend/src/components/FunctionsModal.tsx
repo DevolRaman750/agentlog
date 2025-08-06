@@ -155,11 +155,11 @@ const FunctionsModal: React.FC<FunctionsModalProps> = ({
             <Text style={styles.functionMetaText}>Function</Text>
           </View>
           
-          {func.parameters && Object.keys(func.parameters.properties || {}).length > 0 && (
+          {func.parametersSchema && Object.keys(func.parametersSchema.properties || {}).length > 0 && (
             <View style={styles.functionMetaItem}>
               <Ionicons name="list" size={12} color="#666" />
               <Text style={styles.functionMetaText}>
-                {Object.keys(func.parameters.properties).length} params
+                {Object.keys(func.parametersSchema.properties).length} params
               </Text>
             </View>
           )}

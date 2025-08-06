@@ -286,9 +286,15 @@ func (c *Client) getUserIDFromExecutionRun(ctx context.Context, executionRunID s
 
 // RunMigrations runs database migrations
 func (c *Client) RunMigrations() error {
-	// TODO: Implement actual migration logic
-	// For now, just return nil to avoid breaking the client initialization
-	log.Printf("⚠️ Migrations not yet implemented - continuing without migrations")
+	// Note: Automatic migrations are currently disabled to avoid dependency issues
+	// Migrations should be run manually using:
+	//   - `make migrate` (if available)
+	//   - Direct SQL execution
+	//   - Migration scripts in migrations/ directory
+
+	log.Printf("ℹ️ Automatic migrations disabled - assuming schema is current")
+	log.Printf("💡 To add new migrations, run them manually or use migration scripts")
+
 	return nil
 }
 
@@ -599,6 +605,28 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 				log.Printf("✅ Found %d code search results", len(items))
 			}
 		}
+	case "github_read_commits":
+		if commits, ok := responseData.([]interface{}); ok {
+			result["commits"] = commits
+			result["total_count"] = len(commits)
+			log.Printf("✅ Retrieved %d commits from GitHub", len(commits))
+
+			// Extract key info from the latest commit for easy access
+			if len(commits) > 0 {
+				if latestCommit, ok := commits[0].(map[string]interface{}); ok {
+					result["latest_commit_sha"] = latestCommit["sha"]
+					if commitData, ok := latestCommit["commit"].(map[string]interface{}); ok {
+						result["latest_commit_message"] = commitData["message"]
+						if author, ok := commitData["author"].(map[string]interface{}); ok {
+							result["latest_commit_author"] = author["name"]
+							result["latest_commit_date"] = author["date"]
+						}
+					}
+				}
+			}
+		} else {
+			log.Printf("⚠️ Unexpected github_read_commits response type: %T", responseData)
+		}
 	}
 
 	return result, nil
@@ -693,6 +721,41 @@ func (c *Client) buildGitHubAPIURL(functionName string, args map[string]interfac
 
 	case "github_list_branches":
 		return baseURL + "/branches", nil
+
+	case "github_read_commits":
+		url := baseURL + "/commits"
+		params := []string{}
+
+		if sha, ok := args["sha"].(string); ok && sha != "" {
+			params = append(params, fmt.Sprintf("sha=%s", sha))
+		}
+
+		if path, ok := args["path"].(string); ok && path != "" {
+			params = append(params, fmt.Sprintf("path=%s", path))
+		}
+
+		if perPage, ok := args["per_page"]; ok {
+			if perPageInt, ok := perPage.(float64); ok {
+				params = append(params, fmt.Sprintf("per_page=%.0f", perPageInt))
+			} else if perPageInt, ok := perPage.(int); ok {
+				params = append(params, fmt.Sprintf("per_page=%d", perPageInt))
+			}
+		} else {
+			params = append(params, "per_page=30") // Default limit
+		}
+
+		if since, ok := args["since"].(string); ok && since != "" {
+			params = append(params, fmt.Sprintf("since=%s", since))
+		}
+
+		if until, ok := args["until"].(string); ok && until != "" {
+			params = append(params, fmt.Sprintf("until=%s", until))
+		}
+
+		if len(params) > 0 {
+			url += "?" + strings.Join(params, "&")
+		}
+		return url, nil
 
 	default:
 		return "", fmt.Errorf("unknown GitHub function: %s", functionName)

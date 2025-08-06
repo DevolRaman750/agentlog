@@ -178,6 +178,14 @@ const AgentsScreen: React.FC = () => {
     });
   };
 
+  const handleNavigateToExecution = (executionId: string) => {
+    // Navigate to history screen with the specific execution
+    navigation.navigate('History', {
+      executionId,
+      openExecutionDetails: true
+    });
+  };
+
   const handleDeleteAgent = async (agent: Agent) => {
     AlertAPI.alert(
       'Delete Agent',
@@ -280,20 +288,27 @@ const AgentsScreen: React.FC = () => {
       const agentExecutionData = {
         executionRunName: `Execute Agent: ${agent.firstName} ${agent.lastName}`,
         description: `Agent execution for ${agent.firstName} ${agent.lastName} using template: ${template.name || 'Unknown Template'}`,
-        basePrompt: template.prompt || '',
-        context: template.context || '',
+        basePrompt: template.templatePrompt || template.prompt || '',
+        context: template.contextTemplate || template.context || '',
         configurations: [defaultConfig],
         enableFunctionCalling: template.enableFunctionCalling || false,
         functionTools: [], // Will be loaded by Execute screen
+        isTemplateExecution: true, // Mark as template execution for read-only prompt
         isAgentExecution: true,
         agentId: agent.id,
-        templateId: agent.templateId
+        templateId: agent.templateId,
+        templateParameters: template.parameters || [] // Include template parameters
       };
 
       console.log('🤖 Navigating to Execute screen with agent data:', {
         agentName: `${agent.firstName} ${agent.lastName}`,
         templateId: agent.templateId,
-        templateName: template.name
+        templateName: template.name,
+        parametersCount: template.parameters?.length || 0,
+        templatePrompt: template.templatePrompt ? template.templatePrompt.substring(0, 100) + '...' : 'EMPTY',
+        fallbackPrompt: template.prompt ? template.prompt.substring(0, 100) + '...' : 'EMPTY',
+        finalBasePrompt: agentExecutionData.basePrompt ? agentExecutionData.basePrompt.substring(0, 100) + '...' : 'EMPTY',
+        isTemplateExecution: true
       });
 
       // Set the execution data and navigate to Execute screen
@@ -598,6 +613,11 @@ const AgentsScreen: React.FC = () => {
               setShowDetailModal(false);
               setSelectedAgent(null);
               handleNavigateToTemplate(templateId);
+            }}
+            onNavigateToExecution={(executionId) => {
+              setShowDetailModal(false);
+              setSelectedAgent(null);
+              handleNavigateToExecution(executionId);
             }}
           />
         )}
