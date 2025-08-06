@@ -652,9 +652,14 @@ class GoGentAPI {
         data: response.data,
       };
     } catch (error: any) {
+      const status = error.response?.status;
+      const isAuthError = status === 401 || status === 403;
+      
       return {
         success: false,
         error: error.response?.data?.error || error.message || 'Failed to get current user',
+        statusCode: status,
+        isAuthError, // Flag to indicate if this is an auth-related error
       };
     }
   }

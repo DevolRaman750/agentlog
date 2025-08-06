@@ -1432,7 +1432,7 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursive(ctx context
 		synthesisPrompt += fmt.Sprintf("Result: %s\n\n", resultStr)
 	}
 
-	synthesisPrompt += "\nNow, please continue to complete the user's original request. You have access to all the same functions as before. If the user's request requires additional function calls (like updating issues, adding comments, etc.), please make those function calls now to complete the task fully. If no additional function calls are needed, provide a comprehensive analysis of the results."
+	synthesisPrompt += "\nNow, please complete the user's original request using the data I've retrieved above. \n\nIMPORTANT: Only make additional function calls if they are absolutely necessary to complete the user's request (e.g., creating issues, updating files, etc.). If you have all the information needed to answer the user's question, provide a comprehensive response directly without making more function calls.\n\nFor requests like 'summarize', 'analyze', 'list', or 'describe', you likely have enough data already - just provide the answer."
 
 	// Create a new API request for synthesis
 	synthesisRequest := &types.APIRequest{

@@ -570,7 +570,9 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 			log.Printf("✅ Retrieved %d issues from GitHub", len(issues))
 		}
 	case "github_read_code":
+		// Handle both single file (map) and directory listing (array) responses
 		if codeData, ok := responseData.(map[string]interface{}); ok {
+			// Single file response
 			result["type"] = codeData["type"]
 			result["name"] = codeData["name"]
 			result["path"] = codeData["path"]
@@ -579,6 +581,15 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 				result["content"] = content
 				result["encoding"] = codeData["encoding"]
 			}
+			log.Printf("✅ Retrieved single file: %s", codeData["name"])
+		} else if directoryItems, ok := responseData.([]interface{}); ok {
+			// Directory listing response
+			result["type"] = "dir"
+			result["items"] = directoryItems
+			result["total_count"] = len(directoryItems)
+			log.Printf("✅ Retrieved directory with %d items", len(directoryItems))
+		} else {
+			log.Printf("⚠️ Unexpected github_read_code response type: %T", responseData)
 		}
 	case "github_search_code":
 		if searchData, ok := responseData.(map[string]interface{}); ok {

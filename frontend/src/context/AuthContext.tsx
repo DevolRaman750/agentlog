@@ -155,11 +155,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           dispatch({ type: 'SET_TOKEN', payload: token });
           
-          const currentUser = await getCurrentUser();
+          const response = await goGentAPI.getCurrentUser();
           
-          if (currentUser && isValidUser(currentUser)) {
+          if (response.success && response.data && isValidUser(response.data)) {
             // Token is valid and user data is complete
             // Preserve important properties from stored user if missing from API response
+            const currentUser = response.data;
             const mergedUser = {
               ...currentUser,
               // Preserve is_temporary from stored data if not in API response
@@ -171,13 +172,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             dispatch({ type: 'SET_USER', payload: mergedUser });
             console.log('✅ Restored valid auth session for:', mergedUser.username, 
                        mergedUser.is_temporary ? '(temporary)' : '(permanent)');
+          } else if (response.isAuthError) {
+            // Only clear auth on actual authentication errors (401, 403)
+            console.warn('🔒 Authentication failed (401/403), clearing auth data');
+            throw new Error('Authentication failed - token invalid');
           } else {
-            // Token is invalid or user data is incomplete, clear stored auth
-            console.warn('🔒 Invalid or incomplete user data, clearing auth');
-            throw new Error('Token validation failed or incomplete user data');
+            // For other errors (500, network issues), keep the auth but log the issue
+            console.warn('⚠️ Server error during auth validation, keeping stored auth:', response.error);
+            // Use the stored user data since server validation failed due to non-auth issues
+            dispatch({ type: 'SET_USER', payload: user });
+            console.log('✅ Using stored auth session for:', user.username, 
+                       '(server validation failed, but auth preserved)');
           }
         } catch (validationError) {
-          console.warn('🔒 Stored token is invalid, clearing auth data');
+          console.warn('🔒 Stored token validation failed, clearing auth data');
           await clearStoredAuth();
           // Don't auto-create temp user - let user choose on welcome screen
         }
@@ -445,15 +453,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         dispatch({ type: 'SET_USER', payload: normalizedUser });
         dispatch({ type: 'SET_AUTHENTICATED', payload: true });
         return normalizedUser;
-      } else {
-        // Token is invalid or user doesn't exist
-        console.warn('🔒 Server rejected auth token');
+      } else if (response.isAuthError) {
+        // Only consider it a token failure on actual auth errors (401, 403)
+        console.warn('🔒 Server rejected auth token (401/403)');
         return null;
+      } else {
+        // For other errors (500, network issues), don't clear the token
+        console.warn('⚠️ Server error during user validation (keeping token):', response.error);
+        throw new Error(`Server error: ${response.error}`);
       }
     } catch (error) {
       console.error('Get current user error:', error);
-      // If there's a network error or server error, token might be invalid
-      return null;
+      // Re-throw to let caller decide how to handle the error
+      throw error;
     }
   };
 

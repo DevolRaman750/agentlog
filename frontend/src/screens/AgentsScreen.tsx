@@ -25,11 +25,13 @@ import TeamCard from '../components/TeamCard';
 import AssignTeamModal from '../components/AssignTeamModal';
 import CreateTeamForm from '../components/CreateTeamForm';
 import { Agent, AgentFormData, LifecycleStatus, ExecutionTemplate, Team, TeamWithAgents } from '../types';
+import { useResponsive } from '../context/ResponsiveContext';
 
 
 const AgentsScreen: React.FC = () => {
   const { user, isLoading: authLoading } = useAuth();
   const { setReExecutionData } = useApp();
+  const { screenWidth, isSidebarLayout } = useResponsive();
   const navigation = useNavigation<any>();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -405,15 +407,15 @@ const AgentsScreen: React.FC = () => {
     if (unassignedAgents.length === 0) return null;
 
     return (
-      <View style={styles.unassignedSection}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Unassigned Agents</Text>
+      <View style={[styles.unassignedSection, isCompact && styles.unassignedSectionCompact]}>
+        <View style={[styles.sectionHeader, isCompact && styles.sectionHeaderCompact]}>
+          <Text style={[styles.sectionTitle, isCompact && styles.sectionTitleCompact]}>Unassigned Agents</Text>
           <TouchableOpacity
-            style={styles.createTeamButton}
+            style={[styles.createTeamButton, isCompact && styles.createTeamButtonCompact]}
             onPress={() => setShowCreateTeamModal(true)}
           >
-            <Ionicons name="add" size={16} color="#007AFF" />
-            <Text style={styles.createTeamButtonText}>Create Team</Text>
+            <Ionicons name="add" size={isCompact ? 14 : 16} color="#007AFF" />
+            <Text style={[styles.createTeamButtonText, isCompact && styles.createTeamButtonTextCompact]}>Create Team</Text>
           </TouchableOpacity>
         </View>
         {unassignedAgents.map(agent => (
@@ -513,15 +515,18 @@ const AgentsScreen: React.FC = () => {
     return <LoadingScreen message="Loading agents..." />;
   }
 
+  const isMobile = !isSidebarLayout;
+  const isCompact = screenWidth < 480;
+
   return (
     <View style={styles.mainContainer}>
-      <View style={styles.header}>
-        <Text style={styles.title}>My Agents</Text>
+      <View style={[styles.header, isCompact && styles.headerCompact]}>
+        <Text style={[styles.title, isCompact && styles.titleCompact]}>My Agents</Text>
         <TouchableOpacity
-          style={styles.headerButton}
+          style={[styles.headerButton, isCompact && styles.headerButtonCompact]}
           onPress={() => setShowCreateModal(true)}
         >
-          <Ionicons name="add" size={24} color="#007AFF" />
+          <Ionicons name="add" size={isCompact ? 20 : 24} color="#007AFF" />
         </TouchableOpacity>
       </View>
 
@@ -529,7 +534,7 @@ const AgentsScreen: React.FC = () => {
       {agents.length === 0 ? (
         <ScrollView 
           style={styles.emptyScrollContainer}
-          contentContainerStyle={styles.emptyScrollContent}
+          contentContainerStyle={[styles.emptyScrollContent, isCompact && styles.emptyScrollContentCompact]}
           showsVerticalScrollIndicator={false}
         >
           {renderEmptyState()}
@@ -550,7 +555,7 @@ const AgentsScreen: React.FC = () => {
             if ('type' in item) return 'unassigned';
             return (item as TeamWithAgents).team.id;
           }}
-          contentContainerStyle={styles.listContainer}
+          contentContainerStyle={[styles.listContainer, isMobile && styles.listContainerMobile, isCompact && styles.listContainerCompact]}
           refreshControl={
             <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
           }
@@ -660,17 +665,35 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E5E5EA',
     backgroundColor: 'white',
   },
+  headerCompact: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#000',
   },
+  titleCompact: {
+    fontSize: 24,
+  },
   headerButton: {
     padding: 8,
+  },
+  headerButtonCompact: {
+    padding: 6,
   },
   listContainer: {
     padding: 16,
     paddingBottom: 100, // Extra space for tab bar on mobile
+  },
+  listContainerMobile: {
+    paddingHorizontal: 12,
+    paddingBottom: 120, // Extra space for mobile tab bar
+  },
+  listContainerCompact: {
+    paddingHorizontal: 8,
+    paddingBottom: 120,
   },
   emptyScrollContainer: {
     flex: 1,
@@ -681,6 +704,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 20,
     minHeight: '100%',
+  },
+  emptyScrollContentCompact: {
+    paddingHorizontal: 12,
+    paddingVertical: 16,
   },
   emptyState: {
     alignItems: 'center',
@@ -790,16 +817,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E5EA',
   },
+  unassignedSectionCompact: {
+    padding: 12,
+    margin: 8,
+    marginTop: 0,
+    borderRadius: 8,
+  },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
   },
+  sectionHeaderCompact: {
+    marginBottom: 12,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1A1A1A',
+  },
+  sectionTitleCompact: {
+    fontSize: 16,
   },
   createTeamButton: {
     flexDirection: 'row',
@@ -811,11 +850,20 @@ const styles = StyleSheet.create({
     borderColor: '#007AFF',
     backgroundColor: '#F0F8FF',
   },
+  createTeamButtonCompact: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
   createTeamButtonText: {
     fontSize: 14,
     color: '#007AFF',
     marginLeft: 4,
     fontWeight: '500',
+  },
+  createTeamButtonTextCompact: {
+    fontSize: 12,
+    marginLeft: 2,
   },
   unassignedAgentCard: {
     marginBottom: 12,

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AgentAvatar from './AgentAvatar';
 import { Agent, LifecycleStatus } from '../types';
 import { shadowPresets } from '../styles/containers';
+import { useResponsive } from '../context/ResponsiveContext';
 
 interface AgentBusinessCardProps {
   agent: Agent;
@@ -26,6 +27,7 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
   onExecuteNow,
   animated = false
 }) => {
+  const { screenWidth, isSidebarLayout } = useResponsive();
   const formatTokenUsage = (used: number, max: number): string => {
     const percentage = max > 0 ? Math.round((used / max) * 100) : 0;
     return `${percentage}%`;
@@ -85,19 +87,23 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
   const tokenPercentage = agent.maxTokensPerDay > 0 ? (agent.tokensUsedToday / agent.maxTokensPerDay) * 100 : 0;
   const tokenColor = tokenPercentage > 90 ? '#dc3545' : tokenPercentage > 70 ? '#ffc107' : '#28a745';
 
+  // Determine layout based on screen size
+  const isCompactMode = screenWidth < 480; // Very small mobile screens
+  const isMobile = !isSidebarLayout; // Use responsive context mobile detection
+
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
       {/* Card Header with Avatar and Status */}
-      <View style={styles.cardHeader}>
+      <View style={[styles.cardHeader, isCompactMode && styles.cardHeaderCompact]}>
         <AgentAvatar 
           agent={agent} 
-          size="large" 
+          size={isCompactMode ? "medium" : "large"} 
           showStatus={true}
           animated={animated}
         />
         
-        <View style={styles.headerInfo}>
-          <Text style={styles.agentName} numberOfLines={1}>
+        <View style={[styles.headerInfo, isCompactMode && styles.headerInfoCompact]}>
+          <Text style={[styles.agentName, isCompactMode && styles.agentNameCompact]} numberOfLines={isCompactMode ? 2 : 1}>
             {agent.firstName} {agent.lastName}
           </Text>
           <View style={styles.statusContainer}>
@@ -112,29 +118,117 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
           </View>
         </View>
 
-        {/* Quick Actions */}
-        <View style={styles.quickActions}>
-          {/* Play/Pause Toggle */}
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.primaryAction]}
-            onPress={(e) => {
-              e.stopPropagation();
-              onToggleStatus();
-            }}
-            activeOpacity={0.7}
-            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-          >
-            <Ionicons 
-              name={getToggleStatusIcon()} 
-              size={16} 
-              color={getToggleStatusColor()} 
-            />
-          </TouchableOpacity>
-          
-          {/* Execute Now */}
+        {/* Quick Actions - Responsive layout */}
+        {isCompactMode ? (
+          <View style={styles.quickActionsCompact}>
+            {/* Most important actions only on very small screens */}
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.primaryAction, styles.actionButtonCompact]}
+              onPress={(e) => {
+                e.stopPropagation();
+                onToggleStatus();
+              }}
+              activeOpacity={0.7}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            >
+              <Ionicons 
+                name={getToggleStatusIcon()} 
+                size={14} 
+                color={getToggleStatusColor()} 
+              />
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.actionButtonCompact]}
+              onPress={(e) => {
+                e.stopPropagation();
+                onEdit();
+              }}
+              activeOpacity={0.7}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            >
+              <Ionicons name="pencil" size={14} color="#007AFF" />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={[styles.quickActions, isMobile && styles.quickActionsMobile]}>
+            {/* Play/Pause Toggle */}
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.primaryAction, isMobile && styles.actionButtonMobile]}
+              onPress={(e) => {
+                e.stopPropagation();
+                onToggleStatus();
+              }}
+              activeOpacity={0.7}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            >
+              <Ionicons 
+                name={getToggleStatusIcon()} 
+                size={isMobile ? 14 : 16} 
+                color={getToggleStatusColor()} 
+              />
+            </TouchableOpacity>
+            
+            {/* Execute Now */}
+            <TouchableOpacity 
+              style={[
+                styles.actionButton, 
+                styles.executeAction,
+                isMobile && styles.actionButtonMobile,
+                !canExecuteNow() && styles.disabledAction
+              ]}
+              onPress={(e) => {
+                e.stopPropagation();
+                if (canExecuteNow()) {
+                  onExecuteNow();
+                }
+              }}
+              disabled={!canExecuteNow()}
+              activeOpacity={0.7}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            >
+              <Ionicons 
+                name="flash" 
+                size={isMobile ? 14 : 16} 
+                color={canExecuteNow() ? "#FF6B35" : "#ccc"} 
+              />
+            </TouchableOpacity>
+
+            {/* Edit */}
+            <TouchableOpacity 
+              style={[styles.actionButton, isMobile && styles.actionButtonMobile]}
+              onPress={(e) => {
+                e.stopPropagation();
+                onEdit();
+              }}
+              activeOpacity={0.7}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            >
+              <Ionicons name="pencil" size={isMobile ? 14 : 16} color="#007AFF" />
+            </TouchableOpacity>
+            
+            {/* Delete */}
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.deleteAction, isMobile && styles.actionButtonMobile]}
+              onPress={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+              activeOpacity={0.7}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            >
+              <Ionicons name="trash" size={isMobile ? 14 : 16} color="#dc3545" />
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+
+      {/* Secondary Actions Row for Compact Mode */}
+      {isCompactMode && (
+        <View style={styles.secondaryActionsRow}>
           <TouchableOpacity 
             style={[
-              styles.actionButton, 
+              styles.secondaryActionButton, 
               styles.executeAction,
               !canExecuteNow() && styles.disabledAction
             ]}
@@ -146,42 +240,28 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
             }}
             disabled={!canExecuteNow()}
             activeOpacity={0.7}
-            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           >
             <Ionicons 
               name="flash" 
-              size={16} 
+              size={12} 
               color={canExecuteNow() ? "#FF6B35" : "#ccc"} 
             />
-          </TouchableOpacity>
-
-          {/* Edit */}
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={(e) => {
-              e.stopPropagation();
-              onEdit();
-            }}
-            activeOpacity={0.7}
-            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-          >
-            <Ionicons name="pencil" size={16} color="#007AFF" />
+            <Text style={[styles.secondaryActionText, !canExecuteNow() && styles.disabledText]}>Execute</Text>
           </TouchableOpacity>
           
-          {/* Delete */}
           <TouchableOpacity 
-            style={[styles.actionButton, styles.deleteAction]}
+            style={[styles.secondaryActionButton, styles.deleteAction]}
             onPress={(e) => {
               e.stopPropagation();
               onDelete();
             }}
             activeOpacity={0.7}
-            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           >
-            <Ionicons name="trash" size={16} color="#dc3545" />
+            <Ionicons name="trash" size={12} color="#dc3545" />
+            <Text style={styles.secondaryActionText}>Delete</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      )}
 
       {/* Template Information */}
       <TouchableOpacity 
@@ -287,16 +367,31 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 16,
   },
+  cardHeaderCompact: {
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   headerInfo: {
     flex: 1,
     marginLeft: 16,
     marginRight: 8,
+  },
+  headerInfoCompact: {
+    marginLeft: 12,
+    marginRight: 4,
+    flex: 1,
+    minWidth: 0, // Prevents text overflow
   },
   agentName: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#000',
     marginBottom: 4,
+  },
+  agentNameCompact: {
+    fontSize: 16,
+    lineHeight: 20,
+    marginBottom: 2,
   },
   statusContainer: {
     flexDirection: 'row',
@@ -319,6 +414,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
+  quickActionsMobile: {
+    gap: 6,
+  },
+  quickActionsCompact: {
+    flexDirection: 'row',
+    gap: 4,
+  },
   actionButton: {
     width: 36,
     height: 36,
@@ -328,6 +430,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#e9ecef',
+  },
+  actionButtonMobile: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  actionButtonCompact: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
   },
   deleteAction: {
     backgroundColor: '#fff5f5',
@@ -431,6 +543,37 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'linear-gradient(90deg, #007AFF, #5856D6)',
     opacity: 0.1,
+  },
+  // Secondary actions row for compact mode
+  secondaryActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  secondaryActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+    gap: 4,
+  },
+  secondaryActionText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#666',
+  },
+  disabledText: {
+    color: '#ccc',
   },
 });
 

@@ -240,6 +240,8 @@ export interface ApiResponse<T = any> {
   data?: T;
   error?: string;
   message?: string;
+  statusCode?: number; // HTTP status code for error responses
+  isAuthError?: boolean; // Flag to indicate if this is an auth-related error (401, 403)
 }
 
 // Form types

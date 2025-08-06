@@ -29,6 +29,10 @@ import TextEditor from '../components/TextEditor';
 import ExecutionLoadingIndicator from '../components/ExecutionLoadingIndicator';
 import LiveExecutionViewer from '../components/LiveExecutionViewer';
 import ModelKeyModal from '../components/ModelKeyModal';
+import ExecutionTags from '../components/ExecutionTags';
+import ConfigurationModal from '../components/ConfigurationModal';
+import FunctionsModal from '../components/FunctionsModal';
+import OtherOptionsModal from '../components/OtherOptionsModal';
 import { webInputStyles } from '../styles/containers';
 import { getModelKeyRequirements, areModelKeysConfigured, ModelKeyRequirement } from '../utils/modelKeyUtils';
 
@@ -56,10 +60,10 @@ const ExecuteScreen: React.FC = () => {
   const { state: formState, updateField } = useFormState();
 
   // UI state (local to component)
-  const [showConfigSelector, setShowConfigSelector] = useState(false);
-  const [showFunctionSelector, setShowFunctionSelector] = useState(false);
+  const [showConfigurationModal, setShowConfigurationModal] = useState(false);
+  const [showFunctionsModal, setShowFunctionsModal] = useState(false);
+  const [showOtherOptionsModal, setShowOtherOptionsModal] = useState(false);
   const [showExecutionResults, setShowExecutionResults] = useState(false);
-  const [showOptionalFields, setShowOptionalFields] = useState(false);
   const [availableFunctions, setAvailableFunctions] = useState<FunctionDefinition[]>([]);
   
   // Model key validation state
@@ -220,6 +224,15 @@ const ExecuteScreen: React.FC = () => {
     return `Execution ${dateStr} ${timeStr}`;
   };
 
+  // Count filled other options
+  const getOtherOptionsCount = (): number => {
+    let count = 0;
+    if (formState.executionName?.trim()) count++;
+    if (formState.description?.trim()) count++;
+    if (formState.context?.trim()) count++;
+    return count;
+  };
+
   // Set default execution name if empty
   useEffect(() => {
     if (!formState.executionName || formState.executionName.trim() === '') {
@@ -237,25 +250,7 @@ const ExecuteScreen: React.FC = () => {
     return <LoadingScreen message="Loading execution interface..." />;
   }
 
-  // Group functions by functionGroup for the selector
-  const groupedFunctions = useMemo(() => {
-    const activeFunctions = availableFunctions.filter(func => func.isActive);
-    
-    if (activeFunctions.length === 0) {
-      return [] as Array<{ title: string; data: FunctionDefinition[] }>;
-    }
-    
-    const groups = activeFunctions.reduce((acc, func) => {
-      const group = func.functionGroup || 'Other';
-      if (!acc[group]) {
-        acc[group] = [];
-      }
-      acc[group].push(func);
-      return acc;
-    }, {} as Record<string, FunctionDefinition[]>);
 
-    return Object.entries(groups).map(([title, data]) => ({ title, data }));
-  }, [availableFunctions]);
 
   // Load functions when component mounts and user is authenticated
   useEffect(() => {
@@ -379,37 +374,7 @@ const ExecuteScreen: React.FC = () => {
     }
   };
 
-  const toggleFunctionSelection = (funcId: string) => {
-    const currentSelection = formState.selectedFunctions;
-    const isSelected = currentSelection.includes(funcId);
-    
-    const newSelection = isSelected
-      ? currentSelection.filter(id => id !== funcId)
-      : [...currentSelection, funcId];
-    
-    updateField('selectedFunctions', newSelection);
-  };
 
-  const toggleCategorySelection = (categoryTitle: string) => {
-    const categoryFunctions = groupedFunctions.find(group => group.title === categoryTitle)?.data || [];
-    const categoryFunctionIds = categoryFunctions.map(func => func.id);
-    const currentSelection = formState.selectedFunctions;
-    
-    // Check if all functions in this category are selected
-    const allCategorySelected = categoryFunctionIds.every(id => currentSelection.includes(id));
-    
-    let newSelection;
-    if (allCategorySelected) {
-      // Deselect all functions in this category
-      newSelection = currentSelection.filter(id => !categoryFunctionIds.includes(id));
-    } else {
-      // Select all functions in this category
-      const functionsToAdd = categoryFunctionIds.filter(id => !currentSelection.includes(id));
-      newSelection = [...currentSelection, ...functionsToAdd];
-    }
-    
-    updateField('selectedFunctions', newSelection);
-  };
 
   const handleReExecute = async (reExecutionData: any) => {
     // Check if this is an agent execution
@@ -706,197 +671,7 @@ const ExecuteScreen: React.FC = () => {
     poll();
   };
 
-  const renderConfigurationSelector = () => (
-    <Modal 
-      visible={showConfigSelector} 
-      animationType="slide" 
-      presentationStyle="pageSheet"
-      onRequestClose={() => setShowConfigSelector(false)}
-    >
-      <View style={styles.modalContainer}>
-        <View style={styles.modalHeader}>
-          <TouchableOpacity onPress={() => setShowConfigSelector(false)}>
-            <Text style={styles.modalCancelButton}>Cancel</Text>
-          </TouchableOpacity>
-          <Text style={styles.modalTitle}>Select AI Configurations</Text>
-          <TouchableOpacity onPress={() => setShowConfigSelector(false)}>
-            <Text style={styles.modalSaveButton}>Done</Text>
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.modalSubheader}>
-          <Text style={styles.modalSubtitle}>
-            Choose the AI model configurations to test your prompt against
-          </Text>
-          <Text style={styles.selectedCount}>
-            {formState.selectedConfigs.length} selected
-          </Text>
-        </View>
 
-        <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
-          {configurations.map((item) => {
-            const isSelected = formState.selectedConfigs.includes(item.id || '');
-            return (
-              <TouchableOpacity
-                key={item.id || Math.random().toString()}
-                style={[
-                  styles.configCard,
-                  isSelected && styles.configCardSelected
-                ]}
-                onPress={() => {
-                  const itemId = item.id || '';
-                  const newSelection = isSelected
-                    ? formState.selectedConfigs.filter(id => id !== itemId)
-                    : [...formState.selectedConfigs, itemId];
-                  updateField('selectedConfigs', newSelection);
-                }}
-              >
-                <View style={styles.configHeader}>
-                  <View style={styles.configInfo}>
-                    <Text style={styles.configDisplayName}>{item.variationName}</Text>
-                    <View style={styles.configMeta}>
-                      <View style={styles.metaItem}>
-                        <Ionicons name="hardware-chip" size={14} color="#007AFF" />
-                        <Text style={styles.metaValue}>{item.modelName}</Text>
-                      </View>
-                      {item.temperature !== undefined && (
-                        <View style={styles.metaItem}>
-                          <Ionicons name="thermometer" size={14} color="#FF9500" />
-                          <Text style={styles.metaValue}>Temp: {item.temperature}</Text>
-                        </View>
-                      )}
-                    </View>
-                    {item.systemPrompt && (
-                      <Text style={styles.configDescription} numberOfLines={2}>
-                        {item.systemPrompt}
-                      </Text>
-                    )}
-                  </View>
-                  <View style={[
-                    styles.selectionCheckbox,
-                    isSelected && styles.selectionCheckboxSelected
-                  ]}>
-                    {isSelected && (
-                      <Ionicons name="checkmark" size={20} color="#FFFFFF" />
-                    )}
-                  </View>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
-    </Modal>
-  );
-
-  const renderFunctionSelector = () => (
-    <Modal 
-      visible={showFunctionSelector} 
-      animationType="slide" 
-      presentationStyle="pageSheet"
-      onRequestClose={() => setShowFunctionSelector(false)}
-    >
-      <View style={styles.modalContainer}>
-        <View style={styles.modalHeader}>
-          <TouchableOpacity onPress={() => setShowFunctionSelector(false)}>
-            <Text style={styles.modalCancelButton}>Cancel</Text>
-          </TouchableOpacity>
-          <Text style={styles.modalTitle}>Select Functions</Text>
-          <TouchableOpacity onPress={() => setShowFunctionSelector(false)}>
-            <Text style={styles.modalSaveButton}>Done</Text>
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.modalSubheader}>
-          <Text style={styles.modalSubtitle}>
-            Add AI functions to extend capabilities with external data and services
-          </Text>
-          <Text style={styles.selectedCount}>
-            {formState.selectedFunctions.length} selected
-          </Text>
-        </View>
-
-        <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
-          {groupedFunctions.map((group) => {
-            const categoryFunctionIds = group.data.map(func => func.id);
-            const selectedInCategory = categoryFunctionIds.filter(id => formState.selectedFunctions.includes(id));
-            const allCategorySelected = categoryFunctionIds.length > 0 && selectedInCategory.length === categoryFunctionIds.length;
-            const someCategorySelected = selectedInCategory.length > 0 && selectedInCategory.length < categoryFunctionIds.length;
-            
-            return (
-              <View key={group.title} style={styles.functionGroupContainer}>
-                <TouchableOpacity
-                  style={styles.functionGroupHeader}
-                  onPress={() => toggleCategorySelection(group.title)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.functionGroupTitleContainer}>
-                    <Text style={styles.functionGroupTitle}>{group.title}</Text>
-                    <Text style={styles.functionGroupCount}>
-                      {selectedInCategory.length}/{categoryFunctionIds.length} selected
-                    </Text>
-                  </View>
-                  <View style={[
-                    styles.categorySelectionCheckbox,
-                    allCategorySelected && styles.categorySelectionCheckboxSelected,
-                    someCategorySelected && styles.categorySelectionCheckboxPartial
-                  ]}>
-                    {allCategorySelected && (
-                      <Ionicons name="checkmark" size={16} color="#FFFFFF" />
-                    )}
-                    {someCategorySelected && (
-                      <Ionicons name="remove" size={16} color="#007AFF" />
-                    )}
-                  </View>
-                </TouchableOpacity>
-                
-                {group.data.map((func) => {
-                  const isSelected = formState.selectedFunctions.includes(func.id);
-                  return (
-                    <TouchableOpacity
-                      key={func.id}
-                      style={[
-                        styles.functionCard,
-                        isSelected && styles.functionCardSelected
-                      ]}
-                      onPress={() => toggleFunctionSelection(func.id)}
-                    >
-                      <View style={styles.functionHeader}>
-                        <View style={styles.functionInfo}>
-                          <Text style={styles.functionDisplayName}>{func.displayName || func.name}</Text>
-                          <Text style={styles.functionDescription} numberOfLines={2}>
-                            {func.description}
-                          </Text>
-                          {func.requiredApiKeys && func.requiredApiKeys.length > 0 && (
-                            <View style={styles.functionMeta}>
-                              <View style={styles.metaItem}>
-                                <Ionicons name="key" size={14} color="#FF9500" />
-                                <Text style={styles.metaValue}>
-                                  Requires: {func.requiredApiKeys.join(', ')} API key{func.requiredApiKeys.length > 1 ? 's' : ''}
-                                </Text>
-                              </View>
-                            </View>
-                          )}
-                        </View>
-                        <View style={[
-                          styles.selectionCheckbox,
-                          isSelected && styles.selectionCheckboxSelected
-                        ]}>
-                          {isSelected && (
-                            <Ionicons name="checkmark" size={20} color="#FFFFFF" />
-                          )}
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            );
-          })}
-        </ScrollView>
-      </View>
-    </Modal>
-  );
 
   return (
     <View style={styles.container}>
@@ -985,6 +760,16 @@ const ExecuteScreen: React.FC = () => {
           />
         </View>
 
+        {/* Execution Tags - Quick Configuration Access */}
+        <ExecutionTags
+          selectedConfigsCount={formState.selectedConfigs.length}
+          selectedFunctionsCount={formState.selectedFunctions.length}
+          otherOptionsCount={getOtherOptionsCount()}
+          onConfigurationPress={() => setShowConfigurationModal(true)}
+          onFunctionsPress={() => setShowFunctionsModal(true)}
+          onOtherOptionsPress={() => setShowOtherOptionsModal(true)}
+        />
+
         {/* Template Parameters Section - Show when parameters are detected */}
         {showParameters && parameterValues.length > 0 && (
           <View style={[styles.fieldContainer, styles.parametersField]}>
@@ -1028,140 +813,7 @@ const ExecuteScreen: React.FC = () => {
           </View>
         )}
 
-        {/* Optional Details Section - Collapsible */}
-        <View style={styles.optionalSection}>
-          <TouchableOpacity
-            style={styles.optionalHeader}
-            onPress={() => setShowOptionalFields(!showOptionalFields)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.optionalHeaderLeft}>
-              <Ionicons name="options" size={16} color="#8E8E93" />
-              <Text style={styles.optionalHeaderText}>Optional Details</Text>
-              <View style={styles.optionalBadge}>
-                <Text style={styles.optionalBadgeText}>
-                  {[
-                    formState.executionName?.trim() && 'Name',
-                    formState.description?.trim() && 'Description', 
-                    formState.context?.trim() && 'Context'
-                  ].filter(Boolean).length || 0}
-                </Text>
-              </View>
-            </View>
-            <Ionicons 
-              name={showOptionalFields ? "chevron-up" : "chevron-down"} 
-              size={16} 
-              color="#8E8E93" 
-            />
-          </TouchableOpacity>
 
-          {showOptionalFields && (
-            <View style={styles.optionalFields}>
-              {/* Execution Name */}
-              <View style={styles.compactFieldContainer}>
-                <View style={styles.compactLabelContainer}>
-                  <Ionicons name="bookmark" size={14} color="#007AFF" />
-                  <Text style={styles.compactFieldLabel}>Execution Name</Text>
-                </View>
-                <TextInput
-                  style={styles.compactInput}
-                  value={formState.executionName}
-                  onChangeText={(text) => updateField('executionName', text)}
-                  placeholder={generateDefaultExecutionName()}
-                  placeholderTextColor="#8E8E93"
-                />
-              </View>
-
-              {/* Description */}
-              <View style={styles.compactFieldContainer}>
-                <TextEditor
-                  label="📝 Description"
-                  value={formState.description}
-                  onChangeText={(text) => updateField('description', text)}
-                  placeholder="Notes about this execution..."
-                  minHeight={80}
-                  maxHeight={200}
-                  allowFullscreen={true}
-                  showCharacterCount={false}
-                  showWordCount={false}
-                  showLineNumbers={false}
-                />
-              </View>
-
-              {/* Additional Context */}
-              <View style={styles.compactFieldContainer}>
-                <TextEditor
-                  label="ℹ️ Additional Context"
-                  value={formState.context}
-                  onChangeText={(text) => updateField('context', text)}
-                  placeholder="Target audience, tone, constraints, etc..."
-                  minHeight={100}
-                  maxHeight={250}
-                  allowFullscreen={true}
-                  showCharacterCount={true}
-                  showWordCount={false}
-                  showLineNumbers={false}
-                />
-              </View>
-            </View>
-          )}
-        </View>
-
-        {/* Configuration Selection */}
-        <View style={styles.fieldContainer}>
-          <View style={styles.labelContainer}>
-            <Ionicons name="settings" size={16} color="#007AFF" />
-            <Text style={styles.fieldLabel}>AI Configurations</Text>
-            <Text style={styles.requiredText}>Required</Text>
-          </View>
-          <Text style={styles.fieldDescription}>
-            Choose which AI model configurations to test. Each configuration may use different models, temperature settings, or system prompts.
-          </Text>
-          <TouchableOpacity
-            style={styles.selectorButton}
-            onPress={() => setShowConfigSelector(true)}
-          >
-            <View style={styles.selectorContent}>
-              <View style={styles.selectorLeft}>
-                <Ionicons name="hardware-chip" size={20} color="#007AFF" />
-                <Text style={styles.selectorText}>
-                  {formState.selectedConfigs.length > 0
-                    ? `${formState.selectedConfigs.length} configuration${formState.selectedConfigs.length > 1 ? 's' : ''} selected`
-                    : 'Tap to select AI configurations'}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* Function Selection */}
-        <View style={styles.fieldContainer}>
-          <View style={styles.labelContainer}>
-            <Ionicons name="extension-puzzle" size={16} color="#007AFF" />
-            <Text style={styles.fieldLabel}>AI Functions</Text>
-            <Text style={styles.optionalText}>Optional</Text>
-          </View>
-          <Text style={styles.fieldDescription}>
-            Enable AI functions to access external services like web search, databases, or APIs during execution
-          </Text>
-          <TouchableOpacity
-            style={styles.selectorButton}
-            onPress={() => setShowFunctionSelector(true)}
-          >
-            <View style={styles.selectorContent}>
-              <View style={styles.selectorLeft}>
-                <Ionicons name="extension-puzzle" size={20} color="#007AFF" />
-                <Text style={styles.selectorText}>
-                  {formState.selectedFunctions.length > 0
-                    ? `${formState.selectedFunctions.length} function${formState.selectedFunctions.length > 1 ? 's' : ''} selected`
-                    : 'Tap to select AI functions'}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
-            </View>
-          </TouchableOpacity>
-        </View>
 
         {/* Execute Button */}
         <View style={styles.executeContainer}>
@@ -1212,9 +864,36 @@ const ExecuteScreen: React.FC = () => {
         )}
       </ScrollView>
 
-      {/* Modals */}
-      {renderConfigurationSelector()}
-      {renderFunctionSelector()}
+      {/* New Modal Components */}
+      <ConfigurationModal
+        visible={showConfigurationModal}
+        onClose={() => setShowConfigurationModal(false)}
+        configurations={configurations}
+        selectedConfigurations={formState.selectedConfigs}
+        onSelectionChange={(configIds) => updateField('selectedConfigs', configIds)}
+        isLoading={!configurations.length}
+      />
+
+      <FunctionsModal
+        visible={showFunctionsModal}
+        onClose={() => setShowFunctionsModal(false)}
+        functions={availableFunctions}
+        selectedFunctions={formState.selectedFunctions}
+        onSelectionChange={(functionIds) => updateField('selectedFunctions', functionIds)}
+        isLoading={isLoadingFunctions.current}
+      />
+
+      <OtherOptionsModal
+        visible={showOtherOptionsModal}
+        onClose={() => setShowOtherOptionsModal(false)}
+        executionName={formState.executionName}
+        description={formState.description}
+        context={formState.context}
+        onExecutionNameChange={(value) => updateField('executionName', value)}
+        onDescriptionChange={(value) => updateField('description', value)}
+        onContextChange={(value) => updateField('context', value)}
+        defaultExecutionName={generateDefaultExecutionName()}
+      />
       
       {/* Model Key Modal */}
       {missingModelKey && pendingConfiguration && (
