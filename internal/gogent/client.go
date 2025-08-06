@@ -1085,47 +1085,50 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 	// Add tools for function calling if provided
 	if len(config.Tools) > 0 {
 		log.Printf("🔧 Adding %d tools to Gemini request", len(config.Tools))
-		tools := make([]map[string]interface{}, len(config.Tools))
+		
+		// Create function declarations array - ALL functions go in ONE array
+		functionDeclarations := make([]map[string]interface{}, len(config.Tools))
 		for i, tool := range config.Tools {
 			log.Printf("🔧 Tool %d: %s - %s", i+1, tool.Name, tool.Description)
 
-			// Sanitize the parameters to remove unsupported fields
+			// Sanitize the parameters to remove unsupported fields and validate structure
 			sanitizedParams := sanitizeToolParameters(tool.Parameters)
-
-			toolDeclaration := map[string]interface{}{
-				"functionDeclarations": []map[string]interface{}{
-					{
-						"name":        tool.Name,
-						"description": tool.Description,
-						"parameters":  sanitizedParams,
-					},
-				},
+			
+			// Validate that we have a proper schema structure
+			if sanitizedParams == nil {
+				log.Printf("⚠️ Tool %s has nil parameters, using empty object", tool.Name)
+				sanitizedParams = map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{},
+				}
 			}
-			tools[i] = toolDeclaration
-			log.Printf("🔧 Tool declaration (sanitized): %+v", toolDeclaration)
+
+			functionDeclarations[i] = map[string]interface{}{
+				"name":        tool.Name,
+				"description": tool.Description,
+				"parameters":  sanitizedParams,
+			}
+			log.Printf("🔧 Function declaration %d (sanitized): %+v", i+1, functionDeclarations[i])
+		}
+		
+		// Create the correct tools structure: ONE tools array with ONE functionDeclarations array
+		tools := []map[string]interface{}{
+			{
+				"functionDeclarations": functionDeclarations,
+			},
 		}
 		requestBody["tools"] = tools
 
 		// Use AUTO mode to allow Gemini to choose whether to call functions or provide text responses
-		// This prevents getting stuck in iteration loops when Gemini doesn't need to call more functions
-		toolConfigMode := "AUTO" // Allow Gemini to choose function calling vs text response
-		if len(config.Tools) == 1 {
-			// Even with single-purpose tools, allow Gemini to decide when to stop calling functions
-			toolConfigMode = "AUTO"
-		}
-
 		requestBody["toolConfig"] = map[string]interface{}{
 			"functionCallingConfig": map[string]interface{}{
-				"mode": toolConfigMode,
+				"mode": "AUTO",
 			},
 		}
 
-		log.Printf("🔧 Final tools in request body: %+v", tools)
-		log.Printf("🔧 Added toolConfig with mode: %s (allowing Gemini to choose function vs text response)", toolConfigMode)
-		log.Printf("🔧 DEBUG: Function calling enabled with %d tools and mode=%s", len(config.Tools), toolConfigMode)
-		for i, tool := range config.Tools {
-			log.Printf("🔧 DEBUG: Tool %d - Name: %s, Description: %s", i+1, tool.Name, tool.Description)
-		}
+		log.Printf("🔧 Added toolConfig with mode: AUTO (allowing Gemini to choose function vs text response)")
+		log.Printf("🔧 DEBUG: Function calling enabled with %d tools in correct structure", len(config.Tools))
+		log.Printf("🔧 DEBUG: Tools structure - 1 tools array with 1 functionDeclarations array containing %d functions", len(functionDeclarations))
 	} else {
 		log.Printf("⚠️  No tools provided to Gemini API call")
 	}
@@ -1224,20 +1227,34 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 		log.Printf("🔧 DEBUG: Candidate finish reason: %s", finishReason)
 		log.Printf("🔧 DEBUG: Candidate has %d parts", len(candidate.Content.Parts))
 
-		// First pass: collect all function calls and text responses (Gemini parallel function calling)
-		for i, part := range candidate.Content.Parts {
-			log.Printf("🔧 DEBUG: Part %d - Text: %q, FunctionCall: %q", i, part.Text, part.FunctionCall.Name)
-			if part.Text != "" {
-				responseText = part.Text
-			}
-			if part.FunctionCall.Name != "" {
-				allFunctionCalls = append(allFunctionCalls, part)
-			}
-		}
+		// Handle MALFORMED_FUNCTION_CALL specifically
+		if finishReason == "MALFORMED_FUNCTION_CALL" {
+			log.Printf("⚠️ MALFORMED_FUNCTION_CALL detected in initial response - providing helpful fallback")
 
-		log.Printf("🔧 DEBUG: Found %d function calls in response", len(allFunctionCalls))
-		if len(config.Tools) > 0 && len(allFunctionCalls) == 0 {
-			log.Printf("⚠️ WARNING: Expected function calls but Gemini returned text-only response despite toolConfig mode=AUTO")
+			// Provide context-aware fallback based on the request
+			if strings.Contains(strings.ToLower(finalPrompt), "coverage") || strings.Contains(strings.ToLower(finalPrompt), "test") {
+				responseText = "I understand you want help with test coverage analysis. Due to the complexity of the request, I'll need to break this down into steps. Let me start by examining your codebase structure first. Could you please ask me to:\n\n1. **First**: Read the repository structure with: 'Analyze the code structure of imran31415/agentlog'\n2. **Then**: Identify specific packages needing tests\n3. **Finally**: Create detailed test recommendations\n\nThis step-by-step approach will give you more reliable results."
+			} else if strings.Contains(strings.ToLower(finalPrompt), "issue") {
+				responseText = "I want to help you with GitHub issues management. Due to the complexity of this request with multiple tools, let me break this down. Please ask me to do one specific task at a time, such as:\n\n1. **Read existing issues**: 'Read the issues from imran31415/agentlog'\n2. **Analyze code structure**: 'Analyze the code in imran31415/agentlog'\n3. **Create a specific issue**: 'Create an issue for testing package X'\n\nThis approach will ensure more reliable results."
+			} else {
+				responseText = "I'm having trouble with this complex request due to context size limitations. Let me break this down into simpler steps. Could you please specify which specific task you'd like me to focus on first? This will help me provide more focused and reliable assistance."
+			}
+		} else {
+			// First pass: collect all function calls and text responses (Gemini parallel function calling)
+			for i, part := range candidate.Content.Parts {
+				log.Printf("🔧 DEBUG: Part %d - Text: %q, FunctionCall: %q", i, part.Text, part.FunctionCall.Name)
+				if part.Text != "" {
+					responseText = part.Text
+				}
+				if part.FunctionCall.Name != "" {
+					allFunctionCalls = append(allFunctionCalls, part)
+				}
+			}
+
+			log.Printf("🔧 DEBUG: Found %d function calls in response", len(allFunctionCalls))
+			if len(config.Tools) > 0 && len(allFunctionCalls) == 0 && responseText == "" {
+				log.Printf("⚠️ WARNING: Expected function calls but Gemini returned empty response despite toolConfig mode=AUTO")
+			}
 		}
 
 		// Process function calls - let Gemini decide parallel vs sequential
