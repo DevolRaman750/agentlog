@@ -2,7 +2,7 @@ import { LinkingOptions } from '@react-navigation/native';
 import { TabParamList } from '../types';
 
 export const linking: LinkingOptions<TabParamList> = {
-  prefixes: ['http://localhost:8081', 'https://localhost:8081'],
+  prefixes: ['http://localhost:8081', 'https://localhost:8081', 'http://localhost:19006', 'https://localhost:19006'],
   config: {
     screens: {
       Execute: {
@@ -52,7 +52,9 @@ export const linking: LinkingOptions<TabParamList> = {
   getInitialURL: async () => {
     // Check if running on web
     if (typeof window !== 'undefined' && window.location) {
-      return window.location.href;
+      const url = window.location.href;
+      console.log('🔗 Initial URL:', url);
+      return url;
     }
     return null;
   },

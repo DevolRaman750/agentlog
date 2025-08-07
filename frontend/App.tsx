@@ -1,5 +1,5 @@
 import React from 'react';
-import { SafeAreaView, View, StyleSheet } from 'react-native';
+import { SafeAreaView, View, StyleSheet, Text } from 'react-native';
 import { NavigationContainer, NavigationState } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/context/AuthContext';
@@ -50,6 +50,7 @@ export default function App() {
         <NavigationContainer 
           linking={linking}
           onStateChange={onNavigationStateChange}
+          fallback={<View style={styles.container}><Text>Loading...</Text></View>}
         >
           <AuthProvider>
             <AppProvider>

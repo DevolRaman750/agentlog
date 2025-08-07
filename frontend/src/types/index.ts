@@ -1,6 +1,21 @@
 // GoGent Mobile App Types
 // These types mirror the backend Go types for consistency
 
+// Navigation types
+export type TabParamList = {
+  Execute: undefined;
+  Configure: undefined;
+  Functions: undefined;
+  'Execution Templates': { templateId?: string; editMode?: boolean; createFromExecution?: any };
+  'API Keys': undefined;
+  History: { executionId?: string; openExecutionDetails?: boolean };
+  Database: undefined;
+  Account: undefined;
+  Agents: undefined;
+  More: undefined;
+  TemplateTokenManager: { templateId: string; templateName: string };
+};
+
 export interface GeminiClientConfig {
   apiKey: string;
   maxRetries?: number;

@@ -20,6 +20,9 @@ import (
 	"gogent/internal/providers"
 	"gogent/internal/types"
 
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/mysql"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/google/uuid"
 )
 
@@ -284,17 +287,36 @@ func (c *Client) getUserIDFromExecutionRun(ctx context.Context, executionRunID s
 	return executionRun.UserID, nil
 }
 
-// RunMigrations runs database migrations
+// RunMigrations runs database migrations using golang-migrate
 func (c *Client) RunMigrations() error {
-	// Note: Automatic migrations are currently disabled to avoid dependency issues
-	// Migrations should be run manually using:
-	//   - `make migrate` (if available)
-	//   - Direct SQL execution
-	//   - Migration scripts in migrations/ directory
+	log.Printf("🔧 Running database migrations...")
 
-	log.Printf("ℹ️ Automatic migrations disabled - assuming schema is current")
-	log.Printf("💡 To add new migrations, run them manually or use migration scripts")
+	// Import the mysql driver for golang-migrate
+	driver, err := mysql.WithInstance(c.db, &mysql.Config{})
+	if err != nil {
+		return fmt.Errorf("could not create mysql driver for migrations: %w", err)
+	}
 
+	// Create migrate instance pointing to the migrations directory
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://migrations",
+		"mysql",
+		driver,
+	)
+	if err != nil {
+		return fmt.Errorf("could not create migrate instance: %w", err)
+	}
+
+	// Run migrations
+	if err := m.Up(); err != nil {
+		if err == migrate.ErrNoChange {
+			log.Printf("✅ Database schema is up to date - no migrations needed")
+			return nil
+		}
+		return fmt.Errorf("could not run migrations: %w", err)
+	}
+
+	log.Printf("✅ Database migrations completed successfully")
 	return nil
 }
 

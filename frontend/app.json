@@ -26,18 +26,7 @@
       "favicon": "./assets/favicon.png",
       "bundler": "metro",
       "output": "single",
-      "lang": "en",
-      "customHeaders": [
-        {
-          "source": "**/*",
-          "headers": [
-            {
-              "key": "Cache-Control",
-              "value": "public, max-age=86400"
-            }
-          ]
-        }
-      ]
+      "lang": "en"
     },
     "extra": {
       "eas": {
