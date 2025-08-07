@@ -1,16 +1,18 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  Modal,
-  ScrollView,
   TouchableOpacity,
+  ScrollView,
+  Modal,
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MarketplaceAgent } from '../types/marketplace';
 import ScreenContainer from './ScreenContainer';
+import { FunctionDefinition } from '../types/index';
+import { goGentAPI } from '../api/client';
 
 interface AgentResumeModalProps {
   visible: boolean;
@@ -27,38 +29,88 @@ const AgentResumeModal: React.FC<AgentResumeModalProps> = ({
   onClose,
   onHire,
 }) => {
+  const [availableFunctions, setAvailableFunctions] = useState<FunctionDefinition[]>([]);
+  const [isLoadingFunctions, setIsLoadingFunctions] = useState(false);
+
+  // Fetch available functions when modal opens
+  useEffect(() => {
+    if (visible && agent) {
+      loadAvailableFunctions();
+    }
+  }, [visible, agent]);
+
+  const loadAvailableFunctions = async () => {
+    setIsLoadingFunctions(true);
+    try {
+      const response = await goGentAPI.getFunctions();
+      
+      if (response.success && response.data) {
+        const functions = response.data;
+        // Filter to only active functions
+        const activeFunctions = functions.filter(f => f.isActive);
+        setAvailableFunctions(activeFunctions);
+      } else {
+        setAvailableFunctions([]);
+      }
+    } catch (error) {
+      console.error('Error loading functions:', error);
+      setAvailableFunctions([]);
+    } finally {
+      setIsLoadingFunctions(false);
+    }
+  };
+
   if (!agent) return null;
 
-  const getAvailabilityColor = (availability: string) => {
-    switch (availability) {
-      case 'Available': return '#34C759';
-      case 'Busy': return '#FF9500';
-      case 'Offline': return '#8E8E93';
+  const getExperienceColor = (level: string) => {
+    switch (level) {
+      case 'Expert': return '#FF3B30';
+      case 'Senior': return '#FF9500';
+      case 'Mid-Level': return '#007AFF';
+      case 'Junior': return '#34C759';
       default: return '#8E8E93';
     }
   };
 
-  const getExperienceColor = (level: string) => {
-    switch (level) {
-      case 'Junior': return '#007AFF';
-      case 'Mid-Level': return '#32D74B';
-      case 'Senior': return '#FF9500';
-      case 'Expert': return '#AF52DE';
-      default: return '#007AFF';
+  const getFunctionGroupIcon = (group: string) => {
+    switch (group.toLowerCase()) {
+      case 'github (read-only)':
+      case 'github (full access)':
+        return 'logo-github';
+      case 'slack communication':
+        return 'chatbubbles';
+      case 'weather api':
+        return 'partly-sunny';
+      default:
+        return 'extension-puzzle';
     }
   };
 
+  // Map marketplace agent function groups to actual database function groups
+  const groupMapping: { [key: string]: string } = {
+    'github (read-only)': 'github',
+    'github (full access)': 'github', 
+    'slack communication': 'communication',
+    'weather api': 'weather'
+  };
 
-
-  const getFunctionGroupIcon = (group: string) => {
-    switch (group.toLowerCase()) {
-      case 'github': return 'logo-github';
-      case 'slack': return 'chatbubbles';
-      case 'weather': return 'partly-sunny';
-      case 'communication': return 'mail';
-      case 'database': return 'server';
-      default: return 'extension-puzzle';
+  // Function to get the count of functions for a specific group based on actual function data
+  const getFunctionCountForGroup = (group: string) => {
+    if (isLoadingFunctions || availableFunctions.length === 0) {
+      // Fallback to the specificFunctions array if we don't have real function data
+      return agent.capabilities.specificFunctions.filter(func => 
+        func.toLowerCase().includes(group.toLowerCase().replace(' ', ''))
+      ).length;
     }
+
+    const actualGroup = groupMapping[group.toLowerCase()] || group.toLowerCase();
+    
+    // Use real function data to count functions in this group
+    const functionsInGroup = availableFunctions.filter(func => 
+      func.functionGroup.toLowerCase() === actualGroup
+    );
+    
+    return functionsInGroup.length;
   };
 
   return (
@@ -93,10 +145,7 @@ const AgentResumeModal: React.FC<AgentResumeModalProps> = ({
                   {agent.avatar.initials}
                 </Text>
               </View>
-              <View style={[
-                styles.availabilityDot,
-                { backgroundColor: getAvailabilityColor(agent.stats.availability) }
-              ]} />
+              {/* Removed availability dot - no fake metrics */}
             </View>
             
             <View style={styles.profileInfo}>
@@ -114,9 +163,7 @@ const AgentResumeModal: React.FC<AgentResumeModalProps> = ({
                   {agent.experienceLevel}
                 </Text>
               </View>
-              <Text style={styles.availability}>
-                {agent.stats.availability}
-              </Text>
+              {/* Removed availability status - no fake metrics */}
             </View>
             </View>
           </View>
@@ -192,9 +239,7 @@ const AgentResumeModal: React.FC<AgentResumeModalProps> = ({
                   />
                   <Text style={styles.capabilityTitle}>{group}</Text>
                   <Text style={styles.capabilityCount}>
-                    {agent.capabilities.specificFunctions.filter(func => 
-                      func.toLowerCase().includes(group.toLowerCase())
-                    ).length} functions
+                    {getFunctionCountForGroup(group)} functions
                   </Text>
                 </View>
               ))}
@@ -226,27 +271,7 @@ const AgentResumeModal: React.FC<AgentResumeModalProps> = ({
           </View>
         </View>
 
-        {/* Performance Stats */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Performance Metrics</Text>
-          <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
-              <Ionicons name="briefcase" size={24} color="#007AFF" />
-              <Text style={styles.statNumber}>{agent.stats.projectsCompleted}</Text>
-              <Text style={styles.statLabel}>Projects Completed</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Ionicons name="checkmark-circle" size={24} color="#34C759" />
-              <Text style={styles.statNumber}>{agent.stats.successRate}%</Text>
-              <Text style={styles.statLabel}>Success Rate</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Ionicons name="time" size={24} color="#FF9500" />
-              <Text style={styles.statNumber}>{agent.stats.responseTime}</Text>
-              <Text style={styles.statLabel}>Avg Response</Text>
-            </View>
-          </View>
-        </View>
+
 
         {/* Template Information */}
         <View style={styles.section}>

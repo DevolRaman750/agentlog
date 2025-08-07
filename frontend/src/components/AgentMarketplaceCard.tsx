@@ -20,14 +20,7 @@ const AgentMarketplaceCard: React.FC<AgentMarketplaceCardProps> = ({
   onPress,
   style,
 }) => {
-  const getAvailabilityColor = (availability: string) => {
-    switch (availability) {
-      case 'Available': return '#34C759';
-      case 'Busy': return '#FF9500';
-      case 'Offline': return '#8E8E93';
-      default: return '#8E8E93';
-    }
-  };
+  {/* Removed getAvailabilityColor function - no longer needed */}
 
   const getExperienceColor = (level: string) => {
     switch (level) {
@@ -61,10 +54,7 @@ const AgentMarketplaceCard: React.FC<AgentMarketplaceCardProps> = ({
               {agent.avatar.initials}
             </Text>
           </View>
-          <View style={[
-            styles.availabilityDot,
-            { backgroundColor: getAvailabilityColor(agent.stats.availability) }
-          ]} />
+          {/* Removed availability dot - no fake metrics */}
         </View>
         
         <View style={styles.headerInfo}>
@@ -150,21 +140,7 @@ const AgentMarketplaceCard: React.FC<AgentMarketplaceCardProps> = ({
         </View>
       </View>
 
-      {/* Stats Footer */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Ionicons name="briefcase" size={16} color="#6B6B6B" />
-          <Text style={styles.statText}>{agent.stats.projectsCompleted} projects</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Ionicons name="checkmark-circle" size={16} color="#6B6B6B" />
-          <Text style={styles.statText}>{agent.stats.successRate}% success</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Ionicons name="time" size={16} color="#6B6B6B" />
-          <Text style={styles.statText}>{agent.stats.responseTime}</Text>
-        </View>
-      </View>
+      {/* Removed fake performance metrics */}
 
       {/* Call to Action */}
       <View style={styles.ctaContainer}>

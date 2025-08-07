@@ -37,12 +37,6 @@ export const generateMarketplaceAgents = (): MarketplaceAgent[] => {
         ],
         tools: ['GitHub API (Read)', 'Slack Bot API', 'Code Analysis', 'Issue Tracking']
       },
-      stats: {
-        projectsCompleted: 89,
-        successRate: 91,
-        responseTime: '< 1 min',
-        availability: 'Available'
-      },
       templateId: 'template-code-analyst',
       templateName: 'Code Research Analyst',
       highlights: [
@@ -101,12 +95,6 @@ export const generateMarketplaceAgents = (): MarketplaceAgent[] => {
         ],
         tools: ['GitHub API (Full Write Access)', 'Git', 'Code Generation', 'Testing Frameworks']
       },
-      stats: {
-        projectsCompleted: 247,
-        successRate: 94,
-        responseTime: '< 2 min',
-        availability: 'Available'
-      },
       templateId: 'template-autonomous-swe',
       templateName: 'Autonomous Software Engineer',
       highlights: [
@@ -159,12 +147,6 @@ export const generateMarketplaceAgents = (): MarketplaceAgent[] => {
           'slack_search_users'
         ],
         tools: ['OpenWeather API', 'Slack Bot API', 'Location Services', 'Alert Systems']
-      },
-      stats: {
-        projectsCompleted: 134,
-        successRate: 92,
-        responseTime: '< 30 sec',
-        availability: 'Available'
       },
       templateId: 'template-weather-comms',
       templateName: 'Weather Communication Specialist',

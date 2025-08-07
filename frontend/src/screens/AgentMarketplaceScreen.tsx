@@ -64,7 +64,7 @@ const AgentMarketplaceScreen: React.FC = () => {
           agent.name.toLowerCase().includes(searchLower) ||
           agent.role.toLowerCase().includes(searchLower) ||
           agent.description.toLowerCase().includes(searchLower) ||
-          agent.capabilities.specialties.some(specialty => 
+          agent.capabilities.specialties.some((specialty: string) => 
             specialty.toLowerCase().includes(searchLower)
           );
         if (!matchesSearch) return false;

@@ -17,12 +17,6 @@ export interface MarketplaceAgent {
     specificFunctions: string[];
     tools: string[];
   };
-  stats: {
-    projectsCompleted: number;
-    successRate: number;
-    responseTime: string;
-    availability: 'Available' | 'Busy' | 'Offline';
-  };
   templateId: string;
   templateName: string;
   highlights: string[]; // Key selling points
