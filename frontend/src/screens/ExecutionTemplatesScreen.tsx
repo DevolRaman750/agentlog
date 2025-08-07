@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -37,14 +37,21 @@ const ExecutionTemplatesScreen: React.FC = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<ExecutionTemplate | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isViewMode, setIsViewMode] = useState(false);
+  
+  // Track processed route params to prevent re-processing
+  const processedParamsRef = useRef<string | null>(null);
 
   useEffect(() => {
     fetchTemplates();
     fetchAvailableFunctions();
     
-    // Handle creating template from execution
+    // Handle creating template from execution (only process once per unique param set)
     const params = route.params as any;
-    if (params?.createFromExecution) {
+    const paramsKey = params?.createFromExecution ? JSON.stringify(params.createFromExecution) : null;
+    
+    if (params?.createFromExecution && paramsKey !== processedParamsRef.current) {
+      console.log('🔄 Processing createFromExecution params');
+      processedParamsRef.current = paramsKey;
       handleCreateFromExecution(params.createFromExecution);
     }
   }, [route.params, configurations]);
@@ -114,6 +121,14 @@ const ExecutionTemplatesScreen: React.FC = () => {
       // Check if template has a preferred configuration
       let templateConfigurations = configurations;
       
+      console.log('🔍 Template execution debug:', {
+        templateName: template.name,
+        hasPreferredConfig: !!template.preferredConfigurationId,
+        preferredConfigId: template.preferredConfigurationId,
+        totalAvailableConfigs: configurations.length,
+        availableConfigs: configurations.map(c => ({ id: c.id, name: c.variationName }))
+      });
+      
       if (template.preferredConfigurationId) {
         // Find the preferred configuration
         const preferredConfig = configurations.find(config => config.id === template.preferredConfigurationId);
@@ -123,6 +138,15 @@ const ExecutionTemplatesScreen: React.FC = () => {
           console.log('🎯 Using preferred configuration for template:', template.name, 'Config:', preferredConfig.variationName);
         } else {
           console.warn('⚠️ Preferred configuration not found, falling back to all configurations');
+          console.warn('   Searching for:', template.preferredConfigurationId);
+          console.warn('   Available IDs:', configurations.map(c => c.id));
+        }
+      } else {
+        console.warn('⚠️ Template has no preferred configuration, defaulting to first available configuration');
+        // For template execution, default to first configuration instead of all configurations
+        if (configurations.length > 0) {
+          templateConfigurations = [configurations[0]];
+          console.log('🔧 Using default configuration:', configurations[0].variationName);
         }
       }
 
@@ -217,6 +241,8 @@ const ExecutionTemplatesScreen: React.FC = () => {
     setSelectedTemplate(null);
     setIsEditMode(false);
     setIsViewMode(false);
+    // Reset processed params to allow fresh navigation
+    processedParamsRef.current = null;
   };
 
   // Handle both create and update operations
