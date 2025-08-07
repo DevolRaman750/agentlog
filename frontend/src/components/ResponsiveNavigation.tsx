@@ -173,8 +173,9 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({ isSi
                   <TouchableOpacity
                     style={[
                       styles.modalItem, 
-                      (isCurrentRoute(item.name) || (item.children && item.children.some(child => isCurrentRoute(child.name)))) && styles.modalItemActive,
-                      item.children && styles.modalGroupItem
+                      isCurrentRoute(item.name) && styles.modalItemActive,
+                      item.children && styles.modalGroupItem,
+                      item.children && item.children.some(child => isCurrentRoute(child.name)) && styles.modalGroupItemActiveChild
                     ]}
                     onPress={() => {
                       if (item.children) {
@@ -185,13 +186,14 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({ isSi
                     }}
                   >
                     <Ionicons
-                      name={(isCurrentRoute(item.name) || (item.children && item.children.some(child => isCurrentRoute(child.name)))) ? item.iconFocused : item.icon}
+                      name={isCurrentRoute(item.name) ? item.iconFocused : item.icon}
                       size={24}
-                      color={(isCurrentRoute(item.name) || (item.children && item.children.some(child => isCurrentRoute(child.name)))) ? "#FFFFFF" : "#007AFF"}
+                      color={isCurrentRoute(item.name) ? "#FFFFFF" : (item.children && item.children.some(child => isCurrentRoute(child.name))) ? "#007AFF" : "#007AFF"}
                     />
                     <Text style={[
                       styles.modalItemText, 
-                      (isCurrentRoute(item.name) || (item.children && item.children.some(child => isCurrentRoute(child.name)))) && styles.modalItemTextActive
+                      isCurrentRoute(item.name) && styles.modalItemTextActive,
+                      item.children && item.children.some(child => isCurrentRoute(child.name)) && styles.modalGroupTextActiveChild
                     ]}>
                       {item.title}
                     </Text>
@@ -199,7 +201,7 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({ isSi
                       <Ionicons 
                         name={expandedGroups.has(item.name) ? "chevron-down" : "chevron-forward"} 
                         size={20} 
-                        color={(isCurrentRoute(item.name) || (item.children && item.children.some(child => isCurrentRoute(child.name)))) ? "#FFFFFF" : "#8E8E93"} 
+                        color={isCurrentRoute(item.name) ? "#FFFFFF" : (item.children && item.children.some(child => isCurrentRoute(child.name))) ? "#007AFF" : "#8E8E93"} 
                       />
                     )}
                     {isCurrentRoute(item.name) && !item.children && (
@@ -264,8 +266,9 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({ isSi
               <TouchableOpacity
                 style={[
                   styles.sidebarItem, 
-                  (isCurrentRoute(item.name) || (item.children && item.children.some(child => isCurrentRoute(child.name)))) && styles.sidebarItemActive,
-                  item.children && styles.sidebarGroupItem
+                  isCurrentRoute(item.name) && styles.sidebarItemActive,
+                  item.children && styles.sidebarGroupItem,
+                  item.children && item.children.some(child => isCurrentRoute(child.name)) && styles.sidebarGroupItemActiveChild
                 ]}
                 onPress={() => {
                   if (item.children) {
@@ -276,13 +279,14 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({ isSi
                 }}
               >
                 <Ionicons
-                  name={(isCurrentRoute(item.name) || (item.children && item.children.some(child => isCurrentRoute(child.name)))) ? item.iconFocused : item.icon}
+                  name={isCurrentRoute(item.name) ? item.iconFocused : item.icon}
                   size={20}
-                  color={(isCurrentRoute(item.name) || (item.children && item.children.some(child => isCurrentRoute(child.name)))) ? "#FFFFFF" : "#007AFF"}
+                  color={isCurrentRoute(item.name) ? "#FFFFFF" : (item.children && item.children.some(child => isCurrentRoute(child.name))) ? "#007AFF" : "#007AFF"}
                 />
                 <Text style={[
                   styles.sidebarItemText, 
-                  (isCurrentRoute(item.name) || (item.children && item.children.some(child => isCurrentRoute(child.name)))) && styles.sidebarItemTextActive
+                  isCurrentRoute(item.name) && styles.sidebarItemTextActive,
+                  item.children && item.children.some(child => isCurrentRoute(child.name)) && styles.sidebarGroupTextActiveChild
                 ]}>
                   {item.title}
                 </Text>
@@ -290,7 +294,7 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({ isSi
                   <Ionicons 
                     name={expandedGroups.has(item.name) ? "chevron-down" : "chevron-forward"} 
                     size={16} 
-                    color={(isCurrentRoute(item.name) || (item.children && item.children.some(child => isCurrentRoute(child.name)))) ? "#FFFFFF" : "#8E8E93"} 
+                    color={isCurrentRoute(item.name) ? "#FFFFFF" : (item.children && item.children.some(child => isCurrentRoute(child.name))) ? "#007AFF" : "#8E8E93"} 
                   />
                 )}
               </TouchableOpacity>
@@ -439,6 +443,15 @@ const styles = StyleSheet.create({
   modalGroupItem: {
     backgroundColor: '#F8F9FA',
   },
+  modalGroupItemActiveChild: {
+    backgroundColor: '#F0F8FF',
+    borderLeftWidth: 3,
+    borderLeftColor: '#007AFF',
+  },
+  modalGroupTextActiveChild: {
+    color: '#007AFF',
+    fontWeight: '600',
+  },
   modalSubItem: {
     paddingLeft: 20,
     backgroundColor: '#FFFFFF',
@@ -512,6 +525,15 @@ const styles = StyleSheet.create({
   },
   sidebarGroupItem: {
     backgroundColor: '#F8F9FA',
+  },
+  sidebarGroupItemActiveChild: {
+    backgroundColor: '#F0F8FF',
+    borderLeftWidth: 3,
+    borderLeftColor: '#007AFF',
+  },
+  sidebarGroupTextActiveChild: {
+    color: '#007AFF',
+    fontWeight: '600',
   },
   sidebarSubItem: {
     paddingLeft: 32,
