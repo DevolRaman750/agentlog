@@ -97,8 +97,10 @@ const ResponsiveTabNavigator = () => {
     if (isLoading && typeof window !== 'undefined' && window.location) {
       const path = window.location.pathname;
       const pathToRoute: Record<string, string> = {
-        '/execute': 'Execute',
-        '/configure': 'Configure',
+        '/experiment': 'Execute',
+        '/model': 'Configure',
+        '/execute': 'Execute', // Legacy support
+        '/configure': 'Configure', // Legacy support  
         '/functions': 'Functions',
         '/templates': 'Templates',
         '/api-keys': 'API Keys',

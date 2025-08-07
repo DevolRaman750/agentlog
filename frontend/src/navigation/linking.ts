@@ -6,11 +6,11 @@ export const linking: LinkingOptions<TabParamList> = {
   config: {
     screens: {
       Execute: {
-        path: '/execute',
+        path: '/experiment',
         exact: true,
       },
       Configure: {
-        path: '/configure',
+        path: '/model',
         exact: true,
       },
       Functions: {
@@ -87,8 +87,10 @@ export const getInitialRouteName = (isAuthenticated: boolean, isLoading: boolean
     
     // Map paths to route names
     const pathToRoute: Record<string, keyof TabParamList> = {
-      '/execute': 'Execute',
-      '/configure': 'Configure',
+      '/experiment': 'Execute',
+      '/model': 'Configure',
+      '/execute': 'Execute', // Legacy support
+      '/configure': 'Configure', // Legacy support
       '/functions': 'Functions',
       '/execution-templates': 'Execution Templates',
       '/api-keys': 'API Keys',
@@ -119,8 +121,10 @@ export const getInitialRouteName = (isAuthenticated: boolean, isLoading: boolean
     
     // Map paths to route names
     const pathToRoute: Record<string, keyof TabParamList> = {
-      '/execute': 'Execute',
-      '/configure': 'Configure',
+      '/experiment': 'Execute',
+      '/model': 'Configure',
+      '/execute': 'Execute', // Legacy support
+      '/configure': 'Configure', // Legacy support
       '/functions': 'Functions',
       '/execution-templates': 'Execution Templates',
       '/api-keys': 'API Keys',
@@ -140,7 +144,7 @@ export const getInitialRouteName = (isAuthenticated: boolean, isLoading: boolean
     // Handle root path "/" - redirect based on authentication status
     if (path === '/' || path === '') {
       if (isAuthenticated) {
-        const defaultPath = '/execute';
+        const defaultPath = '/experiment';
         window.history.replaceState({}, '', defaultPath);
         return 'Execute';
       } else {

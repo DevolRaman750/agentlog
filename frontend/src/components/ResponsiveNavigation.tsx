@@ -38,7 +38,8 @@ const navigationItems: NavigationItem[] = [
     icon: 'settings-outline', 
     iconFocused: 'settings',
     children: [
-      { name: 'Execute', title: 'Model', icon: 'play-circle-outline', iconFocused: 'play-circle', isSubItem: true },
+      { name: 'Configure', title: 'Model', icon: 'settings-outline', iconFocused: 'settings', isSubItem: true },
+      { name: 'Execute', title: 'Experiment', icon: 'flask-outline', iconFocused: 'flask', isSubItem: true },
       { name: 'Execution Templates', title: 'Templates', icon: 'document-text-outline', iconFocused: 'document-text', isSubItem: true },
       { name: 'Functions', title: 'Functions', icon: 'code-slash-outline', iconFocused: 'code-slash', isSubItem: true },
       { name: 'API Keys', title: 'API Keys', icon: 'key-outline', iconFocused: 'key', isSubItem: true }
@@ -79,8 +80,8 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({ isSi
     // Update URL for web
     if (typeof window !== 'undefined' && window.history) {
       const pathMap: Record<string, string> = {
-        'Execute': '/execute',
-        'Configure': '/configure',
+        'Execute': '/experiment',
+        'Configure': '/model',
         'Functions': '/functions',
         'Execution Templates': '/templates',
         'API Keys': '/api-keys',
