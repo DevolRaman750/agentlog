@@ -40,11 +40,22 @@ func (c *Client) ExecuteMultiVariation(ctx context.Context, userID string, reque
 			"configurationsCount":   len(request.Configurations),
 		})
 
-	// Log flow event for execution start
+	// Log flow event for execution start with enhanced details
 	c.logExecutionFlowEvent("prompt_start", c.getNextSequenceNumber(), "success", nil, map[string]interface{}{
-		"executionName": request.ExecutionRunName,
-		"basePrompt":    request.BasePrompt,
-		"configCount":   len(request.Configurations),
+		"executionName":         request.ExecutionRunName,
+		"basePrompt":            request.BasePrompt,
+		"promptLength":          len(request.BasePrompt),
+		"contextLength":         len(request.Context),
+		"configCount":           len(request.Configurations),
+		"enableFunctionCalling": request.EnableFunctionCalling,
+		"functionToolsCount":    len(request.FunctionTools),
+		"comparisonEnabled":     request.ComparisonConfig.Enabled,
+		"userID":                userID,
+		"executionRunID":        executionRun.ID,
+		"promptPreview":         c.truncateString(request.BasePrompt, 200),
+		"contextPreview":        c.truncateString(request.Context, 200),
+		"functionList":          c.extractFunctionNames(request.FunctionTools),
+		"configModels":          c.extractModelNames(request.Configurations),
 	}, nil, nil)
 
 	if request.EnableFunctionCalling {
@@ -319,13 +330,23 @@ func (c *Client) executeSingleVariation(ctx context.Context, userID string, exec
 		c.setExecutionContext(prevExecutionRunID, prevConfigID, prevRequestID)
 	}()
 
-	// Log API request start flow event
+	// Log API request start flow event with enhanced details
 	c.logExecutionFlowEvent("api_request_start", c.getNextSequenceNumber(), "pending", nil, map[string]interface{}{
 		"requestId":       apiRequest.ID,
 		"configurationId": actualConfigID,
+		"modelName":       config.ModelName,
+		"variationName":   config.VariationName,
+		"temperature":     config.Temperature,
+		"maxTokens":       config.MaxTokens,
 		"promptLength":    len(prompt),
 		"contextLength":   len(context),
 		"requestType":     string(apiRequest.RequestType),
+		"promptPreview":   c.truncateString(prompt, 200),
+		"configSettings": map[string]interface{}{
+			"topK":   config.TopK,
+			"topP":   config.TopP,
+			"userID": configUserID,
+		},
 	}, nil, nil)
 
 	// Execute the actual Gemini API call
@@ -343,20 +364,29 @@ func (c *Client) executeSingleVariation(ctx context.Context, userID string, exec
 			CreatedAt:      time.Now(),
 		}
 
-		// Log API request error flow event
+		// Log API request error flow event with enhanced details
 		errorMsg := err.Error()
 		c.logExecutionFlowEvent("api_request_end", c.getNextSequenceNumber(), "error", nil, map[string]interface{}{
 			"requestId":      apiRequest.ID,
 			"responseStatus": string(apiResponse.ResponseStatus),
 			"errorMessage":   errorMsg,
+			"durationMs":     apiCallDuration,
+			"modelName":      config.ModelName,
+			"errorType":      c.classifyError(errorMsg),
+			"retryable":      c.isRetryableError(errorMsg),
 		}, &apiCallDuration, &errorMsg)
 	} else {
-		// Log successful API request end flow event
+		// Log successful API request end flow event with enhanced details
 		c.logExecutionFlowEvent("api_request_end", c.getNextSequenceNumber(), "success", nil, map[string]interface{}{
-			"requestId":      apiRequest.ID,
-			"responseStatus": string(apiResponse.ResponseStatus),
-			"responseLength": len(apiResponse.ResponseText),
-			"finishReason":   apiResponse.FinishReason,
+			"requestId":       apiRequest.ID,
+			"responseStatus":  string(apiResponse.ResponseStatus),
+			"responseLength":  len(apiResponse.ResponseText),
+			"finishReason":    apiResponse.FinishReason,
+			"durationMs":      apiCallDuration,
+			"modelName":       config.ModelName,
+			"tokensUsed":      c.extractTokenUsage(apiResponse),
+			"responsePreview": c.truncateString(apiResponse.ResponseText, 300),
+			"hasFunctionCall": strings.Contains(apiResponse.ResponseText, "function_call"),
 		}, &apiCallDuration, nil)
 	}
 
@@ -1319,12 +1349,22 @@ func (c *Client) executeFunctionCall(ctx context.Context, functionName string, a
 	if err != nil {
 		errorMsg := err.Error()
 		c.logExecutionFlowEvent("function_call_end", c.getNextSequenceNumber(), "error", nil, map[string]interface{}{
-			"functionName": functionName,
+			"functionName":    functionName,
+			"arguments":       args,
+			"errorMessage":    errorMsg,
+			"executionTimeMs": executionTimeMs,
+			"errorType":       c.classifyError(errorMsg),
+			"retryable":       c.isRetryableError(errorMsg),
 		}, &executionTimeMs, &errorMsg)
 	} else {
+		resultStr := fmt.Sprintf("%v", result)
 		c.logExecutionFlowEvent("function_call_end", c.getNextSequenceNumber(), "success", nil, map[string]interface{}{
-			"functionName": functionName,
-			"resultSize":   len(fmt.Sprintf("%v", result)),
+			"functionName":    functionName,
+			"arguments":       args,
+			"resultSize":      len(resultStr),
+			"resultPreview":   c.truncateString(resultStr, 500),
+			"executionTimeMs": executionTimeMs,
+			"hasData":         c.resultHasData(result),
 		}, &executionTimeMs, nil)
 	}
 
@@ -1489,4 +1529,135 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursive(ctx context
 
 	// Fallback
 	return fmt.Sprintf("I executed %d functions: %s", len(functionCalls), functionCalls[0].FunctionCall.Name)
+}
+
+// Helper functions for enhanced logging
+
+// truncateString truncates a string to a maximum length with ellipsis
+func (c *Client) truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
+}
+
+// classifyError attempts to classify the type of error for better debugging
+func (c *Client) classifyError(errorMsg string) string {
+	errorLower := strings.ToLower(errorMsg)
+
+	switch {
+	case strings.Contains(errorLower, "timeout"):
+		return "timeout"
+	case strings.Contains(errorLower, "rate limit"):
+		return "rate_limit"
+	case strings.Contains(errorLower, "quota"):
+		return "quota_exceeded"
+	case strings.Contains(errorLower, "authentication") || strings.Contains(errorLower, "unauthorized"):
+		return "authentication"
+	case strings.Contains(errorLower, "permission") || strings.Contains(errorLower, "forbidden"):
+		return "permission"
+	case strings.Contains(errorLower, "not found") || strings.Contains(errorLower, "404"):
+		return "not_found"
+	case strings.Contains(errorLower, "invalid") || strings.Contains(errorLower, "bad request"):
+		return "validation"
+	case strings.Contains(errorLower, "network") || strings.Contains(errorLower, "connection"):
+		return "network"
+	case strings.Contains(errorLower, "server error") || strings.Contains(errorLower, "500"):
+		return "server_error"
+	default:
+		return "unknown"
+	}
+}
+
+// isRetryableError determines if an error might be retryable
+func (c *Client) isRetryableError(errorMsg string) bool {
+	errorType := c.classifyError(errorMsg)
+
+	switch errorType {
+	case "timeout", "network", "server_error", "rate_limit":
+		return true
+	case "authentication", "permission", "not_found", "validation":
+		return false
+	default:
+		return false
+	}
+}
+
+// extractTokenUsage attempts to extract token usage information from API response
+func (c *Client) extractTokenUsage(response *types.APIResponse) map[string]interface{} {
+	if response.UsageMetadata == nil {
+		return map[string]interface{}{"available": false}
+	}
+
+	// Usage metadata is already a map, no need to unmarshal
+	usage := response.UsageMetadata
+
+	result := map[string]interface{}{"available": true}
+
+	// Extract common token fields
+	if promptTokens, ok := usage["promptTokenCount"]; ok {
+		result["promptTokens"] = promptTokens
+	}
+	if candidateTokens, ok := usage["candidatesTokenCount"]; ok {
+		result["candidateTokens"] = candidateTokens
+	}
+	if totalTokens, ok := usage["totalTokenCount"]; ok {
+		result["totalTokens"] = totalTokens
+	}
+
+	return result
+}
+
+// resultHasData checks if a function result contains meaningful data
+func (c *Client) resultHasData(result map[string]interface{}) bool {
+	if result == nil {
+		return false
+	}
+
+	// Check for common indicators of meaningful data
+	for key, value := range result {
+		switch key {
+		case "error", "status":
+			continue // Skip error/status fields
+		default:
+			if value != nil {
+				switch v := value.(type) {
+				case string:
+					if strings.TrimSpace(v) != "" {
+						return true
+					}
+				case []interface{}:
+					if len(v) > 0 {
+						return true
+					}
+				case map[string]interface{}:
+					if len(v) > 0 {
+						return true
+					}
+				default:
+					return true
+				}
+			}
+		}
+	}
+
+	return false
+}
+
+// extractFunctionNames extracts function names from function tools for logging
+func (c *Client) extractFunctionNames(functionTools []types.Tool) []string {
+	names := make([]string, len(functionTools))
+	for i, tool := range functionTools {
+		names[i] = tool.Name
+	}
+	return names
+}
+
+// extractModelNames extracts model names from configurations for logging
+func (c *Client) extractModelNames(configurations []types.APIConfiguration) []string {
+	models := make([]string, len(configurations))
+	for i, config := range configurations {
+		models[i] = config.ModelName
+	}
+	return models
 }

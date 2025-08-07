@@ -98,7 +98,7 @@ const ModelKeyModal: React.FC<ModelKeyModalProps> = ({
 
     setTesting(true);
     try {
-      const response = await goGentAPI.testApiKey(requirement.keyName, keyValue.trim());
+      const response = await goGentAPI.testApiKey(keyValue.trim());
       if (response.success) {
         showSuccess('Test Successful', `${requirement.displayName} API key is valid`);
       } else {
@@ -223,7 +223,11 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   closeButton: {
-    padding: 4,
+    padding: 8, // Increased for better touch target
+    minWidth: 44, // Ensure minimum touch target size
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   content: {
     flex: 1,

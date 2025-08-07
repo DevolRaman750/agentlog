@@ -19,6 +19,7 @@ import DatabaseScreen from '../screens/DatabaseScreen';
 import AuthScreen from '../screens/AuthScreen';
 import ApiKeysScreen from '../screens/ApiKeysScreen';
 import AgentsScreen from '../screens/AgentsScreen';
+import AgentMarketplaceScreen from '../screens/AgentMarketplaceScreen';
 import TemplateTokenManagerScreen from '../screens/TemplateTokenManagerScreen';
 
 const Tab = createBottomTabNavigator();
@@ -47,6 +48,7 @@ const MobileNavigationDropdown: React.FC = () => {
     { name: 'History', title: 'History', icon: 'time-outline', iconFocused: 'time', component: HistoryScreen },
     { name: 'Database', title: 'Database', icon: 'server-outline', iconFocused: 'server', component: DatabaseScreen },
     { name: 'Agents', title: 'Agents', icon: 'construct-outline', iconFocused: 'construct', component: AgentsScreen },
+    { name: 'Marketplace', title: 'Agent Marketplace', icon: 'storefront-outline', iconFocused: 'storefront', component: AgentMarketplaceScreen },
     { name: 'Account', title: 'Account', icon: 'person-circle-outline', iconFocused: 'person-circle', component: AuthScreen },
   ];
 
@@ -217,6 +219,7 @@ const TabNavigator = () => {
       <Tab.Screen name="History" component={withResponsiveLayout(HistoryScreen)} />
       <Tab.Screen name="Database" component={withResponsiveLayout(DatabaseScreen)} />
       <Tab.Screen name="Agents" component={withResponsiveLayout(AgentsScreen)} />
+      <Tab.Screen name="Marketplace" component={withResponsiveLayout(AgentMarketplaceScreen)} />
       <Tab.Screen name="Account" component={withResponsiveLayout(AuthScreen)} />
       <Tab.Screen 
         name="TemplateTokenManager" 

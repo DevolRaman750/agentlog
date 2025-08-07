@@ -249,8 +249,11 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E5E5EA',
   },
   headerButton: {
-    padding: 4,
+    padding: 8, // Increased for better touch target
     minWidth: 60,
+    minHeight: 44, // Ensure minimum touch target size
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   doneButton: {
     alignItems: 'flex-end',

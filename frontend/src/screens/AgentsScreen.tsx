@@ -26,6 +26,7 @@ import AssignTeamModal from '../components/AssignTeamModal';
 import CreateTeamForm from '../components/CreateTeamForm';
 import { Agent, AgentFormData, LifecycleStatus, ExecutionTemplate, Team, TeamWithAgents } from '../types';
 import { useResponsive } from '../context/ResponsiveContext';
+import ScreenContainer from '../components/ScreenContainer';
 
 
 const AgentsScreen: React.FC = () => {
@@ -33,6 +34,7 @@ const AgentsScreen: React.FC = () => {
   const { setReExecutionData } = useApp();
   const { screenWidth, isSidebarLayout } = useResponsive();
   const navigation = useNavigation<any>();
+  const route = navigation.getState()?.routes?.[navigation.getState()?.index || 0];
   const [agents, setAgents] = useState<Agent[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [teamGroups, setTeamGroups] = useState<TeamWithAgents[]>([]);
@@ -45,6 +47,7 @@ const AgentsScreen: React.FC = () => {
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [prefilledAgentData, setPrefilledAgentData] = useState<any>(null);
 
   // Show loading screen while auth is loading
   if (authLoading) {
@@ -54,9 +57,11 @@ const AgentsScreen: React.FC = () => {
   // Redirect to login if not authenticated
   if (!user) {
     return (
-      <View style={styles.centeredContainer}>
-        <Text style={styles.messageText}>Please login to view your agents.</Text>
-      </View>
+      <ScreenContainer>
+        <View style={styles.centeredContainer}>
+          <Text style={styles.messageText}>Please login to view your agents.</Text>
+        </View>
+      </ScreenContainer>
     );
   }
 
@@ -66,6 +71,14 @@ const AgentsScreen: React.FC = () => {
       console.log('🔍 User:', !!user, user?.id);
       console.log('🔍 authLoading:', authLoading);
       
+      // Check for prefilled agent data from marketplace
+      if (route?.params?.prefilledAgent) {
+        setPrefilledAgentData(route.params.prefilledAgent);
+        setShowCreateModal(true);
+        // Clear the params to prevent re-triggering
+        navigation.setParams({ prefilledAgent: undefined });
+      }
+      
       if (user && !authLoading) {
         console.log('✅ Conditions met, calling loadAgents()');
         loadAgents();
@@ -74,7 +87,7 @@ const AgentsScreen: React.FC = () => {
         console.log('  - user:', !!user);
         console.log('  - !authLoading:', !authLoading);
       }
-    }, [user?.id, authLoading])
+    }, [user?.id, authLoading, route?.params])
   );
 
   const loadAgents = async () => {
@@ -534,7 +547,7 @@ const AgentsScreen: React.FC = () => {
   const isCompact = screenWidth < 480;
 
   return (
-    <View style={styles.mainContainer}>
+    <ScreenContainer>
       <View style={[styles.header, isCompact && styles.headerCompact]}>
         <Text style={[styles.title, isCompact && styles.titleCompact]}>My Agents</Text>
         <TouchableOpacity
@@ -583,9 +596,14 @@ const AgentsScreen: React.FC = () => {
         <CreateAgentForm
           onSuccess={() => {
             setShowCreateModal(false);
+            setPrefilledAgentData(null);
             loadAgents(); // Refresh the agents list
           }}
-          onCancel={() => setShowCreateModal(false)}
+          onCancel={() => {
+            setShowCreateModal(false);
+            setPrefilledAgentData(null);
+          }}
+          prefilledData={prefilledAgentData}
         />
       </Modal>
 
@@ -660,7 +678,7 @@ const AgentsScreen: React.FC = () => {
           onAssigned={handleTeamAssigned}
         />
       )}
-    </View>
+    </ScreenContainer>
   );
 };
 

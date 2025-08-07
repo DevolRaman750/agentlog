@@ -470,26 +470,27 @@ func (c *Client) executeDynamicFunction(ctx context.Context, funcDef *db.Functio
 	}
 }
 
-// executeAPIFunction executes a GitHub API function with real HTTP calls
+// executeAPIFunction executes any API function with real HTTP calls using the function definition's endpoint URL
 func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
 	startTime := time.Now()
 	functionName := funcDef.Name
 
-	// Validate required parameters based on function name
-	switch functionName {
-	case "github_read_issues", "github_read_code", "github_search_code":
-		if _, ok := args["owner"]; !ok {
-			return nil, fmt.Errorf("owner parameter is required")
-		}
-		if _, ok := args["repo"]; !ok {
-			return nil, fmt.Errorf("repo parameter is required")
-		}
-	}
+	// Build API URL based on function group
+	var url string
+	var err error
 
-	// Build GitHub API URL
-	url, err := c.buildGitHubAPIURL(functionName, args)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build GitHub API URL: %w", err)
+	if funcDef.FunctionGroup == "github" {
+		// Use specialized GitHub URL builder for GitHub functions
+		url, err = c.buildGitHubAPIURL(functionName, args)
+		if err != nil {
+			return nil, fmt.Errorf("failed to build GitHub API URL: %w", err)
+		}
+	} else {
+		// Use generic URL building for non-GitHub functions
+		url, err = c.buildGenericAPIURL(funcDef, args)
+		if err != nil {
+			return nil, fmt.Errorf("failed to build API URL: %w", err)
+		}
 	}
 
 	// Determine HTTP method from function definition
@@ -498,21 +499,34 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 		httpMethod = funcDef.HttpMethod.String
 	}
 
-	log.Printf("🌐 Making GitHub API call: %s %s", httpMethod, url)
+	log.Printf("🌐 Making API call: %s %s (function: %s)", httpMethod, url, functionName)
 
 	// Prepare request body for non-GET requests
 	var requestBody io.Reader
 	if httpMethod != "GET" && len(args) > 0 {
-		// For non-GET requests, create JSON body from args (excluding repo/owner which are in URL)
-		bodyData := make(map[string]interface{})
-		for key, value := range args {
-			if key != "owner" && key != "repo" && key != "issue_number" && key != "pull_number" {
-				// Only include non-nil values to avoid GitHub API 422 errors
+		var bodyData map[string]interface{}
+
+		if funcDef.FunctionGroup == "github" {
+			// For GitHub functions, exclude URL parameters from body
+			bodyData = make(map[string]interface{})
+			for key, value := range args {
+				if key != "owner" && key != "repo" && key != "issue_number" && key != "pull_number" {
+					// Only include non-nil values to avoid GitHub API 422 errors
+					if value != nil {
+						bodyData[key] = value
+					}
+				}
+			}
+		} else {
+			// For non-GitHub functions, include all parameters in body
+			bodyData = make(map[string]interface{})
+			for key, value := range args {
 				if value != nil {
 					bodyData[key] = value
 				}
 			}
 		}
+
 		if len(bodyData) > 0 {
 			jsonData, err := json.Marshal(bodyData)
 			if err == nil {
@@ -528,18 +542,50 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	// Add GitHub authentication
+	// Add authentication based on function type and available headers
 	effectiveKeys := c.getEffectiveApiKeys()
-	if effectiveKeys.GithubApiKey != "" {
-		req.Header.Set("Authorization", "token "+effectiveKeys.GithubApiKey)
-		log.Printf("🔑 Added GitHub API authentication")
-	} else {
-		log.Printf("⚠️ No GitHub API key available - proceeding without authentication")
+
+	// Apply function-specific headers from database first
+	if funcDef.Headers != nil {
+		var headers map[string]interface{}
+		if err := json.Unmarshal(funcDef.Headers, &headers); err == nil {
+			for key, value := range headers {
+				headerValue := fmt.Sprintf("%v", value)
+				// Replace API key placeholders with actual keys
+				if strings.Contains(headerValue, "{SLACK_BOT_TOKEN}") && effectiveKeys.SlackBotToken != "" {
+					headerValue = strings.ReplaceAll(headerValue, "{SLACK_BOT_TOKEN}", effectiveKeys.SlackBotToken)
+				}
+				if strings.Contains(headerValue, "{GITHUB_API_KEY}") && effectiveKeys.GithubApiKey != "" {
+					headerValue = strings.ReplaceAll(headerValue, "{GITHUB_API_KEY}", effectiveKeys.GithubApiKey)
+				}
+				req.Header.Set(key, headerValue)
+			}
+		}
 	}
 
-	// Set User-Agent header (required by GitHub API)
-	req.Header.Set("User-Agent", "gogent/1.0")
-	req.Header.Set("Accept", "application/vnd.github.v3+json")
+	// Add function-group-specific authentication if not already set via headers
+	if funcDef.FunctionGroup == "github" {
+		if req.Header.Get("Authorization") == "" && effectiveKeys.GithubApiKey != "" {
+			req.Header.Set("Authorization", "token "+effectiveKeys.GithubApiKey)
+			log.Printf("🔑 Added GitHub API authentication")
+		} else if effectiveKeys.GithubApiKey == "" {
+			log.Printf("⚠️ No GitHub API key available - proceeding without authentication")
+		}
+		// Set GitHub-specific headers if not already set
+		if req.Header.Get("User-Agent") == "" {
+			req.Header.Set("User-Agent", "gogent/1.0")
+		}
+		if req.Header.Get("Accept") == "" {
+			req.Header.Set("Accept", "application/vnd.github.v3+json")
+		}
+	} else if funcDef.FunctionGroup == "communication" && functionName == "slack_send_message" {
+		// Slack authentication should be handled via headers from database
+		if req.Header.Get("Authorization") != "" {
+			log.Printf("🔑 Added Slack API authentication via function headers")
+		} else {
+			log.Printf("⚠️ No Slack API authentication found in function headers")
+		}
+	}
 
 	// Set Content-Type for non-GET requests
 	if httpMethod != "GET" && requestBody != nil {
@@ -574,80 +620,92 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 		return nil, fmt.Errorf("failed to parse JSON response: %w", err)
 	}
 
-	// Build result
+	// Build result using api_source from function definition (after migration 029)
+	apiSource := "api" // Default fallback
+	if funcDef.FunctionGroup == "github" {
+		apiSource = "github_api" // TODO: Remove after migration 029 is applied
+	} else if funcDef.FunctionGroup == "communication" {
+		apiSource = "slack_api" // TODO: Remove after migration 029 is applied
+	} else if funcDef.FunctionGroup == "weather" {
+		apiSource = "weather_api" // TODO: Remove after migration 029 is applied
+	}
+
 	result := map[string]interface{}{
 		"success":           true,
 		"function":          functionName,
 		"execution_time_ms": executionTimeMs,
 		"response":          responseData,
 		"metadata": map[string]interface{}{
-			"source":        "github_api",
-			"api_method":    "GET",
-			"endpoint":      url,
-			"status_code":   resp.StatusCode,
-			"response_size": len(body),
+			"source":         apiSource,
+			"api_method":     httpMethod,
+			"endpoint":       url,
+			"status_code":    resp.StatusCode,
+			"response_size":  len(body),
+			"function_group": funcDef.FunctionGroup,
 		},
 	}
 
-	// Add function-specific data processing
-	switch functionName {
-	case "github_read_issues":
-		if issues, ok := responseData.([]interface{}); ok {
-			result["issues"] = issues
-			result["total_count"] = len(issues)
-			log.Printf("✅ Retrieved %d issues from GitHub", len(issues))
-		}
-	case "github_read_code":
-		// Handle both single file (map) and directory listing (array) responses
-		if codeData, ok := responseData.(map[string]interface{}); ok {
-			// Single file response
-			result["type"] = codeData["type"]
-			result["name"] = codeData["name"]
-			result["path"] = codeData["path"]
-			result["size"] = codeData["size"]
-			if content, exists := codeData["content"]; exists {
-				result["content"] = content
-				result["encoding"] = codeData["encoding"]
+	// Add function-specific data processing for GitHub functions
+	if funcDef.FunctionGroup == "github" {
+		switch functionName {
+		case "github_read_issues":
+			if issues, ok := responseData.([]interface{}); ok {
+				result["issues"] = issues
+				result["total_count"] = len(issues)
+				log.Printf("✅ Retrieved %d issues from GitHub", len(issues))
 			}
-			log.Printf("✅ Retrieved single file: %s", codeData["name"])
-		} else if directoryItems, ok := responseData.([]interface{}); ok {
-			// Directory listing response
-			result["type"] = "dir"
-			result["items"] = directoryItems
-			result["total_count"] = len(directoryItems)
-			log.Printf("✅ Retrieved directory with %d items", len(directoryItems))
-		} else {
-			log.Printf("⚠️ Unexpected github_read_code response type: %T", responseData)
-		}
-	case "github_search_code":
-		if searchData, ok := responseData.(map[string]interface{}); ok {
-			result["items"] = searchData["items"]
-			result["total_count"] = searchData["total_count"]
-			if items, exists := searchData["items"].([]interface{}); exists {
-				log.Printf("✅ Found %d code search results", len(items))
+		case "github_read_code":
+			// Handle both single file (map) and directory listing (array) responses
+			if codeData, ok := responseData.(map[string]interface{}); ok {
+				// Single file response
+				result["type"] = codeData["type"]
+				result["name"] = codeData["name"]
+				result["path"] = codeData["path"]
+				result["size"] = codeData["size"]
+				if content, exists := codeData["content"]; exists {
+					result["content"] = content
+					result["encoding"] = codeData["encoding"]
+				}
+				log.Printf("✅ Retrieved single file: %s", codeData["name"])
+			} else if directoryItems, ok := responseData.([]interface{}); ok {
+				// Directory listing response
+				result["type"] = "dir"
+				result["items"] = directoryItems
+				result["total_count"] = len(directoryItems)
+				log.Printf("✅ Retrieved directory with %d items", len(directoryItems))
+			} else {
+				log.Printf("⚠️ Unexpected github_read_code response type: %T", responseData)
 			}
-		}
-	case "github_read_commits":
-		if commits, ok := responseData.([]interface{}); ok {
-			result["commits"] = commits
-			result["total_count"] = len(commits)
-			log.Printf("✅ Retrieved %d commits from GitHub", len(commits))
+		case "github_search_code":
+			if searchData, ok := responseData.(map[string]interface{}); ok {
+				result["items"] = searchData["items"]
+				result["total_count"] = searchData["total_count"]
+				if items, exists := searchData["items"].([]interface{}); exists {
+					log.Printf("✅ Found %d code search results", len(items))
+				}
+			}
+		case "github_read_commits":
+			if commits, ok := responseData.([]interface{}); ok {
+				result["commits"] = commits
+				result["total_count"] = len(commits)
+				log.Printf("✅ Retrieved %d commits from GitHub", len(commits))
 
-			// Extract key info from the latest commit for easy access
-			if len(commits) > 0 {
-				if latestCommit, ok := commits[0].(map[string]interface{}); ok {
-					result["latest_commit_sha"] = latestCommit["sha"]
-					if commitData, ok := latestCommit["commit"].(map[string]interface{}); ok {
-						result["latest_commit_message"] = commitData["message"]
-						if author, ok := commitData["author"].(map[string]interface{}); ok {
-							result["latest_commit_author"] = author["name"]
-							result["latest_commit_date"] = author["date"]
+				// Extract key info from the latest commit for easy access
+				if len(commits) > 0 {
+					if latestCommit, ok := commits[0].(map[string]interface{}); ok {
+						result["latest_commit_sha"] = latestCommit["sha"]
+						if commitData, ok := latestCommit["commit"].(map[string]interface{}); ok {
+							result["latest_commit_message"] = commitData["message"]
+							if author, ok := commitData["author"].(map[string]interface{}); ok {
+								result["latest_commit_author"] = author["name"]
+								result["latest_commit_date"] = author["date"]
+							}
 						}
 					}
 				}
+			} else {
+				log.Printf("⚠️ Unexpected github_read_commits response type: %T", responseData)
 			}
-		} else {
-			log.Printf("⚠️ Unexpected github_read_commits response type: %T", responseData)
 		}
 	}
 
@@ -782,6 +840,26 @@ func (c *Client) buildGitHubAPIURL(functionName string, args map[string]interfac
 	default:
 		return "", fmt.Errorf("unknown GitHub function: %s", functionName)
 	}
+}
+
+// buildGenericAPIURL constructs the API URL for non-GitHub functions using their endpoint_url
+func (c *Client) buildGenericAPIURL(funcDef *db.FunctionDefinition, args map[string]interface{}) (string, error) {
+	// Start with the base endpoint URL from function definition
+	url := funcDef.EndpointUrl.String
+	if url == "" {
+		return "", fmt.Errorf("no endpoint_url defined for function %s", funcDef.Name)
+	}
+
+	// For functions that need URL parameter substitution (like Slack with placeholders)
+	// Replace any {parameter} placeholders in the URL with actual values
+	for key, value := range args {
+		placeholder := fmt.Sprintf("{%s}", key)
+		if strings.Contains(url, placeholder) {
+			url = strings.ReplaceAll(url, placeholder, fmt.Sprintf("%v", value))
+		}
+	}
+
+	return url, nil
 }
 
 // TestExecuteFunctionCall provides a public method to test function execution
@@ -1420,63 +1498,46 @@ func (c *Client) parseJSONToMap(raw json.RawMessage) map[string]interface{} {
 
 // Helper functions for execution flow graph
 func (c *Client) getExecutionFlowEvents(ctx context.Context, executionRunID string) ([]types.ExecutionFlowEvent, error) {
-	query := `
-		SELECT id, execution_run_id, request_id, event_type, sequence_number, 
-		       parent_event_id, event_data, duration_ms, status, error_message, created_at
-		FROM execution_flow_events
-		WHERE execution_run_id = ?
-		ORDER BY created_at ASC, sequence_number ASC, id ASC
-	`
-
-	rows, err := c.db.QueryContext(ctx, query, executionRunID)
+	// Use sqlc-generated query for better type safety
+	dbEvents, err := c.queries.GetExecutionFlowEventsByRun(ctx, executionRunID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query execution flow events: %w", err)
 	}
-	defer rows.Close()
 
-	var events []types.ExecutionFlowEvent
-	for rows.Next() {
-		var event types.ExecutionFlowEvent
-		var requestID, parentEventID, errorMessage sql.NullString
-		var eventDataJSON sql.NullString
-		var durationMs sql.NullInt32
+	// Convert from database types to application types
+	events := make([]types.ExecutionFlowEvent, 0, len(dbEvents))
+	for _, dbEvent := range dbEvents {
+		event := types.ExecutionFlowEvent{
+			ID:             dbEvent.ID,
+			ExecutionRunID: dbEvent.ExecutionRunID,
+			EventType:      types.ExecutionFlowEventType(dbEvent.EventType),
+			SequenceNumber: dbEvent.SequenceNumber,
+			Status:         types.ExecutionFlowEventStatus(dbEvent.Status.ExecutionFlowEventsStatus),
+		}
 
-		err := rows.Scan(
-			&event.ID,
-			&event.ExecutionRunID,
-			&requestID,
-			&event.EventType,
-			&event.SequenceNumber,
-			&parentEventID,
-			&eventDataJSON,
-			&durationMs,
-			&event.Status,
-			&errorMessage,
-			&event.CreatedAt,
-		)
-		if err != nil {
-			log.Printf("⚠️ Failed to scan execution flow event: %v", err)
-			continue
+		// Handle CreatedAt timestamp
+		if dbEvent.CreatedAt.Valid {
+			event.CreatedAt = dbEvent.CreatedAt.Time
 		}
 
 		// Handle nullable fields
-		if requestID.Valid {
-			event.RequestID = &requestID.String
+		if dbEvent.RequestID.Valid {
+			event.RequestID = &dbEvent.RequestID.String
 		}
-		if parentEventID.Valid {
-			event.ParentEventID = &parentEventID.String
+		if dbEvent.ParentEventID.Valid {
+			event.ParentEventID = &dbEvent.ParentEventID.String
 		}
-		if errorMessage.Valid {
-			event.ErrorMessage = &errorMessage.String
+		if dbEvent.ErrorMessage.Valid {
+			event.ErrorMessage = &dbEvent.ErrorMessage.String
 		}
-		if durationMs.Valid {
-			event.DurationMs = &durationMs.Int32
+		if dbEvent.DurationMs.Valid {
+			event.DurationMs = &dbEvent.DurationMs.Int32
 		}
 
 		// Parse event data JSON
-		if eventDataJSON.Valid && eventDataJSON.String != "" {
+		if dbEvent.EventData != nil {
 			var eventData map[string]interface{}
-			if err := json.Unmarshal([]byte(eventDataJSON.String), &eventData); err != nil {
+			if err := json.Unmarshal(dbEvent.EventData, &eventData); err != nil {
 				log.Printf("⚠️ Failed to parse event data JSON for event %s: %v", event.ID, err)
 			} else {
 				event.EventData = eventData
@@ -1486,7 +1547,7 @@ func (c *Client) getExecutionFlowEvents(ctx context.Context, executionRunID stri
 		events = append(events, event)
 	}
 
-	return events, rows.Err()
+	return events, nil
 }
 
 func (c *Client) getFunctionCalls(ctx context.Context, executionRunID string) ([]types.FunctionCall, error) {
@@ -1549,64 +1610,50 @@ func (c *Client) getFunctionCalls(ctx context.Context, executionRunID string) ([
 }
 
 func (c *Client) getExecutionFlowEventsByConfiguration(ctx context.Context, executionRunID, configurationID string) ([]types.ExecutionFlowEvent, error) {
-	query := `
-		SELECT e.id, e.execution_run_id, e.request_id, e.event_type, e.sequence_number, 
-		       e.parent_event_id, e.event_data, e.duration_ms, e.status, e.error_message, e.created_at
-		FROM execution_flow_events e
-		INNER JOIN api_requests r ON e.request_id = r.id
-		WHERE e.execution_run_id = ? AND r.configuration_id = ?
-		ORDER BY e.created_at ASC, e.sequence_number ASC, e.id ASC
-	`
-
-	rows, err := c.db.QueryContext(ctx, query, executionRunID, configurationID)
+	// Use sqlc-generated query for better type safety
+	params := db.GetExecutionFlowEventsByConfigurationParams{
+		ExecutionRunID:  executionRunID,
+		ConfigurationID: configurationID,
+	}
+	dbEvents, err := c.queries.GetExecutionFlowEventsByConfiguration(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query execution flow events by configuration: %w", err)
 	}
-	defer rows.Close()
 
-	var events []types.ExecutionFlowEvent
-	for rows.Next() {
-		var event types.ExecutionFlowEvent
-		var requestID, parentEventID, errorMessage sql.NullString
-		var eventDataJSON sql.NullString
-		var durationMs sql.NullInt32
+	// Convert from database types to application types
+	events := make([]types.ExecutionFlowEvent, 0, len(dbEvents))
+	for _, dbEvent := range dbEvents {
+		event := types.ExecutionFlowEvent{
+			ID:             dbEvent.ID,
+			ExecutionRunID: dbEvent.ExecutionRunID,
+			EventType:      types.ExecutionFlowEventType(dbEvent.EventType),
+			SequenceNumber: dbEvent.SequenceNumber,
+			Status:         types.ExecutionFlowEventStatus(dbEvent.Status.ExecutionFlowEventsStatus),
+		}
 
-		err := rows.Scan(
-			&event.ID,
-			&event.ExecutionRunID,
-			&requestID,
-			&event.EventType,
-			&event.SequenceNumber,
-			&parentEventID,
-			&eventDataJSON,
-			&durationMs,
-			&event.Status,
-			&errorMessage,
-			&event.CreatedAt,
-		)
-		if err != nil {
-			log.Printf("⚠️ Failed to scan execution flow event: %v", err)
-			continue
+		// Handle CreatedAt timestamp
+		if dbEvent.CreatedAt.Valid {
+			event.CreatedAt = dbEvent.CreatedAt.Time
 		}
 
 		// Handle nullable fields
-		if requestID.Valid {
-			event.RequestID = &requestID.String
+		if dbEvent.RequestID.Valid {
+			event.RequestID = &dbEvent.RequestID.String
 		}
-		if parentEventID.Valid {
-			event.ParentEventID = &parentEventID.String
+		if dbEvent.ParentEventID.Valid {
+			event.ParentEventID = &dbEvent.ParentEventID.String
 		}
-		if errorMessage.Valid {
-			event.ErrorMessage = &errorMessage.String
+		if dbEvent.ErrorMessage.Valid {
+			event.ErrorMessage = &dbEvent.ErrorMessage.String
 		}
-		if durationMs.Valid {
-			event.DurationMs = &durationMs.Int32
+		if dbEvent.DurationMs.Valid {
+			event.DurationMs = &dbEvent.DurationMs.Int32
 		}
 
 		// Parse event data JSON
-		if eventDataJSON.Valid && eventDataJSON.String != "" {
+		if dbEvent.EventData != nil {
 			var eventData map[string]interface{}
-			if err := json.Unmarshal([]byte(eventDataJSON.String), &eventData); err != nil {
+			if err := json.Unmarshal(dbEvent.EventData, &eventData); err != nil {
 				log.Printf("⚠️ Failed to parse event data JSON for event %s: %v", event.ID, err)
 			} else {
 				event.EventData = eventData
@@ -1616,7 +1663,7 @@ func (c *Client) getExecutionFlowEventsByConfiguration(ctx context.Context, exec
 		events = append(events, event)
 	}
 
-	return events, rows.Err()
+	return events, nil
 }
 
 func (c *Client) getFunctionCallsByConfiguration(ctx context.Context, executionRunID, configurationID string) ([]types.FunctionCall, error) {

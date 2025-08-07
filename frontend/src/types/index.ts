@@ -11,7 +11,8 @@ export type TabParamList = {
   History: { executionId?: string; openExecutionDetails?: boolean };
   Database: undefined;
   Account: undefined;
-  Agents: undefined;
+  Agents: { prefilledAgent?: any } | undefined;
+  Marketplace: undefined;
   More: undefined;
   TemplateTokenManager: { templateId: string; templateName: string };
 };

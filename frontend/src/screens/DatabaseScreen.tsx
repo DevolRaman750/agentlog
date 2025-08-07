@@ -18,6 +18,7 @@ import { useAuth } from '../context/AuthContext';
 import { DatabaseStats, DatabaseTable, DatabaseRow } from '../types';
 import { goGentAPI } from '../api/client';
 import { AlertAPI } from '../components/CustomAlert';
+import ScreenContainer from '../components/ScreenContainer';
 import LoadingScreen from '../components/LoadingScreen';
 import { containerStyles } from '../styles/containers';
 
@@ -481,24 +482,26 @@ const DatabaseScreen: React.FC = () => {
 
   if (!state.isConnected) {
     return (
-      <View style={styles.container}>
+      <ScreenContainer>
         {renderConnectionStatus()}
         {renderEmptyState()}
-      </View>
+      </ScreenContainer>
     );
   }
 
   if (isLoading && !isRefreshing) {
     return (
-      <View style={styles.container}>
+      <ScreenContainer>
         {renderConnectionStatus()}
         {renderLoadingState()}
-      </View>
+      </ScreenContainer>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <ScreenContainer
+      enableScrolling={false}
+    >
       {renderConnectionStatus()}
       
       {viewMode === 'overview' ? (
@@ -521,7 +524,7 @@ const DatabaseScreen: React.FC = () => {
         renderTableData()
       )}
       {renderRowModal()}
-    </View>
+    </ScreenContainer>
   );
 };
 

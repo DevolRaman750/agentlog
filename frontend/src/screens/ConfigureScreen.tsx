@@ -30,6 +30,7 @@ import { APIConfiguration, getResourceOwnership } from '../types';
 import { debugAuthState, clearAllAuthData, createTestUser } from '../utils/debugAuth';
 import TextEditor from '../components/TextEditor';
 import ParameterSlider from '../components/ParameterSlider';
+import ScreenContainer from '../components/ScreenContainer';
 
 const { width } = Dimensions.get('window');
 
@@ -668,17 +669,15 @@ const ConfigureScreen: React.FC = () => {
   );
 
   return (
-    <View style={styles.container}>
-      <ScrollView
-        style={styles.scrollContainer}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+    <ScreenContainer
+      enableScrolling={true}
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.scrollContent}
+    >
         {renderHeader()}
         {renderConfigurationsSection()}
         {renderImportExportSection()}
         {renderDebugSection()}
-      </ScrollView>
 
       {/* Session Manager Modal */}
       <SessionManager
@@ -708,7 +707,7 @@ const ConfigureScreen: React.FC = () => {
           }} 
         />
       )}
-    </View>
+    </ScreenContainer>
   );
 };
 

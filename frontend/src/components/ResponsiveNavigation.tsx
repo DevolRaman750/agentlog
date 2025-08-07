@@ -28,6 +28,7 @@ const navigationItems: NavigationItem[] = [
   { name: 'History', title: 'History', icon: 'time-outline', iconFocused: 'time' },
   { name: 'Database', title: 'Database', icon: 'server-outline', iconFocused: 'server' },
   { name: 'Agents', title: 'Agents', icon: 'construct-outline', iconFocused: 'construct' },
+  { name: 'Marketplace', title: 'Marketplace', icon: 'storefront-outline', iconFocused: 'storefront' },
   { name: 'Account', title: 'Account', icon: 'person-circle-outline', iconFocused: 'person-circle' },
 ];
 

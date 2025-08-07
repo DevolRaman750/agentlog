@@ -10,6 +10,7 @@ import {
   FlatList,
   Modal,
   Platform,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -35,6 +36,7 @@ import FunctionsModal from '../components/FunctionsModal';
 import OtherOptionsModal from '../components/OtherOptionsModal';
 import { webInputStyles } from '../styles/containers';
 import { getModelKeyRequirements, areModelKeysConfigured, ModelKeyRequirement } from '../utils/modelKeyUtils';
+import ScreenContainer from '../components/ScreenContainer';
 
 interface ParameterValue {
   name: string;
@@ -58,6 +60,11 @@ const ExecuteScreen: React.FC = () => {
   const isConnected = state.isConnected;
   const currentExecution = state.currentExecution;
   const { state: formState, updateField } = useFormState();
+
+  // Screen dimensions for responsive design
+  const { width: screenWidth } = Dimensions.get('window');
+  const isSmallScreen = screenWidth < 375; // iPhone SE and smaller
+  const isMobileScreen = screenWidth < 768; // Mobile vs tablet/desktop
 
   // UI state (local to component)
   const [showConfigurationModal, setShowConfigurationModal] = useState(false);
@@ -738,8 +745,14 @@ const ExecuteScreen: React.FC = () => {
 
 
   return (
-    <View style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+    <ScreenContainer 
+      enableKeyboardAvoiding={true}
+      enableScrolling={true}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      contentContainerStyle={styles.scrollContent}
+    >
         {/* Agent Header - Only show for agent executions */}
         {agentData.isAgentExecution && agentData.agent && (
           <View style={styles.agentHeader}>
@@ -951,7 +964,6 @@ const ExecuteScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
         )}
-      </ScrollView>
 
       {/* New Modal Components */}
       <ConfigurationModal
@@ -1005,15 +1017,15 @@ const ExecuteScreen: React.FC = () => {
               }, 500);
             });
           }}
-          requirement={missingModelKey}
-          configurationName={pendingConfiguration.variationName}
+          requirement={missingModelKey!}
+          configurationName={pendingConfiguration?.variationName || ''}
         />
       )}
       
       {/* Full Execution Results Viewer */}
       {currentExecution?.executionResult && showExecutionResults && (
         <ExecutionResultsViewer
-          executionResult={currentExecution.executionResult}
+          executionResult={currentExecution!.executionResult!}
           visible={showExecutionResults}
           onClose={() => setShowExecutionResults(false)}
           onReExecute={handleReExecute}
@@ -1021,19 +1033,15 @@ const ExecuteScreen: React.FC = () => {
           embedded={false}
         />
       )}
-    </View>
+    </ScreenContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-  },
-  scrollView: {
-    flex: 1,
-    padding: 16,
-    paddingBottom: 120, // Extra space for tab bar and execute button on mobile
+  scrollContent: {
+    padding: Platform.OS === 'ios' ? 16 : 14, // Slightly less padding on Android
+    paddingBottom: Platform.OS === 'ios' ? 120 : 100, // Platform-specific bottom spacing
+    minHeight: '100%', // Ensure full height usage
   },
   header: {
     marginBottom: 24,
@@ -1052,21 +1060,36 @@ const styles = StyleSheet.create({
   fieldContainer: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-    borderWidth: 1,
+    padding: Platform.OS === 'ios' ? 16 : 14, // Slightly less padding on Android
+    marginBottom: 16, // Reduced margin for better density on mobile
+    borderWidth: Platform.OS === 'ios' ? 1 : 0.5, // Thinner borders on Android
     borderColor: '#E5E5EA',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   labelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 4,
+    flexWrap: 'wrap', // Allow wrapping on small screens
+    minHeight: 24, // Ensure consistent height even when wrapping
   },
   fieldLabel: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1A1A1A',
     marginLeft: 8,
+    flex: 1, // Allow label to take available space
+    minWidth: 100, // Minimum width before wrapping
   },
      optionalText: {
      fontSize: 14,
@@ -1078,14 +1101,17 @@ const styles = StyleSheet.create({
      borderRadius: 4,
    },
    requiredText: {
-     fontSize: 14,
+     fontSize: 12, // Slightly smaller on mobile
      color: '#FF3B30',
      marginLeft: 8,
+     marginTop: Platform.OS === 'ios' ? 1 : 0, // Slight offset on iOS
      paddingHorizontal: 6,
      paddingVertical: 2,
      backgroundColor: '#FFF5F5',
      borderRadius: 4,
      fontWeight: '500',
+     alignSelf: 'flex-start', // Prevent stretching
+     flexShrink: 0, // Don't shrink the badge
    },
   fieldDescription: {
     fontSize: 14,
@@ -1135,7 +1161,8 @@ const styles = StyleSheet.create({
   },
   executeContainer: {
     marginTop: 20,
-    marginBottom: 40, // Extra margin for mobile scrolling
+    marginBottom: Platform.OS === 'ios' ? 40 : 30, // Platform-specific margin
+    paddingHorizontal: Platform.OS === 'ios' ? 0 : 4, // Slight padding on Android
   },
   executingContainer: {
     backgroundColor: '#FFFFFF',
@@ -1152,11 +1179,23 @@ const styles = StyleSheet.create({
   executeButton: {
     backgroundColor: '#007AFF',
     borderRadius: 12,
-    padding: 16,
+    padding: Platform.OS === 'ios' ? 16 : 14, // Slightly less padding on Android
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: Platform.OS === 'ios' ? 32 : 24, // Less margin on Android
+    minHeight: 56, // Ensure consistent touch target
+    ...Platform.select({
+      ios: {
+        shadowColor: '#007AFF',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   executeButtonDisabled: {
     backgroundColor: '#C7C7CC',
@@ -1453,15 +1492,18 @@ const styles = StyleSheet.create({
   parameterInputContainer: {
     backgroundColor: '#FFF8F0',
     borderRadius: 8,
-    padding: 12,
-    borderWidth: 1,
+    padding: Platform.OS === 'ios' ? 12 : 10, // Slightly less padding on Android
+    borderWidth: Platform.OS === 'ios' ? 1 : 0.5, // Thinner borders on Android
     borderColor: '#FFE4B8',
+    marginBottom: 8, // Add spacing between parameters
   },
   parameterHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
+    flexWrap: 'wrap', // Allow wrapping for long parameter names
+    gap: 8, // Add gap between items when wrapped
   },
   parameterName: {
     fontSize: 14,

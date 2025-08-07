@@ -292,16 +292,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
+    flexWrap: 'wrap', // Allow wrapping on small screens
+    minHeight: 20, // Ensure consistent height
   },
   label: {
     fontSize: 14,
     fontWeight: '500',
     color: '#1a1a1a',
+    flex: 1, // Allow label to take available space
+    minWidth: 80, // Minimum width before wrapping
   },
   required: {
-    fontSize: 14,
+    fontSize: 12, // Slightly smaller on mobile
     color: '#e74c3c',
     marginLeft: 4,
+    alignSelf: 'flex-start', // Prevent stretching
+    flexShrink: 0, // Don't shrink the indicator
   },
   input: {
     borderWidth: 1,

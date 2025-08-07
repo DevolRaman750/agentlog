@@ -209,7 +209,11 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
   },
   closeButton: {
-    padding: 4,
+    padding: 8, // Increased for better touch target
+    minWidth: 44, // Ensure minimum touch target size
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalSubheader: {
     flexDirection: 'row',

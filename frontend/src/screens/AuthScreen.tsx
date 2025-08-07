@@ -14,6 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
 import { AlertAPI } from '../components/CustomAlert';
 import { webInputStyles } from '../styles/containers';
+import ScreenContainer from '../components/ScreenContainer';
 
 type AuthFlow = 'welcome' | 'account-info' | 'connect-email' | 'change-password' | 'login' | 'register';
 
@@ -798,14 +799,16 @@ const AuthScreen: React.FC = () => {
   };
 
   return (
-    <ScrollView 
-      style={styles.scrollContainer} 
-      contentContainerStyle={styles.scrollContent}
+    <ScreenContainer
+      enableKeyboardAvoiding={true}
+      enableScrolling={true}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      contentContainerStyle={styles.scrollContent}
     >
       {renderCurrentFlow()}
-    </ScrollView>
+    </ScreenContainer>
   );
 };
 

@@ -47,8 +47,112 @@ func (c *Client) logExecutionEvent(level types.LogLevel, category types.LogCateg
 
 // logExecutionFlowEvent logs a flow event for execution tracking
 func (c *Client) logExecutionFlowEvent(eventType string, sequenceNumber int, status string, parentEventID *string, eventData map[string]interface{}, durationMs *int32, errorMessage *string) {
-	// TODO: Implement flow event logging when database schema is ready
-	log.Printf("🔄 [FLOW] %s (%s): %s", eventType, status, uuid.New().String())
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	// Only log if we have an execution context
+	if c.currentExecutionRunID == nil {
+		log.Printf("⚠️ [FLOW] Skipping flow event - no execution context: %s (%s)", eventType, status)
+		return
+	}
+
+	// Convert event data to JSON
+	var eventDataJSON json.RawMessage
+	if eventData != nil {
+		if jsonBytes, err := json.Marshal(eventData); err != nil {
+			log.Printf("⚠️ Failed to marshal flow event data: %v", err)
+			eventDataJSON = nil
+		} else {
+			eventDataJSON = jsonBytes
+		}
+	}
+
+	// Convert event type to database enum
+	var dbEventType db.ExecutionFlowEventsEventType
+	switch eventType {
+	case "prompt_start":
+		dbEventType = db.ExecutionFlowEventsEventTypePromptStart
+	case "ai_model_call":
+		dbEventType = db.ExecutionFlowEventsEventTypeAiModelCall
+	case "function_call_start":
+		dbEventType = db.ExecutionFlowEventsEventTypeFunctionCallStart
+	case "function_call_end":
+		dbEventType = db.ExecutionFlowEventsEventTypeFunctionCallEnd
+	case "ai_response":
+		dbEventType = db.ExecutionFlowEventsEventTypeAiResponse
+	case "error_occurred":
+		dbEventType = db.ExecutionFlowEventsEventTypeErrorOccurred
+	case "retry_attempt":
+		dbEventType = db.ExecutionFlowEventsEventTypeRetryAttempt
+	case "execution_complete":
+		dbEventType = db.ExecutionFlowEventsEventTypeExecutionComplete
+	case "api_request_start", "api_request_end":
+		// For backward compatibility, map these to ai_model_call
+		dbEventType = db.ExecutionFlowEventsEventTypeAiModelCall
+	case "function_execution_start", "function_execution_end":
+		// Map function execution events appropriately
+		if eventType == "function_execution_start" {
+			dbEventType = db.ExecutionFlowEventsEventTypeFunctionCallStart
+		} else {
+			dbEventType = db.ExecutionFlowEventsEventTypeFunctionCallEnd
+		}
+	default:
+		log.Printf("⚠️ [FLOW] Unknown event type '%s', using ai_model_call as fallback", eventType)
+		dbEventType = db.ExecutionFlowEventsEventTypeAiModelCall
+	}
+
+	// Convert status to database enum
+	var dbStatus db.NullExecutionFlowEventsStatus
+	switch status {
+	case "pending":
+		dbStatus = db.NullExecutionFlowEventsStatus{
+			ExecutionFlowEventsStatus: db.ExecutionFlowEventsStatusPending,
+			Valid:                     true,
+		}
+	case "success":
+		dbStatus = db.NullExecutionFlowEventsStatus{
+			ExecutionFlowEventsStatus: db.ExecutionFlowEventsStatusSuccess,
+			Valid:                     true,
+		}
+	case "error":
+		dbStatus = db.NullExecutionFlowEventsStatus{
+			ExecutionFlowEventsStatus: db.ExecutionFlowEventsStatusError,
+			Valid:                     true,
+		}
+	case "timeout":
+		dbStatus = db.NullExecutionFlowEventsStatus{
+			ExecutionFlowEventsStatus: db.ExecutionFlowEventsStatusTimeout,
+			Valid:                     true,
+		}
+	default:
+		log.Printf("⚠️ [FLOW] Unknown status '%s', using pending as fallback", status)
+		dbStatus = db.NullExecutionFlowEventsStatus{
+			ExecutionFlowEventsStatus: db.ExecutionFlowEventsStatusPending,
+			Valid:                     true,
+		}
+	}
+
+	// Create flow event parameters
+	params := db.CreateExecutionFlowEventParams{
+		ID:             uuid.New().String(),
+		ExecutionRunID: *c.currentExecutionRunID,
+		RequestID:      c.convertStringToNullString(c.currentRequestID),
+		EventType:      dbEventType,
+		SequenceNumber: int32(sequenceNumber),
+		ParentEventID:  c.convertStringToNullString(parentEventID),
+		EventData:      eventDataJSON,
+		DurationMs:     c.convertInt32ToNullInt32(durationMs),
+		Status:         dbStatus,
+		ErrorMessage:   c.convertStringToNullString(errorMessage),
+	}
+
+	// Insert into database
+	err := c.queries.CreateExecutionFlowEvent(context.Background(), params)
+	if err != nil {
+		log.Printf("⚠️ Failed to log execution flow event: %v", err)
+	} else {
+		log.Printf("🔄 [FLOW] %s (%s): %s [seq: %d]", eventType, status, params.ID, sequenceNumber)
+	}
 }
 
 // getLogEmoji returns an appropriate emoji for the log level and category
@@ -95,4 +199,11 @@ func (c *Client) convertStringToRawMessage(jsonStr string) json.RawMessage {
 		return nil
 	}
 	return json.RawMessage(jsonStr)
+}
+
+func (c *Client) convertInt32ToNullInt32(i *int32) sql.NullInt32 {
+	if i == nil {
+		return sql.NullInt32{Valid: false}
+	}
+	return sql.NullInt32{Int32: *i, Valid: true}
 }

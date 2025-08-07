@@ -22,6 +22,26 @@ import { containerStyles, shadowPresets, textInputStyles, containerColors } from
 interface CreateAgentFormProps {
   onSuccess: () => void;
   onCancel: () => void;
+  prefilledData?: Partial<AgentFormData & {
+    description?: string;
+    functionGroups?: string[];
+    marketplaceAgent?: {
+      role: string;
+      category: string;
+      experienceLevel: string;
+      modelConfig: {
+        modelName: string;
+        configName: string;
+        temperature: number;
+        maxTokens: number;
+      };
+      apiRequirements: {
+        requiredKeys: string[];
+        displayNames: string[];
+      };
+      highlights: string[];
+    };
+  }>;
 }
 
 interface TooltipProps {
@@ -49,15 +69,15 @@ const Tooltip: React.FC<TooltipProps> = ({ title, content, icon, visible, onClos
   </Modal>
 );
 
-const CreateAgentForm: React.FC<CreateAgentFormProps> = ({ onSuccess, onCancel }) => {
+const CreateAgentForm: React.FC<CreateAgentFormProps> = ({ onSuccess, onCancel, prefilledData }) => {
   const navigation = useNavigation();
   const [formData, setFormData] = useState<AgentFormData>({
-    firstName: '',
-    lastName: '',
-    templateId: '',
-    maxTokensPerDay: 10000,
-    heartbeatMinutes: 5,
-    lifecycleStatus: 'STANDBY' as LifecycleStatus,
+    firstName: prefilledData?.firstName || '',
+    lastName: prefilledData?.lastName || '',
+    templateId: prefilledData?.templateId || '',
+    maxTokensPerDay: prefilledData?.maxTokensPerDay || 10000,
+    heartbeatMinutes: prefilledData?.heartbeatMinutes || 5,
+    lifecycleStatus: (prefilledData?.lifecycleStatus as LifecycleStatus) || 'STANDBY',
   });
 
   const [errors, setErrors] = useState<AgentFormErrors>({});
@@ -248,15 +268,62 @@ const CreateAgentForm: React.FC<CreateAgentFormProps> = ({ onSuccess, onCancel }
         </TouchableOpacity>
       </View>
 
+      {/* Marketplace Agent Card - Show when hired from marketplace */}
+      {prefilledData?.marketplaceAgent && (
+        <View style={[containerStyles.primaryContainer, styles.marketplaceCard]}>
+          <View style={styles.marketplaceHeader}>
+            <Ionicons name="storefront" size={20} color="#007AFF" />
+            <Text style={styles.marketplaceTitle}>Agent from Marketplace</Text>
+            <View style={styles.experienceBadge}>
+              <Text style={styles.experienceText}>
+                {prefilledData.marketplaceAgent.experienceLevel}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.marketplaceRole}>
+            {prefilledData.marketplaceAgent.role}
+          </Text>
+          <Text style={styles.marketplaceDescription}>
+            {prefilledData.description}
+          </Text>
+          
+          {/* API Requirements */}
+          <View style={styles.apiSection}>
+            <Text style={styles.apiSectionTitle}>Required API Keys:</Text>
+            <View style={styles.apiKeysContainer}>
+              {prefilledData.marketplaceAgent.apiRequirements.displayNames.map((apiKey: string, index: number) => (
+                <View key={index} style={styles.apiKeyChip}>
+                  <Ionicons name="key" size={12} color="#007AFF" />
+                  <Text style={styles.apiKeyText}>{apiKey}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* Model Configuration */}
+          <View style={styles.modelSection}>
+            <Text style={styles.modelSectionTitle}>AI Model:</Text>
+            <Text style={styles.modelText}>
+              {prefilledData.marketplaceAgent.modelConfig.configName} 
+              ({prefilledData.marketplaceAgent.modelConfig.modelName})
+            </Text>
+          </View>
+        </View>
+      )}
+
       {/* Introduction Card */}
       <View style={[containerStyles.primaryContainer, styles.introCard]}>
         <View style={styles.introHeader}>
           <Ionicons name="bulb-outline" size={20} color="#FF9500" />
-          <Text style={styles.introTitle}>Creating Your AI Agent</Text>
+          <Text style={styles.introTitle}>
+            {prefilledData?.marketplaceAgent ? 'Customize Your Agent' : 'Creating Your AI Agent'}
+          </Text>
         </View>
         <Text style={styles.introText}>
-          You're about to create an autonomous AI agent that will work for you around the clock. 
-          Choose an archetype template that defines its capabilities, set a schedule, and configure safety limits.
+          {prefilledData?.marketplaceAgent 
+            ? 'All settings have been pre-configured based on your marketplace selection. Review the details below and click Create to hire your agent!'
+            : 'You\'re about to create an autonomous AI agent that will work for you around the clock. Choose an archetype template that defines its capabilities, set a schedule, and configure safety limits.'
+          }
         </Text>
       </View>
 
@@ -732,6 +799,90 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#8E8E93',
     lineHeight: 20,
+  },
+  marketplaceCard: {
+    margin: 16,
+    marginBottom: 8,
+    backgroundColor: '#F0F8FF',
+    borderWidth: 1,
+    borderColor: '#007AFF',
+  },
+  marketplaceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  marketplaceTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
+    flex: 1,
+  },
+  experienceBadge: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  experienceText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  marketplaceRole: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginBottom: 8,
+  },
+  marketplaceDescription: {
+    fontSize: 14,
+    color: '#6B6B6B',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  apiSection: {
+    marginBottom: 12,
+  },
+  apiSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 6,
+  },
+  apiKeysContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  apiKeyChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E3F2FD',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  apiKeyText: {
+    fontSize: 12,
+    color: '#1976D2',
+    fontWeight: '500',
+  },
+  modelSection: {
+    marginBottom: 8,
+  },
+  modelSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 4,
+  },
+  modelText: {
+    fontSize: 14,
+    color: '#6B6B6B',
+    fontWeight: '500',
   },
   characterPreview: {
     backgroundColor: '#f8f9fa',
