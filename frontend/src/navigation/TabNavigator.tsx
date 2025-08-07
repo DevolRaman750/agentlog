@@ -30,27 +30,71 @@ interface NavigationItem {
   icon: keyof typeof Ionicons.glyphMap;
   iconFocused: keyof typeof Ionicons.glyphMap;
   component: React.ComponentType<any>;
+  children?: NavigationItem[];
+  isSubItem?: boolean;
 }
 
 // Mobile Navigation Dropdown Component for very narrow screens
 const MobileNavigationDropdown: React.FC = () => {
   const [showDropdown, setShowDropdown] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['Agents', 'Configure'])); // Default expanded
   const navigation = useNavigation();
   const route = useRoute();
   const { isAuthenticated } = useAuth();
 
   const navigationItems: NavigationItem[] = [
-    { name: 'Execute', title: 'Execute', icon: 'play-circle-outline', iconFocused: 'play-circle', component: ExecuteScreen },
-    { name: 'Configure', title: 'Configure', icon: 'settings-outline', iconFocused: 'settings', component: ConfigureScreen },
-    { name: 'Functions', title: 'Functions', icon: 'code-slash-outline', iconFocused: 'code-slash', component: FunctionScreen },
-    { name: 'Execution Templates', title: 'Execution Templates', icon: 'document-text-outline', iconFocused: 'document-text', component: ExecutionTemplatesScreen },
-    { name: 'API Keys', title: 'API Keys', icon: 'key-outline', iconFocused: 'key', component: ApiKeysScreen },
-    { name: 'History', title: 'History', icon: 'time-outline', iconFocused: 'time', component: HistoryScreen },
-    { name: 'Database', title: 'Database', icon: 'server-outline', iconFocused: 'server', component: DatabaseScreen },
-    { name: 'Agents', title: 'Agents', icon: 'construct-outline', iconFocused: 'construct', component: AgentsScreen },
-    { name: 'Marketplace', title: 'Agent Marketplace', icon: 'storefront-outline', iconFocused: 'storefront', component: AgentMarketplaceScreen },
+    { 
+      name: 'Agents', 
+      title: 'Agents', 
+      icon: 'construct-outline', 
+      iconFocused: 'construct',
+      component: AgentsScreen,
+      children: [
+        { name: 'Agents', title: 'Your Agents', icon: 'construct-outline', iconFocused: 'construct', component: AgentsScreen, isSubItem: true },
+        { name: 'Marketplace', title: 'Marketplace', icon: 'storefront-outline', iconFocused: 'storefront', component: AgentMarketplaceScreen, isSubItem: true }
+      ]
+    },
+    { 
+      name: 'Configure', 
+      title: 'Configure', 
+      icon: 'settings-outline', 
+      iconFocused: 'settings',
+      component: ConfigureScreen,
+      children: [
+        { name: 'Execute', title: 'Model', icon: 'play-circle-outline', iconFocused: 'play-circle', component: ExecuteScreen, isSubItem: true },
+        { name: 'Execution Templates', title: 'Templates', icon: 'document-text-outline', iconFocused: 'document-text', component: ExecutionTemplatesScreen, isSubItem: true },
+        { name: 'Functions', title: 'Functions', icon: 'code-slash-outline', iconFocused: 'code-slash', component: FunctionScreen, isSubItem: true },
+        { name: 'API Keys', title: 'API Keys', icon: 'key-outline', iconFocused: 'key', component: ApiKeysScreen, isSubItem: true }
+      ]
+    },
+    { name: 'History', title: 'Execution History', icon: 'time-outline', iconFocused: 'time', component: HistoryScreen },
+    { name: 'Database', title: 'Data', icon: 'server-outline', iconFocused: 'server', component: DatabaseScreen },
     { name: 'Account', title: 'Account', icon: 'person-circle-outline', iconFocused: 'person-circle', component: AuthScreen },
   ];
+
+  const toggleGroup = (groupName: string) => {
+    setExpandedGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupName)) {
+        newSet.delete(groupName);
+      } else {
+        newSet.add(groupName);
+      }
+      return newSet;
+    });
+  };
+
+  // Helper to get all navigation items including children for current route detection
+  const getAllNavigationItems = (items: NavigationItem[]): NavigationItem[] => {
+    const result: NavigationItem[] = [];
+    items.forEach(item => {
+      result.push(item);
+      if (item.children) {
+        result.push(...item.children);
+      }
+    });
+    return result;
+  };
 
   const getVisibleNavigationItems = () => {
     if (!isAuthenticated) {
@@ -60,7 +104,7 @@ const MobileNavigationDropdown: React.FC = () => {
   };
 
   const visibleItems = getVisibleNavigationItems();
-  const currentItem = visibleItems.find(item => item.name === route.name) || visibleItems[0];
+  const currentItem = getAllNavigationItems(visibleItems).find(item => item.name === route.name) || visibleItems[0];
 
   const handleNavigate = (screenName: string) => {
     setShowDropdown(false);
@@ -110,23 +154,78 @@ const MobileNavigationDropdown: React.FC = () => {
             {visibleItems.map((item) => {
               const isCurrent = route.name === item.name;
               return (
-                <TouchableOpacity
-                  key={item.name}
-                  style={[styles.modalItem, isCurrent && styles.modalItemActive]}
-                  onPress={() => handleNavigate(item.name)}
-                >
-                  <Ionicons
-                    name={isCurrent ? item.iconFocused : item.icon}
-                    size={24}
-                    color={isCurrent ? "#FFFFFF" : "#007AFF"}
-                  />
-                  <Text style={[styles.modalItemText, isCurrent && styles.modalItemTextActive]}>
-                    {item.title}
-                  </Text>
-                  {isCurrent && (
-                    <Ionicons name="checkmark" size={20} color="#FFFFFF" />
-                  )}
-                </TouchableOpacity>
+                <View key={item.name}>
+                  {/* Parent/Group Item */}
+                  <TouchableOpacity
+                    style={[
+                      styles.modalItem, 
+                      isCurrent && styles.modalItemActive,
+                      item.children && styles.modalGroupItem
+                    ]}
+                    onPress={() => {
+                      if (item.children) {
+                        toggleGroup(item.name);
+                      } else {
+                        handleNavigate(item.name);
+                      }
+                    }}
+                  >
+                    <Ionicons
+                      name={isCurrent ? item.iconFocused : item.icon}
+                      size={24}
+                      color={isCurrent ? "#FFFFFF" : "#007AFF"}
+                    />
+                    <Text style={[
+                      styles.modalItemText, 
+                      isCurrent && styles.modalItemTextActive
+                    ]}>
+                      {item.title}
+                    </Text>
+                    {item.children && (
+                      <Ionicons 
+                        name={expandedGroups.has(item.name) ? "chevron-down" : "chevron-forward"} 
+                        size={20} 
+                        color={isCurrent ? "#FFFFFF" : "#8E8E93"} 
+                      />
+                    )}
+                    {isCurrent && !item.children && (
+                      <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+                    )}
+                  </TouchableOpacity>
+                  
+                  {/* Child Items */}
+                  {item.children && expandedGroups.has(item.name) && item.children.map((child) => {
+                    const isChildCurrent = route.name === child.name;
+                    return (
+                      <TouchableOpacity
+                        key={child.name}
+                        style={[
+                          styles.modalItem, 
+                          styles.modalSubItem,
+                          isChildCurrent && styles.modalItemActive
+                        ]}
+                        onPress={() => handleNavigate(child.name)}
+                      >
+                        <View style={styles.subItemIndent} />
+                        <Ionicons
+                          name={isChildCurrent ? child.iconFocused : child.icon}
+                          size={20}
+                          color={isChildCurrent ? "#FFFFFF" : "#007AFF"}
+                        />
+                        <Text style={[
+                          styles.modalItemText, 
+                          styles.modalSubItemText,
+                          isChildCurrent && styles.modalItemTextActive
+                        ]}>
+                          {child.title}
+                        </Text>
+                        {isChildCurrent && (
+                          <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               );
             })}
           </ScrollView>
@@ -352,6 +451,23 @@ const styles = StyleSheet.create({
   modalItemTextActive: {
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  modalGroupItem: {
+    backgroundColor: '#F8F9FA',
+  },
+  modalSubItem: {
+    paddingLeft: 20,
+    backgroundColor: '#FFFFFF',
+    borderLeftWidth: 3,
+    borderLeftColor: '#E1E5E9',
+  },
+  modalSubItemText: {
+    fontSize: 15,
+    fontWeight: '400',
+  },
+  subItemIndent: {
+    width: 16,
+    height: 1,
   },
 });
 

@@ -187,21 +187,27 @@ const AgentMarketplaceScreen: React.FC = () => {
   };
 
   const getGridLayout = useMemo(() => {
-    const containerPadding = 32; // 16px padding on each side
     const itemGap = 16; // Gap between items
+    const minCardWidth = 280; // Minimum card width to prevent clipping
     
-    let numColumns = 1;
-    if (screenWidth > 1200) {
-      numColumns = 3;
-    } else if (screenWidth > 768) {
-      numColumns = 2;
-    }
-    
+    // Calculate available width (accounting for container padding)
+    const containerPadding = 32; // 16px on each side
     const availableWidth = screenWidth - containerPadding;
+    
+    // Calculate how many cards can fit with minimum width
+    const maxCardsPerRow = Math.floor((availableWidth + itemGap) / (minCardWidth + itemGap));
+    const numColumns = Math.max(1, Math.min(3, maxCardsPerRow));
+    
+    // Calculate item width to fill available space
     const totalGapWidth = (numColumns - 1) * itemGap;
     const itemWidth = (availableWidth - totalGapWidth) / numColumns;
     
-    return { numColumns, itemWidth: Math.floor(itemWidth) };
+    return { 
+      numColumns, 
+      itemWidth: Math.floor(itemWidth),
+      availableWidth,
+      itemGap
+    };
   }, [screenWidth]);
 
   const renderFilterChip = (label: string, isSelected: boolean, onPress: () => void) => (
@@ -254,17 +260,28 @@ const AgentMarketplaceScreen: React.FC = () => {
         )}
       </View>
 
-      {/* Results Count */}
+      {/* Results Count and Actions */}
       <View style={styles.resultsHeader}>
-        <Text style={styles.resultsCount}>
-          {filteredAgents.length} agent{filteredAgents.length !== 1 ? 's' : ''} available
-        </Text>
-        {(filters.category.length > 0 || filters.functions.length > 0 || 
-          filters.experience.length > 0 || filters.searchTerm.length > 0) && (
-          <TouchableOpacity style={styles.clearFiltersButton} onPress={clearFilters}>
-            <Text style={styles.clearFiltersText}>Clear filters</Text>
-          </TouchableOpacity>
-        )}
+        <View style={styles.resultsLeft}>
+          <Text style={styles.resultsCount}>
+            {filteredAgents.length} agent{filteredAgents.length !== 1 ? 's' : ''} available
+          </Text>
+          {(filters.category.length > 0 || filters.functions.length > 0 || 
+            filters.experience.length > 0 || filters.searchTerm.length > 0) && (
+            <TouchableOpacity style={styles.clearFiltersButton} onPress={clearFilters}>
+              <Text style={styles.clearFiltersText}>Clear filters</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        
+        {/* Create Agent from Scratch Button */}
+        <TouchableOpacity
+          style={styles.createAgentButton}
+          onPress={() => navigation.navigate('Agents')}
+        >
+          <Ionicons name="add-circle" size={20} color="#FFFFFF" />
+          <Text style={styles.createAgentButtonText}>Create Agent from Scratch</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -326,7 +343,7 @@ const AgentMarketplaceScreen: React.FC = () => {
   };
 
   const renderAgentGrid = () => {
-    const { numColumns, itemWidth } = getGridLayout;
+    const { numColumns, itemWidth, itemGap } = getGridLayout;
     
     // Create rows of agents based on numColumns
     const rows: MarketplaceAgent[][] = [];
@@ -345,7 +362,7 @@ const AgentMarketplaceScreen: React.FC = () => {
                   styles.gridItem,
                   {
                     width: itemWidth,
-                    marginRight: colIndex < row.length - 1 ? 16 : 0, // Gap between items in row
+                    marginRight: colIndex < row.length - 1 ? itemGap : 0,
                   }
                 ]}
               >
@@ -356,10 +373,6 @@ const AgentMarketplaceScreen: React.FC = () => {
                 />
               </View>
             ))}
-            {/* Fill remaining space if row is not complete */}
-            {row.length < numColumns && (
-              <View style={{ width: (numColumns - row.length) * (itemWidth + 16) - 16 }} />
-            )}
           </View>
         ))}
       </View>
@@ -459,10 +472,34 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  resultsLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   resultsCount: {
     fontSize: 16,
     color: '#6B6B6B',
     fontWeight: '500',
+  },
+  createAgentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    gap: 8,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  createAgentButtonText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   clearFiltersButton: {
     paddingHorizontal: 12,
@@ -516,13 +553,18 @@ const styles = StyleSheet.create({
   agentGrid: {
     padding: 16,
     paddingTop: 12,
+    minHeight: 200, // Ensure minimum height for better layout
+    overflow: 'hidden', // Prevent horizontal overflow
   },
   gridRow: {
     flexDirection: 'row',
     justifyContent: 'flex-start',
     marginBottom: 16,
+    flexWrap: 'nowrap', // Prevent wrapping to maintain grid structure
+    overflow: 'hidden', // Prevent cards from overflowing
   },
   gridItem: {
+    flexShrink: 0, // Prevent shrinking to maintain card width
     // marginBottom handled by gridRow marginBottom
   },
 });

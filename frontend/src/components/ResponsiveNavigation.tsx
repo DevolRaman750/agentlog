@@ -17,18 +17,35 @@ interface NavigationItem {
   title: string;
   icon: keyof typeof Ionicons.glyphMap;
   iconFocused: keyof typeof Ionicons.glyphMap;
+  children?: NavigationItem[];
+  isSubItem?: boolean;
 }
 
 const navigationItems: NavigationItem[] = [
-  { name: 'Execute', title: 'Execute', icon: 'play-circle-outline', iconFocused: 'play-circle' },
-  { name: 'Configure', title: 'Configure', icon: 'settings-outline', iconFocused: 'settings' },
-  { name: 'Functions', title: 'Functions', icon: 'code-slash-outline', iconFocused: 'code-slash' },
-  { name: 'Execution Templates', title: 'Templates', icon: 'document-text-outline', iconFocused: 'document-text' },
-  { name: 'API Keys', title: 'API Keys', icon: 'key-outline', iconFocused: 'key' },
-  { name: 'History', title: 'History', icon: 'time-outline', iconFocused: 'time' },
-  { name: 'Database', title: 'Database', icon: 'server-outline', iconFocused: 'server' },
-  { name: 'Agents', title: 'Agents', icon: 'construct-outline', iconFocused: 'construct' },
-  { name: 'Marketplace', title: 'Marketplace', icon: 'storefront-outline', iconFocused: 'storefront' },
+  { 
+    name: 'Agents', 
+    title: 'Agents', 
+    icon: 'construct-outline', 
+    iconFocused: 'construct',
+    children: [
+      { name: 'Agents', title: 'Your Agents', icon: 'construct-outline', iconFocused: 'construct', isSubItem: true },
+      { name: 'Marketplace', title: 'Marketplace', icon: 'storefront-outline', iconFocused: 'storefront', isSubItem: true }
+    ]
+  },
+  { 
+    name: 'Configure', 
+    title: 'Configure', 
+    icon: 'settings-outline', 
+    iconFocused: 'settings',
+    children: [
+      { name: 'Execute', title: 'Model', icon: 'play-circle-outline', iconFocused: 'play-circle', isSubItem: true },
+      { name: 'Execution Templates', title: 'Templates', icon: 'document-text-outline', iconFocused: 'document-text', isSubItem: true },
+      { name: 'Functions', title: 'Functions', icon: 'code-slash-outline', iconFocused: 'code-slash', isSubItem: true },
+      { name: 'API Keys', title: 'API Keys', icon: 'key-outline', iconFocused: 'key', isSubItem: true }
+    ]
+  },
+  { name: 'History', title: 'Execution History', icon: 'time-outline', iconFocused: 'time' },
+  { name: 'Database', title: 'Data', icon: 'server-outline', iconFocused: 'server' },
   { name: 'Account', title: 'Account', icon: 'person-circle-outline', iconFocused: 'person-circle' },
 ];
 
@@ -40,6 +57,7 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({ isSi
   const navigation = useNavigation();
   const route = useRoute();
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['Agents', 'Configure'])); // Default expanded
   const { isAuthenticated } = useAuth();
 
   // Filter navigation items based on authentication status
@@ -79,8 +97,32 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({ isSi
     }
   };
 
+  const toggleGroup = (groupName: string) => {
+    setExpandedGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupName)) {
+        newSet.delete(groupName);
+      } else {
+        newSet.add(groupName);
+      }
+      return newSet;
+    });
+  };
+
   const isCurrentRoute = (routeName: string) => {
     return route.name === routeName;
+  };
+
+  // Helper to get all navigation items including children for current route detection
+  const getAllNavigationItems = (items: NavigationItem[]): NavigationItem[] => {
+    const result: NavigationItem[] = [];
+    items.forEach(item => {
+      result.push(item);
+      if (item.children) {
+        result.push(...item.children);
+      }
+    });
+    return result;
   };
 
   // Mobile Hamburger Menu
@@ -97,7 +139,7 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({ isSi
           <Ionicons name="menu" size={24} color="#007AFF" />
         </TouchableOpacity>
         <Text style={styles.mobileTitle}>
-          {visibleItems.find(item => isCurrentRoute(item.name))?.title || 'GoGent'}
+          {getAllNavigationItems(visibleItems).find(item => isCurrentRoute(item.name))?.title || 'GoGent'}
         </Text>
         <View style={styles.spacer} />
       </View>
@@ -124,25 +166,79 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({ isSi
 
           <ScrollView style={styles.modalContent}>
             {visibleItems.map((item) => {
-              const isCurrent = isCurrentRoute(item.name);
               return (
-                <TouchableOpacity
-                  key={item.name}
-                  style={[styles.modalItem, isCurrent && styles.modalItemActive]}
-                  onPress={() => handleNavigate(item.name)}
-                >
-                  <Ionicons
-                    name={isCurrent ? item.iconFocused : item.icon}
-                    size={24}
-                    color={isCurrent ? "#FFFFFF" : "#007AFF"}
-                  />
-                  <Text style={[styles.modalItemText, isCurrent && styles.modalItemTextActive]}>
-                    {item.title}
-                  </Text>
-                  {isCurrent && (
-                    <Ionicons name="checkmark" size={20} color="#FFFFFF" />
-                  )}
-                </TouchableOpacity>
+                <View key={item.name}>
+                  {/* Parent/Group Item */}
+                  <TouchableOpacity
+                    style={[
+                      styles.modalItem, 
+                      isCurrentRoute(item.name) && styles.modalItemActive,
+                      item.children && styles.modalGroupItem
+                    ]}
+                    onPress={() => {
+                      if (item.children) {
+                        toggleGroup(item.name);
+                      } else {
+                        handleNavigate(item.name);
+                      }
+                    }}
+                  >
+                    <Ionicons
+                      name={isCurrentRoute(item.name) ? item.iconFocused : item.icon}
+                      size={24}
+                      color={isCurrentRoute(item.name) ? "#FFFFFF" : "#007AFF"}
+                    />
+                    <Text style={[
+                      styles.modalItemText, 
+                      isCurrentRoute(item.name) && styles.modalItemTextActive
+                    ]}>
+                      {item.title}
+                    </Text>
+                    {item.children && (
+                      <Ionicons 
+                        name={expandedGroups.has(item.name) ? "chevron-down" : "chevron-forward"} 
+                        size={20} 
+                        color={isCurrentRoute(item.name) ? "#FFFFFF" : "#8E8E93"} 
+                      />
+                    )}
+                    {isCurrentRoute(item.name) && !item.children && (
+                      <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+                    )}
+                  </TouchableOpacity>
+                  
+                  {/* Child Items */}
+                  {item.children && expandedGroups.has(item.name) && item.children.map((child) => {
+                    const isChildCurrent = isCurrentRoute(child.name);
+                    return (
+                      <TouchableOpacity
+                        key={child.name}
+                        style={[
+                          styles.modalItem, 
+                          styles.modalSubItem,
+                          isChildCurrent && styles.modalItemActive
+                        ]}
+                        onPress={() => handleNavigate(child.name)}
+                      >
+                        <View style={styles.subItemIndent} />
+                        <Ionicons
+                          name={isChildCurrent ? child.iconFocused : child.icon}
+                          size={20}
+                          color={isChildCurrent ? "#FFFFFF" : "#007AFF"}
+                        />
+                        <Text style={[
+                          styles.modalItemText, 
+                          styles.modalSubItemText,
+                          isChildCurrent && styles.modalItemTextActive
+                        ]}>
+                          {child.title}
+                        </Text>
+                        {isChildCurrent && (
+                          <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               );
             })}
           </ScrollView>
@@ -161,22 +257,73 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({ isSi
 
       <ScrollView style={styles.sidebarContent}>
         {visibleItems.map((item) => {
-          const isCurrent = isCurrentRoute(item.name);
           return (
-            <TouchableOpacity
-              key={item.name}
-              style={[styles.sidebarItem, isCurrent && styles.sidebarItemActive]}
-              onPress={() => handleNavigate(item.name)}
-            >
-              <Ionicons
-                name={isCurrent ? item.iconFocused : item.icon}
-                size={20}
-                color={isCurrent ? "#FFFFFF" : "#007AFF"}
-              />
-              <Text style={[styles.sidebarItemText, isCurrent && styles.sidebarItemTextActive]}>
-                {item.title}
-              </Text>
-            </TouchableOpacity>
+            <View key={item.name}>
+              {/* Parent/Group Item */}
+              <TouchableOpacity
+                style={[
+                  styles.sidebarItem, 
+                  isCurrentRoute(item.name) && styles.sidebarItemActive,
+                  item.children && styles.sidebarGroupItem
+                ]}
+                onPress={() => {
+                  if (item.children) {
+                    toggleGroup(item.name);
+                  } else {
+                    handleNavigate(item.name);
+                  }
+                }}
+              >
+                <Ionicons
+                  name={isCurrentRoute(item.name) ? item.iconFocused : item.icon}
+                  size={20}
+                  color={isCurrentRoute(item.name) ? "#FFFFFF" : "#007AFF"}
+                />
+                <Text style={[
+                  styles.sidebarItemText, 
+                  isCurrentRoute(item.name) && styles.sidebarItemTextActive
+                ]}>
+                  {item.title}
+                </Text>
+                {item.children && (
+                  <Ionicons 
+                    name={expandedGroups.has(item.name) ? "chevron-down" : "chevron-forward"} 
+                    size={16} 
+                    color={isCurrentRoute(item.name) ? "#FFFFFF" : "#8E8E93"} 
+                  />
+                )}
+              </TouchableOpacity>
+              
+              {/* Child Items */}
+              {item.children && expandedGroups.has(item.name) && item.children.map((child) => {
+                const isChildCurrent = isCurrentRoute(child.name);
+                return (
+                  <TouchableOpacity
+                    key={child.name}
+                    style={[
+                      styles.sidebarItem, 
+                      styles.sidebarSubItem,
+                      isChildCurrent && styles.sidebarItemActive
+                    ]}
+                    onPress={() => handleNavigate(child.name)}
+                  >
+                    <View style={styles.subItemIndent} />
+                    <Ionicons
+                      name={isChildCurrent ? child.iconFocused : child.icon}
+                      size={18}
+                      color={isChildCurrent ? "#FFFFFF" : "#007AFF"}
+                    />
+                    <Text style={[
+                      styles.sidebarItemText, 
+                      styles.sidebarSubItemText,
+                      isChildCurrent && styles.sidebarItemTextActive
+                    ]}>
+                      {child.title}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           );
         })}
       </ScrollView>
@@ -288,6 +435,23 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
   },
+  modalGroupItem: {
+    backgroundColor: '#F8F9FA',
+  },
+  modalSubItem: {
+    paddingLeft: 20,
+    backgroundColor: '#FFFFFF',
+    borderLeftWidth: 3,
+    borderLeftColor: '#E1E5E9',
+  },
+  modalSubItemText: {
+    fontSize: 15,
+    fontWeight: '400',
+  },
+  subItemIndent: {
+    width: 16,
+    height: 1,
+  },
 
   // Sidebar
   sidebar: {
@@ -344,6 +508,20 @@ const styles = StyleSheet.create({
   sidebarItemTextActive: {
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  sidebarGroupItem: {
+    backgroundColor: '#F8F9FA',
+  },
+  sidebarSubItem: {
+    paddingLeft: 32,
+    marginLeft: 20,
+    backgroundColor: '#FFFFFF',
+    borderLeftWidth: 2,
+    borderLeftColor: '#E1E5E9',
+  },
+  sidebarSubItemText: {
+    fontSize: 14,
+    fontWeight: '400',
   },
   sidebarFooter: {
     paddingHorizontal: 20,
