@@ -52,7 +52,7 @@ export interface TemplateFormData {
   context: string;
   enableFunctionCalling: boolean;
   tags: string; // Backend expects string format
-  modelName: string;
+  configurationId: string; // Use configuration instead of model
 }
 
 export interface CreateTemplateFromExecutionData {
@@ -62,7 +62,7 @@ export interface CreateTemplateFromExecutionData {
   context: string;
   enableFunctionCalling: boolean;
   tags: string[];
-  modelName: string;
+  configurationId: string; // Use configuration instead of model
   functionIds?: string[];
   functions?: any[];
 } 

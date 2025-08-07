@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import { ExecutionTemplate, CreateTemplateFromExecutionData } from '../types/templates';
+import { ExecutionTemplate, CreateTemplateFromExecutionData, TemplateFormData, TemplateParameter } from '../types/templates';
 import { useTemplateManagement } from '../hooks/useTemplateManagement';
 import TemplateCard from '../components/TemplateCard';
 import TemplateForm from '../components/TemplateForm';
@@ -28,7 +28,7 @@ const ExecutionTemplatesScreen: React.FC = () => {
   const configurations = appState.configurations || [];
 
   // Template management
-  const { templates, loading, error, fetchTemplates, createTemplate, deleteTemplate } = useTemplateManagement();
+  const { templates, loading, error, fetchTemplates, createTemplate, updateTemplate, deleteTemplate } = useTemplateManagement();
 
   // UI state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -219,6 +219,23 @@ const ExecutionTemplatesScreen: React.FC = () => {
     setIsViewMode(false);
   };
 
+  // Handle both create and update operations
+  const handleSaveTemplate = async (
+    formData: TemplateFormData,
+    parameters: Omit<TemplateParameter, 'id'>[],
+    selectedFunctions: string[]
+  ): Promise<boolean> => {
+    if (isEditMode && selectedTemplate?.id) {
+      // Update existing template
+      console.log('🔄 Updating template:', selectedTemplate.id);
+      return await updateTemplate(selectedTemplate.id, formData, parameters, selectedFunctions);
+    } else {
+      // Create new template
+      console.log('✨ Creating new template');
+      return await createTemplate(formData, parameters, selectedFunctions);
+    }
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -296,7 +313,7 @@ const ExecutionTemplatesScreen: React.FC = () => {
           isViewMode={isViewMode}
           configurations={configurations}
           availableFunctions={availableFunctions}
-          onSave={createTemplate}
+          onSave={handleSaveTemplate}
           onClose={handleModalClose}
         />
       </Modal>

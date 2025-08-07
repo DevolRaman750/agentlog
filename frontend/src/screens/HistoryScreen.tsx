@@ -275,6 +275,11 @@ const HistoryScreen: React.FC = () => {
       const availableFunctions = functionsResponse.success && functionsResponse.data ? functionsResponse.data : [];
       console.log('📋 Available functions for mapping:', availableFunctions.map(f => ({ id: f.id, name: f.name })));
       
+      // Get available configurations to set a default if none found
+      const configurationsResponse = await goGentAPI.getConfigurations();
+      const availableConfigurations = configurationsResponse.success && configurationsResponse.data ? configurationsResponse.data : [];
+      console.log('📋 Available configurations:', availableConfigurations.map(c => ({ id: c.id, name: c.variationName })));
+      
       let templateData = {
         name: `Template: ${run.name}`,
         description: `Generated from execution: ${run.description || run.name}`,
@@ -282,7 +287,7 @@ const HistoryScreen: React.FC = () => {
         context: run.contextPrompt || '',
         enableFunctionCalling: run.enableFunctionCalling || false,
         tags: ['generated', 'from-execution'],
-        modelName: 'gemini-1.5-flash', // Default fallback
+        configurationId: '', // Will be set from execution configuration or default
         functionIds: [] as string[], // Changed to functionIds array for proper mapping
       };
 
@@ -291,10 +296,10 @@ const HistoryScreen: React.FC = () => {
         const { executionRun, results } = response.data;
         console.log('✅ Execution data retrieved:', { executionRun: !!executionRun, resultsCount: results?.length });
         
-        // Try to get model name from first result configuration
-        if (results && results.length > 0 && results[0].configuration?.modelName) {
-          templateData.modelName = results[0].configuration.modelName;
-          console.log('🤖 Model found:', templateData.modelName);
+        // Try to get configuration ID from first result configuration
+        if (results && results.length > 0 && results[0].configuration?.id) {
+          templateData.configurationId = results[0].configuration.id;
+          console.log('🤖 Configuration found:', templateData.configurationId);
         }
         
         // Extract unique function names from all function calls
@@ -324,16 +329,23 @@ const HistoryScreen: React.FC = () => {
         });
         
         templateData.functionIds = mappedFunctionIds;
-        console.log('📊 Template data prepared:', { 
-          functionIdsCount: templateData.functionIds.length,
-          functionIds: templateData.functionIds,
-          model: templateData.modelName,
-          hasPrompt: !!templateData.prompt,
-          hasContext: !!templateData.context
-        });
       } else {
         console.warn('⚠️ Failed to get execution data:', response.error);
       }
+      
+      // Set default configuration if none was found
+      if (!templateData.configurationId && availableConfigurations.length > 0) {
+        templateData.configurationId = availableConfigurations[0].id || '';
+        console.log('🔧 Using default configuration:', templateData.configurationId);
+      }
+
+      console.log('📊 Template data prepared:', { 
+        functionIdsCount: templateData.functionIds.length,
+        functionIds: templateData.functionIds,
+        configurationId: templateData.configurationId,
+        hasPrompt: !!templateData.prompt,
+        hasContext: !!templateData.context
+      });
 
       console.log('🚨 About to show AlertAPI dialog...');
       

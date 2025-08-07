@@ -111,6 +111,7 @@ export const useTemplateManagement = () => {
           templatePrompt: formData.prompt.trim(),
           contextTemplate: formData.context.trim(),
           enableFunctionCalling: formData.enableFunctionCalling,
+          preferredConfigurationId: formData.configurationId, // Add configuration ID
           tags: formData.tags 
             ? formData.tags.split(',').map(t => t.trim()).filter(t => t.length > 0).reduce((acc, tag) => {
                 acc[tag] = true;
@@ -136,6 +137,7 @@ export const useTemplateManagement = () => {
         templateName: templateData.template.name,
         templatePrompt: templateData.template.templatePrompt.substring(0, 100) + '...',
         enableFunctionCalling: templateData.template.enableFunctionCalling,
+        preferredConfigurationId: templateData.template.preferredConfigurationId,
         parametersCount: templateData.parameters.length,
         parameters: templateData.parameters.map(p => ({
           name: p.parameterName,
@@ -163,6 +165,109 @@ export const useTemplateManagement = () => {
       AlertAPI.alert(
         'Error',
         'Failed to create template. Please try again.',
+        [{ text: 'OK', style: 'destructive' }]
+      );
+      return false;
+    }
+  }, [fetchTemplates]);
+
+  const updateTemplate = useCallback(async (
+    templateId: string,
+    formData: TemplateFormData,
+    parameters: Omit<TemplateParameter, 'id'>[],
+    selectedFunctions: string[]
+  ) => {
+    // Validation (same as create)
+    if (!formData.name || formData.name.trim().length === 0) {
+      AlertAPI.alert(
+        'Validation Error',
+        'Template name is required',
+        [{ text: 'OK', style: 'destructive' }]
+      );
+      return false;
+    }
+
+    if (!formData.prompt || formData.prompt.trim().length < 10) {
+      AlertAPI.alert(
+        'Validation Error',
+        'Template prompt must be at least 10 characters long',
+        [{ text: 'OK', style: 'destructive' }]
+      );
+      return false;
+    }
+
+    if (!formData.configurationId) {
+      AlertAPI.alert(
+        'Validation Error',
+        'Please select a configuration for this template',
+        [{ text: 'OK', style: 'destructive' }]
+      );
+      return false;
+    }
+
+    try {
+      const templateData = {
+        template: {
+          name: formData.name.trim(),
+          description: formData.description.trim(),
+          templatePrompt: formData.prompt.trim(),
+          contextTemplate: formData.context.trim(),
+          enableFunctionCalling: formData.enableFunctionCalling,
+          preferredConfigurationId: formData.configurationId, // Add configuration ID
+          tags: formData.tags 
+            ? formData.tags.split(',').map(t => t.trim()).filter(t => t.length > 0).reduce((acc, tag) => {
+                acc[tag] = true;
+                return acc;
+              }, {} as Record<string, boolean>)
+            : {},
+          isActive: true,
+          isPublic: false,
+          category: 'custom',
+        },
+        parameters: parameters.map(p => ({
+          parameterName: p.name,
+          description: p.description,
+          parameterType: p.parameterType || 'string',
+          isRequired: p.isRequired,
+          defaultValue: p.defaultValue || '',
+          validationRules: p.validationRules || null,
+        })),
+        functionIds: selectedFunctions,
+      };
+
+      console.log('📋 Updating template with data:', {
+        templateId,
+        templateName: templateData.template.name,
+        templatePrompt: templateData.template.templatePrompt.substring(0, 100) + '...',
+        enableFunctionCalling: templateData.template.enableFunctionCalling,
+        preferredConfigurationId: templateData.template.preferredConfigurationId,
+        parametersCount: templateData.parameters.length,
+        parameters: templateData.parameters.map(p => ({
+          name: p.parameterName,
+          type: p.parameterType,
+          required: p.isRequired
+        })),
+        functionIdsCount: templateData.functionIds.length
+      });
+
+      const response = await goGentAPI.updateTemplate(templateId, templateData);
+
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to update template');
+      }
+
+      await fetchTemplates();
+      AlertAPI.alert(
+        'Success',
+        'Template updated successfully',
+        [{ text: 'OK', style: 'default' }]
+      );
+      return true;
+    } catch (err) {
+      console.error('Error updating template:', err);
+      AlertAPI.alert(
+        'Error',
+        'Failed to update template. Please try again.',
         [{ text: 'OK', style: 'destructive' }]
       );
       return false;
@@ -212,6 +317,7 @@ export const useTemplateManagement = () => {
     error,
     fetchTemplates,
     createTemplate,
+    updateTemplate,
     deleteTemplate,
   };
 }; 

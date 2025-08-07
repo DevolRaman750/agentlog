@@ -18,9 +18,10 @@ import { Picker } from '@react-native-picker/picker';
 import TextEditor from './TextEditor';
 import { FunctionSelector } from './FunctionSelector';
 import { AlertAPI } from './CustomAlert';
+import ConfigurationModal from './ConfigurationModal';
 
 import { ExecutionTemplate, TemplateFormData, TemplateParameter } from '../types/templates';
-import { FunctionDefinition, GEMINI_MODELS } from '../types';
+import { FunctionDefinition, APIConfiguration } from '../types';
 import { containerStyles, shadowPresets, textInputStyles, containerColors } from '../styles/containers';
 
 interface TemplateFormProps {
@@ -141,7 +142,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
     context: '',
     enableFunctionCalling: false,
     tags: '',
-    modelName: 'gemini-1.5-flash',
+    configurationId: '', // Will be set to first available configuration
   });
 
   const [parameters, setParameters] = useState<Omit<TemplateParameter, 'id'>[]>([]);
@@ -152,7 +153,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
   const [showAdvanced, setShowAdvanced] = useState(false);
   
   // Modal states
-  const [showModelSelector, setShowModelSelector] = useState(false);
+  const [showConfigurationSelector, setShowConfigurationSelector] = useState(false);
   const [showTooltip, setShowTooltip] = useState<string>('');
 
   // Cleanup on unmount
@@ -164,7 +165,19 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
 
   // Initialize form with template data (optimized with useMemo)
   const initialFormData = useMemo(() => {
-    if (!template) return null;
+    if (!template) {
+      // For new templates, use the first available configuration
+      const defaultConfigId = configurations.length > 0 ? configurations[0].id || '' : '';
+      return {
+        name: '',
+        description: '',
+        prompt: '',
+        context: '',
+        enableFunctionCalling: false,
+        tags: '',
+        configurationId: defaultConfigId,
+      };
+    }
     
     return {
       name: sanitizeInput(template.name || '', VALIDATION_RULES.templateName.maxLength),
@@ -173,9 +186,9 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
       context: sanitizeInput((template.context || template.contextTemplate || '')),
       enableFunctionCalling: Boolean(template.enableFunctionCalling),
       tags: Array.isArray(template.tags) ? template.tags.join(', ') : '',
-      modelName: template.modelName || 'gemini-1.5-flash',
+      configurationId: template.preferredConfigurationId || (configurations.length > 0 ? configurations[0].id || '' : ''),
     };
-  }, [template]);
+  }, [template, configurations]);
 
   // Initialize form when template changes
   useEffect(() => {
@@ -204,6 +217,13 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
       }
     }
   }, [initialFormData, template]);
+
+  // Set default configuration if none is selected
+  useEffect(() => {
+    if (!formData.configurationId && configurations.length > 0 && configurations[0].id) {
+      setFormData(prev => ({ ...prev, configurationId: configurations[0].id! }));
+    }
+  }, [formData.configurationId, configurations]);
 
   // Auto-detect parameters from prompt changes
   useEffect(() => {
@@ -408,6 +428,9 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
 
   // Optimized form data updater
   const updateFormData = useCallback((field: keyof TemplateFormData, value: any) => {
+    if (field === 'configurationId') {
+      console.log('🔧 Configuration updated:', value);
+    }
     setFormData(prev => ({ ...prev, [field]: value }));
     // Clear error for this field
     setErrors(prev => prev.filter(e => e.field !== field));
@@ -417,16 +440,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
     return errors.find(e => e.field === field)?.message;
   }, [errors]);
 
-  // Memoized model info
-  const getModelInfo = useCallback((modelName: string) => {
-    const model = GEMINI_MODELS.find(m => m.value === modelName);
-    return {
-      name: model?.label || modelName,
-      description: model?.description || '',
-      maxTokens: model?.maxTokens || 'Unknown',
-      isRecommended: modelName === 'gemini-1.5-flash',
-    };
-  }, []);
+
 
   // Enhanced tooltips with better content
   const tooltips = useMemo(() => ({
@@ -455,10 +469,10 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
       content: "Additional context or system instructions that provide background information to the AI. This helps set the tone, style, and constraints for responses.",
       icon: "library"
     },
-    model: {
-      title: "AI Model Selection",
-      content: "Choose the AI model that will process this template. Different models have varying capabilities, speed, and cost. Consider your use case when selecting a model.",
-      icon: "hardware-chip"
+    configuration: {
+      title: "Configuration Selection",
+      content: "Choose a configuration that defines the AI model, temperature, token limits, and other settings. Configurations can be managed in the Configure tab.",
+      icon: "settings"
     },
     functions: {
       title: "Function Calling",
@@ -472,53 +486,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
     }
   }), []);
 
-  // Enhanced model info with use cases and benefits
-  const getEnhancedModelInfo = useCallback((modelName: string) => {
-    const model = GEMINI_MODELS.find(m => m.value === modelName);
-    const baseInfo = {
-      name: model?.label || modelName,
-      description: model?.description || '',
-      maxTokens: model?.maxTokens || 'Unknown',
-      isRecommended: modelName === 'gemini-1.5-flash',
-      useCases: [] as string[],
-      benefits: [] as string[],
-      idealFor: undefined as string | undefined,
-    };
 
-    // Add detailed use cases and benefits
-    switch (modelName) {
-      case 'gemini-1.5-flash':
-        return {
-          ...baseInfo,
-          useCases: ['Quick responses', 'Simple tasks', 'High-frequency API calls', 'Real-time applications'],
-          benefits: ['Fastest response time', 'Most cost-effective', 'Excellent for production'],
-          idealFor: 'Most templates and general use cases'
-        };
-      case 'gemini-1.5-pro':
-        return {
-          ...baseInfo,
-          useCases: ['Complex reasoning', 'Long documents', 'Advanced analysis', 'Creative writing'],
-          benefits: ['Superior reasoning', 'Larger context window', 'Better for complex tasks'],
-          idealFor: 'Complex analysis and reasoning tasks'
-        };
-      case 'gemini-1.0-pro':
-        return {
-          ...baseInfo,
-          useCases: ['Stable production', 'Proven workflows', 'Legacy applications'],
-          benefits: ['Battle-tested reliability', 'Consistent performance', 'Well-documented'],
-          idealFor: 'Production systems requiring stability'
-        };
-      case 'gemini-1.5-flash-8b':
-        return {
-          ...baseInfo,
-          useCases: ['Simple tasks', 'High-volume processing', 'Resource-constrained environments'],
-          benefits: ['Ultra-fast processing', 'Minimal resource usage', 'Optimized efficiency'],
-          idealFor: 'Simple tasks requiring maximum speed'
-        };
-      default:
-        return baseInfo;
-    }
-  }, []);
 
   const renderHeader = () => (
     <View style={styles.header}>
@@ -708,40 +676,55 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
     </View>
   );
 
-  const renderModelSection = () => {
-    const modelInfo = getEnhancedModelInfo(formData.modelName);
+  const renderConfigurationSection = () => {
+    const selectedConfig = configurations.find(config => config.id === formData.configurationId);
+    
+    // Debug logging for troubleshooting
+    if (!selectedConfig && formData.configurationId) {
+      console.log('🔧 Configuration not found:', {
+        searchingFor: formData.configurationId,
+        available: configurations.map(c => ({ id: c.id, name: c.variationName }))
+      });
+    }
     
     return (
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Ionicons name="hardware-chip" size={20} color="#007AFF" />
-          <Text style={styles.sectionTitle}>AI Model</Text>
-          <TouchableOpacity onPress={() => setShowTooltip('model')}>
+          <Ionicons name="settings" size={20} color="#007AFF" />
+          <Text style={styles.sectionTitle}>Configuration</Text>
+          <TouchableOpacity onPress={() => setShowTooltip('configuration')}>
             <Ionicons name="help-circle-outline" size={16} color="#007AFF" />
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity
           style={styles.enhancedSelectorButton}
-          onPress={() => setShowModelSelector(true)}
+          onPress={() => setShowConfigurationSelector(true)}
           disabled={isViewMode}
         >
           <View style={styles.modelSelectorContent}>
             <View style={styles.modelSelectorMain}>
               <View style={styles.modelSelectorHeader}>
-                <Text style={styles.modelSelectorLabel}>Selected Model</Text>
-                {modelInfo.isRecommended && (
+                <Text style={styles.modelSelectorLabel}>Selected Configuration</Text>
+                {selectedConfig?.isSystemResource && (
                   <View style={styles.recommendedBadge}>
-                    <Text style={styles.badgeText}>Recommended</Text>
+                    <Text style={styles.badgeText}>System</Text>
                   </View>
                 )}
               </View>
-              <Text style={styles.modelSelectorValue}>{modelInfo.name}</Text>
-              <Text style={styles.modelSelectorDescription}>{modelInfo.description}</Text>
-              {modelInfo.idealFor && (
-                <Text style={styles.modelIdealFor}>💡 {modelInfo.idealFor}</Text>
+              <Text style={styles.modelSelectorValue}>
+                {selectedConfig?.variationName || 'No Configuration Selected'}
+              </Text>
+              <Text style={styles.modelSelectorDescription}>
+                Model: {selectedConfig?.modelName || 'Unknown'} | 
+                Temp: {selectedConfig?.temperature || 'Default'} | 
+                Max Tokens: {selectedConfig?.maxTokens || 'Default'}
+              </Text>
+              {selectedConfig?.systemPrompt && (
+                <Text style={styles.modelIdealFor} numberOfLines={2}>
+                  💡 System: {selectedConfig.systemPrompt}
+                </Text>
               )}
-              <Text style={styles.modelTokenInfo}>Context: {modelInfo.maxTokens?.toLocaleString() || 'Unknown'} tokens</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
           </View>
@@ -915,93 +898,39 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
     </View>
   );
 
-  const renderModelSelector = () => (
-    <Modal visible={showModelSelector} animationType="slide" presentationStyle="pageSheet">
-      <View style={styles.modalContainer}>
-        <View style={styles.modalHeader}>
-          <Text style={styles.modalTitle}>Select AI Model</Text>
-          <TouchableOpacity 
-            style={styles.modalCloseButton}
-            onPress={() => setShowModelSelector(false)}
-          >
-            <Ionicons name="close" size={24} color="#8E8E93" />
-          </TouchableOpacity>
-        </View>
+  const renderConfigurationSelector = () => (
+    <ConfigurationModal
+      visible={showConfigurationSelector}
+      onClose={() => {
+        console.log('🔧 Configuration modal closed');
+        setShowConfigurationSelector(false);
+      }}
+      configurations={configurations}
+      selectedConfigurations={formData.configurationId ? [formData.configurationId] : []}
+      onSelectionChange={(configIds) => {
+        console.log('🔧 Configuration selection changed:', configIds, 'current:', formData.configurationId);
         
-        <FlatList
-          data={GEMINI_MODELS}
-          style={styles.modelList}
-          keyExtractor={(item) => item.value}
-          showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => {
-            const isSelected = formData.modelName === item.value;
-            const enhancedInfo = getEnhancedModelInfo(item.value);
-            
-            return (
-              <TouchableOpacity
-                style={[styles.enhancedModelCard, isSelected && styles.enhancedModelCardSelected]}
-                onPress={() => {
-                  updateFormData('modelName', item.value);
-                  setShowModelSelector(false);
-                }}
-                activeOpacity={0.7}
-              >
-                <View style={styles.enhancedModelCardHeader}>
-                  <View style={styles.modelCardTitleRow}>
-                    <Text style={[styles.enhancedModelCardTitle, isSelected && styles.enhancedModelCardTitleSelected]}>
-                      {item.label}
-                    </Text>
-                    {enhancedInfo.isRecommended && (
-                      <View style={styles.recommendedBadge}>
-                        <Text style={styles.badgeText}>Recommended</Text>
-                      </View>
-                    )}
-                  </View>
-                  {isSelected && (
-                    <View style={styles.selectedIndicator}>
-                      <Ionicons name="checkmark-circle" size={24} color="#007AFF" />
-                    </View>
-                  )}
-                </View>
-                
-                <Text style={[styles.enhancedModelCardDescription, isSelected && styles.enhancedModelCardDescriptionSelected]}>
-                  {item.description}
-                </Text>
-                
-                {enhancedInfo.idealFor && (
-                  <Text style={[styles.modelIdealForCard, isSelected && styles.enhancedModelCardDescriptionSelected]}>
-                    💡 {enhancedInfo.idealFor}
-                  </Text>
-                )}
-                
-                <View style={styles.modelDetailsRow}>
-                  <Text style={[styles.modelCardTokens, isSelected && styles.enhancedModelCardDescriptionSelected]}>
-                    Context: {item.maxTokens?.toLocaleString() || 'Unknown'} tokens
-                  </Text>
-                </View>
-                
-                {enhancedInfo.useCases && enhancedInfo.useCases.length > 0 && (
-                  <View style={styles.useCasesContainer}>
-                    <Text style={[styles.useCasesTitle, isSelected && styles.enhancedModelCardDescriptionSelected]}>
-                      Best for:
-                    </Text>
-                    <View style={styles.useCasesList}>
-                      {enhancedInfo.useCases.slice(0, 3).map((useCase: string, index: number) => (
-                        <View key={index} style={styles.useCaseChip}>
-                          <Text style={[styles.useCaseText, isSelected && styles.useCaseTextSelected]}>
-                            {useCase}
-                          </Text>
-                        </View>
-                      ))}
-                    </View>
-                  </View>
-                )}
-              </TouchableOpacity>
-            );
-          }}
-        />
-      </View>
-    </Modal>
+        // For templates, we want single-selection behavior
+        if (configIds.length === 1) {
+          // Perfect - user selected exactly one
+          const newConfigId = configIds[0];
+          console.log('🔧 Single configuration selected:', newConfigId);
+          updateFormData('configurationId', newConfigId);
+        } else if (configIds.length > 1) {
+          // Multiple selected - enforce single selection by keeping only the most recent
+          const newConfigId = configIds[configIds.length - 1];
+          console.log('🔧 Multiple selected, enforcing single selection:', newConfigId);
+          updateFormData('configurationId', newConfigId);
+          // Update the modal's selection to reflect single selection
+          // The modal will re-render with the updated selectedConfigurations prop
+        } else if (configIds.length === 0) {
+          // All deselected - clear the configuration
+          console.log('🔧 All configurations deselected');
+          updateFormData('configurationId', '');
+        }
+        // Let user click "Done" to close the modal
+      }}
+    />
   );
 
   const selectedFunctionDetails = useMemo(() => {
@@ -1026,11 +955,11 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
         {renderPromptSection()}
         {renderParametersSection()}
         {renderContextSection()}
-        {renderModelSection()}
+        {renderConfigurationSection()}
         {renderFunctionsSection()}
       </ScrollView>
 
-      {renderModelSelector()}
+      {renderConfigurationSelector()}
 
       <Modal
         visible={showFunctionSelector}
