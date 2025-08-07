@@ -159,7 +159,7 @@ const MobileNavigationDropdown: React.FC = () => {
                   <TouchableOpacity
                     style={[
                       styles.modalItem, 
-                      isCurrent && styles.modalItemActive,
+                      (isCurrent || (item.children && item.children.some(child => route.name === child.name))) && styles.modalItemActive,
                       item.children && styles.modalGroupItem
                     ]}
                     onPress={() => {
@@ -171,13 +171,13 @@ const MobileNavigationDropdown: React.FC = () => {
                     }}
                   >
                     <Ionicons
-                      name={isCurrent ? item.iconFocused : item.icon}
+                      name={(isCurrent || (item.children && item.children.some(child => route.name === child.name))) ? item.iconFocused : item.icon}
                       size={24}
-                      color={isCurrent ? "#FFFFFF" : "#007AFF"}
+                      color={(isCurrent || (item.children && item.children.some(child => route.name === child.name))) ? "#FFFFFF" : "#007AFF"}
                     />
                     <Text style={[
                       styles.modalItemText, 
-                      isCurrent && styles.modalItemTextActive
+                      (isCurrent || (item.children && item.children.some(child => route.name === child.name))) && styles.modalItemTextActive
                     ]}>
                       {item.title}
                     </Text>
@@ -185,7 +185,7 @@ const MobileNavigationDropdown: React.FC = () => {
                       <Ionicons 
                         name={expandedGroups.has(item.name) ? "chevron-down" : "chevron-forward"} 
                         size={20} 
-                        color={isCurrent ? "#FFFFFF" : "#8E8E93"} 
+                        color={(isCurrent || (item.children && item.children.some(child => route.name === child.name))) ? "#FFFFFF" : "#8E8E93"} 
                       />
                     )}
                     {isCurrent && !item.children && (

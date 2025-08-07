@@ -172,7 +172,7 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({ isSi
                   <TouchableOpacity
                     style={[
                       styles.modalItem, 
-                      isCurrentRoute(item.name) && styles.modalItemActive,
+                      (isCurrentRoute(item.name) || (item.children && item.children.some(child => isCurrentRoute(child.name)))) && styles.modalItemActive,
                       item.children && styles.modalGroupItem
                     ]}
                     onPress={() => {
@@ -184,13 +184,13 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({ isSi
                     }}
                   >
                     <Ionicons
-                      name={isCurrentRoute(item.name) ? item.iconFocused : item.icon}
+                      name={(isCurrentRoute(item.name) || (item.children && item.children.some(child => isCurrentRoute(child.name)))) ? item.iconFocused : item.icon}
                       size={24}
-                      color={isCurrentRoute(item.name) ? "#FFFFFF" : "#007AFF"}
+                      color={(isCurrentRoute(item.name) || (item.children && item.children.some(child => isCurrentRoute(child.name)))) ? "#FFFFFF" : "#007AFF"}
                     />
                     <Text style={[
                       styles.modalItemText, 
-                      isCurrentRoute(item.name) && styles.modalItemTextActive
+                      (isCurrentRoute(item.name) || (item.children && item.children.some(child => isCurrentRoute(child.name)))) && styles.modalItemTextActive
                     ]}>
                       {item.title}
                     </Text>
@@ -198,7 +198,7 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({ isSi
                       <Ionicons 
                         name={expandedGroups.has(item.name) ? "chevron-down" : "chevron-forward"} 
                         size={20} 
-                        color={isCurrentRoute(item.name) ? "#FFFFFF" : "#8E8E93"} 
+                        color={(isCurrentRoute(item.name) || (item.children && item.children.some(child => isCurrentRoute(child.name)))) ? "#FFFFFF" : "#8E8E93"} 
                       />
                     )}
                     {isCurrentRoute(item.name) && !item.children && (
@@ -263,7 +263,7 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({ isSi
               <TouchableOpacity
                 style={[
                   styles.sidebarItem, 
-                  isCurrentRoute(item.name) && styles.sidebarItemActive,
+                  (isCurrentRoute(item.name) || (item.children && item.children.some(child => isCurrentRoute(child.name)))) && styles.sidebarItemActive,
                   item.children && styles.sidebarGroupItem
                 ]}
                 onPress={() => {
@@ -275,13 +275,13 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({ isSi
                 }}
               >
                 <Ionicons
-                  name={isCurrentRoute(item.name) ? item.iconFocused : item.icon}
+                  name={(isCurrentRoute(item.name) || (item.children && item.children.some(child => isCurrentRoute(child.name)))) ? item.iconFocused : item.icon}
                   size={20}
-                  color={isCurrentRoute(item.name) ? "#FFFFFF" : "#007AFF"}
+                  color={(isCurrentRoute(item.name) || (item.children && item.children.some(child => isCurrentRoute(child.name)))) ? "#FFFFFF" : "#007AFF"}
                 />
                 <Text style={[
                   styles.sidebarItemText, 
-                  isCurrentRoute(item.name) && styles.sidebarItemTextActive
+                  (isCurrentRoute(item.name) || (item.children && item.children.some(child => isCurrentRoute(child.name)))) && styles.sidebarItemTextActive
                 ]}>
                   {item.title}
                 </Text>
@@ -289,7 +289,7 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({ isSi
                   <Ionicons 
                     name={expandedGroups.has(item.name) ? "chevron-down" : "chevron-forward"} 
                     size={16} 
-                    color={isCurrentRoute(item.name) ? "#FFFFFF" : "#8E8E93"} 
+                    color={(isCurrentRoute(item.name) || (item.children && item.children.some(child => isCurrentRoute(child.name)))) ? "#FFFFFF" : "#8E8E93"} 
                   />
                 )}
               </TouchableOpacity>
