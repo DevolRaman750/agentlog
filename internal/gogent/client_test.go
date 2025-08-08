@@ -870,7 +870,7 @@ func buildGitHubURL(functionName string, arguments map[string]interface{}) (stri
 		}
 
 		if len(params) > 0 {
-			url += "?" + fmt.Sprintf("%s", params[0])
+			url += "?" + params[0]
 			for _, param := range params[1:] {
 				url += "&" + param
 			}

@@ -1060,7 +1060,7 @@ func (c *Client) GetExecutionResult(ctx context.Context, userID string, executio
 		configID := request.ConfigurationID
 		config := configs[configID]
 
-		if config == nil || request == nil {
+		if config == nil {
 			continue
 		}
 

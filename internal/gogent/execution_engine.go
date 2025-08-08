@@ -27,6 +27,23 @@ func (c *Client) ExecuteMultiVariation(ctx context.Context, userID string, reque
 		return nil, fmt.Errorf("failed to create execution run: %w", err)
 	}
 
+	return c.executeMultiVariationWithRun(ctx, userID, executionRun, request)
+}
+
+// ExecuteMultiVariationWithExistingRun executes variations for an already-created execution run
+func (c *Client) ExecuteMultiVariationWithExistingRun(ctx context.Context, userID string, executionRunID string, request *types.MultiExecutionRequest) (*types.ExecutionResult, error) {
+	// Get the existing execution run
+	executionRun, err := c.GetExecutionRun(ctx, userID, executionRunID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get existing execution run: %w", err)
+	}
+
+	return c.executeMultiVariationWithRun(ctx, userID, executionRun, request)
+}
+
+// executeMultiVariationWithRun is the shared implementation for both methods
+func (c *Client) executeMultiVariationWithRun(ctx context.Context, userID string, executionRun *types.ExecutionRun, request *types.MultiExecutionRequest) (*types.ExecutionResult, error) {
+
 	// Set execution context for logging
 	c.setExecutionContext(&executionRun.ID, nil, nil)
 	defer c.clearExecutionContext()
@@ -1450,14 +1467,51 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursive(ctx context
 	var hasValidationErrors bool
 
 	for i, funcCall := range functionCalls {
+		startTime := time.Now()
+
+		// Log function call start
+		c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryExecution,
+			fmt.Sprintf("Starting function call: %s", funcCall.FunctionCall.Name),
+			map[string]interface{}{
+				"functionName": funcCall.FunctionCall.Name,
+				"arguments":    funcCall.FunctionCall.Args,
+				"depth":        depth,
+				"iteration":    i + 1,
+				"totalCalls":   len(functionCalls),
+			})
+
+		// Log function call flow event
+		c.logExecutionFlowEvent("function_call_start", c.getNextSequenceNumber(), "pending", nil, map[string]interface{}{
+			"functionName": funcCall.FunctionCall.Name,
+			"arguments":    funcCall.FunctionCall.Args,
+			"depth":        depth,
+		}, nil, nil)
+
 		// Auto-extract missing parameters from previous function results
 		c.autoExtractParameters(ctx, &funcCall, functionResults)
 
 		// Validate function call before execution
 		if err := c.validateFunctionCall(ctx, funcCall.FunctionCall.Name, funcCall.FunctionCall.Args); err != nil {
+			executionTimeMs := int32(time.Since(startTime).Milliseconds())
+			errorMsg := fmt.Sprintf("Validation failed: %v", err)
+
 			log.Printf("❌ Function call validation failed for %s: %v", funcCall.FunctionCall.Name, err)
+			c.logExecutionEvent(types.LogLevelError, types.LogCategoryError,
+				fmt.Sprintf("Function validation failed: %s - %v", funcCall.FunctionCall.Name, err),
+				map[string]interface{}{
+					"functionName":    funcCall.FunctionCall.Name,
+					"validationError": err.Error(),
+					"arguments":       funcCall.FunctionCall.Args,
+				})
+
+			// Log validation failure in flow
+			c.logExecutionFlowEvent("function_call_end", c.getNextSequenceNumber(), "error", nil, map[string]interface{}{
+				"functionName": funcCall.FunctionCall.Name,
+				"error":        errorMsg,
+			}, &executionTimeMs, &errorMsg)
+
 			functionResults[i] = map[string]interface{}{
-				"error":  fmt.Sprintf("Validation failed: %v", err),
+				"error":  errorMsg,
 				"status": "validation_failed",
 			}
 			errorCount++
@@ -1465,14 +1519,60 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursive(ctx context
 			continue
 		}
 
+		// Log parameter extraction details
+		c.logExecutionEvent(types.LogLevelDebug, types.LogCategoryExecution,
+			fmt.Sprintf("Function call parameters prepared: %s", funcCall.FunctionCall.Name),
+			map[string]interface{}{
+				"functionName":      funcCall.FunctionCall.Name,
+				"finalArguments":    funcCall.FunctionCall.Args,
+				"parameterCount":    len(funcCall.FunctionCall.Args),
+				"extractionApplied": true,
+			})
+
 		result, err := c.executeFunctionCall(ctx, funcCall.FunctionCall.Name, funcCall.FunctionCall.Args)
+		executionTimeMs := int32(time.Since(startTime).Milliseconds())
+
 		if err != nil {
+			errorMsg := err.Error()
 			log.Printf("⚠️ Function %s failed: %v", funcCall.FunctionCall.Name, err)
+
+			c.logExecutionEvent(types.LogLevelError, types.LogCategoryError,
+				fmt.Sprintf("Function execution failed: %s - %v", funcCall.FunctionCall.Name, err),
+				map[string]interface{}{
+					"functionName":   funcCall.FunctionCall.Name,
+					"executionError": err.Error(),
+					"arguments":      funcCall.FunctionCall.Args,
+					"duration":       executionTimeMs,
+				})
+
+			// Log failure in flow
+			c.logExecutionFlowEvent("function_call_end", c.getNextSequenceNumber(), "error", nil, map[string]interface{}{
+				"functionName": funcCall.FunctionCall.Name,
+				"error":        errorMsg,
+				"duration":     executionTimeMs,
+			}, &executionTimeMs, &errorMsg)
+
 			result = map[string]interface{}{
-				"error":  err.Error(),
+				"error":  errorMsg,
 				"status": "failed",
 			}
 			errorCount++
+		} else {
+			c.logExecutionEvent(types.LogLevelSuccess, types.LogCategoryExecution,
+				fmt.Sprintf("Function executed successfully: %s", funcCall.FunctionCall.Name),
+				map[string]interface{}{
+					"functionName": funcCall.FunctionCall.Name,
+					"duration":     executionTimeMs,
+					"resultSize":   len(fmt.Sprintf("%v", result)),
+					"hasData":      result != nil,
+				})
+
+			// Log success in flow
+			c.logExecutionFlowEvent("function_call_end", c.getNextSequenceNumber(), "success", nil, map[string]interface{}{
+				"functionName": funcCall.FunctionCall.Name,
+				"duration":     executionTimeMs,
+				"resultSize":   len(fmt.Sprintf("%v", result)),
+			}, &executionTimeMs, nil)
 		}
 
 		functionResults[i] = result
@@ -1526,6 +1626,25 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursive(ctx context
 		CreatedAt:       time.Now(),
 	}
 
+	// Log synthesis start
+	synthesisStartTime := time.Now()
+	c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryExecution,
+		fmt.Sprintf("Starting synthesis with Gemini (depth %d)", depth),
+		map[string]interface{}{
+			"depth":             depth,
+			"promptLength":      len(synthesisPrompt),
+			"functionsExecuted": len(functionCalls),
+			"shouldComplete":    shouldComplete,
+			"hasErrors":         hasErrors,
+		})
+
+	// Log synthesis flow event
+	c.logExecutionFlowEvent("synthesis_start", c.getNextSequenceNumber(), "pending", nil, map[string]interface{}{
+		"depth":             depth,
+		"functionsExecuted": len(functionCalls),
+		"shouldComplete":    shouldComplete,
+	}, nil, nil)
+
 	// Make another Gemini REST API call for synthesis
 	configForSynthesis := *config // Copy the config
 
@@ -1533,12 +1652,37 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursive(ctx context
 	if shouldComplete {
 		configForSynthesis.Tools = []types.Tool{} // Remove all tools to prevent further function calls
 		log.Printf("🎯 Removing function tools to force completion - no more function calls allowed")
+
+		c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryExecution,
+			"Forcing task completion - tools removed from synthesis",
+			map[string]interface{}{
+				"depth":          depth,
+				"originalTools":  len(config.Tools),
+				"synthesisTools": len(configForSynthesis.Tools),
+			})
 	}
 	// Otherwise, keep tools available so Gemini can make follow-up function calls
 
 	synthesisResponse, err := c.callGeminiRestAPIForSynthesis(ctx, &configForSynthesis, synthesisRequest)
+	synthesisTimeMs := int32(time.Since(synthesisStartTime).Milliseconds())
 	if err != nil {
+		errorMsg := err.Error()
 		log.Printf("⚠️ Failed to get synthesis from Gemini: %v", err)
+
+		c.logExecutionEvent(types.LogLevelError, types.LogCategoryError,
+			fmt.Sprintf("Synthesis failed: %v", err),
+			map[string]interface{}{
+				"depth":          depth,
+				"synthesisError": err.Error(),
+				"duration":       synthesisTimeMs,
+			})
+
+		// Log synthesis failure in flow
+		c.logExecutionFlowEvent("synthesis_end", c.getNextSequenceNumber(), "error", nil, map[string]interface{}{
+			"depth": depth,
+			"error": errorMsg,
+		}, &synthesisTimeMs, &errorMsg)
+
 		// Fallback to simple summary
 		return fmt.Sprintf("I executed %d functions successfully. Function: %s retrieved data from GitHub.",
 			len(functionCalls), functionCalls[0].FunctionCall.Name)
@@ -1549,6 +1693,23 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursive(ctx context
 		if additionalFunctionCalls, ok := synthesisResponse.ResponseBody["function_calls"]; ok {
 			if fcArray, ok := additionalFunctionCalls.([]map[string]interface{}); ok && len(fcArray) > 0 {
 				log.Printf("🔄 Synthesis response contains %d additional function calls, continuing iteration (depth %d)", len(fcArray), depth)
+
+				c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryExecution,
+					fmt.Sprintf("Synthesis produced %d additional function calls", len(fcArray)),
+					map[string]interface{}{
+						"depth":                 depth,
+						"additionalCallsCount":  len(fcArray),
+						"synthesisResponseText": len(synthesisResponse.ResponseText),
+						"duration":              synthesisTimeMs,
+					})
+
+				// Log synthesis with additional calls in flow
+				c.logExecutionFlowEvent("synthesis_end", c.getNextSequenceNumber(), "success", nil, map[string]interface{}{
+					"depth":             depth,
+					"additionalCalls":   len(fcArray),
+					"responseLength":    len(synthesisResponse.ResponseText),
+					"continueIteration": true,
+				}, &synthesisTimeMs, nil)
 
 				// Convert to ResponsePart format
 				additionalResponseParts := make([]ResponsePart, len(fcArray))
@@ -1595,10 +1756,35 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursive(ctx context
 
 	if synthesisResponse.ResponseText != "" {
 		log.Printf("✅ Gemini provided comprehensive synthesis: %d chars (depth %d)", len(synthesisResponse.ResponseText), depth)
+
+		c.logExecutionEvent(types.LogLevelSuccess, types.LogCategoryCompletion,
+			fmt.Sprintf("Synthesis completed successfully: %d characters", len(synthesisResponse.ResponseText)),
+			map[string]interface{}{
+				"depth":          depth,
+				"responseLength": len(synthesisResponse.ResponseText),
+				"duration":       synthesisTimeMs,
+				"finalResult":    true,
+			})
+
+		// Log final synthesis completion in flow
+		c.logExecutionFlowEvent("synthesis_end", c.getNextSequenceNumber(), "success", nil, map[string]interface{}{
+			"depth":          depth,
+			"responseLength": len(synthesisResponse.ResponseText),
+			"finalResult":    true,
+		}, &synthesisTimeMs, nil)
+
 		return synthesisResponse.ResponseText
 	}
 
-	// Fallback
+	// Fallback case
+	c.logExecutionEvent(types.LogLevelWarn, types.LogCategoryCompletion,
+		"Synthesis completed with fallback response",
+		map[string]interface{}{
+			"depth":          depth,
+			"functionsCount": len(functionCalls),
+			"duration":       synthesisTimeMs,
+		})
+
 	return fmt.Sprintf("I executed %d functions: %s", len(functionCalls), functionCalls[0].FunctionCall.Name)
 }
 

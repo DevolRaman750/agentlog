@@ -209,22 +209,47 @@ func (s *Server) executeHandler(w http.ResponseWriter, r *http.Request) {
 			request.Configurations[0].ModelName, request.Configurations[0].VariationName)
 	}
 
-	// Generate execution run ID
-	executionID := fmt.Sprintf("exec-%d", time.Now().UnixNano()/1000000)
+	// Create the execution run first to get the real database UUID
+	ctx := context.Background()
+	log.Printf("Creating client to get real execution ID from database")
 
-	// Track execution status
+	// Get database URL from environment
+	dbURL := os.Getenv("DB_URL")
+	tempConfig := &types.GeminiClientConfig{MaxRetries: 3, TimeoutSecs: 30}
+	tempClient, clientErr := gogent.NewClient(dbURL, tempConfig, nil)
+	if clientErr != nil {
+		log.Printf("Failed to create client for execution ID generation: %v", clientErr)
+		http.Error(w, fmt.Sprintf("Failed to create client: %v", clientErr), http.StatusInternalServerError)
+		return
+	}
+	defer tempClient.Close()
+
+	// Create execution run to get real database UUID
+	executionRun, err := tempClient.CreateExecutionRun(ctx, userID, request.ExecutionRunName, request.Description, request.EnableFunctionCalling, request.AgentID)
+	if err != nil {
+		log.Printf("Failed to create execution run: %v", err)
+		http.Error(w, fmt.Sprintf("Failed to create execution run: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Use the real database UUID as the execution ID
+	executionID := executionRun.ID
+	log.Printf("✅ Created execution with real database UUID: %s", executionID)
+
+	// Track execution status using the real database UUID
 	s.executionMutex.Lock()
 	s.executions[executionID] = &ExecutionStatus{
-		ID:        executionID,
-		Status:    "pending",
-		StartTime: time.Now(),
+		ID:                 executionID,
+		Status:             "pending",
+		StartTime:          time.Now(),
+		RealExecutionRunID: executionID, // Same as ID since we're using real UUID
 	}
 	s.executionMutex.Unlock()
 
-	// Start async execution with user ID
+	// Start async execution with user ID using the real database UUID
 	go s.runAsyncExecution(executionID, &request, r.Header.Get("X-Use-Mock") == "true", r.Header, userID)
 
-	// Return immediately with execution ID
+	// Return immediately with real database execution ID
 	response := map[string]interface{}{
 		"executionRun": map[string]interface{}{
 			"id":     executionID,
@@ -364,7 +389,6 @@ func (s *Server) runAsyncExecution(executionID string, request *types.MultiExecu
 
 	ctx := context.Background()
 	var err error
-	var result *types.ExecutionResult
 
 	// Always try real execution first with database API keys
 	// Create a client that will load API keys from database
@@ -391,22 +415,26 @@ func (s *Server) runAsyncExecution(executionID string, request *types.MultiExecu
 		// Continue execution - the client will determine if mock responses are needed
 	}
 
-	log.Printf("Using client with database API keys for execution")
-	result, err = tempClient.ExecuteMultiVariation(ctx, userID, request)
+	log.Printf("Using client with database API keys for execution (execution already created with ID: %s)", executionID)
+
+	// Since we already created the execution run, we need to use the existing ID
+	// Execute the variations for the existing execution run
+	ctx = context.WithValue(ctx, "execution_run_id", executionID)
+	_, err = tempClient.ExecuteMultiVariationWithExistingRun(ctx, userID, executionID, request)
 	if err != nil {
 		log.Printf("Execution failed: %v", err)
 		s.markExecutionFailed(executionID, fmt.Sprintf("Execution failed: %v", err))
 		return
 	}
 
-	// Mark execution as completed and store the real execution run ID
+	// Mark execution as completed (ID already matches database)
 	s.executionMutex.Lock()
 	if status, exists := s.executions[executionID]; exists {
 		status.Status = "completed"
-		status.RealExecutionRunID = result.ExecutionRun.ID // Store the real execution run ID
+		// No need to store RealExecutionRunID since executionID is already the real UUID
 		endTime := time.Now()
 		status.EndTime = &endTime
-		log.Printf("✅ Stored real execution run ID: %s for temp ID: %s", result.ExecutionRun.ID, executionID)
+		log.Printf("✅ Execution completed with database UUID: %s", executionID)
 	}
 	s.executionMutex.Unlock()
 
