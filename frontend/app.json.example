@@ -18,7 +18,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.agentlog.app",
+      "bundleIdentifier": "com.yourcompany.yourapp",
       "buildNumber": "1",
       "infoPlist": {
         "LSApplicationQueriesSchemes": ["mailto", "tel"],
@@ -31,7 +31,7 @@
       }
     },
     "android": {
-      "package": "com.agentlog.app",
+      "package": "com.yourcompany.yourapp",
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -53,7 +53,21 @@
       "output": "single",
       "lang": "en"
     },
-    "plugins": [],
+    "plugins": [
+      /* Add this plugin when ready for EAS builds:
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "newArchEnabled": true
+          },
+          "android": {
+            "newArchEnabled": true
+          }
+        }
+      ]
+      */
+    ],
     "extra": {
       "eas": {
         "projectId": "YOUR_EAS_PROJECT_ID_HERE"

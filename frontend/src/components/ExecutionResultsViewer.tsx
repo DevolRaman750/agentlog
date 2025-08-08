@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { ExecutionResult, VariationResult } from '../types';
 import { formatConfigId } from '../utils/comparisonUtils';
+import { generateRerunName } from '../utils/executionNaming';
 import ExecutionLogsCard from './ExecutionLogsCard';
 import ExecutionFlowGraph from './ExecutionFlowGraph';
 import ExecutionComparisonChart from './ExecutionComparisonChart';
@@ -106,7 +107,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
     const context = executionResult.results?.[0]?.request?.context || executionResult.executionRun.contextPrompt || '';
 
     const reExecutionData = {
-      executionRunName: `${executionResult.executionRun.name} (Re-run)`,
+      executionRunName: generateRerunName(executionResult.executionRun.name),
       description: executionResult.executionRun.description || '',
       basePrompt: basePrompt,
       context: context,

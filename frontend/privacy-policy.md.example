@@ -1,0 +1,109 @@
+# Privacy Policy for [APP_NAME]
+
+**Last Updated: [DATE_TO_BE_FILLED]**
+
+## Overview
+
+[APP_NAME] ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application [APP_NAME].
+
+## Information We Collect
+
+### Information You Provide
+- **Account Information**: Username, email address, and authentication credentials
+- **Configuration Data**: AI agent configurations, prompts, and templates you create
+- **API Keys**: Third-party service API keys (stored encrypted)
+- **Usage Preferences**: App settings and customization preferences
+
+### Automatically Collected Information
+- **Device Information**: Device type, operating system, app version
+- **Usage Analytics**: App usage patterns, feature utilization, performance metrics
+- **Log Data**: Error logs, execution logs, and diagnostic information
+
+### Third-Party Service Data
+- **AI Provider APIs**: Data sent to and received from AI services (OpenAI, Google, Anthropic, etc.)
+- **Authentication Services**: Data from third-party authentication providers if used
+
+## How We Use Your Information
+
+We use the collected information to:
+- Provide and maintain the [APP_NAME] service
+- Execute AI agents and process your requests
+- Improve app functionality and user experience
+- Provide customer support and technical assistance
+- Ensure security and prevent unauthorized access
+- Comply with legal obligations
+
+## Data Storage and Security
+
+### Encryption
+- All API keys are encrypted using industry-standard encryption
+- Data transmission uses HTTPS/TLS encryption
+- Local data storage uses device-level encryption when available
+
+### Data Retention
+- Account data: Retained while your account is active
+- Usage logs: Retained for 90 days for diagnostic purposes
+- AI execution data: Retained for 30 days unless deleted sooner
+
+### Third-Party Services
+- AI providers (Google Gemini, OpenAI, etc.) have their own privacy policies
+- We do not store or log the content of your AI interactions
+- API calls are made directly from your device to AI providers
+
+## Data Sharing and Disclosure
+
+We do not sell, trade, or otherwise transfer your personal information to third parties except:
+- **AI Service Providers**: To execute your AI agents (as directed by you)
+- **Legal Requirements**: When required by law or to protect our rights
+- **Service Providers**: Trusted partners who assist in app operation (under strict confidentiality)
+
+## Your Rights and Choices
+
+You have the right to:
+- Access your personal information
+- Correct inaccurate information
+- Delete your account and associated data
+- Export your configuration data
+- Opt-out of analytics (where technically feasible)
+
+## Children's Privacy
+
+[APP_NAME] is not intended for children under 13. We do not knowingly collect personal information from children under 13.
+
+## International Data Transfers
+
+Your information may be transferred to and processed in countries other than your own. We ensure appropriate safeguards are in place for such transfers.
+
+## Changes to This Privacy Policy
+
+We may update this Privacy Policy periodically. We will notify you of significant changes through the app or by email.
+
+## Contact Information
+
+For privacy-related questions or concerns:
+- Email: [PRIVACY_EMAIL_TO_BE_FILLED]
+- Address: [COMPANY_ADDRESS_TO_BE_FILLED]
+
+## Platform-Specific Information
+
+### iOS-Specific Disclosures
+- **Camera**: Used for QR code scanning (configuration import/export)
+- **Microphone**: Used for voice commands (if enabled)
+- **Location**: Used for location-based AI services (optional)
+
+### Android-Specific Disclosures
+- **Internet Permission**: Required for AI service communication
+- **Camera Permission**: Optional, for QR code scanning
+- **Microphone Permission**: Optional, for voice features
+- **Location Permission**: Optional, for location-based services
+
+## Data Processing Legal Basis (GDPR)
+
+For EU users, we process your data based on:
+- **Contract**: To provide the [APP_NAME] service
+- **Legitimate Interest**: To improve our service and ensure security
+- **Consent**: For optional features like analytics and marketing communications
+
+---
+
+**Note**: This is a template privacy policy. Please review with legal counsel and customize based on your specific data practices, applicable laws, and jurisdictions where you operate.

@@ -17,6 +17,7 @@ import { useAuth } from '../context/AuthContext';
 import { ExecutionRun, ExecutionResult } from '../types';
 import { goGentAPI } from '../api/client';
 import ExecutionRunCard from '../components/ExecutionRunCard';
+import { generateRerunName } from '../utils/executionNaming';
 import { AlertAPI } from '../components/CustomAlert';
 import ExecutionLogsCard from '../components/ExecutionLogsCard';
 import ExecutionFlowGraph from '../components/ExecutionFlowGraph';
@@ -229,7 +230,7 @@ const HistoryScreen: React.FC = () => {
         const context = results?.[0]?.request?.context || executionRun.contextPrompt || '';
 
         const reExecutionData = {
-          executionRunName: `${executionRun.name} (Re-run)`,
+          executionRunName: generateRerunName(executionRun.name),
           description: executionRun.description || '',
           basePrompt: basePrompt,
           context: context,
@@ -884,7 +885,7 @@ const HistoryScreen: React.FC = () => {
             const context = selectedRun.results?.[0]?.request?.context || selectedRun.executionRun.contextPrompt || '';
 
             const reExecutionData = {
-              executionRunName: `${selectedRun.executionRun.name} (Re-run)`,
+              executionRunName: generateRerunName(selectedRun.executionRun.name),
               description: selectedRun.executionRun.description || '',
               basePrompt: basePrompt,
               context: context,

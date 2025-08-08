@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -578,12 +579,12 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 		if req.Header.Get("Accept") == "" {
 			req.Header.Set("Accept", "application/vnd.github.v3+json")
 		}
-	} else if funcDef.FunctionGroup == "communication" && functionName == "slack_send_message" {
-		// Slack authentication should be handled via headers from database
+	} else if funcDef.FunctionGroup == "communication" && strings.HasPrefix(functionName, "slack_") {
+		// Slack authentication should be handled via headers from database for all Slack functions
 		if req.Header.Get("Authorization") != "" {
-			log.Printf("🔑 Added Slack API authentication via function headers")
+			log.Printf("🔑 Added Slack API authentication via function headers for %s", functionName)
 		} else {
-			log.Printf("⚠️ No Slack API authentication found in function headers")
+			log.Printf("⚠️ No Slack API authentication found in function headers for %s", functionName)
 		}
 	}
 
@@ -596,7 +597,7 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("GitHub API request failed: %w", err)
+		return nil, fmt.Errorf("API request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -607,17 +608,53 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 	}
 
 	executionTimeMs := time.Since(startTime).Milliseconds()
-	log.Printf("🌐 GitHub API response: %d status, %d bytes, %dms", resp.StatusCode, len(body), executionTimeMs)
+	apiType := func() string {
+		if funcDef.FunctionGroup == "github" {
+			return "GitHub"
+		} else if funcDef.FunctionGroup == "communication" {
+			return "Slack"
+		}
+		return "API"
+	}()
+
+	log.Printf("🌐 %s API response: %d status, %d bytes, %dms", apiType, resp.StatusCode, len(body), executionTimeMs)
+
+	// DEBUG: Log Slack API response content to understand the loop issue
+	if funcDef.FunctionGroup == "communication" && strings.HasPrefix(functionName, "slack_") {
+		log.Printf("🔍 DEBUG Slack %s response content: %s", functionName, string(body))
+	}
 
 	// Check for API errors
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("GitHub API returned %d: %s", resp.StatusCode, string(body))
+		apiName := "API"
+		if funcDef.FunctionGroup == "github" {
+			apiName = "GitHub API"
+		} else if funcDef.FunctionGroup == "communication" {
+			apiName = "Slack API"
+		}
+		return nil, fmt.Errorf("%s returned %d: %s", apiName, resp.StatusCode, string(body))
 	}
 
 	// Parse JSON response
 	var responseData interface{}
 	if err := json.Unmarshal(body, &responseData); err != nil {
 		return nil, fmt.Errorf("failed to parse JSON response: %w", err)
+	}
+
+	// Handle API-specific error patterns (APIs that return 200 but indicate errors in response body)
+	if funcDef.FunctionGroup == "communication" && strings.HasPrefix(functionName, "slack_") {
+		if responseMap, ok := responseData.(map[string]interface{}); ok {
+			if okField, exists := responseMap["ok"]; exists {
+				if ok, isBool := okField.(bool); isBool && !ok {
+					// This is a Slack API error
+					errorMsg := "unknown error"
+					if errorField, hasError := responseMap["error"]; hasError {
+						errorMsg = fmt.Sprintf("%v", errorField)
+					}
+					return nil, fmt.Errorf("slack API error: %s", errorMsg)
+				}
+			}
+		}
 	}
 
 	// Build result using api_source from function definition (after migration 029)
@@ -845,21 +882,52 @@ func (c *Client) buildGitHubAPIURL(functionName string, args map[string]interfac
 // buildGenericAPIURL constructs the API URL for non-GitHub functions using their endpoint_url
 func (c *Client) buildGenericAPIURL(funcDef *db.FunctionDefinition, args map[string]interface{}) (string, error) {
 	// Start with the base endpoint URL from function definition
-	url := funcDef.EndpointUrl.String
-	if url == "" {
+	apiURL := funcDef.EndpointUrl.String
+	if apiURL == "" {
 		return "", fmt.Errorf("no endpoint_url defined for function %s", funcDef.Name)
 	}
 
 	// For functions that need URL parameter substitution (like Slack with placeholders)
 	// Replace any {parameter} placeholders in the URL with actual values
+	usedParams := make(map[string]bool)
 	for key, value := range args {
 		placeholder := fmt.Sprintf("{%s}", key)
-		if strings.Contains(url, placeholder) {
-			url = strings.ReplaceAll(url, placeholder, fmt.Sprintf("%v", value))
+		if strings.Contains(apiURL, placeholder) {
+			apiURL = strings.ReplaceAll(apiURL, placeholder, fmt.Sprintf("%v", value))
+			usedParams[key] = true
 		}
 	}
 
-	return url, nil
+	// For GET requests, add remaining parameters as query parameters
+	httpMethod := "GET" // Default
+	if funcDef.HttpMethod.Valid {
+		httpMethod = funcDef.HttpMethod.String
+	}
+
+	if httpMethod == "GET" && len(args) > 0 {
+		queryParams := []string{}
+		for key, value := range args {
+			// Skip parameters that were already used in URL substitution
+			if usedParams[key] {
+				continue
+			}
+			// Skip nil values
+			if value == nil {
+				continue
+			}
+			queryParams = append(queryParams, fmt.Sprintf("%s=%s", url.QueryEscape(key), url.QueryEscape(fmt.Sprintf("%v", value))))
+		}
+
+		if len(queryParams) > 0 {
+			separator := "?"
+			if strings.Contains(apiURL, "?") {
+				separator = "&"
+			}
+			apiURL += separator + strings.Join(queryParams, "&")
+		}
+	}
+
+	return apiURL, nil
 }
 
 // TestExecuteFunctionCall provides a public method to test function execution

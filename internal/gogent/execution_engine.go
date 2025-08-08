@@ -1429,9 +1429,10 @@ func (c *Client) processIterativeFunctionCalls(ctx context.Context, config *type
 }
 
 // processIterativeFunctionCallsWithSynthesis executes functions and gets LLM synthesis using Gemini REST API
-// Current max depth is set to 8 - this allows complex multi-step workflows while preventing runaway costs
+// Current max depth is set to 20 - this allows complex multi-step workflows while preventing runaway costs
 func (c *Client) processIterativeFunctionCallsWithSynthesis(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest, functionCalls []ResponsePart, originalPrompt string) string {
-	const maxIterationDepth = 8 // Configurable limit - can be increased for more complex workflows
+	const maxIterationDepth = 20 // Configurable limit - can be increased for more complex workflows
+
 	return c.processIterativeFunctionCallsWithSynthesisRecursive(ctx, config, request, functionCalls, originalPrompt, 0, maxIterationDepth)
 }
 
@@ -1445,7 +1446,25 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursive(ctx context
 
 	// Execute all function calls first
 	functionResults := make([]map[string]interface{}, len(functionCalls))
+	var errorCount int
+	var hasValidationErrors bool
+
 	for i, funcCall := range functionCalls {
+		// Auto-extract missing parameters from previous function results
+		c.autoExtractParameters(ctx, &funcCall, functionResults)
+
+		// Validate function call before execution
+		if err := c.validateFunctionCall(ctx, funcCall.FunctionCall.Name, funcCall.FunctionCall.Args); err != nil {
+			log.Printf("❌ Function call validation failed for %s: %v", funcCall.FunctionCall.Name, err)
+			functionResults[i] = map[string]interface{}{
+				"error":  fmt.Sprintf("Validation failed: %v", err),
+				"status": "validation_failed",
+			}
+			errorCount++
+			hasValidationErrors = true
+			continue
+		}
+
 		result, err := c.executeFunctionCall(ctx, funcCall.FunctionCall.Name, funcCall.FunctionCall.Args)
 		if err != nil {
 			log.Printf("⚠️ Function %s failed: %v", funcCall.FunctionCall.Name, err)
@@ -1453,13 +1472,22 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursive(ctx context
 				"error":  err.Error(),
 				"status": "failed",
 			}
+			errorCount++
 		}
+
 		functionResults[i] = result
+	}
+
+	// Stop iteration if all functions failed or we have validation errors
+	if errorCount == len(functionCalls) {
+		log.Printf("🛑 All %d function calls failed, stopping iteration to prevent infinite loops", len(functionCalls))
+		return c.createErrorSummary(functionCalls, functionResults, hasValidationErrors)
 	}
 
 	// Create a synthesis prompt with the function results
 	synthesisPrompt := fmt.Sprintf("Based on the original request: \"%s\"\n\nI have executed the following functions and retrieved this data:\n\n", originalPrompt)
 
+	var hasErrors bool
 	for i, funcCall := range functionCalls {
 		synthesisPrompt += fmt.Sprintf("Function: %s\n", funcCall.FunctionCall.Name)
 
@@ -1470,9 +1498,23 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursive(ctx context
 			resultStr = resultStr[:10000] + "... (truncated)"
 		}
 		synthesisPrompt += fmt.Sprintf("Result: %s\n\n", resultStr)
+
+		// Check if this function failed
+		if status, ok := functionResults[i]["status"].(string); ok && (status == "failed" || status == "validation_failed") {
+			hasErrors = true
+		}
 	}
 
-	synthesisPrompt += "\nNow, please complete the user's original request using the data I've retrieved above. \n\nIMPORTANT: Only make additional function calls if they are absolutely necessary to complete the user's request (e.g., creating issues, updating files, etc.). If you have all the information needed to answer the user's question, provide a comprehensive response directly without making more function calls.\n\nFor requests like 'summarize', 'analyze', 'list', or 'describe', you likely have enough data already - just provide the answer."
+	// Detect if we have sufficient data to complete the task
+	shouldComplete := c.detectTaskCompletion(functionCalls, functionResults, depth, originalPrompt)
+
+	if hasErrors {
+		synthesisPrompt += "\nIMPORTANT: Some functions failed with errors. Please analyze the available data and provide your best response. DO NOT make additional function calls that might fail with the same errors."
+	} else if shouldComplete {
+		synthesisPrompt += "\nYou now have all the necessary data to complete the user's request. STOP calling functions and provide a comprehensive final response using the data above. Do not call any additional functions - just synthesize the information and respond to the user."
+	} else {
+		synthesisPrompt += "\nNow, please complete the user's original request using the data I've retrieved above.\n\nIMPORTANT: Only make additional function calls if they are absolutely necessary to complete the user's request (e.g., creating issues, updating files, etc.). If you have all the information needed to answer the user's question, provide a comprehensive response directly without making more function calls.\n\nFor requests like 'summarize', 'analyze', 'list', or 'describe', you likely have enough data already - just provide the answer."
+	}
 
 	// Create a new API request for synthesis
 	synthesisRequest := &types.APIRequest{
@@ -1484,9 +1526,15 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursive(ctx context
 		CreatedAt:       time.Now(),
 	}
 
-	// Make another Gemini REST API call for synthesis (keep tools for iterative calling)
+	// Make another Gemini REST API call for synthesis
 	configForSynthesis := *config // Copy the config
-	// Keep tools available so Gemini can make follow-up function calls
+
+	// If we should complete the task, remove tools to force final response
+	if shouldComplete {
+		configForSynthesis.Tools = []types.Tool{} // Remove all tools to prevent further function calls
+		log.Printf("🎯 Removing function tools to force completion - no more function calls allowed")
+	}
+	// Otherwise, keep tools available so Gemini can make follow-up function calls
 
 	synthesisResponse, err := c.callGeminiRestAPIForSynthesis(ctx, &configForSynthesis, synthesisRequest)
 	if err != nil {
@@ -1505,16 +1553,39 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursive(ctx context
 				// Convert to ResponsePart format
 				additionalResponseParts := make([]ResponsePart, len(fcArray))
 				for i, fc := range fcArray {
+					args := make(map[string]interface{})
+					if fcArgs, ok := fc["args"].(map[string]interface{}); ok {
+						args = fcArgs
+					}
+
 					additionalResponseParts[i] = ResponsePart{
 						FunctionCall: struct {
 							Name string                 `json:"name"`
 							Args map[string]interface{} `json:"args"`
 						}{
 							Name: fc["name"].(string),
-							Args: fc["args"].(map[string]interface{}),
+							Args: args,
 						},
 					}
+
+					// Debug: Log what function call we're about to process
+					log.Printf("🔍 Next function call: %s with args: %+v", fc["name"], args)
 				}
+
+				// Check if we're about to repeat the same failed function call - prevent infinite loops
+				if c.wouldRepeatFailedCall(functionCalls, functionResults, additionalResponseParts) {
+					log.Printf("🛑 Detected potential infinite loop: same function call pattern detected, stopping iteration")
+					summary := "I completed the analysis but stopped to prevent infinite loops. "
+					if synthesisResponse.ResponseText != "" {
+						summary += synthesisResponse.ResponseText
+					} else {
+						summary += "The functions executed successfully but some calls failed validation."
+					}
+					return summary
+				}
+
+				// Auto-extract parameters for the next iteration using current results
+				c.autoExtractParametersFromContext(additionalResponseParts, functionResults)
 
 				// Recursively process additional function calls
 				return c.processIterativeFunctionCallsWithSynthesisRecursive(ctx, config, request, additionalResponseParts, originalPrompt, depth+1, maxDepth)
@@ -1660,4 +1731,243 @@ func (c *Client) extractModelNames(configurations []types.APIConfiguration) []st
 		models[i] = config.ModelName
 	}
 	return models
+}
+
+// validateFunctionCall validates function calls before execution to prevent invalid parameters
+func (c *Client) validateFunctionCall(ctx context.Context, functionName string, args map[string]interface{}) error {
+	// Get function definition to check required parameters
+	funcDef, err := c.getFunctionDefinition(ctx, functionName)
+	if err != nil {
+		return fmt.Errorf("function %s not found: %w", functionName, err)
+	}
+
+	// Parse parameters schema to check required fields
+	if funcDef.ParametersSchema != nil {
+		var schema map[string]interface{}
+		if err := json.Unmarshal(funcDef.ParametersSchema, &schema); err == nil {
+			if required, ok := schema["required"].([]interface{}); ok {
+				for _, reqField := range required {
+					if reqFieldStr, ok := reqField.(string); ok {
+						if _, exists := args[reqFieldStr]; !exists {
+							return fmt.Errorf("missing required parameter: %s", reqFieldStr)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Special validation for Slack functions
+	if strings.HasPrefix(functionName, "slack_") && functionName == "slack_read_messages" {
+		if channel, ok := args["channel"]; !ok || channel == nil || fmt.Sprintf("%v", channel) == "" {
+			return fmt.Errorf("slack_read_messages requires a valid 'channel' parameter (channel ID from slack_find_channel)")
+		}
+	}
+
+	return nil
+}
+
+// createErrorSummary creates a comprehensive error summary when functions fail
+func (c *Client) createErrorSummary(functionCalls []ResponsePart, functionResults []map[string]interface{}, hasValidationErrors bool) string {
+	var functionNames []string
+	var errors []string
+
+	for i, funcCall := range functionCalls {
+		functionNames = append(functionNames, funcCall.FunctionCall.Name)
+		if i < len(functionResults) {
+			if errStr, ok := functionResults[i]["error"].(string); ok {
+				errors = append(errors, fmt.Sprintf("%s: %s", funcCall.FunctionCall.Name, errStr))
+			}
+		}
+	}
+
+	summary := fmt.Sprintf("I attempted to execute %d functions (%s) but encountered errors:\n",
+		len(functionNames), strings.Join(functionNames, ", "))
+
+	for _, err := range errors {
+		summary += fmt.Sprintf("• %s\n", err)
+	}
+
+	if hasValidationErrors {
+		summary += "\nThe execution has been stopped to prevent infinite loops due to validation errors. "
+		summary += "Please check that function calls have all required parameters."
+	}
+
+	return summary
+}
+
+// wouldRepeatFailedCall detects if we're about to repeat a function call that just failed
+func (c *Client) wouldRepeatFailedCall(previousCalls []ResponsePart, previousResults []map[string]interface{}, nextCalls []ResponsePart) bool {
+	// Check if any of the next calls match a previously failed call
+	for _, nextCall := range nextCalls {
+		for i, prevCall := range previousCalls {
+			if nextCall.FunctionCall.Name == prevCall.FunctionCall.Name {
+				// Same function name - check if the previous call failed
+				if i < len(previousResults) {
+					if status, ok := previousResults[i]["status"].(string); ok {
+						if status == "failed" || status == "validation_failed" {
+							// Check if arguments are similar (indicating likely same issue)
+							if c.argumentsSimilar(nextCall.FunctionCall.Args, prevCall.FunctionCall.Args) {
+								log.Printf("🔍 Detected potential repeat of failed call: %s", nextCall.FunctionCall.Name)
+								return true
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+
+// argumentsSimilar checks if two sets of function arguments are similar enough to indicate a repeated call
+func (c *Client) argumentsSimilar(args1, args2 map[string]interface{}) bool {
+	// For now, do a simple comparison - if they're exactly the same or one is empty, consider them similar
+	if len(args1) == 0 && len(args2) == 0 {
+		return true
+	}
+
+	// Special case for slack_read_messages - if both are missing 'channel', they're similar
+	if len(args1) == len(args2) {
+		similarCount := 0
+		for key := range args1 {
+			if _, exists := args2[key]; exists {
+				similarCount++
+			}
+		}
+		// If more than 50% of arguments are the same, consider them similar
+		return float64(similarCount)/float64(len(args1)) > 0.5
+	}
+
+	return false
+}
+
+// autoExtractParameters automatically extracts missing parameters from previous function results
+func (c *Client) autoExtractParameters(ctx context.Context, funcCall *ResponsePart, previousResults []map[string]interface{}) {
+	// Slack workflow: slack_read_messages needs channel from slack_find_channel
+	if funcCall.FunctionCall.Name == "slack_read_messages" {
+		if _, exists := funcCall.FunctionCall.Args["channel"]; !exists {
+			// Look for slack_find_channel result in previous results
+			for _, result := range previousResults {
+				if channels, ok := result["channels"].([]interface{}); ok && len(channels) > 0 {
+					if channel, ok := channels[0].(map[string]interface{}); ok {
+						if channelID, ok := channel["id"].(string); ok {
+							funcCall.FunctionCall.Args["channel"] = channelID
+							log.Printf("🔄 Auto-extracted channel=%s for slack_read_messages from slack_find_channel", channelID)
+							return
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// GitHub workflow examples (for future expansion)
+	if funcCall.FunctionCall.Name == "github_create_update_file" {
+		if _, exists := funcCall.FunctionCall.Args["sha"]; !exists {
+			// Look for github_get_file_sha result
+			for _, result := range previousResults {
+				if sha, ok := result["sha"].(string); ok && sha != "" {
+					funcCall.FunctionCall.Args["sha"] = sha
+					log.Printf("🔄 Auto-extracted sha=%s for github_create_update_file from github_get_file_sha", sha)
+					return
+				}
+			}
+		}
+	}
+}
+
+// detectTaskCompletion determines if we have enough data to complete the user's task
+func (c *Client) detectTaskCompletion(functionCalls []ResponsePart, functionResults []map[string]interface{}, depth int, originalPrompt string) bool {
+	// Force completion at very high depths to prevent infinite loops (safety net)
+	if depth >= 25 {
+		log.Printf("🎯 Force completion at depth %d to prevent infinite loops", depth)
+		return true
+	}
+
+	// Count successful functions
+	successfulFunctions := 0
+
+	for i, funcCall := range functionCalls {
+		if status, ok := functionResults[i]["status"].(string); !ok || status != "failed" {
+			successfulFunctions++
+		}
+		_ = funcCall // Use funcCall to avoid unused variable warning
+	}
+
+	// Detect common task completion patterns - much more permissive now
+	shouldComplete := false
+
+	// Pattern 1: Only for very specific Slack + GitHub workflow - disabled for now to allow more flexibility
+	// if hasSlackData && hasGitHubData && successfulFunctions >= 2 {
+	//     shouldComplete = true
+	//     log.Printf("🎯 Slack+GitHub task completion detected: hasSlackData=%v, hasGitHubData=%v, successfulFunctions=%d", hasSlackData, hasGitHubData, successfulFunctions)
+	// }
+
+	// Pattern 2: General completion after many successful calls (very permissive)
+	if successfulFunctions >= 10 && depth >= 12 {
+		shouldComplete = true
+		log.Printf("🎯 General task completion detected: %d successful functions at depth %d", successfulFunctions, depth)
+	}
+
+	// Pattern 3: Loop detection - only trigger on very deep iterations (very permissive)
+	if depth >= 15 && successfulFunctions >= 3 {
+		shouldComplete = true
+		log.Printf("🎯 Likely loop detected: depth %d with %d successful functions - forcing completion", depth, successfulFunctions)
+	}
+
+	return shouldComplete
+}
+
+// autoExtractParametersFromContext extracts parameters for next iteration function calls using current results
+func (c *Client) autoExtractParametersFromContext(nextCalls []ResponsePart, currentResults []map[string]interface{}) {
+	log.Printf("🔍 Auto-extraction: Processing %d next calls with %d current results", len(nextCalls), len(currentResults))
+
+	for i := range nextCalls {
+		funcCall := &nextCalls[i]
+		log.Printf("🔍 Auto-extraction: Checking function %s with current args: %+v", funcCall.FunctionCall.Name, funcCall.FunctionCall.Args)
+
+		// Slack workflow: slack_read_messages needs channel from slack_find_channel
+		if funcCall.FunctionCall.Name == "slack_read_messages" {
+			if _, exists := funcCall.FunctionCall.Args["channel"]; !exists {
+				log.Printf("🔍 Auto-extraction: slack_read_messages missing channel, searching in %d results", len(currentResults))
+				// Look for slack_find_channel result in current results
+				for j, result := range currentResults {
+					log.Printf("🔍 Auto-extraction: Checking result %d: %+v", j, result)
+					if channels, ok := result["channels"].([]interface{}); ok && len(channels) > 0 {
+						if channel, ok := channels[0].(map[string]interface{}); ok {
+							if channelID, ok := channel["id"].(string); ok {
+								if funcCall.FunctionCall.Args == nil {
+									funcCall.FunctionCall.Args = make(map[string]interface{})
+								}
+								funcCall.FunctionCall.Args["channel"] = channelID
+								log.Printf("🔄 Auto-extracted channel=%s for slack_read_messages from previous slack_find_channel result", channelID)
+								return
+							}
+						}
+					}
+				}
+				log.Printf("⚠️ Auto-extraction: Could not find channel ID in any of the %d results", len(currentResults))
+			} else {
+				log.Printf("✅ Auto-extraction: slack_read_messages already has channel parameter")
+			}
+		}
+
+		// GitHub workflow examples (for future expansion)
+		if funcCall.FunctionCall.Name == "github_create_update_file" {
+			if _, exists := funcCall.FunctionCall.Args["sha"]; !exists {
+				// Look for github_get_file_sha result
+				for _, result := range currentResults {
+					if sha, ok := result["sha"].(string); ok && sha != "" {
+						if funcCall.FunctionCall.Args == nil {
+							funcCall.FunctionCall.Args = make(map[string]interface{})
+						}
+						funcCall.FunctionCall.Args["sha"] = sha
+						log.Printf("🔄 Auto-extracted sha=%s for github_create_update_file from previous result", sha)
+						return
+					}
+				}
+			}
+		}
+	}
 }

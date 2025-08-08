@@ -32,6 +32,59 @@ yarn-error.*
 
 # local env files
 .env*.local
+.env.production
+.env.staging
 
 # typescript
 *.tsbuildinfo
+
+# App Store Deployment Secrets
+secrets/
+!secrets/README.md
+
+# EAS Build
+.eas/
+
+# Deployment Configuration (keep examples, ignore actual config)
+eas.json
+app.json
+privacy-policy.md
+app-store-review-guidelines.md
+!eas.json.example
+!app.json.example
+!privacy-policy.md.example
+!app-store-review-guidelines.md.example
+
+# App Store Assets (keep templates, ignore actual assets)
+store-assets/icons/*.png
+store-assets/icons/*.jpg
+store-assets/icons/*.jpeg
+store-assets/screenshots/*.png
+store-assets/screenshots/*.jpg
+store-assets/screenshots/*.jpeg
+!store-assets/**/README.md
+
+# Certificates and Keys
+*.p12
+*.p8
+*.mobileprovision
+*.keystore
+*.jks
+google-services.json
+google-service-account.json
+GoogleService-Info.plist
+
+# API Keys and Credentials
+api-keys.json
+credentials.json
+eas-credentials.json
+
+# Build artifacts
+*.ipa
+*.apk
+*.aab
+
+# Coverage reports (keep structure, ignore detailed reports)
+coverage/
+*.lcov
+.nyc_output

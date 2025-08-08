@@ -1,0 +1,131 @@
+# App Store Review Guidelines for [APP_NAME]
+
+## iOS App Store Review Preparation
+
+### App Review Information
+- **Demo Account**: Create a test account with sample data for reviewers
+- **Review Notes**: Explain AI functionality and data flow clearly
+- **Contact Information**: Provide responsive contact for review questions
+
+### Key Points to Address
+1. **AI Functionality Explanation**
+   - Clearly explain that [APP_NAME] is a management platform for AI agents
+   - Emphasize user control over AI interactions
+   - Explain that no AI content is generated without explicit user action
+
+2. **Data Usage and Privacy**
+   - Reference detailed privacy policy
+   - Explain API key handling and encryption
+   - Clarify that user data is not used to train AI models
+
+3. **Third-Party API Integration**
+   - Document all third-party AI services integrated
+   - Explain user responsibility for API key management
+   - Show compliance with third-party service terms
+
+### Potential Review Issues and Responses
+
+**Issue**: "App functionality relies heavily on third-party services"
+**Response**: "[APP_NAME] is a management platform that provides value through organization, monitoring, and execution coordination. Users maintain direct relationships with AI providers."
+
+**Issue**: "Unclear how AI content is generated or moderated"
+**Response**: "[APP_NAME] does not generate content - it facilitates user-configured AI interactions. All content generation is performed by established AI providers (Google, OpenAI, etc.) per their guidelines."
+
+## Android Play Store Review Preparation
+
+### Play Console Requirements
+- **Data Safety Form**: Complete detailed data collection disclosure
+- **Target Audience**: Select appropriate age rating
+- **Content Rating Questionnaire**: Answer questions about AI functionality
+
+### Policy Compliance
+1. **User Data Policy**
+   - Disclose all data collection practices
+   - Explain data sharing with AI providers
+   - Document security measures
+
+2. **Deceptive Behavior Policy**
+   - Clearly label AI-generated content capabilities
+   - Ensure transparent functionality descriptions
+   - Avoid misleading claims about AI capabilities
+
+## Common Review Questions and Responses
+
+### Q: "How does your app handle user-generated content?"
+**A**: [APP_NAME] is a management tool - users configure AI agents that interact with third-party AI services. Any content generation is handled by established providers (Google Gemini, OpenAI, etc.) with their own content policies.
+
+### Q: "What measures are in place to prevent misuse of AI features?"
+**A**: 
+- Users must provide their own API keys for AI services
+- All AI interactions are subject to the respective provider's usage policies
+- No content is generated without explicit user configuration and execution
+- Users maintain full control over their AI agent configurations
+
+### Q: "How is user privacy protected when using AI services?"
+**A**: 
+- API keys are encrypted and stored securely
+- No user data is logged or transmitted to our servers during AI interactions
+- Direct communication between user device and AI providers
+- Comprehensive privacy policy with clear data handling practices
+
+## Pre-Submission Checklist
+
+### Technical Requirements
+- [ ] Test app thoroughly on multiple devices
+- [ ] Verify all features work without crashes
+- [ ] Test network connectivity edge cases
+- [ ] Ensure proper error handling for API failures
+
+### Content Requirements
+- [ ] Privacy policy hosted and accessible
+- [ ] Terms of service prepared
+- [ ] Support contact information ready
+- [ ] Demo account with sample data prepared
+
+### Documentation Requirements
+- [ ] Clear app description explaining AI functionality
+- [ ] Screenshots showing key features
+- [ ] Proper keyword optimization
+- [ ] Age-appropriate content rating
+
+## Submission Strategy
+
+### Phase 1: Basic Approval
+- Submit with core functionality only
+- Minimal AI provider integrations
+- Focus on management and configuration features
+
+### Phase 2: Enhanced Features
+- Add additional AI provider integrations
+- Implement advanced automation features
+- Add team collaboration capabilities
+
+## Post-Approval Considerations
+
+### Update Strategy
+- Test updates thoroughly before submission
+- Maintain backwards compatibility
+- Document changes clearly in release notes
+
+### User Feedback Management
+- Monitor reviews for compliance issues
+- Respond promptly to user concerns
+- Address any functionality misunderstandings
+
+## Emergency Response Plan
+
+### If Rejected for AI-Related Concerns
+1. Respond immediately with clarifications
+2. Provide additional documentation if needed
+3. Consider temporary feature removal if necessary
+4. Engage with app review team through proper channels
+
+### If Flagged for Data Privacy Issues
+1. Review and update privacy policy immediately
+2. Audit data collection practices
+3. Provide detailed technical documentation
+4. Consider independent privacy audit
+
+---
+
+**Important**: Keep this document updated with actual review experiences and evolving platform policies. Both Apple and Google frequently update their AI-related guidelines.
