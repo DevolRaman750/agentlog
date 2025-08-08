@@ -1,2 +1,9 @@
-# Handle client-side routing
-/*    /index.html   200
+# Handle client-side routing - fallback to index.html for SPA
+# This file is for static hosting platforms like Netlify/Vercel
+# For NGINX deployment, see nginx.conf
+
+# API routes should not be redirected (in case of proxy setup)
+/api/*  /api/:splat  200
+
+# All other routes should serve the SPA
+/*      /index.html  200

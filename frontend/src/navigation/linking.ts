@@ -2,7 +2,14 @@ import { LinkingOptions } from '@react-navigation/native';
 import { TabParamList } from '../types';
 
 export const linking: LinkingOptions<TabParamList> = {
-  prefixes: ['http://localhost:8081', 'https://localhost:8081', 'http://localhost:19006', 'https://localhost:19006'],
+  prefixes: [
+    'http://localhost:8081', 
+    'https://localhost:8081', 
+    'http://localhost:19006', 
+    'https://localhost:19006',
+    'https://agentlog.scalebase.io',
+    'http://agentlog.scalebase.io'
+  ],
   config: {
     screens: {
       Execute: {
@@ -48,6 +55,8 @@ export const linking: LinkingOptions<TabParamList> = {
     },
     initialRouteName: 'Account', // Default fallback, will be overridden by getInitialRouteName
   },
+  // Add better fallback handling
+  fallback: 'Account',
   // Handle initial URL
   getInitialURL: async () => {
     // Check if running on web
