@@ -347,10 +347,10 @@ func (h *AgentsHandler) getExecutionsByAgentID(agentID string, limit, offset int
 			COALESCE(SUM(CAST(JSON_UNQUOTE(JSON_EXTRACT(resp.usage_metadata, '$.total_tokens')) AS UNSIGNED)), 0) as total_tokens,
 			COALESCE(SUM(CAST(JSON_UNQUOTE(JSON_EXTRACT(resp.usage_metadata, '$.prompt_tokens')) AS UNSIGNED)), 0) as prompt_tokens,
 			COALESCE(SUM(CAST(JSON_UNQUOTE(JSON_EXTRACT(resp.usage_metadata, '$.completion_tokens')) AS UNSIGNED)), 0) as completion_tokens,
-			COALESCE(AVG(req.response_time_ms), 0) as avg_response_time
-		FROM execution_runs er
-		LEFT JOIN api_requests req ON er.id = req.execution_run_id
-		LEFT JOIN api_responses resp ON req.id = resp.request_id
+					COALESCE(AVG(resp.response_time_ms), 0) as avg_response_time
+	FROM execution_runs er
+	LEFT JOIN api_requests req ON er.id = req.execution_run_id
+	LEFT JOIN api_responses resp ON req.id = resp.request_id
 		WHERE er.agent_id = ?
 		GROUP BY er.id, er.name, er.description, er.base_prompt, er.context_prompt,
 		         er.enable_function_calling, er.status, er.error_message,

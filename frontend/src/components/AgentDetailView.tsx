@@ -37,6 +37,7 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({
   const [executions, setExecutions] = useState<ExecutionRun[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [agentStats, setAgentStats] = useState<{
     totalExecutions: number;
     completedExecutions: number;
@@ -52,8 +53,21 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({
   const loadExecutions = async () => {
     try {
       setIsLoading(true);
+      setLoadError(null);
+      console.log('🔍 Loading executions for agent:', agent.id);
+      
       const response = await goGentAPI.getAgentExecutions(agent.id, 50, 0);
+      console.log('📡 Agent executions response:', response);
+      
       if (response.success && response.data) {
+        console.log('✅ Executions data:', response.data);
+        console.log('📊 Executions count:', response.data.length);
+        
+        // Log sample execution data for debugging
+        if (response.data.length > 0) {
+          console.log('📝 Sample execution:', response.data[0]);
+        }
+        
         setExecutions(response.data);
         
         // Calculate agent statistics
@@ -66,12 +80,19 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({
             ? response.data.reduce((sum, e) => sum + (e.total_time || 0), 0) / response.data.length / 1000
             : 0
         };
+        console.log('📈 Calculated stats:', stats);
         setAgentStats(stats);
       } else {
-        console.error('Failed to load agent executions:', response.error);
+        const errorMessage = response.error || 'Unknown error';
+        console.error('❌ Failed to load agent executions:', errorMessage);
+        setLoadError(errorMessage);
+        // Don't show alert for failed loading, just show in UI
       }
     } catch (error) {
-      console.error('Error loading executions:', error);
+      const errorMessage = (error as Error).message;
+      console.error('💥 Error loading executions:', error);
+      setLoadError(errorMessage);
+      // Don't show alert for failed loading, just show in UI
     } finally {
       setIsLoading(false);
     }
@@ -181,7 +202,7 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({
           </View>
         )}
         
-        {execution.totalTokens && (
+        {execution.totalTokens && execution.totalTokens > 0 && (
           <View style={styles.executionDetailRow}>
             <Ionicons name="flash-outline" size={14} color="#666" />
             <Text style={styles.executionDetailText}>
@@ -201,7 +222,10 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({
       </View>
       
       <View style={styles.executionActions}>
-        <Ionicons name="chevron-forward" size={16} color="#ccc" />
+        <View style={styles.viewLogsHint}>
+          <Text style={styles.viewLogsText}>View Logs</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={16} color="#007AFF" />
       </View>
     </TouchableOpacity>
   );
@@ -211,7 +235,7 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({
       <Ionicons name="analytics-outline" size={48} color="#ccc" />
       <Text style={styles.emptyExecutionsText}>No executions yet</Text>
       <Text style={styles.emptyExecutionsSubtext}>
-        This agent hasn't run any executions
+        This agent hasn't run any executions. Execute the agent from the main screen to see execution history here.
       </Text>
     </View>
   );
@@ -412,6 +436,20 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="small" color="#007AFF" />
               <Text style={styles.loadingText}>Loading executions...</Text>
+            </View>
+          ) : loadError ? (
+            <View style={styles.errorContainer}>
+              <Ionicons name="warning-outline" size={24} color="#FF6B35" />
+              <Text style={styles.errorText}>Failed to load executions</Text>
+              <Text style={styles.errorSubtext}>{loadError}</Text>
+              <TouchableOpacity 
+                style={styles.retryButton}
+                onPress={loadExecutions}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="refresh" size={16} color="#007AFF" />
+                <Text style={styles.retryButtonText}>Try Again</Text>
+              </TouchableOpacity>
             </View>
           ) : executions.length > 0 ? (
             <FlatList
@@ -659,6 +697,41 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
+  errorContainer: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+  },
+  errorText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#FF6B35',
+    marginTop: 12,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  errorSubtext: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F8FF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+    gap: 6,
+  },
+  retryButtonText: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '500',
+  },
   executionCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
@@ -708,8 +781,21 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   executionActions: {
-    alignItems: 'flex-end',
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 8,
+  },
+  viewLogsHint: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#F0F8FF',
+    borderRadius: 6,
+  },
+  viewLogsText: {
+    fontSize: 12,
+    color: '#007AFF',
+    fontWeight: '500',
   },
   executionDetailRow: {
     flexDirection: 'row',

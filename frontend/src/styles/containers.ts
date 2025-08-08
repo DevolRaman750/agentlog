@@ -206,7 +206,9 @@ export const containerColors = {
 export const webInputStyles = Platform.select({
   web: {
     // @ts-ignore - Web-specific CSS properties
-    outline: 'none',
+    outlineStyle: 'none',
+    outlineWidth: 0,
+    outlineColor: 'transparent',
     boxSizing: 'border-box',
     WebkitAppearance: 'none',
     MozAppearance: 'textfield',

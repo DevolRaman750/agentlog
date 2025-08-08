@@ -21,6 +21,12 @@ interface ConfigurationModalProps {
   selectedConfigurations: string[];
   onSelectionChange: (configIds: string[]) => void;
   isLoading?: boolean;
+  maxSelections?: number;
+  modeInfo?: {
+    mode: string;
+    title: string;
+    allowMultiple: boolean;
+  };
 }
 
 const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
@@ -30,6 +36,8 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
   selectedConfigurations,
   onSelectionChange,
   isLoading = false,
+  maxSelections,
+  modeInfo,
 }) => {
   const { screenWidth } = useResponsive();
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,15 +54,31 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
   }, [configurations, searchQuery]);
 
   const toggleConfiguration = (configId: string) => {
-    const newSelection = selectedConfigurations.includes(configId)
-      ? selectedConfigurations.filter(id => id !== configId)
-      : [...selectedConfigurations, configId];
-    
-    onSelectionChange(newSelection);
+    if (selectedConfigurations.includes(configId)) {
+      // Deselecting
+      const newSelection = selectedConfigurations.filter(id => id !== configId);
+      onSelectionChange(newSelection);
+    } else {
+      // Selecting
+      if (maxSelections && selectedConfigurations.length >= maxSelections) {
+        // For single selection modes, replace the current selection
+        if (maxSelections === 1) {
+          onSelectionChange([configId]);
+        }
+        return; // Don't allow more selections if at limit
+      }
+      
+      const newSelection = [...selectedConfigurations, configId];
+      onSelectionChange(newSelection);
+    }
   };
 
   const selectAll = () => {
-    onSelectionChange(filteredConfigurations.map(config => config.id).filter((id): id is string => !!id));
+    if (maxSelections === 1) return; // Don't allow select all for single selection modes
+    
+    const availableIds = filteredConfigurations.map(config => config.id).filter((id): id is string => !!id);
+    const idsToSelect = maxSelections ? availableIds.slice(0, maxSelections) : availableIds;
+    onSelectionChange(idsToSelect);
   };
 
   const clearAll = () => {
@@ -125,7 +149,9 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
             <Ionicons name="close" size={24} color="#007AFF" />
           </TouchableOpacity>
           
-          <Text style={styles.title}>AI Configurations</Text>
+          <Text style={styles.title}>
+            {modeInfo ? `${modeInfo.title} - Configurations` : 'AI Configurations'}
+          </Text>
           
           <TouchableOpacity 
             onPress={onClose} 
@@ -138,12 +164,16 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
         {/* Subtitle and selection info */}
         <View style={styles.subtitle}>
           <Text style={styles.subtitleText}>
-            Choose which AI model configurations to test your prompt against
+            {modeInfo && !modeInfo.allowMultiple 
+              ? `${modeInfo.title} mode - Choose one configuration`
+              : 'Choose which AI model configurations to test your prompt against'
+            }
           </Text>
           
           <View style={styles.selectionInfo}>
             <Text style={styles.selectionCount}>
               {selectedConfigurations.length} selected
+              {maxSelections && ` (max ${maxSelections})`}
             </Text>
           </View>
         </View>
@@ -167,9 +197,11 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
           </View>
           
           <View style={styles.bulkActions}>
-            <TouchableOpacity onPress={selectAll} style={styles.bulkButton}>
-              <Text style={styles.bulkButtonText}>Select All</Text>
-            </TouchableOpacity>
+            {maxSelections !== 1 && (
+              <TouchableOpacity onPress={selectAll} style={styles.bulkButton}>
+                <Text style={styles.bulkButtonText}>Select All</Text>
+              </TouchableOpacity>
+            )}
             
             <TouchableOpacity onPress={clearAll} style={styles.bulkButton}>
               <Text style={styles.bulkButtonText}>Clear All</Text>
@@ -425,3 +457,4 @@ const styles = StyleSheet.create({
 });
 
 export default ConfigurationModal;
+export type { ConfigurationModalProps };
