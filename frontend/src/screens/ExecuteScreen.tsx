@@ -13,7 +13,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { useFormState } from '../context/FormStateContext';
@@ -22,7 +22,7 @@ import LoadingScreen from '../components/LoadingScreen';
 import { goGentAPI } from '../api/client';
 import { secureStorage } from '../utils/secureStorage';
 import { backendApiKeys } from '../utils/backendApiKeys';
-import { ExecutionResult, APIConfiguration, ComparisonMetric, FunctionDefinition, Agent, FunctionApiKeyRequirements, UserApiKey } from '../types';
+import { ExecutionResult, APIConfiguration, ComparisonMetric, FunctionDefinition, Agent, FunctionApiKeyRequirements, UserApiKey, Team } from '../types';
 import { AlertAPI } from '../components/CustomAlert';
 import AgentAvatar from '../components/AgentAvatar';
 import ExecutionResultsViewer from '../components/ExecutionResultsViewer';
@@ -45,7 +45,19 @@ interface ParameterValue {
   description?: string;
 }
 
+// Execution Mode Types
+type ExecutionMode = 'agent' | 'template' | 'experiment';
+
+interface ExecutionModeConfig {
+  mode: ExecutionMode;
+  selectedAgent?: Agent;
+  selectedTemplate?: any;
+  allowMultipleConfigs: boolean;
+  showCostWarning: boolean;
+}
+
 const ExecuteScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const { 
     state, 
@@ -94,7 +106,19 @@ const ExecuteScreen: React.FC = () => {
   const [parameterValues, setParameterValues] = useState<ParameterValue[]>([]);
   const [showParameters, setShowParameters] = useState(false);
   
-  // Template/Agent execution state
+  // Execution Mode State
+  const [executionMode, setExecutionMode] = useState<ExecutionModeConfig>({
+    mode: 'experiment', // Default to experiment mode
+    allowMultipleConfigs: true,
+    showCostWarning: false
+  });
+  
+  // Agents and Teams State
+  const [availableAgents, setAvailableAgents] = useState<Agent[]>([]);
+  const [availableTeams, setAvailableTeams] = useState<Team[]>([]);
+  const [isLoadingAgents, setIsLoadingAgents] = useState(false);
+  
+  // Template/Agent execution state (keeping for backward compatibility)
   const [templateExecutionData, setTemplateExecutionData] = useState<{
     isTemplateExecution: boolean;
     isAgentExecution: boolean;
@@ -106,7 +130,7 @@ const ExecuteScreen: React.FC = () => {
     isAgentExecution: false 
   });
   
-  // Agent execution state
+  // Agent execution state (keeping for backward compatibility)
   const [agentData, setAgentData] = useState<{
     agent: any;
     isAgentExecution: boolean;
@@ -132,6 +156,79 @@ const ExecuteScreen: React.FC = () => {
       console.error('Error loading backend API keys:', error);
     }
   }, []);
+
+  // Load user's agents and teams
+  const loadAgentsAndTeams = useCallback(async () => {
+    if (!user || isLoadingAgents) return;
+    
+    try {
+      setIsLoadingAgents(true);
+      console.log('🤖 Loading user agents and teams...');
+      
+      const [agentsResponse, teamsResponse] = await Promise.all([
+        goGentAPI.getAgents(),
+        goGentAPI.getTeams()
+      ]);
+      
+      if (agentsResponse.success && agentsResponse.data) {
+        setAvailableAgents(agentsResponse.data);
+        console.log('✅ Loaded agents:', agentsResponse.data.length);
+      } else {
+        console.warn('Failed to load agents:', agentsResponse.error);
+        setAvailableAgents([]);
+      }
+      
+      if (teamsResponse.success && teamsResponse.data) {
+        setAvailableTeams(teamsResponse.data);
+        console.log('✅ Loaded teams:', teamsResponse.data.length);
+      } else {
+        console.warn('Failed to load teams:', teamsResponse.error);
+        setAvailableTeams([]);
+      }
+    } catch (error) {
+      console.error('Error loading agents and teams:', error);
+      setAvailableAgents([]);
+      setAvailableTeams([]);
+    } finally {
+      setIsLoadingAgents(false);
+    }
+  }, [user, isLoadingAgents]);
+
+  // Handle execution mode changes
+  const handleExecutionModeChange = useCallback((newMode: ExecutionMode) => {
+    const modeConfig: ExecutionModeConfig = {
+      mode: newMode,
+      allowMultipleConfigs: newMode === 'experiment',
+      showCostWarning: newMode === 'experiment'
+    };
+
+    // Clear mode-specific selections when switching
+    if (newMode !== 'agent') {
+      modeConfig.selectedAgent = undefined;
+    }
+    if (newMode !== 'template') {
+      modeConfig.selectedTemplate = undefined;
+    }
+
+    // Enforce single config selection for agent/template modes
+    if (!modeConfig.allowMultipleConfigs && formState.selectedConfigs.length > 1) {
+      updateField('selectedConfigs', formState.selectedConfigs.slice(0, 1));
+    }
+
+    setExecutionMode(modeConfig);
+    
+    // Update legacy state for backward compatibility
+    setTemplateExecutionData(prev => ({
+      ...prev,
+      isTemplateExecution: newMode === 'template',
+      isAgentExecution: newMode === 'agent'
+    }));
+    
+    setAgentData(prev => ({
+      ...prev,
+      isAgentExecution: newMode === 'agent'
+    }));
+  }, [formState.selectedConfigs, updateField]);
 
   // Validate model keys for selected configurations
   const validateModelKeys = useCallback((selectedConfigs: APIConfiguration[]): ModelKeyRequirement | null => {
@@ -290,6 +387,13 @@ const ExecuteScreen: React.FC = () => {
     loadBackendApiKeys();
   }, [loadBackendApiKeys]);
 
+  // Load agents and teams when user is authenticated
+  useEffect(() => {
+    if (user && isAuthenticated) {
+      loadAgentsAndTeams();
+    }
+  }, [user, isAuthenticated, loadAgentsAndTeams]);
+
   // Show loading screen while auth is loading
   if (authLoading) {
     return <LoadingScreen message="Loading execution interface..." />;
@@ -426,6 +530,30 @@ const ExecuteScreen: React.FC = () => {
     const isTemplateExec = reExecutionData.isTemplateExecution || false;
     const isAgentExec = reExecutionData.isAgentExecution || false;
     
+    // Set execution mode based on re-execution data
+    if (isAgentExec) {
+      setExecutionMode(prev => ({
+        ...prev,
+        mode: 'agent',
+        allowMultipleConfigs: false,
+        showCostWarning: false
+      }));
+    } else if (isTemplateExec) {
+      setExecutionMode(prev => ({
+        ...prev,
+        mode: 'template',
+        allowMultipleConfigs: false,
+        showCostWarning: false
+      }));
+    } else {
+      setExecutionMode(prev => ({
+        ...prev,
+        mode: 'experiment',
+        allowMultipleConfigs: true,
+        showCostWarning: true
+      }));
+    }
+    
     setTemplateExecutionData({
       isTemplateExecution: isTemplateExec,
       isAgentExecution: isAgentExec,
@@ -549,6 +677,7 @@ const ExecuteScreen: React.FC = () => {
   };
 
   const executeMultiVariant = async () => {
+    // Basic validation
     if (!formState.prompt.trim()) {
       AlertAPI.alert('Error', 'Please enter a prompt');
       return;
@@ -557,6 +686,46 @@ const ExecuteScreen: React.FC = () => {
     if (formState.selectedConfigs.length === 0) {
       AlertAPI.alert('Error', 'Please select at least one configuration');
       return;
+    }
+
+    // Mode-specific validation
+    if (executionMode.mode === 'agent') {
+      if (!executionMode.selectedAgent) {
+        AlertAPI.alert('Error', 'Please select an agent for Agent Execution Mode');
+        return;
+      }
+      
+      // Ensure only one configuration for agent mode
+      if (formState.selectedConfigs.length > 1) {
+        console.log('🔄 Agent mode: Limiting to first configuration only');
+        updateField('selectedConfigs', formState.selectedConfigs.slice(0, 1));
+      }
+    }
+
+    if (executionMode.mode === 'template') {
+      // Ensure only one configuration for template mode
+      if (formState.selectedConfigs.length > 1) {
+        console.log('🔄 Template mode: Limiting to first configuration only');
+        updateField('selectedConfigs', formState.selectedConfigs.slice(0, 1));
+      }
+    }
+
+    if (executionMode.mode === 'experiment' && formState.selectedConfigs.length > 1) {
+      // Show confirmation for multiple configurations in experiment mode
+      const confirmResult = await new Promise<boolean>((resolve) => {
+        AlertAPI.alert(
+          'Multiple Configurations Selected',
+          `You are about to run ${formState.selectedConfigs.length} separate executions. This will cost ${formState.selectedConfigs.length}x the normal amount. Do you want to proceed?`,
+          [
+            { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+            { text: 'Proceed', style: 'default', onPress: () => resolve(true) }
+          ]
+        );
+      });
+      
+      if (!confirmResult) {
+        return;
+      }
     }
 
     // Model API key validation is now handled above via validateModelKeys
@@ -627,8 +796,8 @@ const ExecuteScreen: React.FC = () => {
           metrics: formState.selectedMetrics,
         },
         // Include agentId for agent executions
-        ...(agentData.isAgentExecution && agentData.agent?.id && {
-          agentId: agentData.agent.id
+        ...(executionMode.mode === 'agent' && executionMode.selectedAgent?.id && {
+          agentId: executionMode.selectedAgent.id
         }),
       };
 
@@ -807,15 +976,248 @@ const ExecuteScreen: React.FC = () => {
         {/* Header */}
         <View style={[styles.header, agentData.isAgentExecution && styles.headerCompact]}>
           <Text style={styles.title}>
-            {agentData.isAgentExecution ? '🤖 Agent Execution' : '🚀 Execute AI Models'}
+            {executionMode.mode === 'agent' ? '🤖 Agent Execution' : 
+             executionMode.mode === 'template' ? '📋 Template Execution' : 
+             '🧪 Experiment Mode'}
           </Text>
           <Text style={styles.subtitle}>
-            {agentData.isAgentExecution 
-              ? 'Review and modify the agent\'s execution settings before running'
+            {executionMode.mode === 'agent' 
+              ? 'Execute prompts through a specific agent - all activity will be tracked within the agent'
+              : executionMode.mode === 'template'
+              ? 'Execute a pre-configured template with customizable parameters'
               : 'Run your prompts across multiple AI configurations and compare their responses'
             }
           </Text>
         </View>
+
+        {/* Execution Mode Selector */}
+        <View style={styles.executionModeContainer}>
+          <View style={styles.executionModeHeader}>
+            <Ionicons name="options" size={18} color="#007AFF" />
+            <Text style={styles.executionModeTitle}>Execution Mode</Text>
+          </View>
+          
+          <View style={styles.executionModeOptions}>
+            {/* Experiment Mode */}
+            <TouchableOpacity
+              style={[
+                styles.executionModeOption,
+                executionMode.mode === 'experiment' && styles.executionModeOptionActive
+              ]}
+              onPress={() => handleExecutionModeChange('experiment')}
+            >
+              <View style={styles.executionModeOptionContent}>
+                <View style={styles.executionModeOptionHeader}>
+                  <Ionicons 
+                    name="flask" 
+                    size={20} 
+                    color={executionMode.mode === 'experiment' ? '#007AFF' : '#8E8E93'} 
+                  />
+                  <Text style={[
+                    styles.executionModeOptionTitle,
+                    executionMode.mode === 'experiment' && styles.executionModeOptionTitleActive
+                  ]}>
+                    Experiment
+                  </Text>
+                </View>
+                <Text style={styles.executionModeOptionDescription}>
+                  Compare multiple AI configurations side-by-side
+                </Text>
+              </View>
+              {executionMode.mode === 'experiment' && (
+                <Ionicons name="checkmark-circle" size={20} color="#007AFF" />
+              )}
+            </TouchableOpacity>
+
+            {/* Template Mode */}
+            <TouchableOpacity
+              style={[
+                styles.executionModeOption,
+                executionMode.mode === 'template' && styles.executionModeOptionActive
+              ]}
+              onPress={() => handleExecutionModeChange('template')}
+            >
+              <View style={styles.executionModeOptionContent}>
+                <View style={styles.executionModeOptionHeader}>
+                  <Ionicons 
+                    name="document-text" 
+                    size={20} 
+                    color={executionMode.mode === 'template' ? '#007AFF' : '#8E8E93'} 
+                  />
+                  <Text style={[
+                    styles.executionModeOptionTitle,
+                    executionMode.mode === 'template' && styles.executionModeOptionTitleActive
+                  ]}>
+                    Template
+                  </Text>
+                </View>
+                <Text style={styles.executionModeOptionDescription}>
+                  Execute with pre-configured template settings
+                </Text>
+              </View>
+              {executionMode.mode === 'template' && (
+                <Ionicons name="checkmark-circle" size={20} color="#007AFF" />
+              )}
+            </TouchableOpacity>
+
+            {/* Agent Mode - Only show if user has agents */}
+            {availableAgents.length > 0 && (
+              <TouchableOpacity
+                style={[
+                  styles.executionModeOption,
+                  executionMode.mode === 'agent' && styles.executionModeOptionActive
+                ]}
+                onPress={() => handleExecutionModeChange('agent')}
+              >
+                <View style={styles.executionModeOptionContent}>
+                  <View style={styles.executionModeOptionHeader}>
+                    <Ionicons 
+                      name="person" 
+                      size={20} 
+                      color={executionMode.mode === 'agent' ? '#007AFF' : '#8E8E93'} 
+                    />
+                    <Text style={[
+                      styles.executionModeOptionTitle,
+                      executionMode.mode === 'agent' && styles.executionModeOptionTitleActive
+                    ]}>
+                      Agent
+                    </Text>
+                  </View>
+                  <Text style={styles.executionModeOptionDescription}>
+                    Execute through a specific agent with tracking
+                  </Text>
+                </View>
+                {executionMode.mode === 'agent' && (
+                  <Ionicons name="checkmark-circle" size={20} color="#007AFF" />
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Mode-specific information */}
+          {executionMode.mode === 'experiment' && (
+            <View style={styles.modeInfoContainer}>
+              <View style={styles.modeInfoHeader}>
+                <Ionicons name="information-circle" size={16} color="#FF9500" />
+                <Text style={styles.modeInfoTitle}>Experiment Mode</Text>
+              </View>
+              <Text style={styles.modeInfoText}>
+                Select multiple configurations to compare responses. Each configuration will run separately, increasing execution cost.
+              </Text>
+            </View>
+          )}
+
+          {executionMode.mode === 'agent' && (
+            <View style={styles.modeInfoContainer}>
+              <View style={styles.modeInfoHeader}>
+                <Ionicons name="information-circle" size={16} color="#34C759" />
+                <Text style={styles.modeInfoTitle}>Agent Mode</Text>
+              </View>
+              <Text style={styles.modeInfoText}>
+                Execution will be tracked within the selected agent. Only one configuration can be used at a time.
+              </Text>
+            </View>
+          )}
+
+          {executionMode.mode === 'template' && (
+            <View style={styles.modeInfoContainer}>
+              <View style={styles.modeInfoHeader}>
+                <Ionicons name="information-circle" size={16} color="#007AFF" />
+                <Text style={styles.modeInfoTitle}>Template Mode</Text>
+              </View>
+              <Text style={styles.modeInfoText}>
+                Using pre-configured template settings. Only one configuration can be used at a time.
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Agent Selection - Only show in Agent Mode */}
+        {executionMode.mode === 'agent' && (
+          <View style={styles.agentSelectionContainer}>
+            <View style={styles.labelContainer}>
+              <Ionicons name="person" size={18} color="#34C759" />
+              <Text style={styles.fieldLabel}>Select Agent</Text>
+              <Text style={styles.requiredText}>Required</Text>
+            </View>
+            
+            {isLoadingAgents ? (
+              <View style={styles.agentSelectionLoading}>
+                <ActivityIndicator size="small" color="#007AFF" />
+                <Text style={styles.agentSelectionLoadingText}>Loading agents...</Text>
+              </View>
+            ) : availableAgents.length === 0 ? (
+              <View style={styles.agentSelectionEmpty}>
+                <Ionicons name="person-add" size={24} color="#8E8E93" />
+                <Text style={styles.agentSelectionEmptyTitle}>No Agents Available</Text>
+                <Text style={styles.agentSelectionEmptyText}>
+                  Create an agent first to use Agent Execution Mode
+                </Text>
+                <TouchableOpacity 
+                  style={styles.createAgentButton}
+                  onPress={() => navigation.navigate('Agents')}
+                >
+                  <Ionicons name="add" size={16} color="#007AFF" />
+                  <Text style={styles.createAgentButtonText}>Create Agent</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.agentSelectionList}>
+                {availableAgents.map((agent) => (
+                  <TouchableOpacity
+                    key={agent.id}
+                    style={[
+                      styles.agentSelectionItem,
+                      executionMode.selectedAgent?.id === agent.id && styles.agentSelectionItemActive
+                    ]}
+                    onPress={() => {
+                      setExecutionMode(prev => ({
+                        ...prev,
+                        selectedAgent: agent
+                      }));
+                      setAgentData(prev => ({
+                        ...prev,
+                        agent: agent
+                      }));
+                    }}
+                  >
+                    <AgentAvatar 
+                      agent={agent}
+                      size="medium"
+                      showStatus={true}
+                      animated={false}
+                    />
+                    <View style={styles.agentSelectionInfo}>
+                      <Text style={styles.agentSelectionName}>
+                        {agent.firstName} {agent.lastName}
+                      </Text>
+                      <Text style={styles.agentSelectionTemplate}>
+                        {agent.templateName || 'No template'}
+                      </Text>
+                      <View style={styles.agentSelectionMeta}>
+                        <View style={styles.agentSelectionMetaItem}>
+                          <Ionicons name="flash" size={12} color="#FF9500" />
+                          <Text style={styles.agentSelectionMetaText}>
+                            {agent.tokensUsedToday}/{agent.maxTokensPerDay} tokens
+                          </Text>
+                        </View>
+                        <View style={styles.agentSelectionMetaItem}>
+                          <Ionicons name="time" size={12} color="#8E8E93" />
+                          <Text style={styles.agentSelectionMetaText}>
+                            {agent.totalExecutions} executions
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                    {executionMode.selectedAgent?.id === agent.id && (
+                      <Ionicons name="checkmark-circle" size={20} color="#34C759" />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Main Prompt - First and Most Prominent */}
         <View style={[styles.fieldContainer, styles.primaryField, (templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution) && styles.readOnlyField]}>
@@ -864,6 +1266,27 @@ const ExecuteScreen: React.FC = () => {
           onFunctionsPress={() => setShowFunctionsModal(true)}
           onOtherOptionsPress={() => setShowOtherOptionsModal(true)}
         />
+
+        {/* Configuration Restrictions and Cost Warnings */}
+        {!executionMode.allowMultipleConfigs && formState.selectedConfigs.length > 1 && (
+          <View style={styles.configRestrictionWarning}>
+            <Ionicons name="warning" size={16} color="#FF9500" />
+            <Text style={styles.configRestrictionText}>
+              {executionMode.mode === 'agent' ? 'Agent mode' : 'Template mode'} allows only one configuration. 
+              Only the first selected configuration will be used.
+            </Text>
+          </View>
+        )}
+
+        {executionMode.mode === 'experiment' && formState.selectedConfigs.length > 1 && (
+          <View style={styles.costWarningContainer}>
+            <Ionicons name="card" size={16} color="#FF3B30" />
+            <Text style={styles.costWarningText}>
+              <Text style={styles.costWarningEmphasis}>Cost Warning:</Text> You have selected {formState.selectedConfigs.length} configurations. 
+              This will run {formState.selectedConfigs.length} separate executions and incur {formState.selectedConfigs.length}x the cost.
+            </Text>
+          </View>
+        )}
 
         {/* Template Parameters Section - Show when parameters are detected */}
         {showParameters && parameterValues.length > 0 && (
@@ -1737,6 +2160,250 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginBottom: 12,
     fontStyle: 'italic',
+  },
+  
+  // Execution Mode Selector Styles
+  executionModeContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  executionModeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  executionModeTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginLeft: 8,
+  },
+  executionModeOptions: {
+    gap: 8,
+  },
+  executionModeOption: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+  executionModeOptionActive: {
+    backgroundColor: '#F0F8FF',
+    borderColor: '#007AFF',
+    borderWidth: 2,
+  },
+  executionModeOptionContent: {
+    flex: 1,
+  },
+  executionModeOptionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  executionModeOptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginLeft: 8,
+  },
+  executionModeOptionTitleActive: {
+    color: '#007AFF',
+  },
+  executionModeOptionDescription: {
+    fontSize: 14,
+    color: '#6B6B6B',
+    lineHeight: 18,
+  },
+  modeInfoContainer: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#007AFF',
+  },
+  modeInfoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  modeInfoTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginLeft: 6,
+  },
+  modeInfoText: {
+    fontSize: 13,
+    color: '#6B6B6B',
+    lineHeight: 18,
+  },
+  
+  // Agent Selection Styles
+  agentSelectionContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  agentSelectionLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  agentSelectionLoadingText: {
+    fontSize: 14,
+    color: '#6B6B6B',
+    marginLeft: 8,
+  },
+  agentSelectionEmpty: {
+    alignItems: 'center',
+    padding: 20,
+  },
+  agentSelectionEmptyTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#8E8E93',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  agentSelectionEmptyText: {
+    fontSize: 14,
+    color: '#8E8E93',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  createAgentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  createAgentButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginLeft: 6,
+  },
+  agentSelectionList: {
+    gap: 8,
+  },
+  agentSelectionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+  agentSelectionItemActive: {
+    backgroundColor: '#F0FFF0',
+    borderColor: '#34C759',
+    borderWidth: 2,
+  },
+  agentSelectionInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  agentSelectionName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 2,
+  },
+  agentSelectionTemplate: {
+    fontSize: 14,
+    color: '#6B6B6B',
+    marginBottom: 6,
+  },
+  agentSelectionMeta: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  agentSelectionMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  agentSelectionMetaText: {
+    fontSize: 12,
+    color: '#8E8E93',
+    marginLeft: 4,
+  },
+  
+  // Warning and Restriction Styles
+  configRestrictionWarning: {
+    backgroundColor: '#FFF9E6',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderLeftWidth: 3,
+    borderLeftColor: '#FF9500',
+  },
+  configRestrictionText: {
+    fontSize: 14,
+    color: '#B8600A',
+    lineHeight: 18,
+    marginLeft: 8,
+    flex: 1,
+  },
+  costWarningContainer: {
+    backgroundColor: '#FFF5F5',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderLeftWidth: 3,
+    borderLeftColor: '#FF3B30',
+  },
+  costWarningText: {
+    fontSize: 14,
+    color: '#C41E3A',
+    lineHeight: 18,
+    marginLeft: 8,
+    flex: 1,
+  },
+  costWarningEmphasis: {
+    fontWeight: '600',
   },
 });
 
