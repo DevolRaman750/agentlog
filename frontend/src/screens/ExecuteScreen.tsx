@@ -844,21 +844,14 @@ const ExecuteScreen: React.FC = () => {
           
           <TextEditor
             value={formState.prompt}
-            onChangeText={(templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution) 
-              ? () => {} // Read-only for template executions
-              : (text) => updateField('prompt', text)
-            }
-            placeholder={(templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution)
-              ? "This prompt is configured in the template..."
-              : "Write a compelling product description for a sustainable water bottle that highlights its eco-friendly features..."
-            }
+            onChangeText={(text) => updateField('prompt', text)}
+            placeholder="Write a compelling product description for a sustainable water bottle that highlights its eco-friendly features..."
             minHeight={200}
             maxHeight={600}
-            allowFullscreen={!(templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution)}
-            showCharacterCount={!(templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution)}
-            showWordCount={!(templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution)}
+            allowFullscreen={true}
+            showCharacterCount={true}
+            showWordCount={true}
             showLineNumbers={false}
-            editable={!(templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution)}
           />
         </View>
 
