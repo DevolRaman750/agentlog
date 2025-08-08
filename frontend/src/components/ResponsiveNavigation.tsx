@@ -11,44 +11,15 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
+import { 
+  navigationItems, 
+  getAllNavigationItems, 
+  getVisibleNavigationItems,
+  NavigationItem,
+  routeToPathMap 
+} from '../navigation/navigationConfig';
 
-interface NavigationItem {
-  name: string;
-  title: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  iconFocused: keyof typeof Ionicons.glyphMap;
-  children?: NavigationItem[];
-  isSubItem?: boolean;
-}
-
-const navigationItems: NavigationItem[] = [
-  { 
-    name: 'Agents', 
-    title: 'Agents', 
-    icon: 'construct-outline', 
-    iconFocused: 'construct',
-    children: [
-      { name: 'Agents', title: 'Your Agents', icon: 'construct-outline', iconFocused: 'construct', isSubItem: true },
-      { name: 'Marketplace', title: 'Marketplace', icon: 'storefront-outline', iconFocused: 'storefront', isSubItem: true }
-    ]
-  },
-  { 
-    name: 'Configure', 
-    title: 'Configure', 
-    icon: 'settings-outline', 
-    iconFocused: 'settings',
-    children: [
-      { name: 'Configure', title: 'Model', icon: 'settings-outline', iconFocused: 'settings', isSubItem: true },
-      { name: 'Execute', title: 'Experiment', icon: 'flask-outline', iconFocused: 'flask', isSubItem: true },
-      { name: 'Execution Templates', title: 'Templates', icon: 'document-text-outline', iconFocused: 'document-text', isSubItem: true },
-      { name: 'Functions', title: 'Functions', icon: 'code-slash-outline', iconFocused: 'code-slash', isSubItem: true },
-      { name: 'API Keys', title: 'API Keys', icon: 'key-outline', iconFocused: 'key', isSubItem: true }
-    ]
-  },
-  { name: 'History', title: 'Execution History', icon: 'time-outline', iconFocused: 'time' },
-  { name: 'Database', title: 'Data', icon: 'server-outline', iconFocused: 'server' },
-  { name: 'Account', title: 'Account', icon: 'person-circle-outline', iconFocused: 'person-circle' },
-];
+// NavigationItem interface is now imported from navigationConfig
 
 interface ResponsiveNavigationProps {
   isSidebarLayout: boolean;
@@ -61,17 +32,7 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({ isSi
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['Agents', 'Configure'])); // Default expanded
   const { isAuthenticated } = useAuth();
 
-  // Filter navigation items based on authentication status
-  const getVisibleNavigationItems = () => {
-    if (!isAuthenticated) {
-      // Only show Account tab when not authenticated
-      return navigationItems.filter(item => item.name === 'Account');
-    }
-    // Show all tabs when authenticated
-    return navigationItems;
-  };
-
-  const visibleItems = getVisibleNavigationItems();
+  const visibleItems = getVisibleNavigationItems(isAuthenticated);
 
   const handleNavigate = (screenName: string) => {
     navigation.navigate(screenName as never);
@@ -79,19 +40,7 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({ isSi
     
     // Update URL for web
     if (typeof window !== 'undefined' && window.history) {
-      const pathMap: Record<string, string> = {
-        'Execute': '/experiment',
-        'Configure': '/model',
-        'Functions': '/functions',
-        'Execution Templates': '/templates',
-        'API Keys': '/api-keys',
-        'History': '/history',
-        'Database': '/database',
-        'Agents': '/agents',
-        'Account': '/account',
-      };
-      
-      const path = pathMap[screenName];
+      const path = routeToPathMap[screenName];
       if (path) {
         window.history.pushState({}, '', path);
       }
@@ -114,17 +63,7 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({ isSi
     return route.name === routeName;
   };
 
-  // Helper to get all navigation items including children for current route detection
-  const getAllNavigationItems = (items: NavigationItem[]): NavigationItem[] => {
-    const result: NavigationItem[] = [];
-    items.forEach(item => {
-      result.push(item);
-      if (item.children) {
-        result.push(...item.children);
-      }
-    });
-    return result;
-  };
+  // getAllNavigationItems is now imported from navigationConfig
 
   // Mobile Hamburger Menu
   const renderMobileMenu = () => (

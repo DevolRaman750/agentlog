@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import TextEditor from './TextEditor';
+import EnhancedTextEditor from './EnhancedTextEditor';
 import { useResponsive } from '../context/ResponsiveContext';
 
 interface OtherOptionsModalProps {
@@ -148,20 +148,20 @@ const OtherOptionsModal: React.FC<OtherOptionsModalProps> = ({
               )}
             </View>
             
-            <Text style={styles.fieldDescription}>
-              Add notes about this execution - what you're testing, why, or what you expect
-            </Text>
-            
-            <TextEditor
+            <EnhancedTextEditor
               value={description}
               onChangeText={onDescriptionChange}
               placeholder="Notes about this execution..."
+              label="Description"
               minHeight={100}
               maxHeight={250}
               allowFullscreen={true}
               showCharacterCount={true}
               showWordCount={false}
               showLineNumbers={false}
+              showToolbar={true}
+              enableMarkdown={true}
+              helperText="Add notes about this execution - what you're testing, why, or what you expect"
             />
           </View>
 
@@ -180,20 +180,20 @@ const OtherOptionsModal: React.FC<OtherOptionsModalProps> = ({
               )}
             </View>
             
-            <Text style={styles.fieldDescription}>
-              Provide additional context like target audience, tone, constraints, or special requirements
-            </Text>
-            
-            <TextEditor
+            <EnhancedTextEditor
               value={context}
               onChangeText={onContextChange}
               placeholder="Target audience, tone, constraints, etc..."
+              label="Additional Context"
               minHeight={120}
               maxHeight={300}
               allowFullscreen={true}
               showCharacterCount={true}
               showWordCount={true}
               showLineNumbers={false}
+              showToolbar={true}
+              enableMarkdown={true}
+              helperText="Provide additional context like target audience, tone, constraints, or special requirements"
             />
           </View>
 

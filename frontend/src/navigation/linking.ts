@@ -25,7 +25,7 @@ export const linking: LinkingOptions<TabParamList> = {
         exact: true,
       },
       'Execution Templates': {
-        path: '/execution-templates',
+        path: '/templates',
         exact: true,
       },
       'API Keys': {
@@ -48,8 +48,8 @@ export const linking: LinkingOptions<TabParamList> = {
         path: '/agents',
         exact: true,
       },
-      More: {
-        path: '/more',
+      Marketplace: {
+        path: '/marketplace',
         exact: true,
       },
     },
@@ -101,12 +101,14 @@ export const getInitialRouteName = (isAuthenticated: boolean, isLoading: boolean
       '/execute': 'Execute', // Legacy support
       '/configure': 'Configure', // Legacy support
       '/functions': 'Functions',
-      '/execution-templates': 'Execution Templates',
+      '/templates': 'Execution Templates',
+      '/execution-templates': 'Execution Templates', // Legacy support
       '/api-keys': 'API Keys',
       '/history': 'History',
       '/database': 'Database',
       '/account': 'Account',
-      '/more': 'More',
+      '/agents': 'Agents',
+      '/marketplace': 'Marketplace',
     };
 
     const routeName = pathToRoute[path];
@@ -135,12 +137,14 @@ export const getInitialRouteName = (isAuthenticated: boolean, isLoading: boolean
       '/execute': 'Execute', // Legacy support
       '/configure': 'Configure', // Legacy support
       '/functions': 'Functions',
-      '/execution-templates': 'Execution Templates',
+      '/templates': 'Execution Templates',
+      '/execution-templates': 'Execution Templates', // Legacy support
       '/api-keys': 'API Keys',
       '/history': 'History',
       '/database': 'Database',
       '/account': 'Account',
-      '/more': 'More',
+      '/agents': 'Agents',
+      '/marketplace': 'Marketplace',
     };
 
     const routeName = pathToRoute[path];

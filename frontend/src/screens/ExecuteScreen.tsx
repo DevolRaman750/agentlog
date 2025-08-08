@@ -26,7 +26,7 @@ import { ExecutionResult, APIConfiguration, ComparisonMetric, FunctionDefinition
 import { AlertAPI } from '../components/CustomAlert';
 import AgentAvatar from '../components/AgentAvatar';
 import ExecutionResultsViewer from '../components/ExecutionResultsViewer';
-import TextEditor from '../components/TextEditor';
+import EnhancedTextEditor from '../components/EnhancedTextEditor';
 import ExecutionLoadingIndicator from '../components/ExecutionLoadingIndicator';
 import LiveExecutionViewer from '../components/LiveExecutionViewer';
 import ModelKeyModal from '../components/ModelKeyModal';
@@ -1423,22 +1423,29 @@ const ExecuteScreen: React.FC = () => {
             )}
           </View>
           
-          {(templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution) && parameterValues.length > 0 && (
-            <Text style={styles.templateDescription}>
-              This prompt is from a template. Use the parameter inputs below to customize the execution.
-            </Text>
-          )}
-          
-          <TextEditor
+          <EnhancedTextEditor
             value={formState.prompt}
             onChangeText={(text) => updateField('prompt', text)}
             placeholder="Write a compelling product description for a sustainable water bottle that highlights its eco-friendly features..."
+            label={(templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution) 
+              ? (templateExecutionData.isAgentExecution ? 'Agent Prompt Template' : 'Template Prompt')
+              : 'What do you want the AI to do?'
+            }
             minHeight={200}
             maxHeight={600}
             allowFullscreen={true}
             showCharacterCount={true}
             showWordCount={true}
             showLineNumbers={false}
+            showToolbar={true}
+            enableMarkdown={true}
+            required={true}
+            helperText={
+              (templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution) && parameterValues.length > 0
+                ? "This prompt is from a template. Use the parameter inputs below to customize the execution."
+                : "Provide clear, detailed instructions for what you want the AI to accomplish"
+            }
+            editable={true}
           />
         </View>
 
@@ -1476,15 +1483,33 @@ const ExecuteScreen: React.FC = () => {
                     )}
                   </View>
                   
-                  <TextInput
-                    style={styles.parameterInput}
-                    value={param.value}
-                    onChangeText={(value) => updateParameterValue(param.name, value)}
-                    placeholder={`Enter value for ${param.name}...`}
-                    placeholderTextColor="#8E8E93"
-                    multiline={param.value.length > 50}
-                    numberOfLines={param.value.length > 50 ? 3 : 1}
-                  />
+                  {param.value.length > 100 || param.description?.toLowerCase().includes('long') || param.description?.toLowerCase().includes('detailed') ? (
+                    <EnhancedTextEditor
+                      value={param.value}
+                      onChangeText={(value) => updateParameterValue(param.name, value)}
+                      placeholder={`Enter value for ${param.name}...`}
+                      minHeight={80}
+                      maxHeight={200}
+                      allowFullscreen={true}
+                      showCharacterCount={true}
+                      showWordCount={false}
+                      showLineNumbers={false}
+                      showToolbar={false}
+                      autoExpandOnFocus={true}
+                      required={param.isRequired}
+                      helperText={param.description}
+                    />
+                  ) : (
+                    <TextInput
+                      style={styles.parameterInput}
+                      value={param.value}
+                      onChangeText={(value) => updateParameterValue(param.name, value)}
+                      placeholder={`Enter value for ${param.name}...`}
+                      placeholderTextColor="#8E8E93"
+                      multiline={param.value.length > 50}
+                      numberOfLines={param.value.length > 50 ? 3 : 1}
+                    />
+                  )}
                   
                   {param.description && (
                     <Text style={styles.parameterDescription}>{param.description}</Text>

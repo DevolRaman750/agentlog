@@ -8,6 +8,13 @@ import { useAuth } from '../context/AuthContext';
 import { useResponsive } from '../context/ResponsiveContext';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { getInitialRouteName } from './linking';
+import { 
+  navigationItems, 
+  getAllNavigationItems, 
+  getVisibleNavigationItems,
+  NavigationItem,
+  routeToPathMap 
+} from './navigationConfig';
 
 // Import screens
 import ConfigureScreen from '../screens/ConfigureScreen';
@@ -24,16 +31,6 @@ import TemplateTokenManagerScreen from '../screens/TemplateTokenManagerScreen';
 
 const Tab = createBottomTabNavigator();
 
-interface NavigationItem {
-  name: string;
-  title: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  iconFocused: keyof typeof Ionicons.glyphMap;
-  component: React.ComponentType<any>;
-  children?: NavigationItem[];
-  isSubItem?: boolean;
-}
-
 // Mobile Navigation Dropdown Component for very narrow screens
 const MobileNavigationDropdown: React.FC = () => {
   const [showDropdown, setShowDropdown] = useState(false);
@@ -42,35 +39,7 @@ const MobileNavigationDropdown: React.FC = () => {
   const route = useRoute();
   const { isAuthenticated } = useAuth();
 
-  const navigationItems: NavigationItem[] = [
-    { 
-      name: 'Agents', 
-      title: 'Agents', 
-      icon: 'construct-outline', 
-      iconFocused: 'construct',
-      component: AgentsScreen,
-      children: [
-        { name: 'Agents', title: 'Your Agents', icon: 'construct-outline', iconFocused: 'construct', component: AgentsScreen, isSubItem: true },
-        { name: 'Marketplace', title: 'Marketplace', icon: 'storefront-outline', iconFocused: 'storefront', component: AgentMarketplaceScreen, isSubItem: true }
-      ]
-    },
-    { 
-      name: 'Configure', 
-      title: 'Configure', 
-      icon: 'settings-outline', 
-      iconFocused: 'settings',
-      component: ConfigureScreen,
-      children: [
-        { name: 'Execute', title: 'Model', icon: 'play-circle-outline', iconFocused: 'play-circle', component: ExecuteScreen, isSubItem: true },
-        { name: 'Execution Templates', title: 'Templates', icon: 'document-text-outline', iconFocused: 'document-text', component: ExecutionTemplatesScreen, isSubItem: true },
-        { name: 'Functions', title: 'Functions', icon: 'code-slash-outline', iconFocused: 'code-slash', component: FunctionScreen, isSubItem: true },
-        { name: 'API Keys', title: 'API Keys', icon: 'key-outline', iconFocused: 'key', component: ApiKeysScreen, isSubItem: true }
-      ]
-    },
-    { name: 'History', title: 'Execution History', icon: 'time-outline', iconFocused: 'time', component: HistoryScreen },
-    { name: 'Database', title: 'Data', icon: 'server-outline', iconFocused: 'server', component: DatabaseScreen },
-    { name: 'Account', title: 'Account', icon: 'person-circle-outline', iconFocused: 'person-circle', component: AuthScreen },
-  ];
+  // Use unified navigation configuration
 
   const toggleGroup = (groupName: string) => {
     setExpandedGroups(prev => {
@@ -84,26 +53,7 @@ const MobileNavigationDropdown: React.FC = () => {
     });
   };
 
-  // Helper to get all navigation items including children for current route detection
-  const getAllNavigationItems = (items: NavigationItem[]): NavigationItem[] => {
-    const result: NavigationItem[] = [];
-    items.forEach(item => {
-      result.push(item);
-      if (item.children) {
-        result.push(...item.children);
-      }
-    });
-    return result;
-  };
-
-  const getVisibleNavigationItems = () => {
-    if (!isAuthenticated) {
-      return navigationItems.filter(item => item.name === 'Account');
-    }
-    return navigationItems;
-  };
-
-  const visibleItems = getVisibleNavigationItems();
+  const visibleItems = getVisibleNavigationItems(isAuthenticated);
   const currentItem = getAllNavigationItems(visibleItems).find(item => item.name === route.name) || visibleItems[0];
 
   const handleNavigate = (screenName: string) => {
