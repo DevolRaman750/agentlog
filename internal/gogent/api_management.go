@@ -56,6 +56,43 @@ func (c *Client) CreateExecutionRun(ctx context.Context, userID, name, descripti
 	}, nil
 }
 
+// UpdateExecutionRunStatus updates the status of an execution run
+func (c *Client) UpdateExecutionRunStatus(ctx context.Context, userID, executionID, status, errorMessage string) error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	var errorMsg sql.NullString
+	if errorMessage != "" {
+		errorMsg = sql.NullString{String: errorMessage, Valid: true}
+	}
+
+	var statusEnum db.ExecutionRunsStatus
+	switch status {
+	case "pending":
+		statusEnum = db.ExecutionRunsStatusPending
+	case "running":
+		statusEnum = db.ExecutionRunsStatusRunning
+	case "completed":
+		statusEnum = db.ExecutionRunsStatusCompleted
+	case "failed":
+		statusEnum = db.ExecutionRunsStatusFailed
+	default:
+		return fmt.Errorf("invalid status: %s", status)
+	}
+
+	err := c.queries.UpdateExecutionRunStatus(ctx, db.UpdateExecutionRunStatusParams{
+		ID:           executionID,
+		UserID:       userID,
+		Status:       db.NullExecutionRunsStatus{ExecutionRunsStatus: statusEnum, Valid: true},
+		ErrorMessage: errorMsg,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update execution run status: %w", err)
+	}
+
+	return nil
+}
+
 // CreateAPIConfiguration creates a new API configuration for a variation
 func (c *Client) CreateAPIConfiguration(ctx context.Context, userID string, config *types.APIConfiguration) error {
 	c.mutex.Lock()

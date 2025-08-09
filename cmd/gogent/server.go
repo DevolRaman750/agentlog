@@ -10,7 +10,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"gogent/internal/agents"
@@ -30,8 +29,7 @@ import (
 type Server struct {
 	client              *gogent.Client
 	config              *types.GeminiClientConfig
-	executions          map[string]*ExecutionStatus
-	executionMutex      sync.RWMutex
+	// Removed executions map and mutex - now using database for status tracking
 	authService         *auth.AuthService
 	authHandlers        *auth.AuthHandlers
 	templateIntegration *templates.TemplateIntegration
@@ -41,16 +39,8 @@ type Server struct {
 	apiKeysHandler      *apikeys.Handler
 }
 
-// ExecutionStatus tracks the status of an async execution
-type ExecutionStatus struct {
-	ID                 string     `json:"id"`
-	RealExecutionRunID string     `json:"realExecutionRunId,omitempty"` // The actual UUID from database
-	Status             string     `json:"status"`                       // pending, running, completed, failed
-	ErrorMessage       string     `json:"errorMessage,omitempty"`
-	StartTime          time.Time  `json:"startTime"`
-	EndTime            *time.Time `json:"endTime,omitempty"`
-	FirstResultServed  bool       `json:"-"` // Track if we've served the result to prevent immediate cleanup
-}
+// ExecutionStatus is now replaced by database-based status tracking
+// Status responses are built directly from database ExecutionRun records
 
 // ExecutionEngineAdapter adapts the gogent client to the templates.ExecutionEngine interface
 type ExecutionEngineAdapter struct {
@@ -141,7 +131,7 @@ func NewServer() (*Server, error) {
 	return &Server{
 		client:              client,
 		config:              config,
-		executions:          make(map[string]*ExecutionStatus),
+		// Removed executions map - using database for status tracking
 		authService:         authService,
 		authHandlers:        authHandlers,
 		templateIntegration: templateIntegration,
@@ -243,17 +233,8 @@ func (s *Server) executeHandler(w http.ResponseWriter, r *http.Request) {
 	executionID := executionRun.ID
 	log.Printf("✅ Created execution with real database UUID: %s", executionID)
 
-	// Track execution status using the real database UUID
-	s.executionMutex.Lock()
-	s.executions[executionID] = &ExecutionStatus{
-		ID:                 executionID,
-		Status:             "pending",
-		StartTime:          time.Now(),
-		RealExecutionRunID: executionID, // Same as ID since we're using real UUID
-		FirstResultServed:  false,       // Initialize to false
-	}
-	s.executionMutex.Unlock()
-	log.Printf("📌 Added execution to active map: %s (total active: %d)", executionID, len(s.executions))
+	// Update execution status to pending in database (already created with this status)
+	log.Printf("📌 Execution created in database with status 'pending': %s", executionID)
 
 	// Start async execution with user ID using the real database UUID
 	go s.runAsyncExecution(executionID, &request, r.Header.Get("X-Use-Mock") == "true", r.Header, userID)
@@ -283,15 +264,14 @@ func (s *Server) getUserID(r *http.Request) (string, error) {
 
 // runAsyncExecution runs the execution in a goroutine
 func (s *Server) runAsyncExecution(executionID string, request *types.MultiExecutionRequest, useMock bool, headers http.Header, userID string) {
-	// Update status to running
-	s.executionMutex.Lock()
-	if status, exists := s.executions[executionID]; exists {
-		status.Status = "running"
-		log.Printf("🏃 Updated execution status to running: %s (total active: %d)", executionID, len(s.executions))
+	// Update status to running in database
+	ctx := context.Background()
+	runningErr := s.client.UpdateExecutionRunStatus(ctx, userID, executionID, "running", "")
+	if runningErr != nil {
+		log.Printf("⚠️ Failed to update execution status to running in database: %v", runningErr)
 	} else {
-		log.Printf("⚠️ WARNING: Execution %s not found in map when trying to mark as running", executionID)
+		log.Printf("🏃 Updated execution status to running in database: %s", executionID)
 	}
-	s.executionMutex.Unlock()
 
 	log.Printf("🚀 Starting async execution: %s for user: %s", executionID, userID)
 
@@ -416,7 +396,7 @@ func (s *Server) runAsyncExecution(executionID string, request *types.MultiExecu
 	tempClient, clientErr := gogent.NewClient(dbURL, tempConfig, nil)
 	if clientErr != nil {
 		log.Printf("Failed to create client: %v", clientErr)
-		s.markExecutionFailed(executionID, fmt.Sprintf("Failed to create client: %v", clientErr))
+		s.markExecutionFailed(executionID, userID, fmt.Sprintf("Failed to create client: %v", clientErr))
 		return
 	}
 	defer tempClient.Close()
@@ -435,76 +415,35 @@ func (s *Server) runAsyncExecution(executionID string, request *types.MultiExecu
 	_, err = tempClient.ExecuteMultiVariationWithExistingRun(ctx, userID, executionID, request)
 	if err != nil {
 		log.Printf("Execution failed: %v", err)
-		s.markExecutionFailed(executionID, fmt.Sprintf("Execution failed: %v", err))
+		s.markExecutionFailed(executionID, userID, fmt.Sprintf("Execution failed: %v", err))
 		return
 	}
 
-	// Mark execution as completed (ID already matches database)
-	s.executionMutex.Lock()
-	if status, exists := s.executions[executionID]; exists {
-		status.Status = "completed"
-		// No need to store RealExecutionRunID since executionID is already the real UUID
-		endTime := time.Now()
-		status.EndTime = &endTime
-		log.Printf("✅ Execution completed with database UUID: %s (total active: %d)", executionID, len(s.executions))
+	// Mark execution as completed in database
+	completedErr := s.client.UpdateExecutionRunStatus(ctx, userID, executionID, "completed", "")
+	if completedErr != nil {
+		log.Printf("⚠️ Failed to update execution status to completed in database: %v", completedErr)
 	} else {
-		log.Printf("⚠️ WARNING: Execution %s not found in map when trying to mark as completed", executionID)
+		log.Printf("✅ Execution completed and updated in database: %s", executionID)
 	}
-	s.executionMutex.Unlock()
 
 	log.Printf("✅ Async execution completed: %s", executionID)
 }
 
-// markExecutionFailed marks an execution as failed
-func (s *Server) markExecutionFailed(executionID, errorMessage string) {
-	s.executionMutex.Lock()
-	if status, exists := s.executions[executionID]; exists {
-		status.Status = "failed"
-		status.ErrorMessage = errorMessage
-		endTime := time.Now()
-		status.EndTime = &endTime
-	}
-	s.executionMutex.Unlock()
-	log.Printf("❌ Async execution failed: %s - %s", executionID, errorMessage)
-}
-
-// startPeriodicCleanup runs a background goroutine to clean up old executions
-func (s *Server) startPeriodicCleanup() {
-	ticker := time.NewTicker(5 * time.Minute) // Check every 5 minutes
-	defer ticker.Stop()
-
-	log.Printf("🧹 Started periodic execution cleanup (every 5 minutes)")
-
-	for range ticker.C {
-		s.cleanupOldExecutions()
+// markExecutionFailed marks an execution as failed in database
+func (s *Server) markExecutionFailed(executionID, userID, errorMessage string) {
+	ctx := context.Background()
+	failedErr := s.client.UpdateExecutionRunStatus(ctx, userID, executionID, "failed", errorMessage)
+	if failedErr != nil {
+		log.Printf("⚠️ Failed to update execution status to failed in database: %v", failedErr)
+	} else {
+		log.Printf("❌ Execution marked as failed in database: %s - %s", executionID, errorMessage)
 	}
 }
 
-// cleanupOldExecutions removes executions that are older than 10 minutes
-func (s *Server) cleanupOldExecutions() {
-	s.executionMutex.Lock()
-	defer s.executionMutex.Unlock()
+// Periodic cleanup removed - using database-based status tracking
 
-	now := time.Now()
-	var toDelete []string
-	cutoff := now.Add(-10 * time.Minute) // Remove executions older than 10 minutes
-
-	for id, status := range s.executions {
-		// Only cleanup completed or failed executions that are older than cutoff
-		if (status.Status == "completed" || status.Status == "failed") && status.StartTime.Before(cutoff) {
-			toDelete = append(toDelete, id)
-		}
-	}
-
-	if len(toDelete) > 0 {
-		for _, id := range toDelete {
-			delete(s.executions, id)
-		}
-		log.Printf("🧹 Cleaned up %d old executions (total active: %d)", len(toDelete), len(s.executions))
-	}
-}
-
-// executionStatusHandler handles execution status requests
+// executionStatusHandler handles execution status requests using database-only tracking
 func (s *Server) executionStatusHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -533,118 +472,50 @@ func (s *Server) executionStatusHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	log.Printf("🔍 Looking up execution status for ID: %s", executionID)
+	log.Printf("🔍 Database-based status lookup for execution ID: %s", executionID)
 
-	s.executionMutex.RLock()
-	status, exists := s.executions[executionID]
-	totalActive := len(s.executions)
-	s.executionMutex.RUnlock()
+	ctx := context.Background()
 
-	log.Printf("🔍 Execution %s exists in map: %v (total active: %d)", executionID, exists, totalActive)
-
-	if !exists {
-		log.Printf("❌ Execution %s not found in active executions map", executionID)
-
-		// Check if this is a real execution ID from database
-		ctx := context.Background()
-		realResult, err := s.client.GetExecutionResult(ctx, userID, executionID)
-		if err != nil {
-			log.Printf("❌ Execution %s not found in database either: %v", executionID, err)
-			response := map[string]interface{}{
-				"status": "not_found",
-				"error":  "Execution not found",
-			}
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(response)
-			return
-		}
-
-		log.Printf("✅ Found completed execution %s in database", executionID)
-		// Return the real execution result with completed status
+	// Get execution run from database (works across all pods)
+	executionRun, err := s.client.GetExecutionRun(ctx, userID, executionID)
+	if err != nil {
+		log.Printf("❌ Execution %s not found in database: %v", executionID, err)
 		response := map[string]interface{}{
-			"status": "completed",
-			"result": realResult,
+			"status": "not_found",
+			"error":  "Execution not found",
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 		return
 	}
 
-	log.Printf("📊 Execution %s status: %s", executionID, status.Status)
+	log.Printf("✅ Found execution %s in database with status: %s", executionID, executionRun.Status)
 
-	// If execution is completed or failed, get the result but keep in map for a while
-	if status.Status == "completed" || status.Status == "failed" {
-		if status.Status == "completed" {
-			// Try to get the real result from database using the real execution run ID
-			ctx := context.Background()
-			realExecutionRunID := status.RealExecutionRunID
-			if realExecutionRunID == "" {
-				log.Printf("⚠️ No real execution run ID found for temp ID: %s", executionID)
-				realExecutionRunID = executionID // Fallback to temp ID in case of old executions
-			}
-
-			log.Printf("🔍 Trying to get execution result from database for real ID: %s (temp ID: %s)", realExecutionRunID, executionID)
-			realResult, err := s.client.GetExecutionResult(ctx, userID, realExecutionRunID)
-			if err == nil {
-				log.Printf("✅ Successfully retrieved execution result from database for real ID: %s", realExecutionRunID)
-				response := map[string]interface{}{
-					"status": "completed",
-					"result": realResult,
-				}
-				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(response)
-
-				// Schedule cleanup after delay to prevent race conditions
-				// Only clean up if this is not the first time we've served the result
-				s.executionMutex.Lock()
-				if status.FirstResultServed {
-					// Mark for deletion after serving result multiple times
-					go func() {
-						time.Sleep(30 * time.Second) // Keep in map for 30 seconds
-						s.executionMutex.Lock()
-						delete(s.executions, executionID)
-						s.executionMutex.Unlock()
-						log.Printf("🧹 Cleaned up completed execution from map: %s", executionID)
-					}()
-				} else {
-					status.FirstResultServed = true
-				}
-				s.executionMutex.Unlock()
-				return
-			} else {
-				log.Printf("❌ Failed to get execution result from database for real ID %s (temp ID: %s): %v", realExecutionRunID, executionID, err)
-			}
-		}
-
-		// For failed executions or if we can't get results
-		log.Printf("⚠️ Returning status without result for execution %s (status: %s)", executionID, status.Status)
-		response := map[string]interface{}{
-			"status": status.Status,
-			"error":  status.ErrorMessage,
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
-
-		// Schedule cleanup for failed executions too
-		s.executionMutex.Lock()
-		if !status.FirstResultServed {
-			status.FirstResultServed = true
-			go func() {
-				time.Sleep(30 * time.Second) // Keep failed executions for 30 seconds too
-				s.executionMutex.Lock()
-				delete(s.executions, executionID)
-				s.executionMutex.Unlock()
-				log.Printf("🧹 Cleaned up failed execution from map: %s", executionID)
-			}()
-		}
-		s.executionMutex.Unlock()
-		return
-	}
-
-	// For pending/running status, return the status
+	// Build response based on execution status
 	response := map[string]interface{}{
-		"status": status.Status,
+		"id":     executionRun.ID,
+		"status": executionRun.Status,
 	}
+
+	// Add error message if execution failed
+	if executionRun.Status == "failed" && executionRun.ErrorMessage != "" {
+		response["error"] = executionRun.ErrorMessage
+	}
+
+	// For completed executions, include the full result
+	if executionRun.Status == "completed" {
+		log.Printf("🔍 Getting execution result for completed execution: %s", executionID)
+		
+		executionResult, resultErr := s.client.GetExecutionResult(ctx, userID, executionID)
+		if resultErr == nil {
+			log.Printf("✅ Successfully retrieved execution result for: %s", executionID)
+			response["result"] = executionResult
+		} else {
+			log.Printf("⚠️ Failed to get execution result for %s: %v", executionID, resultErr)
+			// Still return completed status, but without detailed result
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -983,20 +854,12 @@ func (s *Server) getSpecificExecutionRun(w http.ResponseWriter, r *http.Request,
 
 	log.Printf("📊 Getting REAL execution data for run: %s", runID)
 
-	// Check if this is a temporary ID and map to real execution run ID
+	// Now using database UUIDs directly, no mapping needed
 	realExecutionRunID := runID
 
-	// First, check if the mapping exists in memory
-	s.executionMutex.RLock()
-	if status, exists := s.executions[runID]; exists && status.RealExecutionRunID != "" {
-		realExecutionRunID = status.RealExecutionRunID
-		log.Printf("🔄 Mapped temp ID %s to real execution run ID: %s", runID, realExecutionRunID)
-	}
-	s.executionMutex.RUnlock()
-
-	// If no mapping found and this looks like a temporary ID, try to find by timestamp
-	if realExecutionRunID == runID && strings.HasPrefix(runID, "exec-") {
-		log.Printf("🔍 Temporary ID detected, attempting to find by recent executions: %s", runID)
+	// If this looks like a legacy temporary ID, try to find by timestamp (backward compatibility)
+	if strings.HasPrefix(runID, "exec-") {
+		log.Printf("🔍 Legacy temporary ID detected, attempting to find by recent executions: %s", runID)
 		userID, err := s.getUserID(r)
 		if err == nil && s.client != nil {
 			// Get recent execution runs (last 10) and find the most recent one
@@ -2137,8 +2000,7 @@ func runServer() {
 	fmt.Printf("🔐 Most endpoints now require authentication\n")
 	fmt.Println()
 
-	// Start periodic cleanup of old executions
-	go server.startPeriodicCleanup()
+	// Removed periodic cleanup - using database for status tracking now
 
 	// Apply CORS middleware to the mux
 	handler := server.enableCORS(mux)

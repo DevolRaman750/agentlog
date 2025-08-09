@@ -1269,6 +1269,18 @@ func (c *Client) GetExecutionRun(ctx context.Context, userID string, executionRu
 		contextPrompt = row.ContextPrompt.String
 	}
 
+	// Get the actual status from database
+	var status string
+	var errorMessage string
+	if row.Status.Valid {
+		status = string(row.Status.ExecutionRunsStatus)
+	} else {
+		status = "pending" // Default if not set
+	}
+	if row.ErrorMessage.Valid {
+		errorMessage = row.ErrorMessage.String
+	}
+
 	return &types.ExecutionRun{
 		ID:                    row.ID,
 		Name:                  row.Name,
@@ -1276,8 +1288,8 @@ func (c *Client) GetExecutionRun(ctx context.Context, userID string, executionRu
 		BasePrompt:            basePrompt,
 		ContextPrompt:         contextPrompt,
 		EnableFunctionCalling: row.EnableFunctionCalling,
-		Status:                "completed", // Default status for existing records
-		ErrorMessage:          "",
+		Status:                status,        // Use actual database status
+		ErrorMessage:          errorMessage,  // Use actual error message
 		CreatedAt:             row.CreatedAt.Time,
 		UpdatedAt:             row.UpdatedAt.Time,
 	}, nil
