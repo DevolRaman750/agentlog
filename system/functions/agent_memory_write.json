@@ -9,10 +9,14 @@
   },
   "parameters": {
     "required": ["context", "data"],
-    "optional": ["path", "merge_strategy"],
+    "optional": ["agent_id", "path", "merge_strategy"],
     "schema": {
       "type": "object",
       "properties": {
+        "agent_id": {
+          "type": "string",
+          "description": "Agent ID to write memory for. If not provided, will use the current execution context's agent ID."
+        },
         "context": {
           "type": "string",
           "enum": ["workflow", "session", "persistent"],

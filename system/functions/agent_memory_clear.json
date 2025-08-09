@@ -9,10 +9,14 @@
   },
   "parameters": {
     "required": ["action"],
-    "optional": ["context", "path", "filter"],
+    "optional": ["agent_id", "context", "path", "filter"],
     "schema": {
       "type": "object",
       "properties": {
+        "agent_id": {
+          "type": "string",
+          "description": "Agent ID to clear memory for. If not provided, will use the current execution context's agent ID."
+        },
         "action": {
           "type": "string",
           "enum": ["clear_context", "clear_path", "clear_filter", "clear_all", "compact"],

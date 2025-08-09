@@ -9,10 +9,14 @@
   },
   "parameters": {
     "required": [],
-    "optional": ["context", "path", "search_query", "limit"],
+    "optional": ["agent_id", "context", "path", "search_query", "limit"],
     "schema": {
       "type": "object",
       "properties": {
+        "agent_id": {
+          "type": "string",
+          "description": "Agent ID to read memory from. If not provided, will use the current execution context's agent ID."
+        },
         "context": {
           "type": "string",
           "enum": ["workflow", "session", "persistent", "all"],

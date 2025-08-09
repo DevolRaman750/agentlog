@@ -9,10 +9,14 @@
   },
   "parameters": {
     "required": ["query"],
-    "optional": ["contexts", "search_type", "limit", "time_range"],
+    "optional": ["agent_id", "contexts", "search_type", "limit", "time_range"],
     "schema": {
       "type": "object",
       "properties": {
+        "agent_id": {
+          "type": "string",
+          "description": "Agent ID to search memory for. If not provided, will use the current execution context's agent ID."
+        },
         "query": {
           "type": "string",
           "description": "Search query - can be keywords, phrases, or semantic descriptions of what you're looking for"
