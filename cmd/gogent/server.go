@@ -27,8 +27,8 @@ import (
 
 // Server represents our HTTP server
 type Server struct {
-	client              *gogent.Client
-	config              *types.GeminiClientConfig
+	client *gogent.Client
+	config *types.GeminiClientConfig
 	// Removed executions map and mutex - now using database for status tracking
 	authService         *auth.AuthService
 	authHandlers        *auth.AuthHandlers
@@ -137,8 +137,8 @@ func NewServer() (*Server, error) {
 	apiKeysHandler := apikeys.NewHandler(apiKeysService)
 
 	return &Server{
-		client:              client,
-		config:              config,
+		client: client,
+		config: config,
 		// Removed executions map - using database for status tracking
 		authService:         authService,
 		authHandlers:        authHandlers,
@@ -513,7 +513,7 @@ func (s *Server) executionStatusHandler(w http.ResponseWriter, r *http.Request) 
 	// For completed executions, include the full result
 	if executionRun.Status == "completed" {
 		log.Printf("🔍 Getting execution result for completed execution: %s", executionID)
-		
+
 		executionResult, resultErr := s.client.GetExecutionResult(ctx, userID, executionID)
 		if resultErr == nil {
 			log.Printf("✅ Successfully retrieved execution result for: %s", executionID)

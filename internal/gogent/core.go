@@ -1288,8 +1288,8 @@ func (c *Client) GetExecutionRun(ctx context.Context, userID string, executionRu
 		BasePrompt:            basePrompt,
 		ContextPrompt:         contextPrompt,
 		EnableFunctionCalling: row.EnableFunctionCalling,
-		Status:                status,        // Use actual database status
-		ErrorMessage:          errorMessage,  // Use actual error message
+		Status:                status,       // Use actual database status
+		ErrorMessage:          errorMessage, // Use actual error message
 		CreatedAt:             row.CreatedAt.Time,
 		UpdatedAt:             row.UpdatedAt.Time,
 	}, nil
