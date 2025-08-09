@@ -39,8 +39,16 @@ type Server struct {
 	apiKeysHandler      *apikeys.Handler
 }
 
-// ExecutionStatus is now replaced by database-based status tracking
-// Status responses are built directly from database ExecutionRun records
+// ExecutionStatus tracks the status of an async execution (used by gRPC/BusinessLogic)
+type ExecutionStatus struct {
+	ID                 string     `json:"id"`
+	RealExecutionRunID string     `json:"realExecutionRunId,omitempty"` // The actual UUID from database
+	Status             string     `json:"status"`                       // pending, running, completed, failed
+	ErrorMessage       string     `json:"errorMessage,omitempty"`
+	StartTime          time.Time  `json:"startTime"`
+	EndTime            *time.Time `json:"endTime,omitempty"`
+	FirstResultServed  bool       `json:"-"` // Track if we've served the result to prevent immediate cleanup
+}
 
 // ExecutionEngineAdapter adapts the gogent client to the templates.ExecutionEngine interface
 type ExecutionEngineAdapter struct {
@@ -379,7 +387,7 @@ func (s *Server) runAsyncExecution(executionID string, request *types.MultiExecu
 		log.Printf("⚠️ No OpenRouter API key provided")
 	}
 
-	ctx := context.Background()
+	// ctx is already declared earlier in this function
 	var err error
 
 	// Always try real execution first with database API keys
