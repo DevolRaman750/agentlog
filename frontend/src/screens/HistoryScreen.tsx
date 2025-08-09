@@ -28,13 +28,15 @@ import { debugComparisonData, formatConfigId } from '../utils/comparisonUtils';
 const HistoryScreen: React.FC = () => {
   const { state, loadRecentExecutions, clearError, setReExecutionData } = useApp();
   const { user, isLoading: authLoading } = useAuth();
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
+  const route = navigation.getState()?.routes?.[navigation.getState()?.index || 0];
   const [selectedRun, setSelectedRun] = useState<ExecutionResult | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [showExecutionLogs, setShowExecutionLogs] = useState(false);
   const [showExecutionFlowGraph, setShowExecutionFlowGraph] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pendingExecutionId, setPendingExecutionId] = useState<string | null>(null);
 
   // Show loading screen while auth is loading
   if (authLoading) {
@@ -45,6 +47,14 @@ const HistoryScreen: React.FC = () => {
     // Load history on mount - not dependent on connection state
     console.log('📜 HistoryScreen mounted - loading history');
     loadHistory();
+    
+    // Check for navigation parameters to auto-open specific execution
+    if (route?.params?.executionId && route?.params?.openExecutionDetails) {
+      console.log('📋 Navigation params detected - execution ID:', route.params.executionId);
+      setPendingExecutionId(route.params.executionId);
+      // Clear the params to prevent re-triggering
+      navigation.setParams({ executionId: undefined, openExecutionDetails: undefined });
+    }
   }, []);
 
   // Reload history when tab becomes focused - DECOUPLED from connection state
@@ -72,6 +82,23 @@ const HistoryScreen: React.FC = () => {
       ]);
     }
   }, [state.error]);
+
+  // Handle pending execution opening after history is loaded
+  useEffect(() => {
+    if (pendingExecutionId && state.recentExecutions && state.recentExecutions.length > 0 && !isLoading) {
+      console.log('🎯 Opening execution from navigation:', pendingExecutionId);
+      // Find the execution in the loaded history
+      const targetExecution = state.recentExecutions.find(run => run.id === pendingExecutionId);
+      if (targetExecution) {
+        console.log('✅ Found target execution, opening details');
+        handleRunPress(targetExecution);
+      } else {
+        console.warn('⚠️ Target execution not found in recent history:', pendingExecutionId);
+        AlertAPI.alert('Execution Not Found', 'The requested execution could not be found in your recent history.');
+      }
+      setPendingExecutionId(null); // Clear pending execution
+    }
+  }, [pendingExecutionId, state.recentExecutions, isLoading]);
 
   const loadHistory = useCallback(async () => {
     // DECOUPLED: Always attempt to load history regardless of perceived connection status
