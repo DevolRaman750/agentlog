@@ -115,6 +115,11 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
               />
               <Text style={styles.statusText}>{agent.lifecycleStatus}</Text>
             </View>
+            {agent.memory && (
+              <View style={styles.memoryIndicator}>
+                <Ionicons name="library" size={12} color="#34C759" />
+              </View>
+            )}
           </View>
         </View>
 
@@ -409,6 +414,14 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 12,
     fontWeight: '600',
+  },
+  memoryIndicator: {
+    marginLeft: 8,
+    padding: 4,
+    borderRadius: 8,
+    backgroundColor: '#f0f9ff',
+    borderWidth: 1,
+    borderColor: '#34C759',
   },
   quickActions: {
     flexDirection: 'row',

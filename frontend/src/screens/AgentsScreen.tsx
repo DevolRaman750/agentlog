@@ -389,6 +389,7 @@ const AgentsScreen: React.FC = () => {
     lastExecutionAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
     createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 1 week ago
     updatedAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+    memorySizeBytes: 0,
     status: 'STANDBY'
   });
 

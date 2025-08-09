@@ -59,6 +59,12 @@ func (h *AgentsHandler) HandleAgentByID(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// Check for memory sub-routes /api/agents/{id}/memory/*
+	if len(pathParts) >= 4 && pathParts[3] == "memory" {
+		h.handleAgentMemory(w, r, agentID, pathParts)
+		return
+	}
+
 	switch r.Method {
 	case http.MethodGet:
 		h.getAgent(w, r, agentID)
@@ -402,4 +408,97 @@ func (h *AgentsHandler) handleAgentTeamAssignment(w http.ResponseWriter, r *http
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
+}
+
+// handleAgentMemory handles all memory-related operations for an agent
+func (h *AgentsHandler) handleAgentMemory(w http.ResponseWriter, r *http.Request, agentID string, pathParts []string) {
+	user, ok := auth.GetUserFromContext(r.Context())
+	if !ok {
+		http.Error(w, "User not found in context", http.StatusUnauthorized)
+		return
+	}
+
+	// Parse memory operation from path
+	var operation string
+	if len(pathParts) >= 5 {
+		operation = pathParts[4]
+	}
+
+	// Parse request body for memory operations
+	var request types.AgentMemoryRequest
+	if r.Method == http.MethodPost || r.Method == http.MethodPut {
+		err := json.NewDecoder(r.Body).Decode(&request)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
+			return
+		}
+		request.AgentID = agentID
+	}
+
+	var response *types.AgentMemoryResponse
+	var err error
+
+	switch operation {
+	case "read", "":
+		if r.Method != http.MethodGet && r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed for read operation", http.StatusMethodNotAllowed)
+			return
+		}
+		// Parse query parameters for GET requests
+		if r.Method == http.MethodGet {
+			request.Context = r.URL.Query().Get("context")
+			request.Path = r.URL.Query().Get("path")
+			request.SearchQuery = r.URL.Query().Get("search_query")
+			if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+				if limit, parseErr := strconv.Atoi(limitStr); parseErr == nil {
+					request.Limit = limit
+				}
+			}
+			request.AgentID = agentID
+		}
+		response, err = h.ReadMemory(r.Context(), agentID, user.ID, &request)
+
+	case "write":
+		if r.Method != http.MethodPost && r.Method != http.MethodPut {
+			http.Error(w, "Method not allowed for write operation", http.StatusMethodNotAllowed)
+			return
+		}
+		response, err = h.WriteMemory(r.Context(), agentID, user.ID, &request)
+
+	case "search":
+		if r.Method != http.MethodGet && r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed for search operation", http.StatusMethodNotAllowed)
+			return
+		}
+		// Parse query parameters for GET requests
+		if r.Method == http.MethodGet {
+			request.SearchQuery = r.URL.Query().Get("query")
+			if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+				if limit, parseErr := strconv.Atoi(limitStr); parseErr == nil {
+					request.Limit = limit
+				}
+			}
+			request.AgentID = agentID
+		}
+		response, err = h.SearchMemory(r.Context(), agentID, user.ID, &request)
+
+	case "clear":
+		if r.Method != http.MethodPost && r.Method != http.MethodDelete {
+			http.Error(w, "Method not allowed for clear operation", http.StatusMethodNotAllowed)
+			return
+		}
+		response, err = h.ClearMemory(r.Context(), agentID, user.ID, &request)
+
+	default:
+		http.Error(w, fmt.Sprintf("Unknown memory operation: %s", operation), http.StatusBadRequest)
+		return
+	}
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Memory operation failed: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }

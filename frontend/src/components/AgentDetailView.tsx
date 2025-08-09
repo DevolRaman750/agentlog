@@ -8,12 +8,14 @@ import {
   ActivityIndicator,
   RefreshControl,
   FlatList,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { goGentAPI } from '../api/client';
 import { AlertAPI } from './CustomAlert';
 import AgentAvatar from './AgentAvatar';
 import { Agent, ExecutionRun, LifecycleStatus } from '../types';
+import { AgentMemoryViewer } from './AgentMemoryViewer';
 
 interface AgentDetailViewProps {
   agent: Agent;
@@ -45,6 +47,7 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({
     totalTokensUsed: number;
     averageExecutionTime: number;
   } | null>(null);
+  const [showMemoryViewer, setShowMemoryViewer] = useState(false);
 
   useEffect(() => {
     loadExecutions();
@@ -280,6 +283,14 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity 
+            onPress={() => setShowMemoryViewer(true)} 
+            style={styles.memoryButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="library-outline" size={20} color="#34C759" />
+          </TouchableOpacity>
+          <TouchableOpacity 
             onPress={onEdit} 
             style={styles.editButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -498,6 +509,16 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({
           </View>
         </View>
       </ScrollView>
+
+      {/* Memory Viewer Modal */}
+      <Modal visible={showMemoryViewer} animationType="slide" presentationStyle="pageSheet">
+        {showMemoryViewer && (
+          <AgentMemoryViewer
+            agent={agent}
+            onClose={() => setShowMemoryViewer(false)}
+          />
+        )}
+      </Modal>
     </View>
   );
 };
@@ -549,6 +570,15 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     gap: 12,
+  },
+  memoryButton: {
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: 'transparent',
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   editButton: {
     padding: 12,

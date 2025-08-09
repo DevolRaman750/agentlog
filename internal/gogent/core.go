@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"gogent/internal/agents"
 	"gogent/internal/apikeys"
 	"gogent/internal/code_analysis"
 	"gogent/internal/db"
@@ -241,6 +242,7 @@ func (c *Client) LoadDatabaseApiKeys(ctx context.Context, userID string) error {
 					}
 					return "EMPTY"
 				}())
+			log.Printf("🔍 DEBUG: Slack token stored in sessionKeys.SlackBotToken: %t", sessionKeys.SlackBotToken != "")
 		case "neo4j":
 			// For Neo4j, we need to handle the connection details differently
 			// This is a simplified version - you might want to parse the connection string
@@ -495,6 +497,11 @@ func (c *Client) executeMCPFunction(ctx context.Context, funcDef *db.FunctionDef
 
 // executeDynamicFunction routes to the appropriate execution method based on function definition
 func (c *Client) executeDynamicFunction(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+	// Handle internal functions differently
+	if funcDef.FunctionGroup == "internal" {
+		return c.executeInternalFunction(ctx, funcDef, args)
+	}
+
 	switch funcDef.HttpMethod.String {
 	case "MYSQL":
 		return c.executeMySQLFunction(ctx, funcDef, args)
@@ -505,6 +512,113 @@ func (c *Client) executeDynamicFunction(ctx context.Context, funcDef *db.Functio
 	default:
 		return nil, fmt.Errorf("unsupported execution method: %s", funcDef.HttpMethod.String)
 	}
+}
+
+// executeInternalFunction handles internal function calls (like agent memory functions)
+func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+	functionName := funcDef.Name
+	log.Printf("🔧 Executing internal function: %s", functionName)
+
+	// Extract agent ID from args or current execution context
+	agentID, ok := args["agent_id"].(string)
+	if !ok {
+		// Try to get agent ID from current execution run
+		if c.currentExecutionRunID != nil && c.currentUserID != "" {
+			// Query execution run's agent ID directly from database
+			query := "SELECT agent_id FROM execution_runs WHERE id = ?"
+			var agentIDNullString sql.NullString
+			if queryErr := c.db.QueryRowContext(ctx, query, *c.currentExecutionRunID).Scan(&agentIDNullString); queryErr == nil && agentIDNullString.Valid {
+				agentID = agentIDNullString.String
+				log.Printf("🔧 Using agent ID from execution context: %s", agentID)
+			}
+		}
+
+		if agentID == "" {
+			return nil, fmt.Errorf("agent_id parameter is required for internal function %s (not found in args or execution context)", functionName)
+		}
+	}
+
+	// Extract user ID from current client context
+	userID := c.currentUserID
+	if userID == "" {
+		return nil, fmt.Errorf("user context is required for internal function %s", functionName)
+	}
+
+	// Create agents handler
+	agentsHandler := agents.NewAgentsHandler(c.db)
+
+	// Convert args to AgentMemoryRequest
+	request := &types.AgentMemoryRequest{
+		AgentID: agentID,
+	}
+
+	// Map function arguments to request fields
+	if context, ok := args["context"].(string); ok {
+		request.Context = context
+	}
+	if path, ok := args["path"].(string); ok {
+		request.Path = path
+	}
+	if searchQuery, ok := args["search_query"].(string); ok {
+		request.SearchQuery = searchQuery
+	}
+	if query, ok := args["query"].(string); ok {
+		request.SearchQuery = query
+	}
+	if limit, ok := args["limit"].(float64); ok {
+		request.Limit = int(limit)
+	}
+	if data, ok := args["data"].(map[string]interface{}); ok {
+		request.Data = data
+	}
+	if mergeStrategy, ok := args["merge_strategy"].(string); ok {
+		request.MergeStrategy = mergeStrategy
+	}
+	if action, ok := args["action"].(string); ok {
+		request.Context = action // For clear operations, action is passed via context field
+	}
+
+	// Route to appropriate memory function
+	var response *types.AgentMemoryResponse
+	var err error
+
+	switch functionName {
+	case "agent_memory_read":
+		response, err = agentsHandler.ReadMemory(ctx, agentID, userID, request)
+	case "agent_memory_write":
+		response, err = agentsHandler.WriteMemory(ctx, agentID, userID, request)
+	case "agent_memory_search":
+		response, err = agentsHandler.SearchMemory(ctx, agentID, userID, request)
+	case "agent_memory_clear":
+		response, err = agentsHandler.ClearMemory(ctx, agentID, userID, request)
+	default:
+		return nil, fmt.Errorf("unsupported internal function: %s", functionName)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("internal function %s failed: %w", functionName, err)
+	}
+
+	// Convert response to map[string]interface{}
+	result := map[string]interface{}{
+		"success": response.Success,
+	}
+
+	if response.Error != "" {
+		result["error"] = response.Error
+	}
+	if response.Data != nil {
+		result["data"] = response.Data
+	}
+	if response.Results != nil {
+		result["results"] = response.Results
+	}
+	if response.Metadata != (types.MemoryMetadata{}) {
+		result["metadata"] = response.Metadata
+	}
+
+	log.Printf("✅ Internal function %s completed successfully", functionName)
+	return result, nil
 }
 
 // executeAPIFunction executes any API function with real HTTP calls using the function definition's endpoint URL
@@ -581,23 +695,67 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 
 	// Add authentication based on function type and available headers
 	effectiveKeys := c.getEffectiveApiKeys()
+	log.Printf("🔍 DEBUG: Effective keys for %s - Slack: %s, GitHub: %s, Gemini: %s",
+		functionName,
+		func() string {
+			if effectiveKeys.SlackBotToken != "" {
+				return "PRESENT"
+			}
+			return "MISSING"
+		}(),
+		func() string {
+			if effectiveKeys.GithubApiKey != "" {
+				return "PRESENT"
+			}
+			return "MISSING"
+		}(),
+		func() string {
+			if effectiveKeys.GeminiApiKey != "" {
+				return "PRESENT"
+			}
+			return "MISSING"
+		}())
 
 	// Apply function-specific headers from database first
+	log.Printf("🔍 DEBUG: Function %s - Headers field exists: %t", functionName, funcDef.Headers != nil)
 	if funcDef.Headers != nil {
+		log.Printf("🔍 DEBUG: Function %s - Headers raw JSON: %s", functionName, string(funcDef.Headers))
 		var headers map[string]interface{}
 		if err := json.Unmarshal(funcDef.Headers, &headers); err == nil {
+			log.Printf("🔍 DEBUG: Function %s - Parsed headers: %+v", functionName, headers)
 			for key, value := range headers {
 				headerValue := fmt.Sprintf("%v", value)
+				originalValue := headerValue
 				// Replace API key placeholders with actual keys
 				if strings.Contains(headerValue, "{SLACK_BOT_TOKEN}") && effectiveKeys.SlackBotToken != "" {
 					headerValue = strings.ReplaceAll(headerValue, "{SLACK_BOT_TOKEN}", effectiveKeys.SlackBotToken)
+					log.Printf("🔍 DEBUG: Replaced Slack token in header %s: '%s' -> '%s'", key, originalValue,
+						func() string {
+							// Mask the token for logging
+							if len(headerValue) > 20 {
+								return headerValue[:20] + "...***"
+							}
+							return headerValue
+						}())
 				}
 				if strings.Contains(headerValue, "{GITHUB_API_KEY}") && effectiveKeys.GithubApiKey != "" {
 					headerValue = strings.ReplaceAll(headerValue, "{GITHUB_API_KEY}", effectiveKeys.GithubApiKey)
 				}
+				log.Printf("🔍 DEBUG: Setting header %s = %s", key,
+					func() string {
+						// Mask Authorization headers for security
+						if key == "Authorization" && len(headerValue) > 20 {
+							return headerValue[:20] + "...***"
+						}
+						return headerValue
+					}())
 				req.Header.Set(key, headerValue)
 			}
+		} else {
+			log.Printf("🔍 DEBUG: Function %s - Failed to unmarshal headers JSON: %v", functionName, err)
 		}
+	} else {
+		log.Printf("🔍 DEBUG: Function %s - No headers field in function definition", functionName)
 	}
 
 	// Add function-group-specific authentication if not already set via headers

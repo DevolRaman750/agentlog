@@ -25,6 +25,8 @@ import {
   FunctionGroupApiKeyStatus,
   FunctionApiKeyRequirements,
   ApiKeyStatistics,
+  AgentMemoryRequest,
+  AgentMemoryResponse,
 } from '../types';
 import { User } from '../context/AuthContext';
 import { BackendExecutionKeys } from './backendExecutionKeys';
@@ -1497,6 +1499,63 @@ class GoGentAPI {
     } catch (error) {
       console.error('Error getting default API key:', error);
       return null;
+    }
+  }
+
+  // Agent Memory Methods
+  async getAgentMemory(agentId: string, params?: { context?: string; path?: string }): Promise<AgentMemoryResponse> {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.context) queryParams.append('context', params.context);
+      if (params?.path) queryParams.append('path', params.path);
+      
+      const url = `/api/agents/${agentId}/memory/read${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+      const response: AxiosResponse<AgentMemoryResponse> = await this.api.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Error getting agent memory:', error);
+      throw error;
+    }
+  }
+
+  async writeAgentMemory(agentId: string, request: Omit<AgentMemoryRequest, 'agentId'>): Promise<AgentMemoryResponse> {
+    try {
+      const response: AxiosResponse<AgentMemoryResponse> = await this.api.post(
+        `/api/agents/${agentId}/memory/write`,
+        { ...request, agentId }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error writing agent memory:', error);
+      throw error;
+    }
+  }
+
+  async searchAgentMemory(agentId: string, params: { searchQuery: string; limit?: number }): Promise<AgentMemoryResponse> {
+    try {
+      const queryParams = new URLSearchParams();
+      queryParams.append('query', params.searchQuery);
+      if (params.limit) queryParams.append('limit', params.limit.toString());
+      
+      const url = `/api/agents/${agentId}/memory/search?${queryParams.toString()}`;
+      const response: AxiosResponse<AgentMemoryResponse> = await this.api.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Error searching agent memory:', error);
+      throw error;
+    }
+  }
+
+  async clearAgentMemory(agentId: string, request: { action: string; context?: string; path?: string }): Promise<AgentMemoryResponse> {
+    try {
+      const response: AxiosResponse<AgentMemoryResponse> = await this.api.post(
+        `/api/agents/${agentId}/memory/clear`,
+        { ...request, agentId }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error clearing agent memory:', error);
+      throw error;
     }
   }
 }

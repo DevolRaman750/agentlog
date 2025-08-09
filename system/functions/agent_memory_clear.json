@@ -1,0 +1,75 @@
+{
+  "name": "agent_memory_clear",
+  "provider": "internal",
+  "display_name": "Agent Memory: Clear",
+  "description": "Clear or manage agent memory storage. Use this to remove outdated information, reset workflow state, clean up session data, or perform maintenance on memory storage. Be careful as cleared data cannot be recovered.",
+  "endpoint": {
+    "path": "/internal/agent/memory/clear",
+    "method": "POST"
+  },
+  "parameters": {
+    "required": ["action"],
+    "optional": ["context", "path", "filter"],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": ["clear_context", "clear_path", "clear_filter", "clear_all", "compact"],
+          "description": "Type of clear operation - clear_context removes entire context, clear_path removes specific path, clear_filter removes matching entries, clear_all removes everything, compact optimizes storage"
+        },
+        "context": {
+          "type": "string",
+          "enum": ["workflow", "session", "persistent"],
+          "description": "Memory context to clear (required for clear_context)"
+        },
+        "path": {
+          "type": "string",
+          "description": "Specific JSON path to clear (required for clear_path, e.g., 'contexts.workflow.completed_steps')"
+        },
+        "filter": {
+          "type": "object",
+          "properties": {
+            "query": {"type": "string"},
+            "older_than": {"type": "string", "format": "date-time"},
+            "size_limit": {"type": "integer"}
+          },
+          "description": "Filter criteria for selective clearing (required for clear_filter)"
+        }
+      },
+      "required": ["action"]
+    }
+  },
+  "examples": [
+    {
+      "name": "Reset workflow state",
+      "parameters": {
+        "action": "clear_context",
+        "context": "workflow"
+      }
+    },
+    {
+      "name": "Clear specific path",
+      "parameters": {
+        "action": "clear_path",
+        "path": "contexts.session.temporary_data"
+      }
+    },
+    {
+      "name": "Clear old session data",
+      "parameters": {
+        "action": "clear_filter",
+        "filter": {
+          "older_than": "2024-01-14T00:00:00Z",
+          "query": "session temporary"
+        }
+      }
+    },
+    {
+      "name": "Optimize memory storage",
+      "parameters": {
+        "action": "compact"
+      }
+    }
+  ]
+}

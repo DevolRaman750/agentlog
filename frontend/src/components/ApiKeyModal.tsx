@@ -326,9 +326,9 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
         const response = await goGentAPI.updateApiKey(editingKey.id, updateRequest);
         if (response.success) {
           showSuccess('Key Updated', 'API key has been updated successfully');
+          // Call onSave first to refresh the list, then close
+          await onSave();
           onClose();
-          // Call onSave after closing to refresh the list
-          setTimeout(() => onSave(), 100);
         } else {
           showError('Update Failed', response.error || 'Failed to update API key');
         }
@@ -350,9 +350,9 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
         const response = await goGentAPI.createApiKey(createRequest);
         if (response.success) {
           showSuccess('Key Created', 'API key has been created successfully');
+          // Call onSave first to refresh the list, then close
+          await onSave();
           onClose();
-          // Call onSave after closing to refresh the list
-          setTimeout(() => onSave(), 100);
         } else {
           showError('Creation Failed', response.error || 'Failed to create API key');
         }

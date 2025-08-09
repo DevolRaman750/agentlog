@@ -445,6 +445,10 @@ export interface Agent {
   totalExecutions: number;
   createdAt: string;
   updatedAt: string;
+  // Memory fields
+  memory?: AgentMemory;
+  memorySizeBytes: number;
+  memoryUpdatedAt?: string;
 }
 
 export interface AgentFormData {
@@ -725,4 +729,81 @@ export interface ServiceStatistics {
   successRate: number;
   averageResponseTime: number;
   lastUsed?: string;
+}
+
+// Agent Memory Types
+export interface AgentMemory {
+  version: string;
+  contexts: AgentMemoryContexts;
+  relationships?: MemoryRelationship[];
+  metadata: MemoryMetadata;
+}
+
+export interface AgentMemoryContexts {
+  workflow?: Record<string, any>;    // Current workflow/task state
+  session?: Record<string, any>;     // Temporary session data
+  persistent?: Record<string, any>;  // Long-term learned patterns
+}
+
+export interface MemoryRelationship {
+  from: string;        // Source path (e.g., "workflow.current_step")
+  to: string;          // Target path
+  type: string;        // Relationship type (e.g., "caused_by", "influenced")
+  strength?: number;   // Relationship strength (0.0-1.0)
+  metadata?: Record<string, any>;
+  createdAt: string;
+}
+
+export interface MemoryMetadata {
+  createdAt: string;
+  updatedAt: string;
+  sizeBytes: number;
+  accessCount: number;
+  version: string;
+}
+
+export interface AgentMemoryRequest {
+  agentId: string;
+  context?: string;        // workflow, session, persistent, all
+  path?: string;           // JSON path for specific access
+  data?: Record<string, any>;  // Data to write
+  searchQuery?: string;    // Search query
+  mergeStrategy?: string;  // merge, replace, append
+  limit?: number;          // Result limit
+}
+
+export interface AgentMemoryResponse {
+  success: boolean;
+  data?: Record<string, any>;
+  results?: MemorySearchResult[];
+  metadata: MemoryMetadata;
+  error?: string;
+}
+
+export interface MemorySearchResult {
+  path: string;
+  context: string;
+  data: Record<string, any>;
+  relevance?: number;
+  updatedAt: string;
+}
+
+// Memory Viewer Types
+export interface MemoryNode {
+  id: string;
+  label: string;
+  type: 'context' | 'data' | 'relationship';
+  context?: string;
+  data?: any;
+  children?: MemoryNode[];
+  expanded?: boolean;
+  relevance?: number;
+}
+
+export interface MemoryGraph {
+  nodes: MemoryNode[];
+  relationships: MemoryRelationship[];
+  selectedNode?: string;
+  searchTerm?: string;
+  filterContext?: string;
 } 

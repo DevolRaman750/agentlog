@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"gogent/internal/db"
 )
@@ -180,7 +181,7 @@ func (c *Client) syncFunctions(ctx context.Context) error {
 // syncFunctionToDatabase syncs a function spec to the database
 func (c *Client) syncFunctionToDatabase(ctx context.Context, spec *FunctionSpec) error {
 	// Check if function already exists
-	existingFunc, err := c.queries.GetFunctionDefinitionByName(ctx, db.GetFunctionDefinitionByNameParams{
+	existingFunc, lookupErr := c.queries.GetFunctionDefinitionByName(ctx, db.GetFunctionDefinitionByNameParams{
 		UserID: "system",
 		Name:   spec.Name,
 	})
@@ -191,6 +192,9 @@ func (c *Client) syncFunctionToDatabase(ctx context.Context, spec *FunctionSpec)
 		endpointURL = "https://api.github.com" + spec.Endpoint.Path
 	} else if spec.Provider == "slack" {
 		endpointURL = "https://slack.com/api" + spec.Endpoint.Path
+	} else if spec.Provider == "internal" {
+		// Internal functions use local endpoints
+		endpointURL = spec.Endpoint.Path
 	}
 
 	// Marshal parameters schema
@@ -208,21 +212,82 @@ func (c *Client) syncFunctionToDatabase(ctx context.Context, spec *FunctionSpec)
 		return fmt.Errorf("failed to marshal mock response: %w", err)
 	}
 
-	if err != nil && err != sql.ErrNoRows {
-		return fmt.Errorf("failed to check existing function: %w", err)
+	// Build headers based on provider configuration
+	headers := map[string]interface{}{}
+	
+	// Add provider-specific authentication headers
+	if spec.Provider == "slack" {
+		headers["Authorization"] = "Bearer {SLACK_BOT_TOKEN}"
+		headers["Content-Type"] = "application/json"
+	} else if spec.Provider == "github" {
+		headers["Authorization"] = "token {GITHUB_API_KEY}"
+		headers["Accept"] = "application/vnd.github.v3+json"
+		headers["User-Agent"] = "gogent/1.0"
+	}
+	
+	headersJSON, err := json.Marshal(headers)
+	if err != nil {
+		return fmt.Errorf("failed to marshal headers: %w", err)
 	}
 
-	if err == sql.ErrNoRows {
+	defaultAuthConfig, err := json.Marshal(map[string]interface{}{})
+	if err != nil {
+		return fmt.Errorf("failed to marshal default auth config: %w", err)
+	}
+
+	defaultFallbackData, err := json.Marshal(map[string]interface{}{})
+	if err != nil {
+		return fmt.Errorf("failed to marshal default fallback data: %w", err)
+	}
+
+	// Build required API keys based on provider
+	requiredApiKeys := []string{}
+	if spec.Provider == "slack" {
+		requiredApiKeys = []string{"SLACK_BOT_TOKEN"}
+	} else if spec.Provider == "github" {
+		requiredApiKeys = []string{"GITHUB_API_KEY"}
+	}
+	
+	requiredApiKeysJSON, err := json.Marshal(requiredApiKeys)
+	if err != nil {
+		return fmt.Errorf("failed to marshal required API keys: %w", err)
+	}
+
+	defaultApiKeyValidation, err := json.Marshal(map[string]interface{}{})
+	if err != nil {
+		return fmt.Errorf("failed to marshal default API key validation: %w", err)
+	}
+
+	// Check the database lookup result
+	if lookupErr != nil && lookupErr != sql.ErrNoRows {
+		return fmt.Errorf("failed to check existing function: %w", lookupErr)
+	}
+
+	if lookupErr == sql.ErrNoRows {
+		// Generate unique ID for new function
+		functionID := fmt.Sprintf("func-%s-%d", spec.Name, time.Now().Unix())
+
 		// Create new function
 		params := db.CreateFunctionDefinitionParams{
-			UserID:           "system",
-			Name:             spec.Name,
-			FunctionGroup:    spec.Provider,
-			Description:      sql.NullString{String: spec.Description, Valid: true},
-			ParametersSchema: parametersSchema,
-			EndpointUrl:      sql.NullString{String: endpointURL, Valid: endpointURL != ""},
-			HttpMethod:       sql.NullString{String: spec.Endpoint.Method, Valid: spec.Endpoint.Method != ""},
-			MockResponse:     mockResponse,
+			ID:                functionID,
+			UserID:            "system",
+			Name:              spec.Name,
+			DisplayName:       spec.DisplayName,
+			FunctionGroup:     spec.Provider,
+			FunctionType:      "api", // Default to "api" type
+			Description:       sql.NullString{String: spec.Description, Valid: true},
+			ParametersSchema:  parametersSchema,
+			MockResponse:      mockResponse,
+			EndpointUrl:       sql.NullString{String: endpointURL, Valid: endpointURL != ""},
+			HttpMethod:        sql.NullString{String: spec.Endpoint.Method, Valid: spec.Endpoint.Method != ""},
+			Headers:           headersJSON,
+			AuthConfig:        defaultAuthConfig,
+			IsActive:          sql.NullBool{Bool: true, Valid: true},
+			RequiredApiKeys:   requiredApiKeysJSON,
+			ApiKeyValidation:  defaultApiKeyValidation,
+			QueryTemplate:     sql.NullString{Valid: false}, // Empty for now
+			ResultTransformer: sql.NullString{Valid: false}, // Empty for now
+			FallbackData:      defaultFallbackData,
 		}
 
 		if err := c.queries.CreateFunctionDefinition(ctx, params); err != nil {
@@ -233,12 +298,24 @@ func (c *Client) syncFunctionToDatabase(ctx context.Context, spec *FunctionSpec)
 	} else {
 		// Update existing function
 		params := db.UpdateFunctionDefinitionParams{
-			ID:               existingFunc.ID,
-			Description:      sql.NullString{String: spec.Description, Valid: true},
-			ParametersSchema: parametersSchema,
-			EndpointUrl:      sql.NullString{String: endpointURL, Valid: endpointURL != ""},
-			HttpMethod:       sql.NullString{String: spec.Endpoint.Method, Valid: spec.Endpoint.Method != ""},
-			MockResponse:     mockResponse,
+			ID:                existingFunc.ID,
+			UserID:            "system",
+			DisplayName:       spec.DisplayName,
+			FunctionGroup:     spec.Provider,
+			FunctionType:      "api", // Default to "api" type
+			Description:       sql.NullString{String: spec.Description, Valid: true},
+			ParametersSchema:  parametersSchema,
+			MockResponse:      mockResponse,
+			EndpointUrl:       sql.NullString{String: endpointURL, Valid: endpointURL != ""},
+			HttpMethod:        sql.NullString{String: spec.Endpoint.Method, Valid: spec.Endpoint.Method != ""},
+			Headers:           headersJSON,
+			AuthConfig:        defaultAuthConfig,
+			IsActive:          sql.NullBool{Bool: true, Valid: true},
+			RequiredApiKeys:   requiredApiKeysJSON,
+			ApiKeyValidation:  defaultApiKeyValidation,
+			QueryTemplate:     sql.NullString{Valid: false}, // Empty for now
+			ResultTransformer: sql.NullString{Valid: false}, // Empty for now
+			FallbackData:      defaultFallbackData,
 		}
 
 		if err := c.queries.UpdateFunctionDefinition(ctx, params); err != nil {

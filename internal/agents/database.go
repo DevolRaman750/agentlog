@@ -2,6 +2,7 @@ package agents
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -170,26 +171,33 @@ func (h *AgentsHandler) getAgentsWithStats(userID string) ([]types.Agent, error)
 // getAgentByID retrieves a specific agent by ID for a user
 func (h *AgentsHandler) getAgentByID(userID, agentID string) (*types.Agent, error) {
 	query := `
-		SELECT a.id, a.user_id, a.first_name, a.last_name, a.template_id,
+		SELECT a.id, a.user_id, a.first_name, a.last_name, a.template_id, a.team_id,
 		       a.max_tokens_per_day, a.heartbeat_minutes, a.lifecycle_status,
 		       a.tokens_used_today, a.tokens_reset_date, a.last_execution_at,
 		       a.next_scheduled_at, a.total_executions, a.created_at, a.updated_at,
-		       et.name, et.description
+		       a.memory, a.memory_size_bytes, a.memory_updated_at,
+		       et.name, et.description, t.name
 		FROM agents a
 		LEFT JOIN execution_templates et ON a.template_id = et.id
+		LEFT JOIN teams t ON a.team_id = t.id
 		WHERE a.user_id = ? AND a.id = ?
 	`
 
 	var agent types.Agent
 	var lastExecutionAt, nextScheduledAt sql.NullTime
 	var templateName, templateDescription sql.NullString
+	var teamID, teamName sql.NullString
+	var memoryJSON sql.NullString
+	var memorySizeBytes sql.NullInt32
+	var memoryUpdatedAt sql.NullTime
 
 	err := h.db.QueryRow(query, userID, agentID).Scan(
-		&agent.ID, &agent.UserID, &agent.FirstName, &agent.LastName, &agent.TemplateID,
+		&agent.ID, &agent.UserID, &agent.FirstName, &agent.LastName, &agent.TemplateID, &teamID,
 		&agent.MaxTokensPerDay, &agent.HeartbeatMinutes, &agent.LifecycleStatus,
 		&agent.TokensUsedToday, &agent.TokensResetDate, &lastExecutionAt,
 		&nextScheduledAt, &agent.TotalExecutions, &agent.CreatedAt, &agent.UpdatedAt,
-		&templateName, &templateDescription,
+		&memoryJSON, &memorySizeBytes, &memoryUpdatedAt,
+		&templateName, &templateDescription, &teamName,
 	)
 	if err != nil {
 		return nil, err
@@ -207,6 +215,30 @@ func (h *AgentsHandler) getAgentByID(userID, agentID string) (*types.Agent, erro
 	}
 	if templateDescription.Valid {
 		agent.TemplateDescription = templateDescription.String
+	}
+	if teamID.Valid {
+		agent.TeamID = &teamID.String
+	}
+	if teamName.Valid {
+		agent.TeamName = teamName.String
+	}
+
+	// Parse memory if present
+	if memoryJSON.Valid && memoryJSON.String != "" {
+		var memory types.AgentMemory
+		err = json.Unmarshal([]byte(memoryJSON.String), &memory)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse memory JSON: %w", err)
+		}
+		agent.Memory = &memory
+	}
+
+	if memorySizeBytes.Valid {
+		agent.MemorySizeBytes = memorySizeBytes.Int32
+	}
+
+	if memoryUpdatedAt.Valid {
+		agent.MemoryUpdatedAt = &memoryUpdatedAt.Time
 	}
 
 	return &agent, nil

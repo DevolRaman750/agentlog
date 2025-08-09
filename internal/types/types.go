@@ -630,6 +630,10 @@ type Agent struct {
 	TotalExecutions  int32           `json:"totalExecutions"`
 	CreatedAt        time.Time       `json:"createdAt"`
 	UpdatedAt        time.Time       `json:"updatedAt"`
+	// Memory fields
+	Memory          *AgentMemory `json:"memory,omitempty"`
+	MemorySizeBytes int32        `json:"memorySizeBytes"`
+	MemoryUpdatedAt *time.Time   `json:"memoryUpdatedAt,omitempty"`
 	// Template information (populated via JOIN)
 	TemplateName        string `json:"templateName,omitempty"`
 	TemplateDescription string `json:"templateDescription,omitempty"`
@@ -712,6 +716,69 @@ type AgentSummary struct {
 	LatestExecutionAt    *time.Time `json:"latestExecutionAt,omitempty"`
 	SuccessfulExecutions int32      `json:"successfulExecutions"`
 	FailedExecutions     int32      `json:"failedExecutions"`
+}
+
+// AgentMemory represents the structured memory storage for an agent
+type AgentMemory struct {
+	Version       string               `json:"version"`
+	Contexts      AgentMemoryContexts  `json:"contexts"`
+	Relationships []MemoryRelationship `json:"relationships,omitempty"`
+	Metadata      MemoryMetadata       `json:"metadata"`
+}
+
+// AgentMemoryContexts holds different types of memory contexts
+type AgentMemoryContexts struct {
+	Workflow   map[string]interface{} `json:"workflow,omitempty"`   // Current workflow/task state
+	Session    map[string]interface{} `json:"session,omitempty"`    // Temporary session data
+	Persistent map[string]interface{} `json:"persistent,omitempty"` // Long-term learned patterns
+}
+
+// MemoryRelationship represents connections between memory elements
+type MemoryRelationship struct {
+	From      string                 `json:"from"`               // Source path (e.g., "workflow.current_step")
+	To        string                 `json:"to"`                 // Target path
+	Type      string                 `json:"type"`               // Relationship type (e.g., "caused_by", "influenced")
+	Strength  float64                `json:"strength,omitempty"` // Relationship strength (0.0-1.0)
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	CreatedAt time.Time              `json:"createdAt"`
+}
+
+// MemoryMetadata holds metadata about the memory structure
+type MemoryMetadata struct {
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
+	SizeBytes   int32     `json:"sizeBytes"`
+	AccessCount int32     `json:"accessCount"`
+	Version     string    `json:"version"`
+}
+
+// AgentMemoryRequest represents requests for memory operations
+type AgentMemoryRequest struct {
+	AgentID       string                 `json:"agentId" validate:"required"`
+	Context       string                 `json:"context,omitempty"`       // workflow, session, persistent, all
+	Path          string                 `json:"path,omitempty"`          // JSON path for specific access
+	Data          map[string]interface{} `json:"data,omitempty"`          // Data to write
+	SearchQuery   string                 `json:"searchQuery,omitempty"`   // Search query
+	MergeStrategy string                 `json:"mergeStrategy,omitempty"` // merge, replace, append
+	Limit         int                    `json:"limit,omitempty"`         // Result limit
+}
+
+// AgentMemoryResponse represents the response from memory operations
+type AgentMemoryResponse struct {
+	Success  bool                   `json:"success"`
+	Data     map[string]interface{} `json:"data,omitempty"`
+	Results  []MemorySearchResult   `json:"results,omitempty"`
+	Metadata MemoryMetadata         `json:"metadata"`
+	Error    string                 `json:"error,omitempty"`
+}
+
+// MemorySearchResult represents a single search result
+type MemorySearchResult struct {
+	Path      string                 `json:"path"`
+	Context   string                 `json:"context"`
+	Data      map[string]interface{} `json:"data"`
+	Relevance float64                `json:"relevance,omitempty"`
+	UpdatedAt time.Time              `json:"updatedAt"`
 }
 
 // ToJSON converts any struct to JSON string for database storage

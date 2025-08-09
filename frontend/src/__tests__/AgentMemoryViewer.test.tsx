@@ -1,0 +1,264 @@
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { AgentMemoryViewer } from '../components/AgentMemoryViewer';
+import { goGentAPI } from '../api/client';
+import { useAuth } from '../context/AuthContext';
+
+// Mock the API client
+jest.mock('../api/client');
+const mockGoGentAPI = goGentAPI as jest.Mocked<typeof goGentAPI>;
+
+// Mock the auth context
+jest.mock('../context/AuthContext');
+const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
+
+// Mock react-native modules
+jest.mock('@expo/vector-icons', () => ({
+  MaterialCommunityIcons: 'MaterialCommunityIcons',
+}));
+
+describe('AgentMemoryViewer', () => {
+  const mockAgent = {
+    id: 'test-agent-1',
+    firstName: 'Test',
+    lastName: 'Agent',
+    templateId: 'template-1',
+    templateName: 'Test Template',
+    lifecycleStatus: 'ACTIVE' as const,
+    status: 'ACTIVE' as const,
+    userId: 'user-1',
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+    tokensUsedToday: 0,
+    maxTokensPerDay: 1000,
+    nextScheduledAt: null,
+    teamId: null,
+    memory: null,
+  };
+
+  const mockOnClose = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { id: 'user-1', email: 'test@example.com' },
+      login: jest.fn(),
+      logout: jest.fn(),
+      isLoading: false,
+    });
+  });
+
+  it('renders empty state when no memory data exists', async () => {
+    mockGoGentAPI.getAgentMemory.mockResolvedValue({
+      success: true,
+      data: null,
+      metadata: null,
+    });
+
+    render(<AgentMemoryViewer agent={mockAgent} onClose={mockOnClose} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No Memory Yet')).toBeTruthy();
+      expect(screen.getByText(/This agent hasn't stored any memory yet/)).toBeTruthy();
+      expect(screen.getByText(/agent_memory_write, agent_memory_read/)).toBeTruthy();
+    });
+  });
+
+  it('renders memory data when available', async () => {
+    const mockMemoryData = {
+      version: '1.0',
+      contexts: {
+        workflow: {
+          current_step: 'analysis',
+          progress: 50,
+        },
+        session: {
+          user_preference: 'detailed',
+        },
+        persistent: {
+          learned_pattern: 'user_likes_graphs',
+        },
+      },
+      relationships: [],
+      metadata: {
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T12:00:00Z',
+        sizeBytes: 1024,
+        accessCount: 5,
+        version: '1.0',
+      },
+    };
+
+    mockGoGentAPI.getAgentMemory.mockResolvedValue({
+      success: true,
+      data: mockMemoryData,
+      metadata: mockMemoryData.metadata,
+    });
+
+    render(<AgentMemoryViewer agent={mockAgent} onClose={mockOnClose} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Agent - Memory')).toBeTruthy();
+      expect(screen.getByText('Size: 1.0 KB')).toBeTruthy();
+      expect(screen.getByText('Access Count: 5')).toBeTruthy();
+      expect(screen.getByText('Workflow')).toBeTruthy();
+      expect(screen.getByText('Session')).toBeTruthy();
+      expect(screen.getByText('Persistent')).toBeTruthy();
+    });
+  });
+
+  it('handles API errors gracefully', async () => {
+    mockGoGentAPI.getAgentMemory.mockResolvedValue({
+      success: false,
+      error: 'Failed to load memory',
+      data: null,
+    });
+
+    render(<AgentMemoryViewer agent={mockAgent} onClose={mockOnClose} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Failed to load memory')).toBeTruthy();
+    });
+  });
+
+  it('handles search functionality', async () => {
+    const mockMemoryData = {
+      version: '1.0',
+      contexts: {
+        workflow: { current_task: 'data_analysis' },
+        session: {},
+        persistent: {},
+      },
+      relationships: [],
+      metadata: {
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T12:00:00Z',
+        sizeBytes: 512,
+        accessCount: 3,
+        version: '1.0',
+      },
+    };
+
+    const mockSearchResults = [
+      {
+        path: 'contexts.workflow.current_task',
+        context: 'workflow',
+        data: { current_task: 'data_analysis' },
+        relevance: 0.9,
+        updatedAt: '2024-01-01T12:00:00Z',
+      },
+    ];
+
+    mockGoGentAPI.getAgentMemory.mockResolvedValue({
+      success: true,
+      data: mockMemoryData,
+      metadata: mockMemoryData.metadata,
+    });
+
+    mockGoGentAPI.searchAgentMemory.mockResolvedValue({
+      success: true,
+      results: mockSearchResults,
+      metadata: mockMemoryData.metadata,
+    });
+
+    render(<AgentMemoryViewer agent={mockAgent} onClose={mockOnClose} />);
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Search memory...')).toBeTruthy();
+    });
+
+    const searchInput = screen.getByPlaceholderText('Search memory...');
+    fireEvent.changeText(searchInput, 'analysis');
+
+    await waitFor(() => {
+      expect(mockGoGentAPI.searchAgentMemory).toHaveBeenCalledWith(mockAgent.id, {
+        searchQuery: 'analysis',
+        limit: 20,
+      });
+    });
+  });
+
+  it('filters by context correctly', async () => {
+    const mockMemoryData = {
+      version: '1.0',
+      contexts: {
+        workflow: { current_step: 'analysis' },
+        session: { temp_data: 'test' },
+        persistent: { learned_data: 'pattern' },
+      },
+      relationships: [],
+      metadata: {
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T12:00:00Z',
+        sizeBytes: 1024,
+        accessCount: 2,
+        version: '1.0',
+      },
+    };
+
+    mockGoGentAPI.getAgentMemory.mockResolvedValue({
+      success: true,
+      data: mockMemoryData,
+      metadata: mockMemoryData.metadata,
+    });
+
+    render(<AgentMemoryViewer agent={mockAgent} onClose={mockOnClose} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Workflow')).toBeTruthy();
+    });
+
+    // Test workflow filter
+    const workflowFilter = screen.getByText('Workflow');
+    fireEvent.press(workflowFilter);
+
+    await waitFor(() => {
+      expect(mockGoGentAPI.getAgentMemory).toHaveBeenCalledWith(mockAgent.id, {
+        context: 'workflow',
+      });
+    });
+  });
+
+  it('closes when close button is pressed', () => {
+    mockGoGentAPI.getAgentMemory.mockResolvedValue({
+      success: true,
+      data: null,
+      metadata: null,
+    });
+
+    render(<AgentMemoryViewer agent={mockAgent} onClose={mockOnClose} />);
+
+    const closeButton = screen.getByTestId('close-button') || screen.getByText('close');
+    fireEvent.press(closeButton);
+
+    expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  it('handles missing metadata gracefully', async () => {
+    const mockMemoryData = {
+      version: '1.0',
+      contexts: {
+        workflow: { test: 'data' },
+        session: {},
+        persistent: {},
+      },
+      relationships: [],
+      // Missing metadata
+    };
+
+    mockGoGentAPI.getAgentMemory.mockResolvedValue({
+      success: true,
+      data: mockMemoryData,
+      metadata: null,
+    });
+
+    render(<AgentMemoryViewer agent={mockAgent} onClose={mockOnClose} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Size: 0 KB')).toBeTruthy();
+      expect(screen.getByText('Last Updated: Never')).toBeTruthy();
+      expect(screen.getByText('Access Count: 0')).toBeTruthy();
+    });
+  });
+});

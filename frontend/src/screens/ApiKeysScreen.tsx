@@ -497,9 +497,40 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
   };
 
   const handleAddKey = (serviceName: string) => {
-    setModalInitialService(serviceName);
-    setEditingKey(null);
-    setShowApiKeyModal(true);
+    const existingKeys = getServiceKeys(serviceName);
+    
+    if (existingKeys.length > 0) {
+      // If keys exist, ask user if they want to edit the existing key or create a new one
+      AlertAPI.alert(
+        'Existing Keys Found',
+        `You already have ${existingKeys.length} key${existingKeys.length > 1 ? 's' : ''} for ${serviceName}. Would you like to edit an existing key or create a new one?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Edit Existing', 
+            onPress: () => {
+              // If there's a default key, edit that; otherwise edit the first active key
+              const defaultKey = existingKeys.find(key => key.isDefault);
+              const keyToEdit = defaultKey || existingKeys.find(key => key.isActive) || existingKeys[0];
+              handleEditKey(keyToEdit.id);
+            }
+          },
+          { 
+            text: 'Create New', 
+            onPress: () => {
+              setModalInitialService(serviceName);
+              setEditingKey(null);
+              setShowApiKeyModal(true);
+            }
+          },
+        ]
+      );
+    } else {
+      // No existing keys, proceed with creation
+      setModalInitialService(serviceName);
+      setEditingKey(null);
+      setShowApiKeyModal(true);
+    }
   };
 
   const handleEditKey = (keyId: string) => {
@@ -530,6 +561,34 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
       console.error('Failed to test API key:', error);
       AlertAPI.alert('Error', 'Failed to test API key');
     }
+  };
+
+  const handleDeleteKey = async (keyId: string, keyName: string) => {
+    AlertAPI.alert(
+      'Delete API Key',
+      `Are you sure you want to delete "${keyName}"? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const response = await goGentAPI.deleteApiKey(keyId);
+              if (response.success) {
+                showSuccess('Key Deleted', 'API key has been deleted successfully');
+                await loadApiKeys();
+              } else {
+                AlertAPI.alert('Error', response.error || 'Failed to delete API key');
+              }
+            } catch (error) {
+              console.error('Failed to delete API key:', error);
+              AlertAPI.alert('Error', 'Failed to delete API key');
+            }
+          }
+        },
+      ]
+    );
   };
 
   const renderServiceItem = (service: ServiceInfo) => {
@@ -578,12 +637,33 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
           </View>
           
           <View style={styles.serviceActions}>
-            <TouchableOpacity 
-              style={styles.actionButton}
-              onPress={() => handleAddKey(service.name)}
-            >
-              <Ionicons name="add" size={20} color="#007AFF" />
-            </TouchableOpacity>
+            {keys.length > 0 ? (
+              <>
+                <TouchableOpacity 
+                  style={styles.actionButton}
+                  onPress={() => {
+                    const defaultKey = keys.find(key => key.isDefault);
+                    const keyToEdit = defaultKey || keys.find(key => key.isActive) || keys[0];
+                    handleEditKey(keyToEdit.id);
+                  }}
+                >
+                  <Ionicons name="pencil" size={18} color="#007AFF" />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.actionButton}
+                  onPress={() => handleAddKey(service.name)}
+                >
+                  <Ionicons name="add" size={18} color="#8E8E93" />
+                </TouchableOpacity>
+              </>
+            ) : (
+              <TouchableOpacity 
+                style={styles.actionButton}
+                onPress={() => handleAddKey(service.name)}
+              >
+                <Ionicons name="add" size={20} color="#007AFF" />
+              </TouchableOpacity>
+            )}
           </View>
         </TouchableOpacity>
         
@@ -623,6 +703,13 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
                   onPress={() => handleEditKey(key.id)}
                 >
                   <Ionicons name="pencil" size={16} color="#8E8E93" />
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.actionButton}
+                  onPress={() => handleDeleteKey(key.id, key.displayName)}
+                >
+                  <Ionicons name="trash" size={16} color="#FF3B30" />
                 </TouchableOpacity>
               </TouchableOpacity>
             ))}
@@ -742,11 +829,9 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
           setModalInitialService('');
         }}
         onSave={async () => {
-          // Refresh the API keys list
-          setShowApiKeyModal(false);
-          setEditingKey(null);
-          setModalInitialService('');
-          await handleRefresh();
+          // Don't close the modal here - let the modal handle its own closing
+          // Just refresh the API keys list
+          await loadApiKeys();
         }}
         editingKey={editingKey}
         initialService={modalInitialService}

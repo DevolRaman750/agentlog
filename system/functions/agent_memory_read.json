@@ -1,0 +1,63 @@
+{
+  "name": "agent_memory_read",
+  "provider": "internal", 
+  "display_name": "Agent Memory: Read",
+  "description": "Read and retrieve data from the agent's memory. Use this to access previously stored information, workflow state, learned patterns, or any data saved during previous executions. You can read specific contexts (workflow, session, persistent) or search across all memory.",
+  "endpoint": {
+    "path": "/internal/agent/memory/read",
+    "method": "POST"
+  },
+  "parameters": {
+    "required": [],
+    "optional": ["context", "path", "search_query", "limit"],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "type": "string",
+          "enum": ["workflow", "session", "persistent", "all"],
+          "default": "all",
+          "description": "Memory context to read from - workflow for current task state, session for temporary data, persistent for long-term learned patterns, or all for everything"
+        },
+        "path": {
+          "type": "string",
+          "description": "Specific JSON path to retrieve (e.g., 'contexts.workflow.current_step' or 'contexts.persistent.learned_patterns')"
+        },
+        "search_query": {
+          "type": "string",
+          "description": "Search for memory entries containing this text or pattern"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 50,
+          "description": "Maximum number of memory entries to return when searching"
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "name": "Read current workflow state",
+      "parameters": {
+        "context": "workflow",
+        "path": "contexts.workflow.current_step"
+      }
+    },
+    {
+      "name": "Search for error patterns",
+      "parameters": {
+        "search_query": "error timeout",
+        "context": "persistent",
+        "limit": 10
+      }
+    },
+    {
+      "name": "Read all memory",
+      "parameters": {
+        "context": "all"
+      }
+    }
+  ]
+}

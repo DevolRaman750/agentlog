@@ -1,0 +1,74 @@
+{
+  "name": "agent_memory_write",
+  "provider": "internal",
+  "display_name": "Agent Memory: Write", 
+  "description": "Store or update data in the agent's memory. Use this to save workflow progress, temporary session data, learned patterns, or any information you need to remember for future executions. Memory is automatically structured and can be retrieved later.",
+  "endpoint": {
+    "path": "/internal/agent/memory/write",
+    "method": "POST"
+  },
+  "parameters": {
+    "required": ["context", "data"],
+    "optional": ["path", "merge_strategy"],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "type": "string",
+          "enum": ["workflow", "session", "persistent"],
+          "description": "Memory context to write to - workflow for current task state, session for temporary data, persistent for long-term patterns"
+        },
+        "path": {
+          "type": "string",
+          "description": "Specific JSON path to write to (e.g., 'current_step', 'user_preferences.format'). If not provided, data will be merged into the context root"
+        },
+        "data": {
+          "type": "object",
+          "description": "The data to store in memory. Can be any valid JSON object or primitive value"
+        },
+        "merge_strategy": {
+          "type": "string",
+          "enum": ["merge", "replace", "append"],
+          "default": "merge",
+          "description": "How to handle existing data - merge objects together, replace completely, or append to arrays"
+        }
+      },
+      "required": ["context", "data"]
+    }
+  },
+  "examples": [
+    {
+      "name": "Save workflow progress",
+      "parameters": {
+        "context": "workflow",
+        "path": "current_step",
+        "data": "data_analysis_complete",
+        "merge_strategy": "replace"
+      }
+    },
+    {
+      "name": "Store user preferences",
+      "parameters": {
+        "context": "session",
+        "data": {
+          "format": "detailed",
+          "notifications": true,
+          "last_query": "github issues analysis"
+        },
+        "merge_strategy": "merge"
+      }
+    },
+    {
+      "name": "Learn from error pattern",
+      "parameters": {
+        "context": "persistent",
+        "path": "error_patterns.api_timeout",
+        "data": {
+          "count": 4,
+          "last_occurrence": "2024-01-15T10:30:00Z",
+          "mitigation": "retry_with_exponential_backoff"
+        }
+      }
+    }
+  ]
+}
