@@ -156,8 +156,10 @@ The component uses a theme-based styling system. You can customize the appearanc
 
 - Proper keyboard navigation
 - Screen reader friendly labels
-- Touch-friendly expand button
-- Accessible color contrast
+- Touch-friendly expand button with adequate hit areas
+- Accessible color contrast in both light and dark themes
+- Safe area compliance for all iOS devices (including notch/Dynamic Island)
+- Platform-specific optimizations for touch and navigation
 
 ## Performance
 
@@ -166,12 +168,18 @@ The component uses a theme-based styling system. You can customize the appearanc
 - Optimized fullscreen modal
 - Responsive to content changes
 
-## Browser Compatibility
+## Platform Compatibility
 
-Works on all platforms supported by React Native:
-- iOS
-- Android  
-- Web (React Native Web)
+Works seamlessly on all platforms supported by React Native:
+- **iOS** - Full support including iPhone notch/Dynamic Island safe areas
+- **Android** - Optimized for all screen sizes and API levels
+- **Web** - React Native Web compatible with responsive design
+
+### iOS Specific Features
+- Proper safe area handling for devices with notches
+- Dynamic status bar styling in fullscreen mode
+- Native iOS keyboard behavior and animations
+- Optimized touch targets for iOS guidelines
 
 ## Future Enhancements
 

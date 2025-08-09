@@ -1045,7 +1045,11 @@ const ExecuteScreen: React.FC = () => {
         const executionId = response.data.executionRun.id;
         startExecution(executionId, 300);
         console.log('✅ Execution started:', executionId);
-        pollExecutionStatus(executionId);
+        
+        // Add a minimum delay to ensure live view shows even for fast executions
+        setTimeout(() => {
+          pollExecutionStatus(executionId);
+        }, 1000); // 1 second delay to guarantee live view visibility
       } else {
         throw new Error(response.error || 'Failed to start execution');
       }

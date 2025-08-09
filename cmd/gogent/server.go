@@ -250,7 +250,7 @@ func (s *Server) executeHandler(w http.ResponseWriter, r *http.Request) {
 		Status:             "pending",
 		StartTime:          time.Now(),
 		RealExecutionRunID: executionID, // Same as ID since we're using real UUID
-		FirstResultServed:  false,        // Initialize to false
+		FirstResultServed:  false,       // Initialize to false
 	}
 	s.executionMutex.Unlock()
 	log.Printf("📌 Added execution to active map: %s (total active: %d)", executionID, len(s.executions))
@@ -539,7 +539,7 @@ func (s *Server) executionStatusHandler(w http.ResponseWriter, r *http.Request) 
 	status, exists := s.executions[executionID]
 	totalActive := len(s.executions)
 	s.executionMutex.RUnlock()
-	
+
 	log.Printf("🔍 Execution %s exists in map: %v (total active: %d)", executionID, exists, totalActive)
 
 	if !exists {

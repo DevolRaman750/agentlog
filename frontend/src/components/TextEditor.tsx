@@ -10,6 +10,7 @@ import {
   Platform,
   StyleSheet,
   KeyboardAvoidingView,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -215,31 +216,41 @@ const TextEditor: React.FC<TextEditorProps> = ({
       presentationStyle="fullScreen"
       onRequestClose={() => setIsFullscreen(false)}
     >
-      <SafeAreaView style={[styles.fullscreenContainer, { backgroundColor: colors.background }]}>
-        <KeyboardAvoidingView
-          style={styles.fullscreenKeyboard}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-          {/* Header */}
-          <View style={[styles.fullscreenHeader, { backgroundColor: colors.headerBg }]}>
-            <View style={styles.headerLeft}>
-              <TouchableOpacity
-                style={styles.headerButton}
-                onPress={() => setIsFullscreen(false)}
-              >
-                <Ionicons name="chevron-down" size={24} color="#007AFF" />
-                <Text style={styles.headerButtonText}>Done</Text>
-              </TouchableOpacity>
-            </View>
+      <View style={[styles.fullscreenContainer, { backgroundColor: colors.background }]}>
+        <StatusBar 
+          barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} 
+          backgroundColor={colors.headerBg} 
+          translucent={false}
+        />
+        <SafeAreaView style={styles.fullscreenSafeArea}>
+          <KeyboardAvoidingView
+            style={styles.fullscreenKeyboard}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          >
+            {/* Header */}
+            <View style={[styles.fullscreenHeader, { 
+              backgroundColor: colors.headerBg,
+              borderBottomColor: theme === 'dark' ? '#38383A' : '#E5E5EA'
+            }]}>
+              <View style={styles.headerLeft}>
+                <TouchableOpacity
+                  style={styles.headerButton}
+                  onPress={() => setIsFullscreen(false)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="chevron-down" size={24} color="#007AFF" />
+                  <Text style={styles.headerButtonText}>Done</Text>
+                </TouchableOpacity>
+              </View>
 
-            <Text style={[styles.headerTitle, { color: colors.text }]}>
-              {label || 'Text Editor'}
-            </Text>
+              <Text style={[styles.headerTitle, { color: colors.text }]}>
+                {label || 'Text Editor'}
+              </Text>
 
-            <View style={styles.headerRight}>
-              {renderStats()}
+              <View style={styles.headerRight}>
+                {renderStats()}
+              </View>
             </View>
-          </View>
 
           {/* Editor */}
           <View style={styles.fullscreenEditorContainer}>
@@ -285,8 +296,9 @@ const TextEditor: React.FC<TextEditorProps> = ({
               />
             </View>
           </View>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </View>
     </Modal>
   );
 
@@ -384,6 +396,9 @@ const styles = StyleSheet.create({
   fullscreenContainer: {
     flex: 1,
   },
+  fullscreenSafeArea: {
+    flex: 1,
+  },
   fullscreenKeyboard: {
     flex: 1,
   },
@@ -391,10 +406,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: Platform.OS === 'ios' ? 16 : 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-    minHeight: 60,
+    minHeight: Platform.OS === 'ios' ? 64 : 60,
+    ...Platform.select({
+      ios: {
+        paddingTop: 20, // Extra padding for iOS to account for potential status bar issues
+      },
+      android: {
+        paddingTop: 12,
+      },
+      web: {
+        paddingTop: 12,
+      },
+    }),
   },
   headerLeft: {
     flex: 1,
