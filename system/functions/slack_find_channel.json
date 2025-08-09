@@ -1,0 +1,67 @@
+{
+  "name": "slack_find_channel",
+  "provider": "slack",
+  "display_name": "Slack: Find Channel", 
+  "description": "Find a Slack channel ID by channel name. Returns channel information with 'id' field that should be used as the 'channel' parameter for slack_read_messages. Example output: {\"channels\": [{\"id\": \"C099KTQE1L5\", \"name\": \"ai-intern\"}]}",
+  "endpoint": {
+    "path": "/conversations.list",
+    "method": "GET"
+  },
+  "parameters": {
+    "required": ["channel_name"],
+    "optional": ["types", "exclude_archived", "limit"],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "channel_name": {
+          "type": "string",
+          "description": "Name of the channel to find (without # prefix)"
+        },
+        "types": {
+          "type": "string",
+          "default": "public_channel,private_channel",
+          "description": "Channel types to include"
+        },
+        "exclude_archived": {
+          "type": "boolean",
+          "default": true,
+          "description": "Exclude archived channels"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 1000,
+          "description": "Maximum number of channels to fetch"
+        }
+      },
+      "required": ["channel_name"]
+    }
+  },
+  "response_transformer": {
+    "type": "slack_channel_filter",
+    "filter_by": "name",
+    "description": "Filter channels by name and return matching channel info"
+  },
+  "provides_to_functions": [
+    {
+      "function": "slack_read_messages",
+      "parameter": "channel",
+      "extraction_path": "channels[0].id"
+    }
+  ],
+  "examples": [
+    {
+      "name": "Find general channel",
+      "parameters": {
+        "channel_name": "general"
+      }
+    },
+    {
+      "name": "Find AI intern channel",
+      "parameters": {
+        "channel_name": "ai-intern"
+      }
+    }
+  ]
+}

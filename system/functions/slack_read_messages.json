@@ -1,0 +1,72 @@
+{
+  "name": "slack_read_messages",
+  "provider": "slack", 
+  "display_name": "Slack: Read Messages",
+  "description": "Read messages from a Slack channel. Requires channel ID (use slack_find_channel first to get the ID). Returns recent messages with user information and timestamps.",
+  "endpoint": {
+    "path": "/conversations.history",
+    "method": "GET"
+  },
+  "parameters": {
+    "required": ["channel"],
+    "optional": ["limit", "oldest", "latest", "inclusive"],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID (e.g., C1234567890). Use slack_find_channel to get this."
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 100,
+          "description": "Number of messages to return"
+        },
+        "oldest": {
+          "type": "string",
+          "description": "Start of time range of messages to include (timestamp)"
+        },
+        "latest": {
+          "type": "string", 
+          "description": "End of time range of messages to include (timestamp)"
+        },
+        "inclusive": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include messages with latest or oldest timestamp in results"
+        }
+      },
+      "required": ["channel"]
+    }
+  },
+  "parameter_dependencies": {
+    "channel": {
+      "source_function": "slack_find_channel",
+      "extraction_path": "channels[0].id",
+      "description": "Auto-extract channel ID from slack_find_channel results"
+    }
+  },
+  "response_transformer": {
+    "type": "slack_messages",
+    "description": "Transform Slack messages API response to standardized format"
+  },
+  "examples": [
+    {
+      "name": "Read recent messages",
+      "parameters": {
+        "channel": "C1234567890",
+        "limit": 50
+      }
+    },
+    {
+      "name": "Read messages from specific time range",
+      "parameters": {
+        "channel": "C1234567890", 
+        "oldest": "1609459200.000000",
+        "latest": "1609545600.000000"
+      }
+    }
+  ]
+}

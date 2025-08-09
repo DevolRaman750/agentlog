@@ -108,6 +108,12 @@ func NewServer() (*Server, error) {
 		return nil, fmt.Errorf("failed to create gogent client: %w", err)
 	}
 
+	// Sync system specifications from JSON files to database
+	if err := client.SyncSystemSpecs(context.Background()); err != nil {
+		log.Printf("⚠️ Failed to sync system specs: %v", err)
+		// Continue anyway - this shouldn't block server startup
+	}
+
 	// Create auth service and handlers
 	authService := auth.NewAuthService(client.GetDB(), jwtSecret)
 	authHandlers := auth.NewAuthHandlers(authService)

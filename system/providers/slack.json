@@ -1,0 +1,44 @@
+{
+  "name": "slack",
+  "display_name": "Slack",
+  "description": "Slack API integration for team communication, channel management, and messaging",
+  "base_url": "https://slack.com/api",
+  "auth_methods": ["bearer"],
+  "auth_config": {
+    "bearer": {
+      "header": "Authorization", 
+      "format": "Bearer {api_key}",
+      "description": "Slack Bot User OAuth Token (xoxb-)"
+    }
+  },
+  "rate_limits": {
+    "requests_per_minute": 60,
+    "tier_1_methods_per_minute": 100,
+    "tier_2_methods_per_minute": 20
+  },
+  "common_headers": {
+    "Accept": "application/json",
+    "Content-Type": "application/json; charset=utf-8",
+    "User-Agent": "GoGent/1.0"
+  },
+  "error_handling": {
+    "error_field": "error",
+    "success_field": "ok",
+    "retry_errors": ["rate_limited", "internal_error"],
+    "max_retries": 3
+  },
+  "supported_functions": [
+    "slack_send_message",
+    "slack_add_reaction",
+    "slack_find_channel",
+    "slack_get_channel_info",
+    "slack_get_channel_members",
+    "slack_get_team_info",
+    "slack_get_thread_replies",
+    "slack_get_user_info",
+    "slack_get_user_presence",
+    "slack_join_channel",
+    "slack_read_messages",
+    "slack_user_search"
+  ]
+}

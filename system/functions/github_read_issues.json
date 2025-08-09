@@ -1,0 +1,74 @@
+{
+  "name": "github_read_issues",
+  "provider": "github",
+  "display_name": "GitHub: Read Issues",
+  "description": "Read and analyze issues from a GitHub repository. Provide valid owner/repo combinations like microsoft/vscode, facebook/react, or vercel/next.js. This helps understand bugs, feature requests, and project status.",
+  "endpoint": {
+    "path": "/repos/{owner}/{repo}/issues",
+    "method": "GET"
+  },
+  "parameters": {
+    "required": ["owner", "repo"],
+    "optional": ["state", "labels", "sort", "direction", "since", "per_page"],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "owner": {
+          "type": "string",
+          "description": "Repository owner (username or organization)"
+        },
+        "repo": {
+          "type": "string", 
+          "description": "Repository name"
+        },
+        "state": {
+          "type": "string",
+          "enum": ["open", "closed", "all"],
+          "default": "open",
+          "description": "Issue state filter"
+        },
+        "labels": {
+          "type": "string",
+          "description": "Comma-separated list of label names"
+        },
+        "sort": {
+          "type": "string",
+          "enum": ["created", "updated", "comments"],
+          "default": "created",
+          "description": "Sort field"
+        },
+        "per_page": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 30,
+          "description": "Number of results per page"
+        }
+      },
+      "required": ["owner", "repo"]
+    }
+  },
+  "response_transformer": {
+    "type": "github_issues",
+    "description": "Transform GitHub issues API response to standardized format"
+  },
+  "examples": [
+    {
+      "name": "Get open issues",
+      "parameters": {
+        "owner": "microsoft",
+        "repo": "vscode",
+        "state": "open",
+        "per_page": 10
+      }
+    },
+    {
+      "name": "Get issues with specific labels",
+      "parameters": {
+        "owner": "facebook", 
+        "repo": "react",
+        "labels": "bug,priority-high"
+      }
+    }
+  ]
+}

@@ -18,6 +18,10 @@ import (
 	"gogent/internal/db"
 	"gogent/internal/gemini"
 	"gogent/internal/github"
+	"gogent/internal/gogent/integrations"
+	"gogent/internal/gogent/integrations/base"
+	githubIntegration "gogent/internal/gogent/integrations/github"
+	slackIntegration "gogent/internal/gogent/integrations/slack"
 	"gogent/internal/providers"
 	"gogent/internal/types"
 
@@ -49,6 +53,10 @@ type Client struct {
 	// Refactored components
 	codeAnalyzer      *code_analysis.Analyzer
 	directoryAnalyzer *github.DirectoryAnalyzer
+
+	// Integration framework
+	httpClient   *base.HTTPClient
+	integrations *integrations.Registry
 }
 
 // ResponsePart represents a part of the Gemini API response
@@ -115,6 +123,13 @@ func NewClient(dbURL string, config *types.GeminiClientConfig, sessionApiKeys *t
 	client.codeAnalyzer = code_analysis.NewAnalyzer(code_analysis.DefaultConfig())
 	client.directoryAnalyzer = github.NewDirectoryAnalyzer(code_analysis.DefaultConfig())
 
+	// Initialize integration framework
+	client.httpClient = base.NewHTTPClient(base.HTTPClientConfig{
+		TimeoutSeconds: 30,
+		UserAgent:      "GoGent/1.0",
+	})
+	client.integrations = integrations.NewRegistry()
+
 	// Force REST API usage - no Go SDK client
 	client.geminiClient = nil
 	log.Printf("Go SDK disabled - using REST API for all Gemini calls")
@@ -128,6 +143,27 @@ func (c *Client) Close() error {
 		c.geminiClient.Close()
 	}
 	return c.db.Close()
+}
+
+// registerIntegrations registers all available integrations
+func (c *Client) registerIntegrations() error {
+	// Get effective API keys
+	apiKeys := c.getEffectiveApiKeys()
+
+	// Register GitHub integration
+	githubInt := githubIntegration.NewIntegration(apiKeys)
+	if err := c.integrations.Register(githubInt); err != nil {
+		return fmt.Errorf("failed to register GitHub integration: %w", err)
+	}
+
+	// Register Slack integration
+	slackInt := slackIntegration.NewIntegration(apiKeys)
+	if err := c.integrations.Register(slackInt); err != nil {
+		return fmt.Errorf("failed to register Slack integration: %w", err)
+	}
+
+	log.Printf("✅ Registered integrations: %v", c.integrations.List())
+	return nil
 }
 
 // LoadDatabaseApiKeys loads API keys from the database for the current user

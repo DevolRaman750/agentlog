@@ -1,0 +1,36 @@
+{
+  "name": "github",
+  "display_name": "GitHub",
+  "description": "GitHub API integration for repository management, issue tracking, and code analysis",
+  "base_url": "https://api.github.com",
+  "auth_methods": ["api_key"],
+  "auth_config": {
+    "api_key": {
+      "header": "Authorization",
+      "format": "token {api_key}",
+      "description": "GitHub Personal Access Token or GitHub App token"
+    }
+  },
+  "rate_limits": {
+    "requests_per_hour": 5000,
+    "authenticated_requests_per_hour": 5000
+  },
+  "common_headers": {
+    "Accept": "application/vnd.github.v3+json",
+    "User-Agent": "GoGent/1.0"
+  },
+  "error_handling": {
+    "error_status_codes": [400, 401, 403, 404, 422, 500, 502, 503],
+    "retry_status_codes": [500, 502, 503],
+    "max_retries": 3
+  },
+  "supported_functions": [
+    "github_read_issues",
+    "github_read_code", 
+    "github_read_commits",
+    "github_search_code",
+    "github_create_issue",
+    "github_update_issue",
+    "github_create_update_file"
+  ]
+}
