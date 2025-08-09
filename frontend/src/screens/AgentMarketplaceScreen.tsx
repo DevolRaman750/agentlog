@@ -99,9 +99,52 @@ const AgentMarketplaceScreen: React.FC = () => {
 
   const handleHireAgent = (agent: MarketplaceAgent) => {
     // Navigate to create agent form with comprehensive pre-filled data
-    const nameParts = agent.name.split(' ');
-    const firstName = nameParts[0] || '';
-    const lastName = nameParts.slice(1).join(' ') || '';
+    
+    // Improved name extraction logic
+    const nameParts = agent.name.split(/[\s-]+/); // Split on spaces and hyphens
+    let firstName = nameParts[0] || '';
+    let lastName = nameParts.slice(1).join(' ') || '';
+    
+    // If no lastName after splitting, create one based on the agent type
+    if (!lastName && firstName) {
+      // Extract meaningful lastName from compound names like "CodeAnalyst-Prime-7"
+      if (firstName.includes('-')) {
+        const parts = firstName.split('-');
+        firstName = parts[0];
+        lastName = parts.slice(1).join('-');
+      } else {
+        // For single words, add a meaningful suffix based on role
+        lastName = agent.role.split(' ')[0] || 'Agent';
+      }
+    }
+
+    // Map marketplace template IDs to actual system template IDs
+    const getSystemTemplateId = (marketplaceTemplateId: string, experienceLevel: string) => {
+      // Mapping from marketplace template IDs to system template IDs
+      const templateMapping: { [key: string]: string } = {
+        'template-code-analyst': 'template-intern-swe',
+        'template-autonomous-swe': 'template-software-engineer',
+        'template-weather-comms': 'template-weatherman',
+        'template-intern-swe': 'template-intern-swe',
+        'template-software-engineer': 'template-software-engineer',
+        'template-weatherman': 'template-weatherman',
+      };
+
+      // If exact mapping exists, use it
+      if (templateMapping[marketplaceTemplateId]) {
+        return templateMapping[marketplaceTemplateId];
+      }
+
+      // Otherwise, map based on experience level and role
+      if (experienceLevel === 'Expert' || experienceLevel === 'Senior') {
+        return 'template-software-engineer';
+      } else if (experienceLevel === 'Junior' || experienceLevel === 'Mid-Level') {
+        return 'template-intern-swe';
+      }
+
+      // Default fallback
+      return 'template-intern-swe';
+    };
     
     // Set intelligent defaults based on agent experience level
     const getAgentDefaults = (experienceLevel: string) => {
@@ -135,13 +178,14 @@ const AgentMarketplaceScreen: React.FC = () => {
     };
 
     const defaults = getAgentDefaults(agent.experienceLevel);
+    const systemTemplateId = getSystemTemplateId(agent.templateId, agent.experienceLevel);
     
     navigation.navigate('Agents', {
       prefilledAgent: {
         // Basic Info
         firstName,
         lastName,
-        templateId: agent.templateId,
+        templateId: systemTemplateId,
         
         // Operational Parameters (intelligent defaults)
         maxTokensPerDay: defaults.maxTokensPerDay,
