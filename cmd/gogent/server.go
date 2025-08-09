@@ -49,6 +49,7 @@ type ExecutionStatus struct {
 	ErrorMessage       string     `json:"errorMessage,omitempty"`
 	StartTime          time.Time  `json:"startTime"`
 	EndTime            *time.Time `json:"endTime,omitempty"`
+	FirstResultServed  bool       `json:"-"` // Track if we've served the result to prevent immediate cleanup
 }
 
 // ExecutionEngineAdapter adapts the gogent client to the templates.ExecutionEngine interface
@@ -249,8 +250,10 @@ func (s *Server) executeHandler(w http.ResponseWriter, r *http.Request) {
 		Status:             "pending",
 		StartTime:          time.Now(),
 		RealExecutionRunID: executionID, // Same as ID since we're using real UUID
+		FirstResultServed:  false,        // Initialize to false
 	}
 	s.executionMutex.Unlock()
+	log.Printf("📌 Added execution to active map: %s (total active: %d)", executionID, len(s.executions))
 
 	// Start async execution with user ID using the real database UUID
 	go s.runAsyncExecution(executionID, &request, r.Header.Get("X-Use-Mock") == "true", r.Header, userID)
@@ -284,6 +287,9 @@ func (s *Server) runAsyncExecution(executionID string, request *types.MultiExecu
 	s.executionMutex.Lock()
 	if status, exists := s.executions[executionID]; exists {
 		status.Status = "running"
+		log.Printf("🏃 Updated execution status to running: %s (total active: %d)", executionID, len(s.executions))
+	} else {
+		log.Printf("⚠️ WARNING: Execution %s not found in map when trying to mark as running", executionID)
 	}
 	s.executionMutex.Unlock()
 
@@ -440,7 +446,9 @@ func (s *Server) runAsyncExecution(executionID string, request *types.MultiExecu
 		// No need to store RealExecutionRunID since executionID is already the real UUID
 		endTime := time.Now()
 		status.EndTime = &endTime
-		log.Printf("✅ Execution completed with database UUID: %s", executionID)
+		log.Printf("✅ Execution completed with database UUID: %s (total active: %d)", executionID, len(s.executions))
+	} else {
+		log.Printf("⚠️ WARNING: Execution %s not found in map when trying to mark as completed", executionID)
 	}
 	s.executionMutex.Unlock()
 
@@ -458,6 +466,42 @@ func (s *Server) markExecutionFailed(executionID, errorMessage string) {
 	}
 	s.executionMutex.Unlock()
 	log.Printf("❌ Async execution failed: %s - %s", executionID, errorMessage)
+}
+
+// startPeriodicCleanup runs a background goroutine to clean up old executions
+func (s *Server) startPeriodicCleanup() {
+	ticker := time.NewTicker(5 * time.Minute) // Check every 5 minutes
+	defer ticker.Stop()
+
+	log.Printf("🧹 Started periodic execution cleanup (every 5 minutes)")
+
+	for range ticker.C {
+		s.cleanupOldExecutions()
+	}
+}
+
+// cleanupOldExecutions removes executions that are older than 10 minutes
+func (s *Server) cleanupOldExecutions() {
+	s.executionMutex.Lock()
+	defer s.executionMutex.Unlock()
+
+	now := time.Now()
+	var toDelete []string
+	cutoff := now.Add(-10 * time.Minute) // Remove executions older than 10 minutes
+
+	for id, status := range s.executions {
+		// Only cleanup completed or failed executions that are older than cutoff
+		if (status.Status == "completed" || status.Status == "failed") && status.StartTime.Before(cutoff) {
+			toDelete = append(toDelete, id)
+		}
+	}
+
+	if len(toDelete) > 0 {
+		for _, id := range toDelete {
+			delete(s.executions, id)
+		}
+		log.Printf("🧹 Cleaned up %d old executions (total active: %d)", len(toDelete), len(s.executions))
+	}
 }
 
 // executionStatusHandler handles execution status requests
@@ -493,7 +537,10 @@ func (s *Server) executionStatusHandler(w http.ResponseWriter, r *http.Request) 
 
 	s.executionMutex.RLock()
 	status, exists := s.executions[executionID]
+	totalActive := len(s.executions)
 	s.executionMutex.RUnlock()
+	
+	log.Printf("🔍 Execution %s exists in map: %v (total active: %d)", executionID, exists, totalActive)
 
 	if !exists {
 		log.Printf("❌ Execution %s not found in active executions map", executionID)
@@ -525,7 +572,7 @@ func (s *Server) executionStatusHandler(w http.ResponseWriter, r *http.Request) 
 
 	log.Printf("📊 Execution %s status: %s", executionID, status.Status)
 
-	// If execution is completed or failed, get the result and remove from map
+	// If execution is completed or failed, get the result but keep in map for a while
 	if status.Status == "completed" || status.Status == "failed" {
 		if status.Status == "completed" {
 			// Try to get the real result from database using the real execution run ID
@@ -547,9 +594,21 @@ func (s *Server) executionStatusHandler(w http.ResponseWriter, r *http.Request) 
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(response)
 
-				// Clean up completed execution from map
+				// Schedule cleanup after delay to prevent race conditions
+				// Only clean up if this is not the first time we've served the result
 				s.executionMutex.Lock()
-				delete(s.executions, executionID)
+				if status.FirstResultServed {
+					// Mark for deletion after serving result multiple times
+					go func() {
+						time.Sleep(30 * time.Second) // Keep in map for 30 seconds
+						s.executionMutex.Lock()
+						delete(s.executions, executionID)
+						s.executionMutex.Unlock()
+						log.Printf("🧹 Cleaned up completed execution from map: %s", executionID)
+					}()
+				} else {
+					status.FirstResultServed = true
+				}
 				s.executionMutex.Unlock()
 				return
 			} else {
@@ -566,9 +625,18 @@ func (s *Server) executionStatusHandler(w http.ResponseWriter, r *http.Request) 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 
-		// Clean up from map
+		// Schedule cleanup for failed executions too
 		s.executionMutex.Lock()
-		delete(s.executions, executionID)
+		if !status.FirstResultServed {
+			status.FirstResultServed = true
+			go func() {
+				time.Sleep(30 * time.Second) // Keep failed executions for 30 seconds too
+				s.executionMutex.Lock()
+				delete(s.executions, executionID)
+				s.executionMutex.Unlock()
+				log.Printf("🧹 Cleaned up failed execution from map: %s", executionID)
+			}()
+		}
 		s.executionMutex.Unlock()
 		return
 	}
@@ -2068,6 +2136,9 @@ func runServer() {
 	fmt.Printf("🔑 Set GEMINI_API_KEY in config.env for real API calls\n")
 	fmt.Printf("🔐 Most endpoints now require authentication\n")
 	fmt.Println()
+
+	// Start periodic cleanup of old executions
+	go server.startPeriodicCleanup()
 
 	// Apply CORS middleware to the mux
 	handler := server.enableCORS(mux)
