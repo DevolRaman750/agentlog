@@ -277,6 +277,14 @@ func (h *AgentsHandler) updateAgentFields(userID, agentID string, req *types.Age
 		setParts = append(setParts, "last_name = ?")
 		args = append(args, *req.LastName)
 	}
+	if req.TemplateID != nil {
+		// Verify template access before updating
+		if err := h.verifyTemplateAccess(userID, *req.TemplateID); err != nil {
+			return fmt.Errorf("template access denied: %w", err)
+		}
+		setParts = append(setParts, "template_id = ?")
+		args = append(args, *req.TemplateID)
+	}
 	if req.MaxTokensPerDay != nil {
 		setParts = append(setParts, "max_tokens_per_day = ?")
 		args = append(args, *req.MaxTokensPerDay)

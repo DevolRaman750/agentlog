@@ -1,0 +1,91 @@
+{
+  "name": "team_memory_clear",
+  "provider": "internal",
+  "display_name": "Team Memory: Clear",
+  "description": "Clear or manage team shared memory storage. Use this to remove outdated information, reset workflow state, clean up session data, or perform maintenance on team memory storage. Be careful as cleared data cannot be recovered.",
+  "endpoint": {
+    "path": "/internal/team/memory/clear",
+    "method": "POST"
+  },
+  "parameters": {
+    "required": ["team_id", "agent_id", "action"],
+    "optional": ["context", "path", "filter"],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "team_id": {
+          "type": "string",
+          "description": "Team ID to clear memory for. The requesting agent must be a member of this team."
+        },
+        "agent_id": {
+          "type": "string",
+          "description": "Agent ID making the request. Must be a member of the specified team."
+        },
+        "action": {
+          "type": "string",
+          "enum": ["clear_context", "clear_path", "clear_filter", "clear_all", "compact"],
+          "description": "Type of clear operation - clear_context removes entire context, clear_path removes specific path, clear_filter removes matching entries, clear_all removes everything, compact optimizes storage"
+        },
+        "context": {
+          "type": "string",
+          "enum": ["workflow", "session", "persistent", "shared"],
+          "description": "Memory context to clear (required for clear_context)"
+        },
+        "path": {
+          "type": "string",
+          "description": "Specific JSON path to clear (required for clear_path, e.g., 'contexts.workflow.completed_steps')"
+        },
+        "filter": {
+          "type": "object",
+          "properties": {
+            "query": {"type": "string"},
+            "older_than": {"type": "string", "format": "date-time"},
+            "size_limit": {"type": "integer"}
+          },
+          "description": "Filter criteria for selective clearing (required for clear_filter)"
+        }
+      },
+      "required": ["team_id", "agent_id", "action"]
+    }
+  },
+  "examples": [
+    {
+      "name": "Reset team workflow state",
+      "parameters": {
+        "team_id": "team_123",
+        "agent_id": "agent_456",
+        "action": "clear_context",
+        "context": "workflow"
+      }
+    },
+    {
+      "name": "Clear specific team path",
+      "parameters": {
+        "team_id": "team_123",
+        "agent_id": "agent_456",
+        "action": "clear_path",
+        "path": "contexts.session.temporary_data"
+      }
+    },
+    {
+      "name": "Clear old team session data",
+      "parameters": {
+        "team_id": "team_123",
+        "agent_id": "agent_456",
+        "action": "clear_filter",
+        "filter": {
+          "older_than": "2024-01-14T00:00:00Z",
+          "query": "session temporary"
+        }
+      }
+    },
+    {
+      "name": "Optimize team memory storage",
+      "parameters": {
+        "team_id": "team_123",
+        "agent_id": "agent_456",
+        "action": "compact"
+      }
+    }
+  ]
+}

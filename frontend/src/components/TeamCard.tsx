@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Team, Agent } from '../types';
@@ -16,13 +17,15 @@ interface TeamCardProps {
   agents: Agent[];
   onTeamUpdate: () => void;
   onTeamPress?: (team: Team) => void;
+  onMemoryPress?: (team: Team) => void;
 }
 
 const TeamCard: React.FC<TeamCardProps> = ({ 
   team, 
   agents, 
   onTeamUpdate,
-  onTeamPress 
+  onTeamPress,
+  onMemoryPress
 }) => {
   const [isLoading, setIsLoading] = useState(false);
 
@@ -91,6 +94,23 @@ const TeamCard: React.FC<TeamCardProps> = ({
     return Math.min((team.tokensUsedToday / team.maxTokensPerDay) * 100, 100);
   };
 
+  const handleMemoryPress = () => {
+    if (onMemoryPress) {
+      onMemoryPress(team);
+    }
+  };
+
+  const handleMemoryButtonLongPress = () => {
+    Alert.alert(
+      'Team Memory',
+      'Team memory allows agents in this team to share information and collaborate on tasks. All agents in the team can read and write to this shared memory using team_memory_* functions during execution.',
+      [
+        { text: 'Got it!', style: 'default' },
+        { text: 'View Memory', onPress: handleMemoryPress }
+      ]
+    );
+  };
+
   return (
     <TouchableOpacity 
       style={styles.container}
@@ -115,6 +135,16 @@ const TeamCard: React.FC<TeamCardProps> = ({
         
         {/* Team Controls */}
         <View style={styles.controls}>
+          {/* Team Memory Button */}
+          <TouchableOpacity
+            style={[styles.controlButton, styles.memoryButton]}
+            onPress={handleMemoryPress}
+            onLongPress={handleMemoryButtonLongPress}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="library" size={16} color="#FF6B35" />
+          </TouchableOpacity>
+          
           <TouchableOpacity
             style={[styles.controlButton, styles.pauseButton]}
             onPress={handlePauseAll}
@@ -155,6 +185,12 @@ const TeamCard: React.FC<TeamCardProps> = ({
           <View style={[styles.statusDot, { backgroundColor: '#8E8E93' }]} />
           <Text style={styles.statText}>{standbyAgents.length} Standby</Text>
         </View>
+        {team.memory && (
+          <View style={styles.statItem}>
+            <View style={[styles.statusDot, { backgroundColor: '#FF6B35' }]} />
+            <Text style={styles.statText}>Memory</Text>
+          </View>
+        )}
       </View>
 
       {/* Token Usage */}
@@ -261,6 +297,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginLeft: 8,
     borderWidth: 1,
+  },
+  memoryButton: {
+    borderColor: '#FF6B35',
+    backgroundColor: '#FFF4F0',
   },
   pauseButton: {
     borderColor: '#FF9500',

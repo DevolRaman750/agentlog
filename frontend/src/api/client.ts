@@ -27,6 +27,8 @@ import {
   ApiKeyStatistics,
   AgentMemoryRequest,
   AgentMemoryResponse,
+  TeamMemoryRequest,
+  TeamMemoryResponse,
 } from '../types';
 import { User } from '../context/AuthContext';
 import { BackendExecutionKeys } from './backendExecutionKeys';
@@ -1555,6 +1557,58 @@ class GoGentAPI {
       return response.data;
     } catch (error) {
       console.error('Error clearing agent memory:', error);
+      throw error;
+    }
+  }
+
+  // Team Memory API endpoints
+  async getTeamMemory(teamId: string, agentId: string, params?: { context?: string; path?: string }): Promise<TeamMemoryResponse> {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.context) queryParams.append('context', params.context);
+      if (params?.path) queryParams.append('path', params.path);
+      queryParams.append('agent_id', agentId);
+      
+      const response = await this.api.get(`/api/teams/${teamId}/memory/read?${queryParams.toString()}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error getting team memory:', error);
+      throw error;
+    }
+  }
+
+  async writeTeamMemory(teamId: string, request: Omit<TeamMemoryRequest, 'teamId'>): Promise<TeamMemoryResponse> {
+    try {
+      const response = await this.api.post(`/api/teams/${teamId}/memory/write`, request);
+      return response.data;
+    } catch (error) {
+      console.error('Error writing team memory:', error);
+      throw error;
+    }
+  }
+
+  async searchTeamMemory(teamId: string, agentId: string, params: { searchQuery: string; limit?: number }): Promise<TeamMemoryResponse> {
+    try {
+      const request = {
+        agentId,
+        searchQuery: params.searchQuery,
+        limit: params.limit || 10
+      };
+      const response = await this.api.post(`/api/teams/${teamId}/memory/search`, request);
+      return response.data;
+    } catch (error) {
+      console.error('Error searching team memory:', error);
+      throw error;
+    }
+  }
+
+  async clearTeamMemory(teamId: string, agentId: string, request: { action: string; context?: string; path?: string }): Promise<TeamMemoryResponse> {
+    try {
+      const fullRequest = { ...request, agentId };
+      const response = await this.api.post(`/api/teams/${teamId}/memory/clear`, fullRequest);
+      return response.data;
+    } catch (error) {
+      console.error('Error clearing team memory:', error);
       throw error;
     }
   }

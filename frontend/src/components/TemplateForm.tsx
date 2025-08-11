@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
-import TextEditor from './TextEditor';
+import EnhancedTextEditor from './EnhancedTextEditor';
 import { FunctionSelector } from './FunctionSelector';
 import { AlertAPI } from './CustomAlert';
 import ConfigurationModal from './ConfigurationModal';
@@ -548,11 +548,17 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
               <Ionicons name="help-circle-outline" size={16} color="#007AFF" />
             </TouchableOpacity>
           </View>
-          <TextEditor
+          <EnhancedTextEditor
             value={formData.name}
             onChangeText={(text) => updateFormData('name', text)}
             placeholder="Enter template name"
-            style={[textInputStyles.base, getFieldError('name') && textInputStyles.error]}
+            minHeight={44}
+            maxHeight={120}
+            showCharacterCount={false}
+            showWordCount={false}
+            showLineNumbers={false}
+            showToolbar={false}
+            enableMarkdown={false}
             editable={!isViewMode}
           />
           {getFieldError('name') && (
@@ -568,11 +574,17 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
             <Ionicons name="help-circle-outline" size={16} color="#007AFF" />
           </TouchableOpacity>
         </View>
-        <TextEditor
+        <EnhancedTextEditor
           value={formData.description}
           onChangeText={(text) => updateFormData('description', text)}
           placeholder="Describe what this template does and when to use it"
-          style={[textInputStyles.base, styles.textArea]}
+          minHeight={80}
+          maxHeight={300}
+          showCharacterCount={true}
+          showWordCount={false}
+          showLineNumbers={false}
+          showToolbar={false}
+          enableMarkdown={true}
           editable={!isViewMode}
         />
         {getFieldError('description') && (
@@ -607,11 +619,19 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
         </View>
       </View>
 
-      <TextEditor
+      <EnhancedTextEditor
         value={formData.prompt}
         onChangeText={(text) => updateFormData('prompt', text)}
         placeholder="Enter your template prompt. Use {{variables}} for dynamic content."
-        style={[textInputStyles.base, styles.promptArea, getFieldError('prompt') && textInputStyles.error]}
+        minHeight={200}
+        maxHeight={600}
+        allowFullscreen={true}
+        showCharacterCount={true}
+        showWordCount={true}
+        showLineNumbers={false}
+        showToolbar={true}
+        enableMarkdown={true}
+        required={true}
         editable={!isViewMode}
       />
       {getFieldError('prompt') && (
@@ -666,11 +686,18 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
         </View>
       </View>
 
-      <TextEditor
+      <EnhancedTextEditor
         value={formData.context}
         onChangeText={(text) => updateFormData('context', text)}
         placeholder="Additional context or system instructions (optional)"
-        style={[textInputStyles.base, styles.promptArea]}
+        minHeight={120}
+        maxHeight={400}
+        allowFullscreen={true}
+        showCharacterCount={true}
+        showWordCount={false}
+        showLineNumbers={false}
+        showToolbar={true}
+        enableMarkdown={true}
         editable={!isViewMode}
       />
     </View>
@@ -882,11 +909,17 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
 
           <View style={styles.parameterDescriptionContainer}>
             <Text style={styles.parameterFieldLabel}>Description</Text>
-            <TextEditor
+            <EnhancedTextEditor
               value={param.description}
               onChangeText={(text) => updateParameter(index, 'description', text)}
               placeholder="Describe what this parameter is used for..."
-              style={[textInputStyles.base, styles.parameterDescriptionInput]}
+              minHeight={60}
+              maxHeight={200}
+              showCharacterCount={true}
+              showWordCount={false}
+              showLineNumbers={false}
+              showToolbar={false}
+              enableMarkdown={false}
               editable={!isViewMode}
             />
           </View>

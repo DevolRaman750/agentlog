@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -57,6 +58,8 @@ func (h *TeamsHandler) HandleTeamByID(w http.ResponseWriter, r *http.Request) {
 				// /api/teams/{id}/agents
 				h.handleTeamAgents(w, r, teamID)
 			}
+		case "memory":
+			h.handleTeamMemory(w, r, teamID, pathParts)
 		case "pause-all":
 			h.pauseAllTeamAgents(w, r, teamID)
 		case "resume-all":
@@ -351,4 +354,97 @@ func (h *TeamsHandler) getTeamStats(w http.ResponseWriter, r *http.Request, team
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(stats)
+}
+
+// handleTeamMemory handles team memory operations
+func (h *TeamsHandler) handleTeamMemory(w http.ResponseWriter, r *http.Request, teamID string, pathParts []string) {
+	user, ok := auth.GetUserFromContext(r.Context())
+	if !ok {
+		http.Error(w, "User not found in context", http.StatusUnauthorized)
+		return
+	}
+
+	// Parse memory operation from path
+	var operation string
+	if len(pathParts) >= 5 {
+		operation = pathParts[4]
+	}
+
+	// Parse request body for memory operations
+	var request types.TeamMemoryRequest
+	if r.Method == http.MethodPost || r.Method == http.MethodPut {
+		err := json.NewDecoder(r.Body).Decode(&request)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
+			return
+		}
+		request.TeamID = teamID
+	}
+
+	var response *types.TeamMemoryResponse
+	var err error
+
+	switch operation {
+	case "read", "":
+		if r.Method != http.MethodGet && r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed for read operation", http.StatusMethodNotAllowed)
+			return
+		}
+		// Parse query parameters for GET requests
+		if r.Method == http.MethodGet {
+			request.Context = r.URL.Query().Get("context")
+			request.Path = r.URL.Query().Get("path")
+			request.SearchQuery = r.URL.Query().Get("search_query")
+			if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+				if limit, parseErr := strconv.Atoi(limitStr); parseErr == nil {
+					request.Limit = limit
+				}
+			}
+			request.TeamID = teamID
+		}
+		response, err = h.ReadTeamMemory(r.Context(), teamID, request.AgentID, user.ID, &request)
+
+	case "write":
+		if r.Method != http.MethodPost && r.Method != http.MethodPut {
+			http.Error(w, "Method not allowed for write operation", http.StatusMethodNotAllowed)
+			return
+		}
+		response, err = h.WriteTeamMemory(r.Context(), teamID, request.AgentID, user.ID, &request)
+
+	case "search":
+		if r.Method != http.MethodGet && r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed for search operation", http.StatusMethodNotAllowed)
+			return
+		}
+		// Parse query parameters for GET requests
+		if r.Method == http.MethodGet {
+			request.SearchQuery = r.URL.Query().Get("query")
+			if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+				if limit, parseErr := strconv.Atoi(limitStr); parseErr == nil {
+					request.Limit = limit
+				}
+			}
+			request.TeamID = teamID
+		}
+		response, err = h.SearchTeamMemory(r.Context(), teamID, request.AgentID, user.ID, &request)
+
+	case "clear":
+		if r.Method != http.MethodPost && r.Method != http.MethodDelete {
+			http.Error(w, "Method not allowed for clear operation", http.StatusMethodNotAllowed)
+			return
+		}
+		response, err = h.ClearTeamMemory(r.Context(), teamID, request.AgentID, user.ID, &request)
+
+	default:
+		http.Error(w, fmt.Sprintf("Unknown memory operation: %s", operation), http.StatusBadRequest)
+		return
+	}
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Memory operation failed: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }

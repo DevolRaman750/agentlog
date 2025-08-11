@@ -495,6 +495,10 @@ export interface Team {
   totalExecutions: number;
   createdAt: string;
   updatedAt: string;
+  // Memory fields
+  memory?: TeamMemory;
+  memorySizeBytes: number;
+  memoryUpdatedAt?: string;
 }
 
 export interface TeamFormData {
@@ -806,4 +810,36 @@ export interface MemoryGraph {
   selectedNode?: string;
   searchTerm?: string;
   filterContext?: string;
+} 
+
+export interface TeamMemory {
+  version: string;
+  contexts: TeamMemoryContexts;
+  relationships?: MemoryRelationship[];
+  metadata: MemoryMetadata;
+}
+
+export interface TeamMemoryContexts {
+  workflow?: Record<string, any>;    // Current workflow/task state
+  session?: Record<string, any>;     // Temporary session data
+  persistent?: Record<string, any>;  // Long-term learned patterns
+}
+
+export interface TeamMemoryRequest {
+  teamId: string;
+  agentId: string; // Agent making the request (for validation)
+  context?: string;        // workflow, session, persistent, all
+  path?: string;           // JSON path for specific access
+  data?: Record<string, any>;  // Data to write
+  searchQuery?: string;    // Search query
+  mergeStrategy?: string;  // merge, replace, append
+  limit?: number;          // Result limit
+}
+
+export interface TeamMemoryResponse {
+  success: boolean;
+  data?: Record<string, any>;
+  results?: MemorySearchResult[];
+  metadata: MemoryMetadata;
+  error?: string;
 } 

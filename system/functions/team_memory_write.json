@@ -1,0 +1,88 @@
+{
+  "name": "team_memory_write",
+  "provider": "internal",
+  "display_name": "Team Memory: Write",
+  "description": "Store or update data in the team's shared memory. Use this to save workflow progress, temporary session data, learned patterns, or any information you need to remember for future team executions. Memory is automatically structured and can be retrieved later by any team member.",
+  "endpoint": {
+    "path": "/internal/team/memory/write",
+    "method": "POST"
+  },
+  "parameters": {
+    "required": ["team_id", "agent_id", "context", "data"],
+    "optional": ["path", "merge_strategy"],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "team_id": {
+          "type": "string",
+          "description": "Team ID to write memory for. The requesting agent must be a member of this team."
+        },
+        "agent_id": {
+          "type": "string",
+          "description": "Agent ID making the request. Must be a member of the specified team."
+        },
+        "context": {
+          "type": "string",
+          "enum": ["workflow", "session", "persistent", "shared"],
+          "description": "Memory context to write to - workflow for current task state, session for temporary data, persistent for long-term patterns, shared for team-shared data"
+        },
+        "path": {
+          "type": "string",
+          "description": "Specific JSON path to write to (e.g., 'current_step', 'team_preferences.format'). If not provided, data will be merged into the context root"
+        },
+        "data": {
+          "type": "object",
+          "description": "The data to store in team memory. Can be any valid JSON object or primitive value"
+        },
+        "merge_strategy": {
+          "type": "string",
+          "enum": ["merge", "replace", "append"],
+          "default": "merge",
+          "description": "How to handle existing data - merge objects together, replace completely, or append to arrays"
+        }
+      },
+      "required": ["team_id", "agent_id", "context", "data"]
+    }
+  },
+  "examples": [
+    {
+      "name": "Save team workflow progress",
+      "parameters": {
+        "team_id": "team_123",
+        "agent_id": "agent_456",
+        "context": "workflow",
+        "path": "current_step",
+        "data": "data_analysis_complete",
+        "merge_strategy": "replace"
+      }
+    },
+    {
+      "name": "Store team preferences",
+      "parameters": {
+        "team_id": "team_123",
+        "agent_id": "agent_456",
+        "context": "shared",
+        "data": {
+          "format": "detailed",
+          "notifications": true,
+          "last_query": "github issues analysis"
+        },
+        "merge_strategy": "merge"
+      }
+    },
+    {
+      "name": "Learn from team error pattern",
+      "parameters": {
+        "team_id": "team_123",
+        "agent_id": "agent_456",
+        "context": "persistent",
+        "path": "error_patterns.api_timeout",
+        "data": {
+          "count": 4,
+          "last_occurrence": "2024-01-15T10:30:00Z",
+          "mitigation": "retry_with_exponential_backoff"
+        }
+      }
+    }
+  ]
+}

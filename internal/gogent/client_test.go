@@ -2,6 +2,7 @@ package gogent
 
 import (
 	"fmt"
+	"net/url"
 	"testing"
 	"time"
 
@@ -711,7 +712,7 @@ func TestGitHubURLConstruction(t *testing.T) {
 				"repo":  "vscode",
 				"path":  "src/vs",
 			},
-			expectedURL: "https://api.github.com/repos/microsoft/vscode/contents/src/vs",
+			expectedURL: "https://api.github.com/repos/microsoft/vscode/contents/src%2Fvs",
 		},
 	}
 
@@ -882,7 +883,9 @@ func buildGitHubURL(functionName string, arguments map[string]interface{}) (stri
 		if !ok {
 			return "", fmt.Errorf("path must be a string")
 		}
-		return baseURL + "/contents/" + path, nil
+		// URL encode the path to handle special characters and spaces
+		encodedPath := url.QueryEscape(path)
+		return baseURL + "/contents/" + encodedPath, nil
 
 	default:
 		return "", fmt.Errorf("unknown GitHub function: %s", functionName)

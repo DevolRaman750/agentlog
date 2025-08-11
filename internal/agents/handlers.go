@@ -357,6 +357,9 @@ func (h *AgentsHandler) validateUpdateRequest(req *types.AgentUpdateRequest) err
 	if req.LastName != nil && *req.LastName == "" {
 		return fmt.Errorf("lastName cannot be empty")
 	}
+	if req.TemplateID != nil && *req.TemplateID == "" {
+		return fmt.Errorf("templateId cannot be empty")
+	}
 	if req.MaxTokensPerDay != nil && *req.MaxTokensPerDay <= 0 {
 		return fmt.Errorf("maxTokensPerDay must be greater than 0")
 	}

@@ -24,6 +24,7 @@ import AgentBusinessCard from '../components/AgentBusinessCard';
 import TeamCard from '../components/TeamCard';
 import AssignTeamModal from '../components/AssignTeamModal';
 import CreateTeamForm from '../components/CreateTeamForm';
+import { TeamMemoryViewer } from '../components/TeamMemoryViewer';
 import { Agent, AgentFormData, LifecycleStatus, ExecutionTemplate, Team, TeamWithAgents } from '../types';
 import { useResponsive } from '../context/ResponsiveContext';
 import ScreenContainer from '../components/ScreenContainer';
@@ -45,8 +46,10 @@ const AgentsScreen: React.FC = () => {
   const [showCreateTeamModal, setShowCreateTeamModal] = useState(false);
   const [showAssignTeamModal, setShowAssignTeamModal] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
+  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showTeamMemoryModal, setShowTeamMemoryModal] = useState(false);
   const [prefilledAgentData, setPrefilledAgentData] = useState<any>(null);
 
   // Show loading screen while auth is loading
@@ -353,6 +356,16 @@ const AgentsScreen: React.FC = () => {
     loadAgents(); // Refresh to get updated grouping
   };
 
+  const handleTeamMemoryPress = (team: Team) => {
+    setSelectedTeam(team);
+    setShowTeamMemoryModal(true);
+  };
+
+  const handleTeamMemoryClose = () => {
+    setShowTeamMemoryModal(false);
+    setSelectedTeam(null);
+  };
+
   const renderAgentCard = ({ item: agent }: { item: Agent }) => (
     <AgentBusinessCard
       agent={agent}
@@ -399,6 +412,7 @@ const AgentsScreen: React.FC = () => {
         team={teamGroup.team}
         agents={teamGroup.agents}
         onTeamUpdate={loadAgents}
+        onMemoryPress={handleTeamMemoryPress}
       />
       <View style={styles.teamAgentsContainer}>
         {teamGroup.agents.map(agent => (
@@ -679,6 +693,16 @@ const AgentsScreen: React.FC = () => {
           onAssigned={handleTeamAssigned}
         />
       )}
+
+      {/* Team Memory Modal */}
+      <Modal visible={showTeamMemoryModal} animationType="slide" presentationStyle="pageSheet">
+        {selectedTeam && (
+          <TeamMemoryViewer
+            team={selectedTeam}
+            onClose={handleTeamMemoryClose}
+          />
+        )}
+      </Modal>
     </ScreenContainer>
   );
 };

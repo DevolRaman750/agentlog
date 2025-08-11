@@ -67,7 +67,9 @@ func (g *Integration) BuildURL(funcDef *db.FunctionDefinition, args map[string]i
 
 	case "github_read_code":
 		if pathParam, ok := args["path"].(string); ok && pathParam != "" {
-			path = fmt.Sprintf("/repos/%s/%s/contents/%s", owner, repo, pathParam)
+			// URL encode the path to handle special characters and slashes
+			encodedPath := url.PathEscape(pathParam)
+			path = fmt.Sprintf("/repos/%s/%s/contents/%s", owner, repo, encodedPath)
 		} else {
 			path = fmt.Sprintf("/repos/%s/%s/contents", owner, repo)
 		}
@@ -102,7 +104,9 @@ func (g *Integration) BuildURL(funcDef *db.FunctionDefinition, args map[string]i
 
 	case "github_create_update_file":
 		if filePath, ok := args["path"].(string); ok && filePath != "" {
-			path = fmt.Sprintf("/repos/%s/%s/contents/%s", owner, repo, filePath)
+			// URL encode the path to handle special characters and slashes
+			encodedPath := url.PathEscape(filePath)
+			path = fmt.Sprintf("/repos/%s/%s/contents/%s", owner, repo, encodedPath)
 		} else {
 			return "", fmt.Errorf("github_create_update_file requires 'path' parameter")
 		}

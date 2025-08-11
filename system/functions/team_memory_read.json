@@ -1,0 +1,78 @@
+{
+  "name": "team_memory_read",
+  "provider": "internal",
+  "display_name": "Team Memory: Read",
+  "description": "Read and retrieve data from the team's shared memory. Use this to access previously stored information, workflow state, learned patterns, or any data saved during previous team executions. You can read specific contexts (workflow, session, persistent, shared) or search across all team memory.",
+  "endpoint": {
+    "path": "/internal/team/memory/read",
+    "method": "POST"
+  },
+  "parameters": {
+    "required": ["team_id", "agent_id"],
+    "optional": ["context", "path", "search_query", "limit"],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "team_id": {
+          "type": "string",
+          "description": "Team ID to read memory from. The requesting agent must be a member of this team."
+        },
+        "agent_id": {
+          "type": "string",
+          "description": "Agent ID making the request. Must be a member of the specified team."
+        },
+        "context": {
+          "type": "string",
+          "enum": ["workflow", "session", "persistent", "shared", "all"],
+          "default": "all",
+          "description": "Memory context to read from - workflow for current task state, session for temporary data, persistent for long-term learned patterns, shared for team-shared data, or all for everything"
+        },
+        "path": {
+          "type": "string",
+          "description": "Specific JSON path to retrieve (e.g., 'contexts.workflow.current_step' or 'contexts.shared.team_preferences')"
+        },
+        "search_query": {
+          "type": "string",
+          "description": "Search for memory entries containing this text or pattern"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 50,
+          "description": "Maximum number of memory entries to return when searching"
+        }
+      },
+      "required": ["team_id", "agent_id"]
+    }
+  },
+  "examples": [
+    {
+      "name": "Read current team workflow state",
+      "parameters": {
+        "team_id": "team_123",
+        "agent_id": "agent_456",
+        "context": "workflow",
+        "path": "contexts.workflow.current_step"
+      }
+    },
+    {
+      "name": "Search for team error patterns",
+      "parameters": {
+        "team_id": "team_123",
+        "agent_id": "agent_456",
+        "search_query": "error timeout",
+        "context": "persistent",
+        "limit": 10
+      }
+    },
+    {
+      "name": "Read all team memory",
+      "parameters": {
+        "team_id": "team_123",
+        "agent_id": "agent_456",
+        "context": "all"
+      }
+    }
+  ]
+}

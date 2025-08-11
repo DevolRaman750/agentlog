@@ -23,6 +23,9 @@ COPY --from=builder /app/gogent /usr/local/bin/gogent
 # Copy migrations directory
 COPY --from=builder /app/migrations /app/migrations
 
+# Copy system specs (functions/providers) so server can sync them at runtime
+COPY --from=builder /app/system /app/system
+
 # Optionally copy default env file (can be overridden by k8s env)
 COPY config.example.env /app/config.env
 

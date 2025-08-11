@@ -1,0 +1,97 @@
+{
+  "name": "team_memory_search",
+  "provider": "internal",
+  "display_name": "Team Memory: Search",
+  "description": "Search through the team's shared memory using semantic queries, patterns, or filters. This helps find relevant information when you don't know the exact location, or need to discover patterns across different team memory contexts.",
+  "endpoint": {
+    "path": "/internal/team/memory/search",
+    "method": "POST" 
+  },
+  "parameters": {
+    "required": ["team_id", "agent_id", "query"],
+    "optional": ["contexts", "search_type", "limit", "time_range"],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "team_id": {
+          "type": "string",
+          "description": "Team ID to search memory for. The requesting agent must be a member of this team."
+        },
+        "agent_id": {
+          "type": "string",
+          "description": "Agent ID making the request. Must be a member of the specified team."
+        },
+        "query": {
+          "type": "string",
+          "description": "Search query - can be keywords, phrases, or semantic descriptions of what you're looking for"
+        },
+        "contexts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["workflow", "session", "persistent", "shared"]
+          },
+          "default": ["workflow", "session", "persistent", "shared"],
+          "description": "Which memory contexts to search in"
+        },
+        "search_type": {
+          "type": "string",
+          "enum": ["semantic", "exact", "pattern", "fuzzy"],
+          "default": "semantic",
+          "description": "Type of search - semantic for meaning-based, exact for literal matches, pattern for regex, fuzzy for approximate"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20,
+          "description": "Maximum number of results to return"
+        },
+        "time_range": {
+          "type": "object",
+          "properties": {
+            "start": {"type": "string", "format": "date-time"},
+            "end": {"type": "string", "format": "date-time"}
+          },
+          "description": "Filter results by when they were stored"
+        }
+      },
+      "required": ["team_id", "agent_id", "query"]
+    }
+  },
+  "examples": [
+    {
+      "name": "Find team workflow steps",
+      "parameters": {
+        "team_id": "team_123",
+        "agent_id": "agent_456",
+        "query": "data collection analysis steps",
+        "contexts": ["workflow"],
+        "search_type": "semantic",
+        "limit": 10
+      }
+    },
+    {
+      "name": "Search for team error patterns",
+      "parameters": {
+        "team_id": "team_123",
+        "agent_id": "agent_456",
+        "query": "timeout error failure",
+        "contexts": ["persistent"],
+        "search_type": "fuzzy"
+      }
+    },
+    {
+      "name": "Find recent team interactions",
+      "parameters": {
+        "team_id": "team_123",
+        "agent_id": "agent_456",
+        "query": "team preferences settings",
+        "contexts": ["shared"],
+        "time_range": {
+          "start": "2024-01-15T00:00:00Z"
+        }
+      }
+    }
+  ]
+}

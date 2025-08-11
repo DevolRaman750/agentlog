@@ -24,6 +24,7 @@ import (
 	githubIntegration "gogent/internal/gogent/integrations/github"
 	slackIntegration "gogent/internal/gogent/integrations/slack"
 	"gogent/internal/providers"
+	"gogent/internal/teams"
 	"gogent/internal/types"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -561,10 +562,94 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 		return nil, fmt.Errorf("user context is required for internal function %s", functionName)
 	}
 
-	// Create agents handler
+	// Create handlers
 	agentsHandler := agents.NewAgentsHandler(c.db)
+	teamsHandler := teams.NewTeamsHandler(c.db)
 
-	// Convert args to AgentMemoryRequest
+	// Check if this is a team memory function
+	if strings.HasPrefix(functionName, "team_memory_") {
+		// Extract team ID from args
+		teamID, ok := args["team_id"].(string)
+		if !ok {
+			return nil, fmt.Errorf("team_id is required for team memory functions")
+		}
+
+		// Convert args to TeamMemoryRequest
+		request := &types.TeamMemoryRequest{
+			TeamID:  teamID,
+			AgentID: agentID,
+		}
+
+		// Map function arguments to request fields
+		if context, ok := args["context"].(string); ok {
+			request.Context = context
+		}
+		if path, ok := args["path"].(string); ok {
+			request.Path = path
+		}
+		if searchQuery, ok := args["search_query"].(string); ok {
+			request.SearchQuery = searchQuery
+		}
+		if query, ok := args["query"].(string); ok {
+			request.SearchQuery = query
+		}
+		if limit, ok := args["limit"].(float64); ok {
+			request.Limit = int(limit)
+		}
+		if data, ok := args["data"].(map[string]interface{}); ok {
+			request.Data = data
+		}
+		if mergeStrategy, ok := args["merge_strategy"].(string); ok {
+			request.MergeStrategy = mergeStrategy
+		}
+		if action, ok := args["action"].(string); ok {
+			request.Context = action // For clear operations, action is passed via context field
+		}
+
+		// Route to appropriate team memory function
+		var response *types.TeamMemoryResponse
+		var err error
+
+		switch functionName {
+		case "team_memory_read":
+			response, err = teamsHandler.ReadTeamMemory(ctx, teamID, agentID, userID, request)
+		case "team_memory_write":
+			response, err = teamsHandler.WriteTeamMemory(ctx, teamID, agentID, userID, request)
+		case "team_memory_search":
+			response, err = teamsHandler.SearchTeamMemory(ctx, teamID, agentID, userID, request)
+		case "team_memory_clear":
+			response, err = teamsHandler.ClearTeamMemory(ctx, teamID, agentID, userID, request)
+		default:
+			return nil, fmt.Errorf("unsupported team memory function: %s", functionName)
+		}
+
+		if err != nil {
+			return nil, fmt.Errorf("team memory function %s failed: %w", functionName, err)
+		}
+
+		// Convert response to map[string]interface{}
+		result := map[string]interface{}{
+			"success": response.Success,
+		}
+
+		if response.Error != "" {
+			result["error"] = response.Error
+		}
+		if response.Data != nil {
+			result["data"] = response.Data
+		}
+		if response.Results != nil {
+			result["results"] = response.Results
+		}
+		if response.Metadata != (types.MemoryMetadata{}) {
+			result["metadata"] = response.Metadata
+		}
+
+		log.Printf("✅ Team memory function %s completed successfully", functionName)
+		return result, nil
+	}
+
+	// Convert args to AgentMemoryRequest for agent memory functions
 	request := &types.AgentMemoryRequest{
 		AgentID: agentID,
 	}
@@ -692,6 +777,58 @@ func (c *Client) createMockMemoryResponse(functionName string, args map[string]i
 				"version":     "1.0",
 			},
 			"message": "Memory function called in non-agent execution - no data to clear",
+		}
+	case "team_memory_write":
+		return map[string]interface{}{
+			"success": true,
+			"data":    map[string]interface{}{"written": args["data"]},
+			"metadata": map[string]interface{}{
+				"createdAt":   time.Now(),
+				"updatedAt":   time.Now(),
+				"sizeBytes":   0,
+				"accessCount": 1,
+				"version":     "1.0",
+			},
+			"message": "Team memory function called in non-agent execution - no data stored",
+		}
+	case "team_memory_read":
+		return map[string]interface{}{
+			"success": true,
+			"data":    map[string]interface{}{},
+			"metadata": map[string]interface{}{
+				"createdAt":   time.Now(),
+				"updatedAt":   time.Now(),
+				"sizeBytes":   0,
+				"accessCount": 1,
+				"version":     "1.0",
+			},
+			"message": "Team memory function called in non-agent execution - no data available",
+		}
+	case "team_memory_search":
+		return map[string]interface{}{
+			"success": true,
+			"results": []interface{}{},
+			"metadata": map[string]interface{}{
+				"createdAt":   time.Now(),
+				"updatedAt":   time.Now(),
+				"sizeBytes":   0,
+				"accessCount": 1,
+				"version":     "1.0",
+			},
+			"message": "Team memory function called in non-agent execution - no data to search",
+		}
+	case "team_memory_clear":
+		return map[string]interface{}{
+			"success": true,
+			"data":    map[string]interface{}{"message": "Memory cleared successfully"},
+			"metadata": map[string]interface{}{
+				"createdAt":   time.Now(),
+				"updatedAt":   time.Now(),
+				"sizeBytes":   0,
+				"accessCount": 1,
+				"version":     "1.0",
+			},
+			"message": "Team memory function called in non-agent execution - no data to clear",
 		}
 	default:
 		return map[string]interface{}{
@@ -1064,7 +1201,9 @@ func (c *Client) buildGitHubAPIURL(functionName string, args map[string]interfac
 		if !ok || path == "" {
 			path = "" // Root directory
 		}
-		return baseURL + "/contents/" + path, nil
+		// URL encode the path to handle special characters and spaces
+		encodedPath := url.QueryEscape(path)
+		return baseURL + "/contents/" + encodedPath, nil
 
 	case "github_search_code":
 		query, ok := args["query"].(string)
@@ -1108,7 +1247,9 @@ func (c *Client) buildGitHubAPIURL(functionName string, args map[string]interfac
 		if !ok || path == "" {
 			return "", fmt.Errorf("path parameter is required for github_get_file_sha")
 		}
-		return baseURL + "/contents/" + path, nil
+		// URL encode the path to handle special characters and spaces
+		encodedPath := url.QueryEscape(path)
+		return baseURL + "/contents/" + encodedPath, nil
 
 	case "github_list_branches":
 		return baseURL + "/branches", nil

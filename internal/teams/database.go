@@ -14,7 +14,7 @@ func (h *TeamsHandler) getTeams(userID string) ([]types.Team, error) {
 	query := `
 		SELECT id, user_id, name, description, max_tokens_per_day, tokens_used_today,
 		       tokens_reset_date, agent_count, active_agent_count, total_executions,
-		       created_at, updated_at
+		       created_at, updated_at, memory, memory_size_bytes, memory_updated_at
 		FROM teams
 		WHERE user_id = ?
 		ORDER BY created_at DESC
@@ -30,11 +30,15 @@ func (h *TeamsHandler) getTeams(userID string) ([]types.Team, error) {
 	for rows.Next() {
 		var team types.Team
 		var description sql.NullString
+		var memoryJSON sql.NullString
+		var memorySizeBytes sql.NullInt32
+		var memoryUpdatedAt sql.NullTime
 
 		err := rows.Scan(
 			&team.ID, &team.UserID, &team.Name, &description, &team.MaxTokensPerDay,
 			&team.TokensUsedToday, &team.TokensResetDate, &team.AgentCount,
 			&team.ActiveAgentCount, &team.TotalExecutions, &team.CreatedAt, &team.UpdatedAt,
+			&memoryJSON, &memorySizeBytes, &memoryUpdatedAt,
 		)
 		if err != nil {
 			return nil, err
@@ -42,6 +46,22 @@ func (h *TeamsHandler) getTeams(userID string) ([]types.Team, error) {
 
 		if description.Valid {
 			team.Description = &description.String
+		}
+
+		// Parse memory if present
+		if memoryJSON.Valid && memoryJSON.String != "" {
+			var memory types.TeamMemory
+			if err := types.FromJSON(memoryJSON.String, &memory); err == nil {
+				team.Memory = &memory
+			}
+		}
+
+		if memorySizeBytes.Valid {
+			team.MemorySizeBytes = memorySizeBytes.Int32
+		}
+
+		if memoryUpdatedAt.Valid {
+			team.MemoryUpdatedAt = &memoryUpdatedAt.Time
 		}
 
 		teams = append(teams, team)
@@ -55,18 +75,22 @@ func (h *TeamsHandler) getTeamByID(teamID, userID string) (types.Team, error) {
 	query := `
 		SELECT id, user_id, name, description, max_tokens_per_day, tokens_used_today,
 		       tokens_reset_date, agent_count, active_agent_count, total_executions,
-		       created_at, updated_at
+		       created_at, updated_at, memory, memory_size_bytes, memory_updated_at
 		FROM teams
 		WHERE id = ? AND user_id = ?
 	`
 
 	var team types.Team
 	var description sql.NullString
+	var memoryJSON sql.NullString
+	var memorySizeBytes sql.NullInt32
+	var memoryUpdatedAt sql.NullTime
 
 	err := h.db.QueryRow(query, teamID, userID).Scan(
 		&team.ID, &team.UserID, &team.Name, &description, &team.MaxTokensPerDay,
 		&team.TokensUsedToday, &team.TokensResetDate, &team.AgentCount,
 		&team.ActiveAgentCount, &team.TotalExecutions, &team.CreatedAt, &team.UpdatedAt,
+		&memoryJSON, &memorySizeBytes, &memoryUpdatedAt,
 	)
 	if err != nil {
 		return team, err
@@ -74,6 +98,22 @@ func (h *TeamsHandler) getTeamByID(teamID, userID string) (types.Team, error) {
 
 	if description.Valid {
 		team.Description = &description.String
+	}
+
+	// Parse memory if present
+	if memoryJSON.Valid && memoryJSON.String != "" {
+		var memory types.TeamMemory
+		if err := types.FromJSON(memoryJSON.String, &memory); err == nil {
+			team.Memory = &memory
+		}
+	}
+
+	if memorySizeBytes.Valid {
+		team.MemorySizeBytes = memorySizeBytes.Int32
+	}
+
+	if memoryUpdatedAt.Valid {
+		team.MemoryUpdatedAt = &memoryUpdatedAt.Time
 	}
 
 	return team, nil
@@ -453,4 +493,48 @@ func (h *TeamsHandler) getTeamStatsByID(teamID, userID string) (types.TeamStats,
 	}
 
 	return stats, nil
+}
+
+// validateAgentTeamMembership checks if an agent is a member of the specified team
+func (h *TeamsHandler) validateAgentTeamMembership(agentID, teamID, userID string) error {
+	query := `SELECT EXISTS(SELECT 1 FROM agents WHERE id = ? AND team_id = ? AND user_id = ?)`
+	var exists bool
+
+	err := h.db.QueryRow(query, agentID, teamID, userID).Scan(&exists)
+	if err != nil {
+		return err
+	}
+
+	if !exists {
+		return fmt.Errorf("agent %s is not a member of team %s", agentID, teamID)
+	}
+
+	return nil
+}
+
+// saveTeamMemory saves team memory to the database
+func (h *TeamsHandler) saveTeamMemory(teamID, userID string, memory *types.TeamMemory) error {
+	// Convert memory to JSON
+	memoryJSON, err := types.ToJSON(memory)
+	if err != nil {
+		return fmt.Errorf("failed to marshal team memory: %w", err)
+	}
+
+	sizeBytes := len(memoryJSON)
+	memory.Metadata.SizeBytes = int32(sizeBytes)
+
+	// Update team record with memory
+	query := `
+		UPDATE teams 
+		SET memory = ?, 
+		    memory_size_bytes = ?, 
+		    memory_updated_at = CURRENT_TIMESTAMP 
+		WHERE id = ? AND user_id = ?`
+
+	_, err = h.db.Exec(query, memoryJSON, sizeBytes, teamID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to save team memory to database: %w", err)
+	}
+
+	return nil
 }

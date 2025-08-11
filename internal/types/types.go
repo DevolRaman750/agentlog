@@ -656,6 +656,7 @@ type AgentCreateRequest struct {
 type AgentUpdateRequest struct {
 	FirstName        *string          `json:"firstName,omitempty" validate:"omitempty,min=1,max=100"`
 	LastName         *string          `json:"lastName,omitempty" validate:"omitempty,min=1,max=100"`
+	TemplateID       *string          `json:"templateId,omitempty" validate:"omitempty"`
 	TeamID           *string          `json:"teamId,omitempty"`
 	MaxTokensPerDay  *int32           `json:"maxTokensPerDay,omitempty" validate:"omitempty,min=1"`
 	HeartbeatMinutes *int32           `json:"heartbeatMinutes,omitempty" validate:"omitempty,min=5"`
@@ -676,6 +677,10 @@ type Team struct {
 	TotalExecutions  int32     `json:"totalExecutions"`
 	CreatedAt        time.Time `json:"createdAt"`
 	UpdatedAt        time.Time `json:"updatedAt"`
+	// Memory fields
+	Memory          *TeamMemory `json:"memory,omitempty"`
+	MemorySizeBytes int32       `json:"memorySizeBytes"`
+	MemoryUpdatedAt *time.Time  `json:"memoryUpdatedAt,omitempty"`
 }
 
 // TeamCreateRequest represents the request to create a new team
@@ -761,6 +766,43 @@ type AgentMemoryRequest struct {
 	SearchQuery   string                 `json:"searchQuery,omitempty"`   // Search query
 	MergeStrategy string                 `json:"mergeStrategy,omitempty"` // merge, replace, append
 	Limit         int                    `json:"limit,omitempty"`         // Result limit
+}
+
+// TeamMemory represents the structured memory storage for a team
+type TeamMemory struct {
+	Version       string               `json:"version"`
+	Contexts      TeamMemoryContexts   `json:"contexts"`
+	Relationships []MemoryRelationship `json:"relationships,omitempty"`
+	Metadata      MemoryMetadata       `json:"metadata"`
+}
+
+// TeamMemoryContexts holds different types of memory contexts for teams
+type TeamMemoryContexts struct {
+	Workflow   map[string]interface{} `json:"workflow,omitempty"`   // Current team workflow/task state
+	Session    map[string]interface{} `json:"session,omitempty"`    // Temporary team session data
+	Persistent map[string]interface{} `json:"persistent,omitempty"` // Long-term team learned patterns
+	Shared     map[string]interface{} `json:"shared,omitempty"`     // Shared data between team agents
+}
+
+// TeamMemoryRequest represents requests for team memory operations
+type TeamMemoryRequest struct {
+	TeamID        string                 `json:"teamId" validate:"required"`
+	AgentID       string                 `json:"agentId" validate:"required"` // Agent making the request (must be team member)
+	Context       string                 `json:"context,omitempty"`           // workflow, session, persistent, shared, all
+	Path          string                 `json:"path,omitempty"`              // JSON path for specific access
+	Data          map[string]interface{} `json:"data,omitempty"`              // Data to write
+	SearchQuery   string                 `json:"searchQuery,omitempty"`       // Search query
+	MergeStrategy string                 `json:"mergeStrategy,omitempty"`     // merge, replace, append
+	Limit         int                    `json:"limit,omitempty"`             // Result limit
+}
+
+// TeamMemoryResponse represents responses for team memory operations
+type TeamMemoryResponse struct {
+	Success  bool                   `json:"success"`
+	Data     map[string]interface{} `json:"data,omitempty"`
+	Results  []MemorySearchResult   `json:"results,omitempty"`
+	Metadata MemoryMetadata         `json:"metadata"`
+	Error    string                 `json:"error,omitempty"`
 }
 
 // AgentMemoryResponse represents the response from memory operations
