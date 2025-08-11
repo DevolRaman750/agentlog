@@ -785,9 +785,21 @@ const ExecuteScreen: React.FC = () => {
 
 
   const handleReExecute = async (reExecutionData: any) => {
-    // Set template/agent execution state
+    // Determine if this was an agent execution based on agentId
+    const isAgentExec = reExecutionData.agentId || reExecutionData.isAgentExecution || false;
     const isTemplateExec = reExecutionData.isTemplateExecution || false;
-    const isAgentExec = reExecutionData.isAgentExecution || false;
+    
+    // Set the execution mode based on the data
+    if (isAgentExec) {
+      setCurrentExecutionMode('agent');
+      console.log('🤖 Setting execution mode to AGENT for re-execution');
+    } else if (isTemplateExec) {
+      setCurrentExecutionMode('template');
+      console.log('📄 Setting execution mode to TEMPLATE for re-execution');
+    } else {
+      setCurrentExecutionMode('experiment');
+      console.log('🧪 Setting execution mode to EXPERIMENT for re-execution');
+    }
     
     setTemplateExecutionData({
       isTemplateExecution: isTemplateExec,
@@ -806,7 +818,7 @@ const ExecuteScreen: React.FC = () => {
     });
     
     // Check if this is an agent execution
-    if (reExecutionData.isAgentExecution && reExecutionData.agentId) {
+    if (isAgentExec && reExecutionData.agentId) {
       try {
         console.log('🤖 Loading agent data for execution:', reExecutionData.agentId);
         const agentResponse = await goGentAPI.getAgent(reExecutionData.agentId);

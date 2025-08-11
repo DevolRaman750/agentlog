@@ -17,6 +17,7 @@ import (
 	"gogent/internal/auth"
 	"gogent/internal/db"
 	"gogent/internal/gogent"
+	"gogent/internal/heartbeat"
 	"gogent/internal/teams"
 	"gogent/internal/templates"
 	"gogent/internal/types"
@@ -37,6 +38,7 @@ type Server struct {
 	teamsHandler        *teams.TeamsHandler
 	apiKeysService      *apikeys.Service
 	apiKeysHandler      *apikeys.Handler
+	heartbeatExecutor   *heartbeat.HeartbeatExecutor
 }
 
 // ExecutionStatus tracks the status of an async execution (used by gRPC/BusinessLogic)
@@ -136,6 +138,10 @@ func NewServer() (*Server, error) {
 	}
 	apiKeysHandler := apikeys.NewHandler(apiKeysService)
 
+	// Create HeartbeatExecutor
+	heartbeatConfig := heartbeat.LoadConfigFromEnv()
+	heartbeatExecutor := heartbeat.NewHeartbeatExecutor(client, heartbeatConfig)
+
 	return &Server{
 		client: client,
 		config: config,
@@ -147,11 +153,19 @@ func NewServer() (*Server, error) {
 		teamsHandler:        teamsHandler,
 		apiKeysService:      apiKeysService,
 		apiKeysHandler:      apiKeysHandler,
+		heartbeatExecutor:   heartbeatExecutor,
 	}, nil
 }
 
 // Close closes the server resources
 func (s *Server) Close() error {
+	// Stop HeartbeatExecutor first
+	if s.heartbeatExecutor != nil {
+		if err := s.heartbeatExecutor.Stop(); err != nil {
+			log.Printf("⚠️ Error stopping HeartbeatExecutor: %v", err)
+		}
+	}
+
 	if s.client != nil {
 		return s.client.Close()
 	}
@@ -165,6 +179,47 @@ func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 		"version":   "1.0.0",
 		"timestamp": time.Now().Format(time.RFC3339),
 		"database":  s.client != nil,
+	}
+
+	// Add HeartbeatExecutor status
+	if s.heartbeatExecutor != nil {
+		response["heartbeat_executor"] = map[string]interface{}{
+			"status":  s.heartbeatExecutor.GetStatus(),
+			"metrics": s.heartbeatExecutor.GetMetrics(),
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// HeartbeatExecutor status endpoint
+func (s *Server) heartbeatStatusHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	response := map[string]interface{}{
+		"timestamp": time.Now().Format(time.RFC3339),
+	}
+
+	if s.heartbeatExecutor != nil {
+		response["status"] = s.heartbeatExecutor.GetStatus()
+		response["metrics"] = s.heartbeatExecutor.GetMetrics()
+
+		// Get additional agent statistics
+		queries := s.heartbeatExecutor.GetQueries()
+		if stats, err := queries.GetAgentExecutionStats(r.Context()); err == nil {
+			response["agent_stats"] = stats
+		}
+
+		if count, err := queries.GetActiveAgentCount(r.Context()); err == nil {
+			response["active_agent_count"] = count
+		}
+	} else {
+		response["status"] = "not_initialized"
+		response["error"] = "HeartbeatExecutor not available"
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -1870,6 +1925,11 @@ func runServer() {
 	}
 	defer server.Close()
 
+	// Start HeartbeatExecutor
+	if err := server.heartbeatExecutor.Start(); err != nil {
+		log.Fatalf("Failed to start HeartbeatExecutor: %v", err)
+	}
+
 	// Create a new ServeMux
 	mux := http.NewServeMux()
 
@@ -1896,6 +1956,9 @@ func runServer() {
 	mux.Handle("/api/execution-runs/", authMiddleware(http.HandlerFunc(server.executionRunsHandler)))          // Note the trailing slash
 	mux.Handle("/api/execution-runs/status/", authMiddleware(http.HandlerFunc(server.executionStatusHandler))) // Status endpoint
 	mux.Handle("/api/execution-runs", authMiddleware(http.HandlerFunc(server.executionRunsHandler)))
+
+	// HeartbeatExecutor monitoring endpoint
+	mux.Handle("/api/heartbeat/status", authMiddleware(http.HandlerFunc(server.heartbeatStatusHandler)))
 
 	// Protected function management endpoints
 	mux.Handle("/api/functions", authMiddleware(http.HandlerFunc(server.functionsHandler)))

@@ -25,6 +25,7 @@ import TeamCard from '../components/TeamCard';
 import AssignTeamModal from '../components/AssignTeamModal';
 import CreateTeamForm from '../components/CreateTeamForm';
 import { TeamMemoryViewer } from '../components/TeamMemoryViewer';
+import { AgentMemoryViewer } from '../components/AgentMemoryViewer';
 import { Agent, AgentFormData, LifecycleStatus, ExecutionTemplate, Team, TeamWithAgents } from '../types';
 import { useResponsive } from '../context/ResponsiveContext';
 import ScreenContainer from '../components/ScreenContainer';
@@ -50,6 +51,7 @@ const AgentsScreen: React.FC = () => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showTeamMemoryModal, setShowTeamMemoryModal] = useState(false);
+  const [showAgentMemoryModal, setShowAgentMemoryModal] = useState(false);
   const [prefilledAgentData, setPrefilledAgentData] = useState<any>(null);
 
   // Show loading screen while auth is loading
@@ -366,6 +368,41 @@ const AgentsScreen: React.FC = () => {
     setSelectedTeam(null);
   };
 
+  const handleAgentGoLive = async (agent: Agent) => {
+    try {
+      setIsLoading(true);
+      const newStatus = agent.lifecycleStatus === 'ACTIVE' ? 'STANDBY' : 'ACTIVE';
+      
+      const response = await goGentAPI.updateAgent(agent.id, {
+        ...agent,
+        lifecycleStatus: newStatus
+      });
+      
+      if (response.success) {
+        const actionText = newStatus === 'ACTIVE' ? 'live' : 'standby';
+        AlertAPI.alert('Success', `Agent is now ${actionText}`);
+        loadAgents(); // Refresh the list
+      } else {
+        AlertAPI.alert('Error', response.error || 'Failed to update agent status');
+      }
+    } catch (error) {
+      console.error('Error updating agent live status:', error);
+      AlertAPI.alert('Error', 'Failed to update agent status');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAgentMemoryPress = (agent: Agent) => {
+    setSelectedAgent(agent);
+    setShowAgentMemoryModal(true);
+  };
+
+  const handleAgentMemoryClose = () => {
+    setShowAgentMemoryModal(false);
+    setSelectedAgent(null);
+  };
+
   const renderAgentCard = ({ item: agent }: { item: Agent }) => (
     <AgentBusinessCard
       agent={agent}
@@ -381,6 +418,8 @@ const AgentsScreen: React.FC = () => {
       onNavigateToTemplate={handleNavigateToTemplate}
       onToggleStatus={() => handleToggleAgentStatus(agent)}
       onExecuteNow={() => handleExecuteAgentNow(agent)}
+      onGoLive={() => handleAgentGoLive(agent)}
+      onViewMemory={() => handleAgentMemoryPress(agent)}
       animated={true}
     />
   );
@@ -431,6 +470,8 @@ const AgentsScreen: React.FC = () => {
               onNavigateToTemplate={handleNavigateToTemplate}
               onToggleStatus={() => handleToggleAgentStatus(agent)}
               onExecuteNow={() => handleExecuteAgentNow(agent)}
+              onGoLive={() => handleAgentGoLive(agent)}
+              onViewMemory={() => handleAgentMemoryPress(agent)}
               animated={true}
             />
             <TouchableOpacity
@@ -477,6 +518,8 @@ const AgentsScreen: React.FC = () => {
               onNavigateToTemplate={handleNavigateToTemplate}
               onToggleStatus={() => handleToggleAgentStatus(agent)}
               onExecuteNow={() => handleExecuteAgentNow(agent)}
+              onGoLive={() => handleAgentGoLive(agent)}
+              onViewMemory={() => handleAgentMemoryPress(agent)}
               animated={true}
             />
             <TouchableOpacity
@@ -532,6 +575,20 @@ const AgentsScreen: React.FC = () => {
               AlertAPI.alert(
                 '🚀 Ready to Launch?', 
                 'This example shows what execution would look like. Create your agent to start automating!',
+                [{ text: 'Create Agent', onPress: () => setShowCreateModal(true) }]
+              );
+            }}
+            onGoLive={() => {
+              AlertAPI.alert(
+                '🎯 Go Live Feature', 
+                'This puts your agent into active live mode! Create your own agent to use this feature.',
+                [{ text: 'Create Agent', onPress: () => setShowCreateModal(true) }]
+              );
+            }}
+            onViewMemory={() => {
+              AlertAPI.alert(
+                '🧠 Agent Memory', 
+                'View and explore your agent\'s memory. Create your own agent to access this feature!',
                 [{ text: 'Create Agent', onPress: () => setShowCreateModal(true) }]
               );
             }}
@@ -700,6 +757,16 @@ const AgentsScreen: React.FC = () => {
           <TeamMemoryViewer
             team={selectedTeam}
             onClose={handleTeamMemoryClose}
+          />
+        )}
+      </Modal>
+
+      {/* Agent Memory Modal */}
+      <Modal visible={showAgentMemoryModal} animationType="slide" presentationStyle="pageSheet">
+        {selectedAgent && (
+          <AgentMemoryViewer
+            agent={selectedAgent}
+            onClose={handleAgentMemoryClose}
           />
         )}
       </Modal>

@@ -38,13 +38,16 @@ export const useTemplateManagement = () => {
         })));
 
         setTemplates(templatesWithDefaults);
+        return templatesWithDefaults;
       } else {
         console.error('Failed to fetch templates:', response.error);
         setError(response.error || 'Failed to load templates');
+        return [];
       }
     } catch (err) {
       console.error('Error fetching templates:', err);
       setError('Network error while loading templates');
+      return [];
     } finally {
       setLoading(false);
     }
@@ -233,6 +236,7 @@ export const useTemplateManagement = () => {
           validationRules: p.validationRules || null,
         })),
         functionIds: selectedFunctions,
+        changeSummary: 'Template updated via UI', // Add required changeSummary field
       };
 
       console.log('📋 Updating template with data:', {
@@ -250,13 +254,24 @@ export const useTemplateManagement = () => {
         functionIdsCount: templateData.functionIds.length
       });
 
+      console.log('🔥 DEBUGGING: About to call goGentAPI.updateTemplate with:', {
+        templateId,
+        templateData: JSON.stringify(templateData, null, 2)
+      });
+
       const response = await goGentAPI.updateTemplate(templateId, templateData);
+
+      console.log('🔥 DEBUGGING: API response:', {
+        success: response.success,
+        error: response.error,
+        data: response.data ? JSON.stringify(response.data, null, 2) : 'null'
+      });
 
       if (!response.success) {
         throw new Error(response.error || 'Failed to update template');
       }
 
-      await fetchTemplates();
+      // Don't fetch templates here - let the calling component handle state updates
       AlertAPI.alert(
         'Success',
         'Template updated successfully',

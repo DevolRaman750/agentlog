@@ -104,8 +104,20 @@ const ExecutionTemplatesScreen: React.FC = () => {
     setShowCreateModal(true);
   };
 
-  const handleTemplateEdit = (template: ExecutionTemplate) => {
-    setSelectedTemplate(template);
+  const handleTemplateEdit = async (template: ExecutionTemplate) => {
+    // Always fetch fresh templates before editing to ensure we have the latest data
+    console.log('🔄 Fetching fresh template data before edit...');
+    const freshTemplates = await fetchTemplates();
+    const freshTemplate = freshTemplates.find(t => t.id === template.id);
+    
+    if (freshTemplate) {
+      console.log('✅ Using fresh template data for edit:', freshTemplate.preferredConfigurationId);
+      setSelectedTemplate(freshTemplate);
+    } else {
+      console.log('⚠️ Could not find fresh template, using original');
+      setSelectedTemplate(template);
+    }
+    
     setIsViewMode(false);
     setIsEditMode(true);
     setShowCreateModal(true);
@@ -245,7 +257,7 @@ const ExecutionTemplatesScreen: React.FC = () => {
     processedParamsRef.current = null;
   };
 
-  // Handle both create and update operations
+  // Handle both create and update operations - SIMPLIFIED AND ROBUST
   const handleSaveTemplate = async (
     formData: TemplateFormData,
     parameters: Omit<TemplateParameter, 'id'>[],
@@ -254,11 +266,49 @@ const ExecutionTemplatesScreen: React.FC = () => {
     if (isEditMode && selectedTemplate?.id) {
       // Update existing template
       console.log('🔄 Updating template:', selectedTemplate.id);
-      return await updateTemplate(selectedTemplate.id, formData, parameters, selectedFunctions);
+      const success = await updateTemplate(selectedTemplate.id, formData, parameters, selectedFunctions);
+      
+      if (success) {
+        // Refresh templates list and get fresh data
+        const freshTemplates = await fetchTemplates();
+        
+        // Update selectedTemplate with fresh data if it exists in the refreshed list
+        if (selectedTemplate?.id) {
+          const updatedTemplate = freshTemplates.find(t => t.id === selectedTemplate.id);
+          if (updatedTemplate) {
+            setSelectedTemplate(updatedTemplate);
+            console.log('✅ Updated selectedTemplate with fresh data:', updatedTemplate.preferredConfigurationId);
+          } else {
+            console.log('❌ Could not find updated template in fresh list');
+          }
+        }
+        
+        // Close the modal after update
+        handleModalClose();
+        
+        AlertAPI.alert(
+          'Success', 
+          'Template updated successfully',
+          [{ text: 'OK', style: 'default' }]
+        );
+      } else {
+        AlertAPI.alert(
+          'Error',
+          'Failed to update template. Please try again.',
+          [{ text: 'OK', style: 'destructive' }]
+        );
+      }
+      
+      return success;
     } else {
       // Create new template
       console.log('✨ Creating new template');
-      return await createTemplate(formData, parameters, selectedFunctions);
+      const success = await createTemplate(formData, parameters, selectedFunctions);
+      if (success) {
+        await fetchTemplates();
+        handleModalClose();
+      }
+      return success;
     }
   };
 

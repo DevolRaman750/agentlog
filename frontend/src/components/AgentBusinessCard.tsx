@@ -14,6 +14,8 @@ interface AgentBusinessCardProps {
   onNavigateToTemplate: (templateId: string) => void;
   onToggleStatus: () => void;
   onExecuteNow: () => void;
+  onGoLive: () => void;
+  onViewMemory: () => void;
   animated?: boolean;
 }
 
@@ -25,6 +27,8 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
   onNavigateToTemplate,
   onToggleStatus,
   onExecuteNow,
+  onGoLive,
+  onViewMemory,
   animated = false
 }) => {
   const { screenWidth, isSidebarLayout } = useResponsive();
@@ -73,11 +77,23 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
   };
 
   const getToggleStatusIcon = () => {
-    return agent.status === 'PAUSED' ? 'play' : 'pause';
+    return agent.lifecycleStatus === 'PAUSED' ? 'play' : 'pause';
   };
 
   const getToggleStatusColor = (): string => {
-    return agent.status === 'PAUSED' ? '#28a745' : '#ffc107';
+    return agent.lifecycleStatus === 'PAUSED' ? '#28a745' : '#ffc107';
+  };
+
+  const getGoLiveIcon = () => {
+    return agent.lifecycleStatus === 'ACTIVE' ? 'stop' : 'radio';
+  };
+
+  const getGoLiveColor = (): string => {
+    return agent.lifecycleStatus === 'ACTIVE' ? '#dc3545' : '#28a745';
+  };
+
+  const isInLiveMode = () => {
+    return agent.lifecycleStatus === 'ACTIVE';
   };
 
   const canExecuteNow = (): boolean => {
@@ -116,9 +132,17 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
               <Text style={styles.statusText}>{agent.lifecycleStatus}</Text>
             </View>
             {agent.memory && (
-              <View style={styles.memoryIndicator}>
+              <TouchableOpacity 
+                style={styles.memoryIndicator}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  onViewMemory();
+                }}
+                activeOpacity={0.7}
+                hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+              >
                 <Ionicons name="library" size={12} color="#34C759" />
-              </View>
+              </TouchableOpacity>
             )}
           </View>
         </View>
@@ -127,6 +151,26 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
         {isCompactMode ? (
           <View style={styles.quickActionsCompact}>
             {/* Most important actions only on very small screens */}
+            <TouchableOpacity 
+              style={[
+                styles.actionButton, 
+                isInLiveMode() ? styles.liveStopAction : styles.goLiveAction,
+                styles.actionButtonCompact
+              ]}
+              onPress={(e) => {
+                e.stopPropagation();
+                onGoLive();
+              }}
+              activeOpacity={0.7}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            >
+              <Ionicons 
+                name={getGoLiveIcon()} 
+                size={14} 
+                color={getGoLiveColor()} 
+              />
+            </TouchableOpacity>
+
             <TouchableOpacity 
               style={[styles.actionButton, styles.primaryAction, styles.actionButtonCompact]}
               onPress={(e) => {
@@ -142,6 +186,20 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
                 color={getToggleStatusColor()} 
               />
             </TouchableOpacity>
+
+            {agent.memory && (
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.memoryAction, styles.actionButtonCompact]}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  onViewMemory();
+                }}
+                activeOpacity={0.7}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              >
+                <Ionicons name="library" size={14} color="#34C759" />
+              </TouchableOpacity>
+            )}
             
             <TouchableOpacity 
               style={[styles.actionButton, styles.actionButtonCompact]}
@@ -157,6 +215,27 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
           </View>
         ) : (
           <View style={[styles.quickActions, isMobile && styles.quickActionsMobile]}>
+            {/* Go Live / Stop Live */}
+            <TouchableOpacity 
+              style={[
+                styles.actionButton, 
+                isInLiveMode() ? styles.liveStopAction : styles.goLiveAction,
+                isMobile && styles.actionButtonMobile
+              ]}
+              onPress={(e) => {
+                e.stopPropagation();
+                onGoLive();
+              }}
+              activeOpacity={0.7}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            >
+              <Ionicons 
+                name={getGoLiveIcon()} 
+                size={isMobile ? 14 : 16} 
+                color={getGoLiveColor()} 
+              />
+            </TouchableOpacity>
+
             {/* Play/Pause Toggle */}
             <TouchableOpacity 
               style={[styles.actionButton, styles.primaryAction, isMobile && styles.actionButtonMobile]}
@@ -198,6 +277,21 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
                 color={canExecuteNow() ? "#FF6B35" : "#ccc"} 
               />
             </TouchableOpacity>
+
+            {/* Memory */}
+            {agent.memory && (
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.memoryAction, isMobile && styles.actionButtonMobile]}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  onViewMemory();
+                }}
+                activeOpacity={0.7}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              >
+                <Ionicons name="library" size={isMobile ? 14 : 16} color="#34C759" />
+              </TouchableOpacity>
+            )}
 
             {/* Edit */}
             <TouchableOpacity 
@@ -465,6 +559,18 @@ const styles = StyleSheet.create({
   executeAction: {
     backgroundColor: '#fff4f0',
     borderColor: '#ffd7cc',
+  },
+  goLiveAction: {
+    backgroundColor: '#f0fff4',
+    borderColor: '#c6f6d5',
+  },
+  liveStopAction: {
+    backgroundColor: '#fff5f5',
+    borderColor: '#fec6cb',
+  },
+  memoryAction: {
+    backgroundColor: '#f0fff4',
+    borderColor: '#c6f6d5',
   },
   disabledAction: {
     backgroundColor: '#f5f5f5',

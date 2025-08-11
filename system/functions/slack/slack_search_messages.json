@@ -1,0 +1,22 @@
+{
+  "id": "00000000-0000-0000-0000-000000000086",
+  "name": "slack_search_messages",
+  "provider": "slack",
+  "display_name": "Slack Search Messages",
+  "description": "Search for messages across all channels the bot has access to",
+  "endpoint": {
+    "path": "https://slack.com/api/search.messages",
+    "method": "GET"
+  },
+  "parameters": {
+    "required": [],
+    "optional": [],
+    "schema": {"type": "object", "required": ["query"], "properties": {"sort": {"enum": ["timestamp", "score"], "type": "string", "default": "score", "description": "Sort results by timestamp or score"}, "count": {"type": "integer", "default": 20, "maximum": 1000, "minimum": 1, "description": "Number of items to return (1-1000, default 20)"}, "query": {"type": "string", "description": "Search query terms"}, "sort_dir": {"enum": ["asc", "desc"], "type": "string", "default": "desc", "description": "Sort direction"}}}
+  },
+  "examples": [
+    {
+      "name": "Basic usage",
+      "parameters": {}
+    }
+  ]
+}

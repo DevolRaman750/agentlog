@@ -1374,6 +1374,55 @@ func (c *Client) getFunctionDefinition(ctx context.Context, functionName string)
 	return &funcDef, nil
 }
 
+// LoadSystemFunctionTools loads all active system functions and converts them to Tool objects
+func (c *Client) LoadSystemFunctionTools(ctx context.Context, userID string) ([]types.Tool, error) {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
+	// Get all active function definitions (both system and user functions)
+	funcDefs, err := c.queries.ListFunctionDefinitions(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load function definitions: %w", err)
+	}
+
+	tools := make([]types.Tool, 0, len(funcDefs))
+
+	for _, funcDef := range funcDefs {
+		// Parse parameters schema from JSON
+		var parametersSchema map[string]interface{}
+		if funcDef.ParametersSchema != nil {
+			if err := json.Unmarshal(funcDef.ParametersSchema, &parametersSchema); err != nil {
+				log.Printf("⚠️ Failed to parse parameters schema for function %s: %v", funcDef.Name, err)
+				// Skip this function if we can't parse its schema
+				continue
+			}
+		} else {
+			// Default empty schema
+			parametersSchema = map[string]interface{}{
+				"type":       "object",
+				"properties": map[string]interface{}{},
+			}
+		}
+
+		// Create Tool object
+		description := ""
+		if funcDef.Description.Valid {
+			description = funcDef.Description.String
+		}
+
+		tool := types.Tool{
+			Name:        funcDef.Name,
+			Description: description,
+			Parameters:  parametersSchema,
+		}
+
+		tools = append(tools, tool)
+	}
+
+	log.Printf("🔧 Loaded %d system function tools for user %s", len(tools), userID)
+	return tools, nil
+}
+
 // GetExecutionResult retrieves complete execution details from the database
 func (c *Client) GetExecutionResult(ctx context.Context, userID string, executionRunID string) (*types.ExecutionResult, error) {
 	c.mutex.RLock()
@@ -1660,6 +1709,12 @@ func (c *Client) GetExecutionRun(ctx context.Context, userID string, executionRu
 		errorMessage = row.ErrorMessage.String
 	}
 
+	// Handle agent_id field
+	var agentID *string
+	if row.AgentID.Valid {
+		agentID = &row.AgentID.String
+	}
+
 	return &types.ExecutionRun{
 		ID:                    row.ID,
 		Name:                  row.Name,
@@ -1669,6 +1724,7 @@ func (c *Client) GetExecutionRun(ctx context.Context, userID string, executionRu
 		EnableFunctionCalling: row.EnableFunctionCalling,
 		Status:                status,       // Use actual database status
 		ErrorMessage:          errorMessage, // Use actual error message
+		AgentID:               agentID,      // Include agent ID if present
 		CreatedAt:             row.CreatedAt.Time,
 		UpdatedAt:             row.UpdatedAt.Time,
 	}, nil
@@ -1702,6 +1758,12 @@ func (c *Client) ListExecutionRuns(ctx context.Context, userID string, limit, of
 			contextPrompt = run.ContextPrompt.String
 		}
 
+		// Handle agent_id field
+		var agentID *string
+		if run.AgentID.Valid {
+			agentID = &run.AgentID.String
+		}
+
 		result = append(result, &types.ExecutionRun{
 			ID:                    run.ID,
 			Name:                  run.Name,
@@ -1711,6 +1773,7 @@ func (c *Client) ListExecutionRuns(ctx context.Context, userID string, limit, of
 			EnableFunctionCalling: run.EnableFunctionCalling,
 			Status:                "completed", // Default status for existing records
 			ErrorMessage:          "",
+			AgentID:               agentID, // Include agent ID if present
 			CreatedAt:             run.CreatedAt.Time,
 			UpdatedAt:             run.UpdatedAt.Time,
 		})

@@ -115,6 +115,8 @@ export interface ExecutionRun {
   created_at?: string;
   createdAt: Date;
   updatedAt: Date;
+  // Agent information
+  agentId?: string; // Agent ID if this execution was run by an agent
   // Token usage fields
   totalTokens?: number;
   promptTokens?: number;

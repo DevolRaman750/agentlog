@@ -1,0 +1,22 @@
+{
+  "id": "00000000-0000-0000-0000-000000000090",
+  "name": "slack_join_channel",
+  "provider": "slack",
+  "display_name": "Slack Join Channel",
+  "description": "Join an existing conversation/channel",
+  "endpoint": {
+    "path": "https://slack.com/api/conversations.join",
+    "method": "POST"
+  },
+  "parameters": {
+    "required": [],
+    "optional": [],
+    "schema": {"type": "object", "required": ["channel"], "properties": {"channel": {"type": "string", "description": "Channel ID to join"}}}
+  },
+  "examples": [
+    {
+      "name": "Basic usage",
+      "parameters": {}
+    }
+  ]
+}

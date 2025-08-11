@@ -1,4 +1,5 @@
 {
+  "id": "func-github-read-issues",
   "name": "github_read_issues",
   "provider": "github",
   "display_name": "GitHub: Read Issues",

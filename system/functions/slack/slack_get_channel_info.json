@@ -1,0 +1,22 @@
+{
+  "id": "00000000-0000-0000-0000-000000000083",
+  "name": "slack_get_channel_info",
+  "provider": "slack",
+  "display_name": "Slack Get Channel Info",
+  "description": "Get detailed information about a specific Slack channel",
+  "endpoint": {
+    "path": "https://slack.com/api/conversations.info",
+    "method": "GET"
+  },
+  "parameters": {
+    "required": [],
+    "optional": [],
+    "schema": {"type": "object", "required": ["channel"], "properties": {"channel": {"type": "string", "description": "Channel ID to get information about"}, "include_locale": {"type": "boolean", "default": false, "description": "Set to true to include the locale for this conversation"}}}
+  },
+  "examples": [
+    {
+      "name": "Basic usage",
+      "parameters": {}
+    }
+  ]
+}

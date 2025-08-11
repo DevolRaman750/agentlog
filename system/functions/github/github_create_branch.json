@@ -1,0 +1,22 @@
+{
+  "id": "github-create-branch-uuid",
+  "name": "github_create_branch",
+  "provider": "github",
+  "display_name": "Create GitHub Branch",
+  "description": "Create a new branch in a GitHub repository from an existing branch, tag, or commit",
+  "endpoint": {
+    "path": "https://api.github.com/repos/{owner}/{repo}/git/refs",
+    "method": "MCP"
+  },
+  "parameters": {
+    "required": [],
+    "optional": [],
+    "schema": {"type": "object", "required": ["owner", "repo", "branch_name"], "properties": {"repo": {"type": "string", "description": "Repository name"}, "owner": {"type": "string", "description": "GitHub username or organization"}, "branch_name": {"type": "string", "description": "Name of the new branch to create"}, "source_branch": {"type": "string", "default": "main", "description": "Source branch to create from"}}}
+  },
+  "examples": [
+    {
+      "name": "Basic usage",
+      "parameters": {}
+    }
+  ]
+}

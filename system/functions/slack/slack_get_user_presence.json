@@ -1,0 +1,22 @@
+{
+  "id": "00000000-0000-0000-0000-000000000094",
+  "name": "slack_get_user_presence",
+  "provider": "slack",
+  "display_name": "Slack Get User Presence",
+  "description": "Get the presence/status information for a specific user (active, away, etc.)",
+  "endpoint": {
+    "path": "https://slack.com/api/users.getPresence",
+    "method": "GET"
+  },
+  "parameters": {
+    "required": [],
+    "optional": [],
+    "schema": {"type": "object", "required": ["user"], "properties": {"user": {"type": "string", "description": "User ID to get presence for (e.g., U1234567890)"}}}
+  },
+  "examples": [
+    {
+      "name": "Basic usage",
+      "parameters": {}
+    }
+  ]
+}

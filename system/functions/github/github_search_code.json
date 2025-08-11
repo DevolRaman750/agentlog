@@ -1,0 +1,22 @@
+{
+  "id": "func-github-search-code",
+  "name": "github_search_code",
+  "provider": "github",
+  "display_name": "GitHub Search Code",
+  "description": "Search for code patterns within a GitHub repository. Useful for finding specific functions, classes, or patterns.",
+  "endpoint": {
+    "path": "https://api.github.com/search/code",
+    "method": "GET"
+  },
+  "parameters": {
+    "required": [],
+    "optional": [],
+    "schema": {"type": "object", "required": ["owner", "repo", "query"], "properties": {"repo": {"type": "string", "description": "Repository name"}, "owner": {"type": "string", "description": "GitHub username or organization"}, "query": {"type": "string", "description": "Search query (code pattern, function name, etc.)"}, "per_page": {"type": "integer", "default": 30, "maximum": 100, "minimum": 1}}}
+  },
+  "examples": [
+    {
+      "name": "Basic usage",
+      "parameters": {}
+    }
+  ]
+}

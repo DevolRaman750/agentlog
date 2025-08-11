@@ -1,0 +1,22 @@
+{
+  "id": "00000000-0000-0000-0000-000000000092",
+  "name": "slack_get_team_info",
+  "provider": "slack",
+  "display_name": "Slack Get Team Info",
+  "description": "Get information about the current Slack workspace/team",
+  "endpoint": {
+    "path": "https://slack.com/api/team.info",
+    "method": "GET"
+  },
+  "parameters": {
+    "required": [],
+    "optional": [],
+    "schema": {"type": "object", "required": [], "properties": {"include_locale": {"type": "boolean", "default": false, "description": "Include locale information"}}}
+  },
+  "examples": [
+    {
+      "name": "Basic usage",
+      "parameters": {}
+    }
+  ]
+}

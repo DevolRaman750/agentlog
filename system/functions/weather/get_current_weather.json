@@ -1,0 +1,22 @@
+{
+  "id": "func-openweather-current",
+  "name": "get_current_weather",
+  "provider": "weather",
+  "display_name": "Get Current Weather",
+  "description": "Get current weather information for a specific location using OpenWeather API",
+  "endpoint": {
+    "path": "https://api.openweathermap.org/data/2.5/weather",
+    "method": "GET"
+  },
+  "parameters": {
+    "required": [],
+    "optional": [],
+    "schema": {"type": "object", "required": ["location"], "properties": {"units": {"enum": ["metric", "imperial", "kelvin"], "type": "string", "description": "Units of measurement"}, "location": {"type": "string", "description": "City name, state code (US only), and country code (ISO 3166) separated by comma"}}}
+  },
+  "examples": [
+    {
+      "name": "Basic usage",
+      "parameters": {}
+    }
+  ]
+}

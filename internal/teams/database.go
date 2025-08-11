@@ -512,6 +512,27 @@ func (h *TeamsHandler) validateAgentTeamMembership(agentID, teamID, userID strin
 	return nil
 }
 
+// validateTeamMemoryAccess checks if either the agent is a member of the team OR the user owns the team
+func (h *TeamsHandler) validateTeamMemoryAccess(agentID, teamID, userID string) error {
+	// First check if the user owns the team (for manual UI access)
+	teamQuery := `SELECT EXISTS(SELECT 1 FROM teams WHERE id = ? AND user_id = ?)`
+	var userOwnsTeam bool
+
+	err := h.db.QueryRow(teamQuery, teamID, userID).Scan(&userOwnsTeam)
+	if err != nil {
+		return fmt.Errorf("failed to check team ownership: %w", err)
+	}
+
+	if userOwnsTeam {
+		// User owns the team, allow access
+		return nil
+	}
+
+	// If user doesn't own the team, check if this is an agent call
+	// (agentID should be a valid agent that belongs to this team)
+	return h.validateAgentTeamMembership(agentID, teamID, userID)
+}
+
 // saveTeamMemory saves team memory to the database
 func (h *TeamsHandler) saveTeamMemory(teamID, userID string, memory *types.TeamMemory) error {
 	// Convert memory to JSON

@@ -1,0 +1,22 @@
+{
+  "id": "func-github-create-issue",
+  "name": "github_create_issue",
+  "provider": "github",
+  "display_name": "GitHub Create Issue",
+  "description": "Create a new issue in a GitHub repository. Essential for tracking bugs, feature requests, and project tasks.",
+  "endpoint": {
+    "path": "https://api.github.com/repos/{owner}/{repo}/issues",
+    "method": "POST"
+  },
+  "parameters": {
+    "required": [],
+    "optional": [],
+    "schema": {"type": "object", "required": ["owner", "repo", "title"], "properties": {"body": {"type": "string", "description": "Issue description/body content. Supports full GitHub Markdown formatting"}, "repo": {"type": "string", "description": "Repository name"}, "owner": {"type": "string", "description": "GitHub username or organization name"}, "title": {"type": "string", "description": "Issue title"}, "labels": {"type": "array", "items": {"type": "string"}, "description": "Array of label names to assign to the issue"}, "assignees": {"type": "array", "items": {"type": "string"}, "description": "Array of usernames to assign to the issue"}, "milestone": {"type": "integer", "description": "Milestone number to associate with the issue"}}}
+  },
+  "examples": [
+    {
+      "name": "Basic usage",
+      "parameters": {}
+    }
+  ]
+}

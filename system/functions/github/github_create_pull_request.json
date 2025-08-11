@@ -1,0 +1,22 @@
+{
+  "id": "func-github-create-pr",
+  "name": "github_create_pull_request",
+  "provider": "github",
+  "display_name": "GitHub Create Pull Request",
+  "description": "Create a pull request in a GitHub repository to propose code changes. Essential for autonomous development workflows.",
+  "endpoint": {
+    "path": "https://api.github.com/repos/{owner}/{repo}/pulls",
+    "method": "MCP"
+  },
+  "parameters": {
+    "required": [],
+    "optional": [],
+    "schema": {"type": "object", "required": ["owner", "repo", "title", "head", "base"], "properties": {"base": {"type": "string", "default": "main", "description": "The branch to merge into (target branch)"}, "body": {"type": "string", "description": "Pull request description/body content"}, "head": {"type": "string", "description": "The branch with changes (source branch)"}, "repo": {"type": "string", "description": "Repository name"}, "draft": {"type": "boolean", "default": false, "description": "Create as draft PR"}, "owner": {"type": "string", "description": "GitHub username or organization name"}, "title": {"type": "string", "description": "Pull request title"}, "maintainer_can_modify": {"type": "boolean", "default": true, "description": "Allow maintainers to modify the PR"}}}
+  },
+  "examples": [
+    {
+      "name": "Basic usage",
+      "parameters": {}
+    }
+  ]
+}

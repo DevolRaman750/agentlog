@@ -1,0 +1,22 @@
+{
+  "id": "func-github-update-issue",
+  "name": "github_update_issue",
+  "provider": "github",
+  "display_name": "GitHub Update Issue",
+  "description": "Update a GitHub issue with additional analysis, insights, or findings. Perfect for AI agents to enhance issues with code analysis.",
+  "endpoint": {
+    "path": "https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}",
+    "method": "PATCH"
+  },
+  "parameters": {
+    "required": [],
+    "optional": [],
+    "schema": {"type": "object", "required": ["owner", "repo", "issue_number"], "properties": {"body": {"type": "string", "description": "Updated issue description/body content (optional)"}, "repo": {"type": "string", "description": "Repository name"}, "owner": {"type": "string", "description": "GitHub username or organization name"}, "state": {"enum": ["open", "closed"], "type": "string", "description": "Issue state (optional)"}, "title": {"type": "string", "description": "New title for the issue (optional)"}, "issue_number": {"type": "integer", "minimum": 1, "description": "The issue number to update"}}}
+  },
+  "examples": [
+    {
+      "name": "Basic usage",
+      "parameters": {}
+    }
+  ]
+}

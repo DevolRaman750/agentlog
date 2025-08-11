@@ -1,0 +1,22 @@
+{
+  "id": "func-github-get-file-sha",
+  "name": "github_get_file_sha",
+  "provider": "github",
+  "display_name": "GitHub Get File SHA",
+  "description": "Get the SHA hash of a specific file in a GitHub repository. Required for updating existing files.",
+  "endpoint": {
+    "path": "https://api.github.com/repos/{owner}/{repo}/contents/{path}",
+    "method": "GET"
+  },
+  "parameters": {
+    "required": [],
+    "optional": [],
+    "schema": {"type": "object", "required": ["owner", "repo", "path"], "properties": {"ref": {"type": "string", "default": "main", "description": "Branch, tag, or commit SHA"}, "path": {"type": "string", "description": "Path to the file"}, "repo": {"type": "string", "description": "Repository name"}, "owner": {"type": "string", "description": "GitHub username or organization"}}}
+  },
+  "examples": [
+    {
+      "name": "Basic usage",
+      "parameters": {}
+    }
+  ]
+}

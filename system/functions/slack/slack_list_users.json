@@ -1,0 +1,22 @@
+{
+  "id": "00000000-0000-0000-0000-000000000093",
+  "name": "slack_list_users",
+  "provider": "slack",
+  "display_name": "Slack List Users",
+  "description": "List all users in the Slack workspace. Useful for getting a complete user directory.",
+  "endpoint": {
+    "path": "https://slack.com/api/users.list",
+    "method": "GET"
+  },
+  "parameters": {
+    "required": [],
+    "optional": [],
+    "schema": {"type": "object", "required": [], "properties": {"limit": {"type": "integer", "default": 1000, "maximum": 1000, "minimum": 1, "description": "Maximum number of users to return (1-1000, default 1000)"}, "presence": {"type": "boolean", "default": false, "description": "Include presence information (active/away)"}, "include_locale": {"type": "boolean", "default": false, "description": "Include locale information for users"}}}
+  },
+  "examples": [
+    {
+      "name": "Basic usage",
+      "parameters": {}
+    }
+  ]
+}

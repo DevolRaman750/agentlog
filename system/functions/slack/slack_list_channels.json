@@ -1,0 +1,22 @@
+{
+  "id": "00000000-0000-0000-0000-000000000082",
+  "name": "slack_list_channels",
+  "provider": "slack",
+  "display_name": "Slack List Channels",
+  "description": "List all channels (public, private, DMs) that the bot has access to",
+  "endpoint": {
+    "path": "https://slack.com/api/conversations.list",
+    "method": "GET"
+  },
+  "parameters": {
+    "required": [],
+    "optional": [],
+    "schema": {"type": "object", "required": [], "properties": {"limit": {"type": "integer", "default": 1000, "maximum": 1000, "minimum": 1, "description": "Maximum number of channels to return (1-1000, default 1000)"}, "types": {"type": "string", "default": "public_channel,private_channel", "description": "Comma-separated list of channel types (public_channel, private_channel, mpim, im)"}, "exclude_archived": {"type": "boolean", "default": true, "description": "Exclude archived channels"}}}
+  },
+  "examples": [
+    {
+      "name": "Basic usage",
+      "parameters": {}
+    }
+  ]
+}

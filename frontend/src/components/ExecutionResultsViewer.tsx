@@ -113,7 +113,9 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
       context: context,
       configurations: executionResult.results?.map(r => r.configuration) || [],
       enableFunctionCalling: executionResult.executionRun.enableFunctionCalling || functionTools.length > 0,
-      functionTools: functionTools
+      functionTools: functionTools,
+      // Pass agent information if this was an agent execution
+      agentId: executionResult.executionRun.agentId || undefined
     };
     
     onReExecute(reExecutionData);

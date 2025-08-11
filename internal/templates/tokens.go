@@ -20,7 +20,7 @@ import (
 func (ts *TemplateService) CreateAuthToken(token *types.ExecutionTemplateAuthToken) (*types.ExecutionTemplateAuthToken, error) {
 	// Generate token value
 	token.ID = generateTokenID()
-	token.TokenValue = generateSecureToken()
+	token.TokenValue = "agt_" + generateRandomString(32)
 	token.CreatedAt = time.Now()
 	token.UpdatedAt = time.Now()
 
@@ -271,16 +271,6 @@ func (ts *TemplateService) GetAuthTokenByID(tokenID string) (*types.ExecutionTem
 	return &token, nil
 }
 
-// DeleteAuthToken deactivates an auth token
-func (ts *TemplateService) DeleteAuthToken(tokenID string) error {
-	query := "UPDATE execution_template_auth_tokens SET is_active = FALSE, updated_at = ? WHERE id = ?"
-	_, err := ts.db.Exec(query, time.Now(), tokenID)
-	if err != nil {
-		return fmt.Errorf("failed to delete auth token: %w", err)
-	}
-	return nil
-}
-
 // ValidateTokenAccess validates if a token can access from a specific IP/origin
 func (ts *TemplateService) ValidateTokenAccess(token *types.ExecutionTemplateAuthToken, clientIP, origin string) error {
 	// Check IP whitelist
@@ -320,14 +310,35 @@ func (ts *TemplateService) ValidateTokenAccess(token *types.ExecutionTemplateAut
 	return nil
 }
 
+// DeleteAuthToken soft deletes an auth token
+func (ts *TemplateService) DeleteAuthToken(tokenID string) error {
+	query := "UPDATE execution_template_auth_tokens SET is_active = FALSE, updated_at = ? WHERE id = ?"
+	_, err := ts.db.Exec(query, time.Now(), tokenID)
+	if err != nil {
+		return fmt.Errorf("failed to delete auth token: %w", err)
+	}
+	return nil
+}
+
+// =============================================================================
+// TOKEN GENERATION FUNCTIONS
+// =============================================================================
+
 // generateTokenID generates a unique token ID
 func generateTokenID() string {
-	return "tok-" + generateRandomString(16)
+	return "token-" + generateRandomString(16)
 }
 
 // generateSecureToken generates a cryptographically secure token
 func generateSecureToken() string {
 	bytes := make([]byte, 32) // 256 bits
+	rand.Read(bytes)
+	return hex.EncodeToString(bytes)
+}
+
+// generateRandomString generates a random hex string of specified length
+func generateRandomString(length int) string {
+	bytes := make([]byte, length/2)
 	rand.Read(bytes)
 	return hex.EncodeToString(bytes)
 }

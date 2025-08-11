@@ -1,0 +1,22 @@
+{
+  "id": "func-github-add-comment",
+  "name": "github_add_comment",
+  "provider": "github",
+  "display_name": "GitHub Add Comment",
+  "description": "Add a comment to a GitHub issue or pull request. Perfect for AI agents to provide analysis, updates, or additional information to ongoing discussions.",
+  "endpoint": {
+    "path": "https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/comments",
+    "method": "POST"
+  },
+  "parameters": {
+    "required": [],
+    "optional": [],
+    "schema": {"type": "object", "required": ["owner", "repo", "issue_number", "body"], "properties": {"body": {"type": "string", "description": "The comment content. Supports full GitHub Markdown formatting"}, "repo": {"type": "string", "description": "Repository name"}, "owner": {"type": "string", "description": "GitHub username or organization name"}, "issue_number": {"type": "integer", "minimum": 1, "description": "The issue or pull request number to comment on"}}}
+  },
+  "examples": [
+    {
+      "name": "Basic usage",
+      "parameters": {}
+    }
+  ]
+}

@@ -34,8 +34,8 @@ func (h *TeamsHandler) InitializeTeamMemory(teamID string) (*types.TeamMemory, e
 
 // ReadTeamMemory retrieves memory data for a team with optional filtering
 func (h *TeamsHandler) ReadTeamMemory(ctx context.Context, teamID, agentID, userID string, request *types.TeamMemoryRequest) (*types.TeamMemoryResponse, error) {
-	// Validate agent is a member of the team
-	err := h.validateAgentTeamMembership(agentID, teamID, userID)
+	// Validate access - either agent membership or team ownership
+	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
 	if err != nil {
 		return &types.TeamMemoryResponse{
 			Success: false,
@@ -120,8 +120,8 @@ func (h *TeamsHandler) ReadTeamMemory(ctx context.Context, teamID, agentID, user
 
 // WriteTeamMemory stores or updates memory data for a team
 func (h *TeamsHandler) WriteTeamMemory(ctx context.Context, teamID, agentID, userID string, request *types.TeamMemoryRequest) (*types.TeamMemoryResponse, error) {
-	// Validate agent is a member of the team
-	err := h.validateAgentTeamMembership(agentID, teamID, userID)
+	// Validate access - either agent membership or team ownership
+	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
 	if err != nil {
 		return &types.TeamMemoryResponse{
 			Success: false,
@@ -213,8 +213,8 @@ func (h *TeamsHandler) WriteTeamMemory(ctx context.Context, teamID, agentID, use
 
 // SearchTeamMemory searches through team memory using various strategies
 func (h *TeamsHandler) SearchTeamMemory(ctx context.Context, teamID, agentID, userID string, request *types.TeamMemoryRequest) (*types.TeamMemoryResponse, error) {
-	// Validate agent is a member of the team
-	err := h.validateAgentTeamMembership(agentID, teamID, userID)
+	// Validate access - either agent membership or team ownership
+	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
 	if err != nil {
 		return &types.TeamMemoryResponse{
 			Success: false,
@@ -261,8 +261,8 @@ func (h *TeamsHandler) SearchTeamMemory(ctx context.Context, teamID, agentID, us
 
 // ClearTeamMemory clears or manages team memory based on the request
 func (h *TeamsHandler) ClearTeamMemory(ctx context.Context, teamID, agentID, userID string, request *types.TeamMemoryRequest) (*types.TeamMemoryResponse, error) {
-	// Validate agent is a member of the team
-	err := h.validateAgentTeamMembership(agentID, teamID, userID)
+	// Validate access - either agent membership or team ownership
+	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
 	if err != nil {
 		return &types.TeamMemoryResponse{
 			Success: false,

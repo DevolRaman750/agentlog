@@ -1,4 +1,5 @@
 {
+  "id": "func-agent_memory_clear-1754951707",
   "name": "agent_memory_clear",
   "provider": "internal",
   "display_name": "Agent Memory: Clear",

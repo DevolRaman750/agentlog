@@ -1,0 +1,22 @@
+{
+  "id": "func-github-read-commits",
+  "name": "github_read_commits",
+  "provider": "github",
+  "display_name": "GitHub Read Commits",
+  "description": "Read commit history from a GitHub repository. Get the latest commits, commit messages, authors, dates, and changed files. Perfect for understanding recent changes and project activity.",
+  "endpoint": {
+    "path": "https://api.github.com/repos/{owner}/{repo}/commits",
+    "method": "GET"
+  },
+  "parameters": {
+    "required": [],
+    "optional": [],
+    "schema": {"type": "object", "required": ["owner", "repo"], "properties": {"sha": {"type": "string", "default": "", "description": "SHA or branch to start listing commits from. Use branch names like \\"main\\" or specific commit SHAs."}, "path": {"type": "string", "default": "", "description": "Only commits containing this file path will be returned. Leave empty for all commits."}, "repo": {"type": "string", "description": "Repository name (e.g., \\"vscode\\", \\"react\\", \\"tensorflow\\")"}, "owner": {"type": "string", "description": "GitHub username or organization name (e.g., \\"microsoft\\", \\"facebook\\", \\"google\\")"}, "since": {"type": "string", "default": "", "description": "ISO 8601 date string. Only commits after this date will be returned."}, "until": {"type": "string", "default": "", "description": "ISO 8601 date string. Only commits before this date will be returned."}, "per_page": {"type": "integer", "default": 30, "maximum": 100, "minimum": 1, "description": "Number of commits to return (1-100). Default is 30."}}}
+  },
+  "examples": [
+    {
+      "name": "Basic usage",
+      "parameters": {}
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "id": "slack_send_message",
+  "name": "slack_send_message",
+  "provider": "slack",
+  "display_name": "Send Slack Message",
+  "description": "Send messages to Slack channels or users with rich formatting and attachments",
+  "endpoint": {
+    "path": "https://slack.com/api/chat.postMessage",
+    "method": "POST"
+  },
+  "parameters": {
+    "required": ["channel", "text"],
+    "optional": ["username", "thread_ts", "icon_emoji", "attachments"],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID or name (#general) or user ID (@username)"
+        },
+        "text": {
+          "type": "string",
+          "description": "Message text content. Supports Slack markdown formatting"
+        },
+        "username": {
+          "type": "string",
+          "description": "Bot username to display (optional)"
+        },
+        "thread_ts": {
+          "type": "string",
+          "description": "Timestamp of parent message to reply in thread"
+        },
+        "icon_emoji": {
+          "type": "string",
+          "description": "Emoji to use as bot icon (e.g. :robot_face:)"
+        },
+        "attachments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "text": {"type": "string", "description": "Attachment text"},
+              "color": {"type": "string", "description": "Attachment color bar"},
+              "title": {"type": "string", "description": "Attachment title"},
+              "footer": {"type": "string", "description": "Footer text"},
+              "image_url": {"type": "string", "description": "Image URL to display"}
+            }
+          },
+          "description": "Rich message attachments (optional)"
+        }
+      },
+      "required": ["channel", "text"]
+    }
+  },
+  "examples": [
+    {
+      "name": "Simple message",
+      "parameters": {
+        "channel": "#general",
+        "text": "Hello from the AI assistant!"
+      }
+    },
+    {
+      "name": "Threaded reply",
+      "parameters": {
+        "channel": "#ai-intern",
+        "text": "This is a reply to a thread",
+        "thread_ts": "1234567890.123456"
+      }
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "id": "github-create-file-uuid",
+  "name": "github_create_update_file",
+  "provider": "github",
+  "display_name": "Create/Update GitHub File",
+  "description": "Create or update a file in a GitHub repository",
+  "endpoint": {
+    "path": "https://api.github.com/repos/{owner}/{repo}/contents/{path}",
+    "method": "MCP"
+  },
+  "parameters": {
+    "required": [],
+    "optional": [],
+    "schema": {"type": "object", "required": ["owner", "repo", "path", "content", "message"], "properties": {"sha": {"type": "string", "description": "SHA of the file being replaced (required for updates)"}, "path": {"type": "string", "description": "Path to the file in the repository"}, "repo": {"type": "string", "description": "Repository name"}, "owner": {"type": "string", "description": "GitHub username or organization"}, "branch": {"type": "string", "default": "main", "description": "Branch to commit to"}, "content": {"type": "string", "description": "File content (will be base64 encoded automatically)"}, "message": {"type": "string", "description": "Commit message for the file change"}}}
+  },
+  "examples": [
+    {
+      "name": "Basic usage",
+      "parameters": {}
+    }
+  ]
+}

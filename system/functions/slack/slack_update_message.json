@@ -1,0 +1,22 @@
+{
+  "id": "00000000-0000-0000-0000-000000000089",
+  "name": "slack_update_message",
+  "provider": "slack",
+  "display_name": "Slack Update Message",
+  "description": "Update/edit a message that was previously sent",
+  "endpoint": {
+    "path": "https://slack.com/api/chat.update",
+    "method": "POST"
+  },
+  "parameters": {
+    "required": [],
+    "optional": [],
+    "schema": {"type": "object", "required": ["channel", "ts"], "properties": {"ts": {"type": "string", "description": "Timestamp of the message to update"}, "text": {"type": "string", "description": "New text for the message"}, "blocks": {"type": "array", "items": {"type": "object"}, "description": "Structured blocks to replace the message content"}, "channel": {"type": "string", "description": "Channel containing the message"}, "attachments": {"type": "array", "items": {"type": "object"}, "description": "Secondary attachments for the message"}}}
+  },
+  "examples": [
+    {
+      "name": "Basic usage",
+      "parameters": {}
+    }
+  ]
+}

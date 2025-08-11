@@ -1,0 +1,22 @@
+{
+  "id": "func-github-merge-pr",
+  "name": "github_merge_pull_request",
+  "provider": "github",
+  "display_name": "GitHub Merge Pull Request",
+  "description": "Merge a pull request in a GitHub repository. Completes the autonomous development workflow.",
+  "endpoint": {
+    "path": "https://api.github.com/repos/{owner}/{repo}/pulls/{pull_number}/merge",
+    "method": "PUT"
+  },
+  "parameters": {
+    "required": [],
+    "optional": [],
+    "schema": {"type": "object", "required": ["owner", "repo", "pull_number"], "properties": {"repo": {"type": "string", "description": "Repository name"}, "owner": {"type": "string", "description": "GitHub username or organization"}, "pull_number": {"type": "integer", "description": "Pull request number to merge"}, "commit_title": {"type": "string", "description": "Custom merge commit title"}, "merge_method": {"enum": ["merge", "squash", "rebase"], "type": "string", "default": "merge", "description": "Merge method to use"}, "commit_message": {"type": "string", "description": "Custom merge commit message"}}}
+  },
+  "examples": [
+    {
+      "name": "Basic usage",
+      "parameters": {}
+    }
+  ]
+}

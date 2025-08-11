@@ -1,4 +1,5 @@
 {
+  "id": "00000000-0000-0000-0000-000000000095",
   "name": "slack_find_channel",
   "provider": "slack",
   "display_name": "Slack: Find Channel", 

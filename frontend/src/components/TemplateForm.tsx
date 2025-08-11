@@ -147,6 +147,14 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
 
   const [parameters, setParameters] = useState<Omit<TemplateParameter, 'id'>[]>([]);
   const [selectedFunctions, setSelectedFunctions] = useState<string[]>([]);
+
+  // Debug logging for function selection changes
+  useEffect(() => {
+    console.log('🔥 TEMPLATEFORM: selectedFunctions changed:', {
+      count: selectedFunctions.length,
+      functions: selectedFunctions
+    });
+  }, [selectedFunctions]);
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [loading, setSaving] = useState(false);
   const [showFunctionSelector, setShowFunctionSelector] = useState(false);
@@ -165,9 +173,18 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
 
   // Initialize form with template data (optimized with useMemo)
   const initialFormData = useMemo(() => {
+    console.log('🔥 TEMPLATEFORM: initialFormData useMemo triggered with:', {
+      hasTemplate: !!template,
+      templateId: template?.id,
+      templateName: template?.name,
+      preferredConfigurationId: template?.preferredConfigurationId,
+      configurationsCount: configurations.length
+    });
+    
     if (!template) {
       // For new templates, use the first available configuration
       const defaultConfigId = configurations.length > 0 ? configurations[0].id || '' : '';
+      console.log('🔥 TEMPLATEFORM: No template, using default config:', defaultConfigId);
       return {
         name: '',
         description: '',
@@ -179,7 +196,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
       };
     }
     
-    return {
+    const formData = {
       name: sanitizeInput(template.name || '', VALIDATION_RULES.templateName.maxLength),
       description: sanitizeInput(template.description || '', VALIDATION_RULES.description.maxLength),
       prompt: sanitizeInput((template.prompt || template.templatePrompt || ''), VALIDATION_RULES.prompt.maxLength),
@@ -188,12 +205,28 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
       tags: Array.isArray(template.tags) ? template.tags.join(', ') : '',
       configurationId: template.preferredConfigurationId || (configurations.length > 0 ? configurations[0].id || '' : ''),
     };
+    
+    console.log('🔥 TEMPLATEFORM: Created form data with configurationId:', formData.configurationId);
+    return formData;
   }, [template, configurations]);
 
   // Initialize form when template changes
   useEffect(() => {
+    console.log('🔥 TEMPLATEFORM: useEffect triggered - template changed to:', {
+      hasTemplate: !!template,
+      templateId: template?.id,
+      preferredConfigurationId: template?.preferredConfigurationId,
+      functionIds: template?.functionIds,
+      functionCount: template?.functionIds?.length || 0,
+      isEditMode,
+      hasInitialFormData: !!initialFormData
+    });
+    
     if (initialFormData) {
+      // ALWAYS update form data - no conditions, just update it
+      console.log('🔥 TEMPLATEFORM: FORCE setFormData with:', initialFormData);
       setFormData(initialFormData);
+      console.log('🔥 TEMPLATEFORM: FORCE setFormData completed');
       
       if (template?.parameters) {
         const sanitizedParams = template.parameters.map(p => {
@@ -213,17 +246,25 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
       }
 
       if (template?.functionIds) {
+        console.log('🔥 TEMPLATEFORM: Setting initial functions from template:', {
+          templateId: template.id,
+          functionIds: template.functionIds,
+          functionCount: template.functionIds.length
+        });
         setSelectedFunctions(template.functionIds);
+      } else {
+        console.log('🔥 TEMPLATEFORM: No functionIds found in template:', {
+          templateId: template?.id,
+          templateKeys: template ? Object.keys(template) : [],
+          template: template
+        });
       }
     }
   }, [initialFormData, template]);
 
   // Set default configuration if none is selected
-  useEffect(() => {
-    if (!formData.configurationId && configurations.length > 0 && configurations[0].id) {
-      setFormData(prev => ({ ...prev, configurationId: configurations[0].id! }));
-    }
-  }, [formData.configurationId, configurations]);
+  // REMOVED: This useEffect was overriding template configuration values
+  // Default configuration is now handled in initialFormData useMemo
 
   // Auto-detect parameters from prompt changes
   useEffect(() => {
@@ -354,6 +395,13 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
         defaultValue: sanitizeInput(p.defaultValue || ''),
       }));
       
+      console.log('🔥 TEMPLATEFORM: About to save with data:', {
+        templateId: template?.id,
+        functionIds: selectedFunctions,
+        functionCount: selectedFunctions.length,
+        configurationId: sanitizedFormData.configurationId
+      });
+
       const success = await onSave(sanitizedFormData, sanitizedParameters, selectedFunctions);
       
       if (success && isMountedRef.current) {
@@ -704,7 +752,9 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
   );
 
   const renderConfigurationSection = () => {
+    console.log('🔥 TEMPLATEFORM: renderConfigurationSection called with formData.configurationId:', formData.configurationId);
     const selectedConfig = configurations.find(config => config.id === formData.configurationId);
+    console.log('🔥 TEMPLATEFORM: selectedConfig found:', selectedConfig?.id);
     
     // Debug logging for troubleshooting
     if (!selectedConfig && formData.configurationId) {
@@ -740,7 +790,8 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
                 )}
               </View>
               <Text style={styles.modelSelectorValue}>
-                {selectedConfig?.variationName || 'No Configuration Selected'}
+{selectedConfig?.variationName || 'No Configuration Selected'}
+                {console.log('🔥 TEMPLATEFORM: Rendering with selectedConfig:', selectedConfig?.id, 'formData.configurationId:', formData.configurationId)}
               </Text>
               <Text style={styles.modelSelectorDescription}>
                 Model: {selectedConfig?.modelName || 'Unknown'} | 
@@ -941,6 +992,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
       configurations={configurations}
       selectedConfigurations={formData.configurationId ? [formData.configurationId] : []}
       onSelectionChange={(configIds) => {
+        console.log('🔥 TEMPLATEFORM: Current formData.configurationId when selector changes:', formData.configurationId);
         console.log('🔧 Configuration selection changed:', configIds, 'current:', formData.configurationId);
         
         // For templates, we want single-selection behavior

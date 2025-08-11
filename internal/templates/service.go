@@ -1,9 +1,7 @@
 package templates
 
 import (
-	"crypto/rand"
 	"database/sql"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -60,10 +58,10 @@ func (ts *TemplateService) CreateTemplate(template *types.ExecutionTemplate, par
 	query := `
 		INSERT INTO execution_templates (
 			id, user_id, name, description, template_prompt, context_template,
-			enable_function_calling, is_active, is_public, category, tags,
+			enable_function_calling, preferred_configuration_id, is_active, is_public, category, tags,
 			execution_timeout_seconds, rate_limit_per_hour, rate_limit_per_day,
 			rate_limit_burst, total_executions, created_at, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
 	// Handle nil/empty values
@@ -85,7 +83,7 @@ func (ts *TemplateService) CreateTemplate(template *types.ExecutionTemplate, par
 	_, err = tx.Exec(query,
 		template.ID, template.UserID, template.Name, description,
 		template.TemplatePrompt, contextTemplate, template.EnableFunctionCalling,
-		template.IsActive, template.IsPublic, template.Category, tagsJSON,
+		template.PreferredConfigurationID, template.IsActive, template.IsPublic, template.Category, tagsJSON,
 		template.ExecutionTimeoutSeconds, template.RateLimitPerHour, template.RateLimitPerDay,
 		template.RateLimitBurst, 0, template.CreatedAt, template.UpdatedAt,
 	)
@@ -153,7 +151,7 @@ func (ts *TemplateService) CreateTemplate(template *types.ExecutionTemplate, par
 func (ts *TemplateService) GetTemplateByID(templateID string, includeParameters, includeTokens bool) (*types.ExecutionTemplate, error) {
 	query := `
 		SELECT id, user_id, name, description, template_prompt, context_template,
-			   enable_function_calling, is_active, is_public, category, tags,
+			   enable_function_calling, preferred_configuration_id, is_active, is_public, category, tags,
 			   execution_timeout_seconds, rate_limit_per_hour, rate_limit_per_day,
 			   rate_limit_burst, total_executions, last_executed_at, created_at, updated_at
 		FROM execution_templates
@@ -165,11 +163,12 @@ func (ts *TemplateService) GetTemplateByID(templateID string, includeParameters,
 	var lastExecutedAt sql.NullTime
 	var description sql.NullString
 	var contextTemplate sql.NullString
+	var preferredConfigurationID sql.NullString
 
 	err := ts.db.QueryRow(query, templateID).Scan(
 		&template.ID, &template.UserID, &template.Name, &description,
 		&template.TemplatePrompt, &contextTemplate, &template.EnableFunctionCalling,
-		&template.IsActive, &template.IsPublic, &template.Category, &tagsJSON,
+		&preferredConfigurationID, &template.IsActive, &template.IsPublic, &template.Category, &tagsJSON,
 		&template.ExecutionTimeoutSeconds, &template.RateLimitPerHour, &template.RateLimitPerDay,
 		&template.RateLimitBurst, &template.TotalExecutions, &lastExecutedAt,
 		&template.CreatedAt, &template.UpdatedAt,
@@ -188,15 +187,33 @@ func (ts *TemplateService) GetTemplateByID(templateID string, includeParameters,
 	if contextTemplate.Valid {
 		template.ContextTemplate = contextTemplate.String
 	}
+	if preferredConfigurationID.Valid {
+		template.PreferredConfigurationID = &preferredConfigurationID.String
+	}
 	if lastExecutedAt.Valid {
 		template.LastExecutedAt = &lastExecutedAt.Time
 	}
 
-	// Parse tags
+	// Parse tags - handle both array and object formats
 	if tagsJSON.Valid {
-		err = json.Unmarshal([]byte(tagsJSON.String), &template.Tags)
-		if err != nil {
-			log.Printf("Warning: failed to parse template tags: %v", err)
+		// First try to parse as object (current format)
+		var tagsObj map[string]interface{}
+		if err := json.Unmarshal([]byte(tagsJSON.String), &tagsObj); err == nil {
+			template.Tags = tagsObj
+		} else {
+			// If that fails, try to parse as array (legacy format)
+			var tagsArray []string
+			if err := json.Unmarshal([]byte(tagsJSON.String), &tagsArray); err == nil {
+				// Convert array to object format
+				tagsObj := make(map[string]interface{})
+				for _, tag := range tagsArray {
+					tagsObj[tag] = true
+				}
+				template.Tags = tagsObj
+			} else {
+				log.Printf("Warning: failed to parse template tags (neither object nor array): %v", err)
+				template.Tags = make(map[string]interface{})
+			}
 		}
 	}
 
@@ -266,7 +283,7 @@ func (ts *TemplateService) ListTemplates(userID string, limit, offset int, categ
 	// Get templates with pagination
 	query := fmt.Sprintf(`
 		SELECT id, user_id, name, description, template_prompt, context_template,
-			   enable_function_calling, is_active, is_public, category, tags,
+			   enable_function_calling, preferred_configuration_id, is_active, is_public, category, tags,
 			   execution_timeout_seconds, rate_limit_per_hour, rate_limit_per_day,
 			   rate_limit_burst, total_executions, last_executed_at, created_at, updated_at
 		FROM execution_templates
@@ -289,11 +306,12 @@ func (ts *TemplateService) ListTemplates(userID string, limit, offset int, categ
 		var lastExecutedAt sql.NullTime
 		var description sql.NullString
 		var contextTemplate sql.NullString
+		var preferredConfigurationID sql.NullString
 
 		err := rows.Scan(
 			&template.ID, &template.UserID, &template.Name, &description,
 			&template.TemplatePrompt, &contextTemplate, &template.EnableFunctionCalling,
-			&template.IsActive, &template.IsPublic, &template.Category, &tagsJSON,
+			&preferredConfigurationID, &template.IsActive, &template.IsPublic, &template.Category, &tagsJSON,
 			&template.ExecutionTimeoutSeconds, &template.RateLimitPerHour, &template.RateLimitPerDay,
 			&template.RateLimitBurst, &template.TotalExecutions, &lastExecutedAt,
 			&template.CreatedAt, &template.UpdatedAt,
@@ -309,12 +327,30 @@ func (ts *TemplateService) ListTemplates(userID string, limit, offset int, categ
 		if contextTemplate.Valid {
 			template.ContextTemplate = contextTemplate.String
 		}
+		if preferredConfigurationID.Valid {
+			template.PreferredConfigurationID = &preferredConfigurationID.String
+		}
 
-		// Parse tags
+		// Parse tags - handle both array and object formats
 		if tagsJSON.Valid {
-			err = json.Unmarshal([]byte(tagsJSON.String), &template.Tags)
-			if err != nil {
-				log.Printf("Warning: failed to parse template tags: %v", err)
+			// First try to parse as object (current format)
+			var tagsObj map[string]interface{}
+			if err := json.Unmarshal([]byte(tagsJSON.String), &tagsObj); err == nil {
+				template.Tags = tagsObj
+			} else {
+				// If that fails, try to parse as array (legacy format)
+				var tagsArray []string
+				if err := json.Unmarshal([]byte(tagsJSON.String), &tagsArray); err == nil {
+					// Convert array to object format
+					tagsObj := make(map[string]interface{})
+					for _, tag := range tagsArray {
+						tagsObj[tag] = true
+					}
+					template.Tags = tagsObj
+				} else {
+					log.Printf("Warning: failed to parse template tags (neither object nor array): %v", err)
+					template.Tags = make(map[string]interface{})
+				}
 			}
 		}
 
@@ -353,16 +389,17 @@ func (ts *TemplateService) ListTemplates(userID string, limit, offset int, categ
 
 // UpdateTemplate updates an existing template and creates a new version
 func (ts *TemplateService) UpdateTemplate(templateID string, template *types.ExecutionTemplate, parameters []types.ExecutionTemplateParameter, functionIds []string, changeSummary string) (*types.ExecutionTemplate, *types.ExecutionTemplateVersion, error) {
+
 	tx, err := ts.db.Begin()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback()
 
-	log.Printf("🔧 Updating template with values: ID=%s, UserID=%s, Name=%s, FunctionIds=%v", template.ID, template.UserID, template.Name, functionIds)
-
 	// Update template
 	template.UpdatedAt = time.Now()
+
+	// Convert tags to JSON
 	var tagsJSON interface{}
 	if template.Tags != nil && len(template.Tags) > 0 {
 		tagsBytes, err := json.Marshal(template.Tags)
@@ -371,30 +408,61 @@ func (ts *TemplateService) UpdateTemplate(templateID string, template *types.Exe
 		}
 		tagsJSON = string(tagsBytes)
 	} else {
-		tagsJSON = nil // SQL NULL
+		tagsJSON = nil
 	}
 
+	// Handle nil/empty values
+	var contextTemplate interface{}
+	if template.ContextTemplate == "" {
+		contextTemplate = nil
+	} else {
+		contextTemplate = template.ContextTemplate
+	}
+
+	var description interface{}
+	if template.Description == "" {
+		description = nil
+	} else {
+		description = template.Description
+	}
+
+	var preferredConfigurationID interface{}
+	if template.PreferredConfigurationID != nil && *template.PreferredConfigurationID != "" {
+		preferredConfigurationID = *template.PreferredConfigurationID
+	} else {
+		preferredConfigurationID = nil
+	}
+
+	// Update template record
 	query := `
 		UPDATE execution_templates SET
 			name = ?, description = ?, template_prompt = ?, context_template = ?,
-			enable_function_calling = ?, is_active = ?, is_public = ?, category = ?,
-			tags = ?, execution_timeout_seconds = ?, rate_limit_per_hour = ?,
-			rate_limit_per_day = ?, rate_limit_burst = ?, updated_at = ?
+			enable_function_calling = ?, preferred_configuration_id = ?, is_active = ?, 
+			is_public = ?, category = ?, tags = ?, execution_timeout_seconds = ?, 
+			rate_limit_per_hour = ?, rate_limit_per_day = ?, rate_limit_burst = ?, updated_at = ?
 		WHERE id = ?
 	`
 
-	_, err = tx.Exec(query,
-		template.Name, template.Description, template.TemplatePrompt, template.ContextTemplate,
-		template.EnableFunctionCalling, template.IsActive, template.IsPublic, template.Category,
-		tagsJSON, template.ExecutionTimeoutSeconds, template.RateLimitPerHour,
-		template.RateLimitPerDay, template.RateLimitBurst, template.UpdatedAt, templateID,
+	result, err := tx.Exec(query,
+		template.Name, description, template.TemplatePrompt, contextTemplate,
+		template.EnableFunctionCalling, preferredConfigurationID, template.IsActive,
+		template.IsPublic, template.Category, tagsJSON, template.ExecutionTimeoutSeconds,
+		template.RateLimitPerHour, template.RateLimitPerDay, template.RateLimitBurst,
+		template.UpdatedAt, template.ID,
 	)
+
+	if err == nil {
+		_, err = result.RowsAffected()
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to get rows affected: %w", err)
+		}
+	}
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to update template: %w", err)
 	}
 
 	// Delete existing parameters
-	_, err = tx.Exec("DELETE FROM execution_template_parameters WHERE template_id = ?", templateID)
+	_, err = tx.Exec("DELETE FROM execution_template_parameters WHERE template_id = ?", template.ID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to delete existing parameters: %w", err)
 	}
@@ -402,14 +470,13 @@ func (ts *TemplateService) UpdateTemplate(templateID string, template *types.Exe
 	// Insert new parameters
 	for i, param := range parameters {
 		param.ID = generateParameterID()
-		param.TemplateID = templateID
+		param.TemplateID = template.ID
 		param.DisplayOrder = i + 1
 		param.CreatedAt = time.Now()
 		param.UpdatedAt = time.Now()
 
-		// Set default values for required fields if not provided
 		if param.UIComponent == "" {
-			param.UIComponent = "text" // Default to text input
+			param.UIComponent = "text"
 		}
 
 		err = ts.insertTemplateParameter(tx, &param)
@@ -419,15 +486,17 @@ func (ts *TemplateService) UpdateTemplate(templateID string, template *types.Exe
 	}
 
 	// Delete existing function associations
-	_, err = tx.Exec("DELETE FROM execution_template_functions WHERE template_id = ?", templateID)
+	_, err = tx.Exec("DELETE FROM execution_template_functions WHERE template_id = ?", template.ID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to delete existing function associations: %w", err)
 	}
 
 	// Insert new function associations
+	log.Printf("🔥 SERVICE: UpdateTemplate processing %d functions for template %s", len(functionIds), template.ID)
 	for i, functionId := range functionIds {
 		if functionId == "" {
-			continue // Skip empty function IDs
+			log.Printf("🔥 SERVICE: Skipping empty function ID at index %d", i)
+			continue
 		}
 
 		associationID := generateFunctionAssociationID()
@@ -437,18 +506,17 @@ func (ts *TemplateService) UpdateTemplate(templateID string, template *types.Exe
 			) VALUES (?, ?, ?, ?, ?, ?, ?)
 		`
 
-		now := time.Now()
 		_, err = tx.Exec(functionQuery,
-			associationID, templateID, functionId, false, i+1, now, now,
+			associationID, template.ID, functionId, false, i+1, template.UpdatedAt, template.UpdatedAt,
 		)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to insert function association %s: %w", functionId, err)
 		}
 
-		log.Printf("🔗 Associated function %s with template %s", functionId, templateID)
+		log.Printf("🔗 Associated function %s with template %s", functionId, template.ID)
 	}
 
-	// Create version record (this will be handled by the trigger, but we can also do it manually)
+	// Create new version record
 	version, err := ts.createTemplateVersion(tx, template, parameters, "update", changeSummary)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create version: %w", err)
@@ -458,8 +526,8 @@ func (ts *TemplateService) UpdateTemplate(templateID string, template *types.Exe
 		return nil, nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	// Load the updated template
-	updatedTemplate, err := ts.GetTemplateByID(templateID, true, false)
+	// Load the complete updated template
+	updatedTemplate, err := ts.GetTemplateByID(template.ID, true, false)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to load updated template: %w", err)
 	}
@@ -1022,8 +1090,4 @@ func generateFunctionAssociationID() string {
 	return "tfunc-" + generateRandomString(12)
 }
 
-func generateRandomString(length int) string {
-	bytes := make([]byte, length/2)
-	rand.Read(bytes)
-	return hex.EncodeToString(bytes)
-}
+// Auth token methods are now implemented in tokens.go to avoid duplication

@@ -254,9 +254,38 @@ func (th *TemplateHandler) UpdateTemplate(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Preserve user ID and ID
+	// Debug logging
+	log.Printf("🔍 DEBUG: UpdateTemplate request received for template %s", templateID)
+	log.Printf("🔍 DEBUG: Template data: Name=%s, PreferredConfigurationID=%s, EnableFunctionCalling=%t",
+		request.Template.Name,
+		func() string {
+			if request.Template.PreferredConfigurationID != nil {
+				return *request.Template.PreferredConfigurationID
+			}
+			return "nil"
+		}(),
+		request.Template.EnableFunctionCalling)
+	log.Printf("🔍 DEBUG: FunctionIds count: %d, FunctionIds: %v", len(request.FunctionIds), request.FunctionIds)
+	log.Printf("🔍 DEBUG: Parameters count: %d", len(request.Parameters))
+
+	// Preserve user ID and ID and creation time - these should never be changed
 	request.Template.UserID = user.ID
 	request.Template.ID = templateID
+	request.Template.CreatedAt = existingTemplate.CreatedAt
+
+	log.Printf("🔧 UPDATING: Template data - Name=%s, PreferredConfigurationID=%s, EnableFunctionCalling=%t",
+		request.Template.Name,
+		func() string {
+			if request.Template.PreferredConfigurationID != nil {
+				return *request.Template.PreferredConfigurationID
+			}
+			return "nil"
+		}(),
+		request.Template.EnableFunctionCalling)
+
+	// Debug logging for function updates
+	log.Printf("🔥 HANDLERS: UpdateTemplate received function data: count=%d, ids=%v",
+		len(request.FunctionIds), request.FunctionIds)
 
 	// Update template
 	updatedTemplate, version, err := th.templateService.UpdateTemplate(templateID, &request.Template, request.Parameters, request.FunctionIds, request.ChangeSummary)

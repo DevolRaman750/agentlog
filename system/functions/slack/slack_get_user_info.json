@@ -1,0 +1,22 @@
+{
+  "id": "00000000-0000-0000-0000-000000000085",
+  "name": "slack_get_user_info",
+  "provider": "slack",
+  "display_name": "Slack Get User Info",
+  "description": "Get information about a Slack user by their user ID",
+  "endpoint": {
+    "path": "https://slack.com/api/users.info",
+    "method": "GET"
+  },
+  "parameters": {
+    "required": [],
+    "optional": [],
+    "schema": {"type": "object", "required": ["user"], "properties": {"user": {"type": "string", "description": "User ID to get information about (e.g., U1234567890)"}, "include_locale": {"type": "boolean", "default": false, "description": "Set to true to include the locale for this user"}}}
+  },
+  "examples": [
+    {
+      "name": "Basic usage",
+      "parameters": {}
+    }
+  ]
+}

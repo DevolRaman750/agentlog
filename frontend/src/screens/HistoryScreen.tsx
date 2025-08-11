@@ -264,6 +264,8 @@ const HistoryScreen: React.FC = () => {
           configurations: results.map(r => r.configuration),
           enableFunctionCalling: executionRun.enableFunctionCalling || functionTools.length > 0,
           functionTools: functionTools,
+          // Pass agent information if this was an agent execution
+          agentId: executionRun.agentId || undefined
         };
         
         console.log('🔄 Re-execution data prepared:', {
@@ -918,7 +920,9 @@ const HistoryScreen: React.FC = () => {
               context: context,
               configurations: selectedRun.results?.map(r => r.configuration) || [],
               enableFunctionCalling: selectedRun.executionRun.enableFunctionCalling || functionTools.length > 0,
-              functionTools: functionTools
+              functionTools: functionTools,
+              // Pass agent information if this was an agent execution
+              agentId: selectedRun.executionRun.agentId || undefined
             };
             
             console.log('🔄 Re-execution data from ExecutionLogs:', {
