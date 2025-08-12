@@ -3,7 +3,7 @@
   "name": "slack_read_messages",
   "provider": "slack", 
   "display_name": "Slack: Read Messages",
-  "description": "Read messages from a Slack channel. Requires channel ID (use slack_find_channel first to get the ID). By default, returns the most recent messages. Use oldest/latest parameters only when you need messages from a specific time period. Returns recent messages with user information and timestamps.",
+  "description": "Read messages from a Slack channel. Requires channel ID (use slack_find_channel first to get the ID). Returns the most recent messages by default. Use limit parameter to control how many messages to return.",
   "endpoint": {
     "path": "/conversations.history",
     "method": "GET"
@@ -27,11 +27,11 @@
         },
         "oldest": {
           "type": "string",
-          "description": "Start of time range of messages to include (Unix timestamp). Use current time minus desired period (e.g., 24 hours ago = current_time - 86400). Leave empty to get most recent messages."
+          "description": "Start of time range of messages to include (Unix timestamp)"
         },
         "latest": {
           "type": "string", 
-          "description": "End of time range of messages to include (Unix timestamp). Use current time. Leave empty to get most recent messages."
+          "description": "End of time range of messages to include (Unix timestamp)"
         },
         "inclusive": {
           "type": "boolean",
@@ -59,26 +59,17 @@
   },
   "examples": [
     {
-      "name": "Read recent messages (recommended)",
+      "name": "Read recent messages",
       "parameters": {
         "channel": "C1234567890",
         "limit": 50
       }
     },
     {
-      "name": "Read messages from last 24 hours",
+      "name": "Read more recent messages",
       "parameters": {
         "channel": "C1234567890",
-        "limit": 100,
-        "oldest": "1735689600"
-      }
-    },
-    {
-      "name": "Read messages from specific time range",
-      "parameters": {
-        "channel": "C1234567890", 
-        "oldest": "1735689600",
-        "latest": "1735776000"
+        "limit": 100
       }
     }
   ]
