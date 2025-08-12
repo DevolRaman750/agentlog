@@ -3,7 +3,7 @@
   "name": "slack_list_channels",
   "provider": "slack",
   "display_name": "Slack List Channels",
-  "description": "List all channels (public, private, DMs) that the bot has access to",
+  "description": "List all channels (public, private, DMs) that the bot has access to. Use this to verify channel names and IDs, especially when getting 'channel_not_found' errors.",
   "endpoint": {
     "path": "/conversations.list",
     "method": "GET"
@@ -36,8 +36,21 @@
   },
   "examples": [
     {
-      "name": "Basic usage",
+      "name": "List all channels",
       "parameters": {}
+    },
+    {
+      "name": "List only public channels",
+      "parameters": {
+        "types": "public_channel"
+      }
+    },
+    {
+      "name": "List channels with higher limit",
+      "parameters": {
+        "limit": 1000,
+        "exclude_archived": true
+      }
     }
   ]
 }

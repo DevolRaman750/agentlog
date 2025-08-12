@@ -3,7 +3,7 @@
   "name": "slack_send_message",
   "provider": "slack",
   "display_name": "Send Slack Message",
-  "description": "Send messages to Slack channels or users with rich formatting and attachments",
+  "description": "Send messages to Slack channels or users with rich formatting and attachments. If you get a 'channel_not_found' error, use slack_find_channel first to verify the channel exists and get the correct channel ID.",
   "endpoint": {
     "path": "/chat.postMessage",
     "method": "POST"
@@ -16,7 +16,7 @@
       "properties": {
         "channel": {
           "type": "string",
-          "description": "Channel ID or name (#general) or user ID (@username)"
+          "description": "Channel name with # prefix (e.g., #general, #ai-code-updates) or channel ID (e.g., C1234567890) or user ID (@username)"
         },
         "text": {
           "type": "string",
@@ -52,12 +52,26 @@
       "required": ["channel", "text"]
     }
   },
+  "parameter_dependencies": {
+    "channel": {
+      "source_function": "slack_find_channel",
+      "extraction_path": "channels[0].id",
+      "description": "Auto-extract channel ID from slack_find_channel results. Use this to avoid 'channel_not_found' errors."
+    }
+  },
   "examples": [
     {
-      "name": "Simple message",
+      "name": "Simple message to channel",
       "parameters": {
         "channel": "#general",
         "text": "Hello from the AI assistant!"
+      }
+    },
+    {
+      "name": "Message to specific channel",
+      "parameters": {
+        "channel": "#ai-code-updates",
+        "text": "Code updates have been deployed successfully!"
       }
     },
     {
@@ -66,6 +80,13 @@
         "channel": "#ai-intern",
         "text": "This is a reply to a thread",
         "thread_ts": "1234567890.123456"
+      }
+    },
+    {
+      "name": "Message using channel ID",
+      "parameters": {
+        "channel": "C1234567890",
+        "text": "Message using channel ID"
       }
     }
   ]
