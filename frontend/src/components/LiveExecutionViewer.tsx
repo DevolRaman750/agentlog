@@ -136,7 +136,7 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
   isExecuting,
   executionResult,
 }) => {
-  const [viewMode, setViewMode] = useState<ViewMode>('both');
+  const [viewMode, setViewMode] = useState<ViewMode>('logs');
   const [logs, setLogs] = useState<ExecutionLog[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [error, setError] = useState<string | null>(null);
