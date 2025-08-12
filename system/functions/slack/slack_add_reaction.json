@@ -11,7 +11,24 @@
   "parameters": {
     "required": [],
     "optional": [],
-    "schema": {"type": "object", "required": ["channel", "timestamp", "name"], "properties": {"name": {"type": "string", "description": "Emoji name (without colons, e.g., \\"thumbsup\\")"}, "channel": {"type": "string", "description": "Channel containing the message"}, "timestamp": {"type": "string", "description": "Timestamp of the message to react to"}}}
+    "schema": {
+      "type": "object",
+      "required": ["channel", "timestamp", "name"],
+      "properties": {
+        "channel": {
+          "type": "string",
+          "description": "Channel containing the message"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp of the message to react to"
+        },
+        "name": {
+          "type": "string",
+          "description": "Emoji name (without colons, e.g., \"thumbsup\")"
+        }
+      }
+    }
   },
   "examples": [
     {

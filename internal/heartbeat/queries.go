@@ -169,13 +169,15 @@ func (aq *AgentQueries) GetAgentTemplate(ctx context.Context, templateID string)
 	var template types.ExecutionTemplate
 	var createdAt, updatedAt time.Time
 	var preferredConfigID sql.NullString
+	var description sql.NullString
+	var contextTemplate sql.NullString
 
 	err := aq.db.QueryRowContext(ctx, query, templateID).Scan(
 		&template.ID,
 		&template.Name,
-		&template.Description,
+		&description,
 		&template.TemplatePrompt,
-		&template.ContextTemplate,
+		&contextTemplate,
 		&template.EnableFunctionCalling,
 		&preferredConfigID,
 		&template.IsActive,
@@ -194,7 +196,13 @@ func (aq *AgentQueries) GetAgentTemplate(ctx context.Context, templateID string)
 	template.CreatedAt = createdAt
 	template.UpdatedAt = updatedAt
 
-	// Handle the preferred configuration ID
+	// Handle nullable fields
+	if description.Valid {
+		template.Description = description.String
+	}
+	if contextTemplate.Valid {
+		template.ContextTemplate = contextTemplate.String
+	}
 	if preferredConfigID.Valid {
 		template.PreferredConfigurationID = &preferredConfigID.String
 	}
