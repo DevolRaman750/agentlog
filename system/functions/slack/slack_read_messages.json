@@ -10,7 +10,7 @@
   },
   "parameters": {
     "required": ["channel"],
-    "optional": ["limit", "oldest", "latest", "inclusive", "cursor"],
+    "optional": ["limit", "inclusive", "cursor"],
     "schema": {
       "type": "object",
       "properties": {
@@ -25,14 +25,7 @@
           "default": 100,
           "description": "Number of messages to return (max 1000)"
         },
-        "oldest": {
-          "type": "string",
-          "description": "Start of time range of messages to include (Unix timestamp)"
-        },
-        "latest": {
-          "type": "string", 
-          "description": "End of time range of messages to include (Unix timestamp)"
-        },
+
         "inclusive": {
           "type": "boolean",
           "default": false,
