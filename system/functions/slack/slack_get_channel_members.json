@@ -5,7 +5,7 @@
   "display_name": "Slack Get Channel Members",
   "description": "Get list of users who are members of a conversation",
   "endpoint": {
-    "path": "https://slack.com/api/conversations.members",
+    "path": "/conversations.members",
     "method": "GET"
   },
   "parameters": {

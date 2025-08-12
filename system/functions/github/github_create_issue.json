@@ -5,7 +5,7 @@
   "display_name": "GitHub Create Issue",
   "description": "Create a new issue in a GitHub repository. Essential for tracking bugs, feature requests, and project tasks.",
   "endpoint": {
-    "path": "https://api.github.com/repos/{owner}/{repo}/issues",
+    "path": "/repos/{owner}/{repo}/issues",
     "method": "POST"
   },
   "parameters": {

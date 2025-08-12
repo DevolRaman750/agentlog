@@ -5,7 +5,7 @@
   "display_name": "Send Slack Message",
   "description": "Send messages to Slack channels or users with rich formatting and attachments",
   "endpoint": {
-    "path": "https://slack.com/api/chat.postMessage",
+    "path": "/chat.postMessage",
     "method": "POST"
   },
   "parameters": {

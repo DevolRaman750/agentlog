@@ -11,7 +11,16 @@ import {
   Modal,
   Platform,
   Dimensions,
+  Animated,
+  Easing,
 } from 'react-native';
+// Conditional haptics import - fallback if not available
+let Haptics: any = null;
+try {
+  Haptics = require('expo-haptics');
+} catch (e) {
+  // expo-haptics not available, will use fallback
+}
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
@@ -173,6 +182,14 @@ const ExecuteScreen: React.FC = () => {
   // Ref to prevent multiple concurrent API calls
   const isLoadingFunctions = useRef(false);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Animation refs for execution feedback
+  const executeButtonScale = useRef(new Animated.Value(1)).current;
+  const executeButtonOpacity = useRef(new Animated.Value(1)).current;
+  const executionFeedbackOpacity = useRef(new Animated.Value(0)).current;
+  const executionFeedbackScale = useRef(new Animated.Value(0.8)).current;
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [showExecutionFeedback, setShowExecutionFeedback] = useState(false);
 
   // Load backend API keys for validation
   const loadBackendApiKeys = useCallback(async () => {
@@ -631,6 +648,101 @@ const ExecuteScreen: React.FC = () => {
     return `Execution ${dateStr} ${timeStr}`;
   };
 
+  // Execution feedback animations
+  const showExecutionStartedFeedback = useCallback(() => {
+    // Haptic feedback for mobile devices
+    if (Platform.OS === 'ios' && Haptics?.impactAsync) {
+      try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle?.Medium || 'medium');
+      } catch (e) {
+        // Haptics not available, continue without feedback
+      }
+    }
+
+    // Show feedback overlay
+    setShowExecutionFeedback(true);
+
+    // Button press animation
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(executeButtonScale, {
+          toValue: 0.95,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(executeButtonOpacity, {
+          toValue: 0.8,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.parallel([
+        Animated.timing(executeButtonScale, {
+          toValue: 1,
+          duration: 200,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(executeButtonOpacity, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
+
+    // Feedback overlay animation
+    Animated.parallel([
+      Animated.timing(executionFeedbackOpacity, {
+        toValue: 1,
+        duration: 400,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.spring(executionFeedbackScale, {
+        toValue: 1,
+        tension: 100,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Auto-hide feedback after 2 seconds and scroll to execution area
+    setTimeout(() => {
+      hideExecutionFeedback();
+      scrollToExecutionArea();
+    }, 2000);
+  }, []);
+
+  const hideExecutionFeedback = useCallback(() => {
+    Animated.parallel([
+      Animated.timing(executionFeedbackOpacity, {
+        toValue: 0,
+        duration: 300,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(executionFeedbackScale, {
+        toValue: 0.8,
+        duration: 300,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowExecutionFeedback(false);
+      // Reset animation values
+      executionFeedbackOpacity.setValue(0);
+      executionFeedbackScale.setValue(0.8);
+    });
+  }, []);
+
+  const scrollToExecutionArea = useCallback(() => {
+    // Smooth scroll to the execution area
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 500);
+  }, []);
+
   // Count filled other options
   const getOtherOptionsCount = (): number => {
     let count = 0;
@@ -996,6 +1108,9 @@ const ExecuteScreen: React.FC = () => {
       return;
     }
 
+    // Show immediate execution feedback animation
+    showExecutionStartedFeedback();
+
     clearExecutionResult();
 
     try {
@@ -1185,6 +1300,7 @@ const ExecuteScreen: React.FC = () => {
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
       contentContainerStyle={styles.scrollContent}
+      scrollViewRef={scrollViewRef}
     >
         {/* Execution Mode Selector - Compact Design */}
         <View style={styles.modeSelector}>
@@ -1560,22 +1676,56 @@ const ExecuteScreen: React.FC = () => {
               isExecuting={currentExecution.isExecuting}
             />
           ) : (
-            <TouchableOpacity
-              style={[styles.executeButton, (!isConnected || currentExecution?.isExecuting) && styles.executeButtonDisabled]}
-              onPress={executeMultiVariant}
-              disabled={!isConnected || currentExecution?.isExecuting}
+            <Animated.View
+              style={{
+                transform: [{ scale: executeButtonScale }],
+                opacity: executeButtonOpacity,
+              }}
             >
-              <View style={styles.executeContent}>
-                <Ionicons name="rocket" size={24} color="#FFFFFF" />
-                <Text style={styles.executeButtonText}>Run Execution</Text>
-              </View>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.executeButton, (!isConnected || currentExecution?.isExecuting) && styles.executeButtonDisabled]}
+                onPress={executeMultiVariant}
+                disabled={!isConnected || currentExecution?.isExecuting}
+              >
+                <View style={styles.executeContent}>
+                  <Ionicons name="rocket" size={24} color="#FFFFFF" />
+                  <Text style={styles.executeButtonText}>Run Execution</Text>
+                </View>
+              </TouchableOpacity>
+            </Animated.View>
           )}
           
           <Text style={styles.executeDescription}>
             This will run your prompt across all selected AI configurations and provide comparison results
           </Text>
         </View>
+
+        {/* Execution Started Feedback Overlay */}
+        {showExecutionFeedback && (
+          <Animated.View 
+            style={[
+              styles.executionFeedbackOverlay,
+              {
+                opacity: executionFeedbackOpacity,
+                transform: [{ scale: executionFeedbackScale }],
+              }
+            ]}
+          >
+            <View style={styles.executionFeedbackContainer}>
+              <View style={styles.executionFeedbackIcon}>
+                <Ionicons name="rocket" size={32} color="#FFFFFF" />
+              </View>
+              <Text style={styles.executionFeedbackTitle}>🚀 Execution Started!</Text>
+              <Text style={styles.executionFeedbackMessage}>
+                Your AI models are now processing your request
+              </Text>
+              <View style={styles.executionFeedbackProgress}>
+                <ActivityIndicator size="small" color="#007AFF" />
+                <Text style={styles.executionFeedbackProgressText}>Initializing...</Text>
+              </View>
+            </View>
+          </Animated.View>
+        )}
 
         {/* Execution Complete Success Message */}
         {currentExecution?.executionResult && !showExecutionResults && (
@@ -2823,6 +2973,70 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#007AFF',
     flex: 1,
+  },
+  // Execution Feedback Overlay Styles
+  executionFeedbackOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  executionFeedbackContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 32,
+    alignItems: 'center',
+    maxWidth: Dimensions.get('window').width * 0.85,
+    minWidth: 280,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.25,
+        shadowRadius: 16,
+      },
+      android: {
+        elevation: 16,
+      },
+    }),
+  },
+  executionFeedbackIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  executionFeedbackTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  executionFeedbackMessage: {
+    fontSize: 16,
+    color: '#6B6B6B',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  executionFeedbackProgress: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  executionFeedbackProgressText: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '500',
   },
 });
 

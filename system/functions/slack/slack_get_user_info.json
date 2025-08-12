@@ -5,7 +5,7 @@
   "display_name": "Slack Get User Info",
   "description": "Get information about a Slack user by their user ID",
   "endpoint": {
-    "path": "https://slack.com/api/users.info",
+    "path": "/users.info",
     "method": "GET"
   },
   "parameters": {

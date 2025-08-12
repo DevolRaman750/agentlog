@@ -5,7 +5,7 @@
   "display_name": "Slack Join Channel",
   "description": "Join an existing conversation/channel",
   "endpoint": {
-    "path": "https://slack.com/api/conversations.join",
+    "path": "/conversations.join",
     "method": "POST"
   },
   "parameters": {

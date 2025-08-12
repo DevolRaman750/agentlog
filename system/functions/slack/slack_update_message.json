@@ -5,7 +5,7 @@
   "display_name": "Slack Update Message",
   "description": "Update/edit a message that was previously sent",
   "endpoint": {
-    "path": "https://slack.com/api/chat.update",
+    "path": "/chat.update",
     "method": "POST"
   },
   "parameters": {

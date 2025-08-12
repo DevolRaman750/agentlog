@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { RefObject } from 'react';
 import { StyleSheet, ViewStyle, ScrollView } from 'react-native';
 import SafeAreaWrapper from './SafeAreaWrapper';
 import KeyboardAvoidingWrapper from './KeyboardAvoidingWrapper';
@@ -14,6 +14,7 @@ interface ScreenContainerProps {
   showsVerticalScrollIndicator?: boolean;
   keyboardShouldPersistTaps?: 'always' | 'never' | 'handled';
   keyboardDismissMode?: 'none' | 'on-drag' | 'interactive';
+  scrollViewRef?: RefObject<ScrollView>;
 }
 
 /**
@@ -37,7 +38,8 @@ const ScreenContainer: React.FC<ScreenContainerProps> = ({
   enableScrolling = false,
   showsVerticalScrollIndicator = false,
   keyboardShouldPersistTaps = 'handled',
-  keyboardDismissMode = 'on-drag'
+  keyboardDismissMode = 'on-drag',
+  scrollViewRef
 }) => {
   const renderContent = () => {
     if (enableKeyboardAvoiding) {
@@ -48,6 +50,7 @@ const ScreenContainer: React.FC<ScreenContainerProps> = ({
           showsVerticalScrollIndicator={showsVerticalScrollIndicator}
           keyboardShouldPersistTaps={keyboardShouldPersistTaps}
           keyboardDismissMode={keyboardDismissMode}
+          scrollViewRef={scrollViewRef}
         >
           {children}
         </KeyboardAvoidingWrapper>
@@ -57,6 +60,7 @@ const ScreenContainer: React.FC<ScreenContainerProps> = ({
     if (enableScrolling) {
       return (
         <ScrollView
+          ref={scrollViewRef}
           style={styles.scrollContainer}
           contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
           showsVerticalScrollIndicator={showsVerticalScrollIndicator}

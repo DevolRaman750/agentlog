@@ -5,7 +5,7 @@
   "display_name": "GitHub Get File SHA",
   "description": "Get the SHA hash of a specific file in a GitHub repository. Required for updating existing files.",
   "endpoint": {
-    "path": "https://api.github.com/repos/{owner}/{repo}/contents/{path}",
+    "path": "/repos/{owner}/{repo}/contents/{path}",
     "method": "GET"
   },
   "parameters": {

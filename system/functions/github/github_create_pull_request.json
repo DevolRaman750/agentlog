@@ -5,7 +5,7 @@
   "display_name": "GitHub Create Pull Request",
   "description": "Create a pull request in a GitHub repository to propose code changes. Essential for autonomous development workflows.",
   "endpoint": {
-    "path": "https://api.github.com/repos/{owner}/{repo}/pulls",
+    "path": "/repos/{owner}/{repo}/pulls",
     "method": "MCP"
   },
   "parameters": {

@@ -5,7 +5,7 @@
   "display_name": "Slack Search Messages",
   "description": "Search for messages across all channels the bot has access to",
   "endpoint": {
-    "path": "https://slack.com/api/search.messages",
+    "path": "/search.messages",
     "method": "GET"
   },
   "parameters": {

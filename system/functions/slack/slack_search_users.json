@@ -5,7 +5,7 @@
   "display_name": "Slack Search Users",
   "description": "Search for users in the Slack workspace by name, email, or display name. Useful for resolving ambiguous user references.",
   "endpoint": {
-    "path": "https://slack.com/api/users.list",
+    "path": "/users.list",
     "method": "GET"
   },
   "parameters": {

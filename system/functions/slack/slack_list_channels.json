@@ -5,7 +5,7 @@
   "display_name": "Slack List Channels",
   "description": "List all channels (public, private, DMs) that the bot has access to",
   "endpoint": {
-    "path": "https://slack.com/api/conversations.list",
+    "path": "/conversations.list",
     "method": "GET"
   },
   "parameters": {

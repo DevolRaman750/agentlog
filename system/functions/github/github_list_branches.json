@@ -5,7 +5,7 @@
   "display_name": "GitHub List Branches",
   "description": "List all branches in a GitHub repository. Useful for checking existing branches before creating new ones.",
   "endpoint": {
-    "path": "https://api.github.com/repos/{owner}/{repo}/branches",
+    "path": "/repos/{owner}/{repo}/branches",
     "method": "GET"
   },
   "parameters": {

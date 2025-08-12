@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { RefObject } from 'react';
 import { 
   KeyboardAvoidingView, 
   Platform, 
@@ -19,6 +19,7 @@ interface KeyboardAvoidingWrapperProps {
   showsVerticalScrollIndicator?: boolean;
   keyboardShouldPersistTaps?: 'always' | 'never' | 'handled';
   keyboardDismissMode?: 'none' | 'on-drag' | 'interactive';
+  scrollViewRef?: RefObject<ScrollView>;
 }
 
 /**
@@ -40,7 +41,8 @@ const KeyboardAvoidingWrapper: React.FC<KeyboardAvoidingWrapperProps> = ({
   scrollable = false,
   showsVerticalScrollIndicator = false,
   keyboardShouldPersistTaps = 'handled',
-  keyboardDismissMode = 'on-drag'
+  keyboardDismissMode = 'on-drag',
+  scrollViewRef
 }) => {
   const insets = useSafeAreaInsets();
   
@@ -66,6 +68,7 @@ const KeyboardAvoidingWrapper: React.FC<KeyboardAvoidingWrapperProps> = ({
   if (scrollable) {
     return (
       <ScrollView
+        ref={scrollViewRef}
         style={styles.scrollContainer}
         contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
         showsVerticalScrollIndicator={showsVerticalScrollIndicator}

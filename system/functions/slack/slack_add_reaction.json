@@ -5,11 +5,11 @@
   "display_name": "Slack Add Reaction",
   "description": "Add an emoji reaction to a message",
   "endpoint": {
-    "path": "https://slack.com/api/reactions.add",
+    "path": "/reactions.add",
     "method": "POST"
   },
   "parameters": {
-    "required": [],
+    "required": ["channel", "timestamp", "name"],
     "optional": [],
     "schema": {
       "type": "object",
@@ -17,23 +17,35 @@
       "properties": {
         "channel": {
           "type": "string",
-          "description": "Channel containing the message"
+          "description": "Channel ID containing the message (e.g., C1234567890)"
         },
         "timestamp": {
           "type": "string",
-          "description": "Timestamp of the message to react to"
+          "description": "Timestamp of the message to react to (e.g., 1234567890.123456)"
         },
         "name": {
           "type": "string",
-          "description": "Emoji name (without colons, e.g., \"thumbsup\")"
+          "description": "Emoji name (without colons, e.g., \"thumbsup\", \"white_check_mark\")"
         }
       }
     }
   },
   "examples": [
     {
-      "name": "Basic usage",
-      "parameters": {}
+      "name": "Add thumbs up reaction",
+      "parameters": {
+        "channel": "C1234567890",
+        "timestamp": "1234567890.123456",
+        "name": "thumbsup"
+      }
+    },
+    {
+      "name": "Add check mark reaction",
+      "parameters": {
+        "channel": "C1234567890",
+        "timestamp": "1234567890.123456",
+        "name": "white_check_mark"
+      }
     }
   ]
 }

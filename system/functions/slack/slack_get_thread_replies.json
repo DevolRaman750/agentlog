@@ -5,7 +5,7 @@
   "display_name": "Slack Get Thread Replies",
   "description": "Retrieve thread replies for a message",
   "endpoint": {
-    "path": "https://slack.com/api/conversations.replies",
+    "path": "/conversations.replies",
     "method": "GET"
   },
   "parameters": {

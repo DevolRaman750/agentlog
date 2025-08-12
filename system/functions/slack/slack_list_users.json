@@ -5,7 +5,7 @@
   "display_name": "Slack List Users",
   "description": "List all users in the Slack workspace. Useful for getting a complete user directory.",
   "endpoint": {
-    "path": "https://slack.com/api/users.list",
+    "path": "/users.list",
     "method": "GET"
   },
   "parameters": {

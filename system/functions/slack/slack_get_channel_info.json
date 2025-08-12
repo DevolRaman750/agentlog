@@ -5,7 +5,7 @@
   "display_name": "Slack Get Channel Info",
   "description": "Get detailed information about a specific Slack channel",
   "endpoint": {
-    "path": "https://slack.com/api/conversations.info",
+    "path": "/conversations.info",
     "method": "GET"
   },
   "parameters": {

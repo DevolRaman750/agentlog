@@ -5,7 +5,7 @@
   "display_name": "GitHub Add Comment",
   "description": "Add a comment to a GitHub issue or pull request. Perfect for AI agents to provide analysis, updates, or additional information to ongoing discussions.",
   "endpoint": {
-    "path": "https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/comments",
+    "path": "/repos/{owner}/{repo}/issues/{issue_number}/comments",
     "method": "POST"
   },
   "parameters": {

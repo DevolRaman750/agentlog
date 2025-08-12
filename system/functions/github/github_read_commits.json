@@ -5,7 +5,7 @@
   "display_name": "GitHub Read Commits",
   "description": "Read commit history from a GitHub repository. Get the latest commits, commit messages, authors, dates, and changed files. Perfect for understanding recent changes and project activity.",
   "endpoint": {
-    "path": "https://api.github.com/repos/{owner}/{repo}/commits",
+    "path": "/repos/{owner}/{repo}/commits",
     "method": "GET"
   },
   "parameters": {
