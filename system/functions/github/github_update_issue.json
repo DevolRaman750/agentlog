@@ -9,14 +9,28 @@
     "method": "PATCH"
   },
   "parameters": {
-    "required": [],
-    "optional": [],
+    "required": ["owner", "repo", "issue_number"],
+    "optional": ["body", "state", "title"],
     "schema": {"type": "object", "required": ["owner", "repo", "issue_number"], "properties": {"body": {"type": "string", "description": "Updated issue description/body content (optional)"}, "repo": {"type": "string", "description": "Repository name"}, "owner": {"type": "string", "description": "GitHub username or organization name"}, "state": {"enum": ["open", "closed"], "type": "string", "description": "Issue state (optional)"}, "title": {"type": "string", "description": "New title for the issue (optional)"}, "issue_number": {"type": "integer", "minimum": 1, "description": "The issue number to update"}}}
   },
   "examples": [
     {
-      "name": "Basic usage",
-      "parameters": {}
+      "name": "Update issue body",
+      "parameters": {
+        "owner": "microsoft",
+        "repo": "vscode",
+        "issue_number": 123,
+        "body": "Updated issue description with additional analysis."
+      }
+    },
+    {
+      "name": "Close issue",
+      "parameters": {
+        "owner": "facebook",
+        "repo": "react",
+        "issue_number": 456,
+        "state": "closed"
+      }
     }
   ]
 }

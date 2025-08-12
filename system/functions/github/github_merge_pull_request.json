@@ -9,14 +9,28 @@
     "method": "PUT"
   },
   "parameters": {
-    "required": [],
-    "optional": [],
+    "required": ["owner", "repo", "pull_number"],
+    "optional": ["commit_title", "merge_method", "commit_message"],
     "schema": {"type": "object", "required": ["owner", "repo", "pull_number"], "properties": {"repo": {"type": "string", "description": "Repository name"}, "owner": {"type": "string", "description": "GitHub username or organization"}, "pull_number": {"type": "integer", "description": "Pull request number to merge"}, "commit_title": {"type": "string", "description": "Custom merge commit title"}, "merge_method": {"enum": ["merge", "squash", "rebase"], "type": "string", "default": "merge", "description": "Merge method to use"}, "commit_message": {"type": "string", "description": "Custom merge commit message"}}}
   },
   "examples": [
     {
-      "name": "Basic usage",
-      "parameters": {}
+      "name": "Merge pull request",
+      "parameters": {
+        "owner": "microsoft",
+        "repo": "vscode",
+        "pull_number": 123
+      }
+    },
+    {
+      "name": "Squash merge with custom message",
+      "parameters": {
+        "owner": "facebook",
+        "repo": "react",
+        "pull_number": 456,
+        "merge_method": "squash",
+        "commit_message": "Squash merge: Add new feature"
+      }
     }
   ]
 }

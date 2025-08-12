@@ -9,14 +9,19 @@
     "method": "POST"
   },
   "parameters": {
-    "required": [],
+    "required": ["owner", "repo", "issue_number", "body"],
     "optional": [],
     "schema": {"type": "object", "required": ["owner", "repo", "issue_number", "body"], "properties": {"body": {"type": "string", "description": "The comment content. Supports full GitHub Markdown formatting"}, "repo": {"type": "string", "description": "Repository name"}, "owner": {"type": "string", "description": "GitHub username or organization name"}, "issue_number": {"type": "integer", "minimum": 1, "description": "The issue or pull request number to comment on"}}}
   },
   "examples": [
     {
-      "name": "Basic usage",
-      "parameters": {}
+      "name": "Add comment to issue",
+      "parameters": {
+        "owner": "microsoft",
+        "repo": "vscode",
+        "issue_number": 123,
+        "body": "This issue has been analyzed and will be addressed in the next release."
+      }
     }
   ]
 }

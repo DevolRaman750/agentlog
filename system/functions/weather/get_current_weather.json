@@ -9,14 +9,23 @@
     "method": "GET"
   },
   "parameters": {
-    "required": [],
-    "optional": [],
+    "required": ["location"],
+    "optional": ["units"],
     "schema": {"type": "object", "required": ["location"], "properties": {"units": {"enum": ["metric", "imperial", "kelvin"], "type": "string", "description": "Units of measurement"}, "location": {"type": "string", "description": "City name, state code (US only), and country code (ISO 3166) separated by comma"}}}
   },
   "examples": [
     {
-      "name": "Basic usage",
-      "parameters": {}
+      "name": "Get weather for city",
+      "parameters": {
+        "location": "New York,NY,US"
+      }
+    },
+    {
+      "name": "Get weather in metric units",
+      "parameters": {
+        "location": "London,UK",
+        "units": "metric"
+      }
     }
   ]
 }

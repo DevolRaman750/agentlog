@@ -9,8 +9,8 @@
     "method": "GET"
   },
   "parameters": {
-    "required": [],
-    "optional": [],
+    "required": ["owner", "repo"],
+    "optional": ["path", "ref"],
     "schema": {
       "type": "object",
       "required": ["owner", "repo"],
@@ -38,8 +38,29 @@
   },
   "examples": [
     {
-      "name": "Basic usage",
-      "parameters": {}
+      "name": "Explore repository root",
+      "parameters": {
+        "owner": "microsoft",
+        "repo": "vscode",
+        "path": ""
+      }
+    },
+    {
+      "name": "Read specific file",
+      "parameters": {
+        "owner": "facebook",
+        "repo": "react",
+        "path": "README.md"
+      }
+    },
+    {
+      "name": "Read file from specific branch",
+      "parameters": {
+        "owner": "google",
+        "repo": "tensorflow",
+        "path": "README.md",
+        "ref": "main"
+      }
     }
   ]
 }

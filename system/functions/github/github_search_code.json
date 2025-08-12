@@ -9,14 +9,27 @@
     "method": "GET"
   },
   "parameters": {
-    "required": [],
-    "optional": [],
+    "required": ["owner", "repo", "query"],
+    "optional": ["per_page"],
     "schema": {"type": "object", "required": ["owner", "repo", "query"], "properties": {"repo": {"type": "string", "description": "Repository name"}, "owner": {"type": "string", "description": "GitHub username or organization"}, "query": {"type": "string", "description": "Search query (code pattern, function name, etc.)"}, "per_page": {"type": "integer", "default": 30, "maximum": 100, "minimum": 1}}}
   },
   "examples": [
     {
-      "name": "Basic usage",
-      "parameters": {}
+      "name": "Search for function",
+      "parameters": {
+        "owner": "microsoft",
+        "repo": "vscode",
+        "query": "function main"
+      }
+    },
+    {
+      "name": "Search with higher limit",
+      "parameters": {
+        "owner": "facebook",
+        "repo": "react",
+        "query": "useState",
+        "per_page": 50
+      }
     }
   ]
 }

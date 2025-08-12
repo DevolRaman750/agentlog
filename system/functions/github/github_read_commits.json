@@ -9,8 +9,8 @@
     "method": "GET"
   },
   "parameters": {
-    "required": [],
-    "optional": [],
+    "required": ["owner", "repo"],
+    "optional": ["sha", "path", "since", "until", "per_page"],
     "schema": {
       "type": "object",
       "required": ["owner", "repo"],
@@ -55,8 +55,27 @@
   },
   "examples": [
     {
-      "name": "Basic usage",
-      "parameters": {}
+      "name": "Get recent commits from a repository",
+      "parameters": {
+        "owner": "microsoft",
+        "repo": "vscode"
+      }
+    },
+    {
+      "name": "Get commits from a specific branch",
+      "parameters": {
+        "owner": "facebook",
+        "repo": "react",
+        "sha": "main"
+      }
+    },
+    {
+      "name": "Get commits with higher limit",
+      "parameters": {
+        "owner": "google",
+        "repo": "tensorflow",
+        "per_page": 50
+      }
     }
   ]
 }

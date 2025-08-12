@@ -9,14 +9,27 @@
     "method": "MCP"
   },
   "parameters": {
-    "required": [],
-    "optional": [],
+    "required": ["owner", "repo", "branch_name"],
+    "optional": ["source_branch"],
     "schema": {"type": "object", "required": ["owner", "repo", "branch_name"], "properties": {"repo": {"type": "string", "description": "Repository name"}, "owner": {"type": "string", "description": "GitHub username or organization"}, "branch_name": {"type": "string", "description": "Name of the new branch to create"}, "source_branch": {"type": "string", "default": "main", "description": "Source branch to create from"}}}
   },
   "examples": [
     {
-      "name": "Basic usage",
-      "parameters": {}
+      "name": "Create a new branch",
+      "parameters": {
+        "owner": "microsoft",
+        "repo": "vscode",
+        "branch_name": "feature/new-feature"
+      }
+    },
+    {
+      "name": "Create branch from specific source",
+      "parameters": {
+        "owner": "facebook",
+        "repo": "react",
+        "branch_name": "bugfix/issue-123",
+        "source_branch": "develop"
+      }
     }
   ]
 }

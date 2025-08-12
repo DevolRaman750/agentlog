@@ -9,14 +9,31 @@
     "method": "MCP"
   },
   "parameters": {
-    "required": [],
-    "optional": [],
+    "required": ["owner", "repo", "path", "content", "message"],
+    "optional": ["sha", "branch"],
     "schema": {"type": "object", "required": ["owner", "repo", "path", "content", "message"], "properties": {"sha": {"type": "string", "description": "SHA of the file being replaced (required for updates)"}, "path": {"type": "string", "description": "Path to the file in the repository"}, "repo": {"type": "string", "description": "Repository name"}, "owner": {"type": "string", "description": "GitHub username or organization"}, "branch": {"type": "string", "default": "main", "description": "Branch to commit to"}, "content": {"type": "string", "description": "File content (will be base64 encoded automatically)"}, "message": {"type": "string", "description": "Commit message for the file change"}}}
   },
   "examples": [
     {
-      "name": "Basic usage",
-      "parameters": {}
+      "name": "Create new file",
+      "parameters": {
+        "owner": "microsoft",
+        "repo": "vscode",
+        "path": "docs/new-feature.md",
+        "content": "# New Feature\n\nThis is a new feature documentation.",
+        "message": "Add new feature documentation"
+      }
+    },
+    {
+      "name": "Update existing file",
+      "parameters": {
+        "owner": "facebook",
+        "repo": "react",
+        "path": "README.md",
+        "content": "# Updated README\n\nUpdated content here.",
+        "message": "Update README",
+        "sha": "abc123def456"
+      }
     }
   ]
 }
