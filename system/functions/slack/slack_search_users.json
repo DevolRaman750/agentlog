@@ -9,9 +9,30 @@
     "method": "GET"
   },
   "parameters": {
-    "required": [],
-    "optional": [],
-    "schema": {"type": "object", "required": ["query"], "properties": {"limit": {"type": "integer", "default": 50, "maximum": 1000, "minimum": 1, "description": "Maximum number of users to return (1-1000, default 50)"}, "query": {"type": "string", "description": "Search term to find users (name, email, display name, or real name)"}, "include_locale": {"type": "boolean", "default": false, "description": "Include locale information for users"}}}
+    "required": ["query"],
+    "optional": ["limit", "include_locale"],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "Search term to find users (name, email, display name, or real name)"
+        },
+        "limit": {
+          "type": "integer",
+          "default": 50,
+          "maximum": 1000,
+          "minimum": 1,
+          "description": "Maximum number of users to return (1-1000, default 50)"
+        },
+        "include_locale": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include locale information for users"
+        }
+      },
+      "required": ["query"]
+    }
   },
   "examples": [
     {

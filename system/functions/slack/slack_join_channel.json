@@ -9,9 +9,18 @@
     "method": "POST"
   },
   "parameters": {
-    "required": [],
+    "required": ["channel"],
     "optional": [],
-    "schema": {"type": "object", "required": ["channel"], "properties": {"channel": {"type": "string", "description": "Channel ID to join"}}}
+    "schema": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID to join"
+        }
+      },
+      "required": ["channel"]
+    }
   },
   "examples": [
     {

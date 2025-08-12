@@ -10,8 +10,29 @@
   },
   "parameters": {
     "required": [],
-    "optional": [],
-    "schema": {"type": "object", "required": [], "properties": {"limit": {"type": "integer", "default": 1000, "maximum": 1000, "minimum": 1, "description": "Maximum number of channels to return (1-1000, default 1000)"}, "types": {"type": "string", "default": "public_channel,private_channel", "description": "Comma-separated list of channel types (public_channel, private_channel, mpim, im)"}, "exclude_archived": {"type": "boolean", "default": true, "description": "Exclude archived channels"}}}
+    "optional": ["limit", "types", "exclude_archived"],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "default": 1000,
+          "maximum": 1000,
+          "minimum": 1,
+          "description": "Maximum number of channels to return (1-1000, default 1000)"
+        },
+        "types": {
+          "type": "string",
+          "default": "public_channel,private_channel",
+          "description": "Comma-separated list of channel types (public_channel, private_channel, mpim, im)"
+        },
+        "exclude_archived": {
+          "type": "boolean",
+          "default": true,
+          "description": "Exclude archived channels"
+        }
+      }
+    }
   },
   "examples": [
     {

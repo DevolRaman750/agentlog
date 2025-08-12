@@ -10,7 +10,7 @@
   },
   "parameters": {
     "required": ["channel"],
-    "optional": ["limit", "oldest", "latest", "inclusive"],
+    "optional": ["limit", "oldest", "latest", "inclusive", "cursor"],
     "schema": {
       "type": "object",
       "properties": {
@@ -23,20 +23,24 @@
           "minimum": 1,
           "maximum": 1000,
           "default": 100,
-          "description": "Number of messages to return"
+          "description": "Number of messages to return (max 1000)"
         },
         "oldest": {
           "type": "string",
-          "description": "Start of time range of messages to include (timestamp)"
+          "description": "Start of time range of messages to include (Unix timestamp)"
         },
         "latest": {
           "type": "string", 
-          "description": "End of time range of messages to include (timestamp)"
+          "description": "End of time range of messages to include (Unix timestamp)"
         },
         "inclusive": {
           "type": "boolean",
           "default": false,
           "description": "Include messages with latest or oldest timestamp in results"
+        },
+        "cursor": {
+          "type": "string",
+          "description": "Paginate through collections of data by setting the cursor parameter to a next_cursor attribute returned by a previous request's response_metadata"
         }
       },
       "required": ["channel"]

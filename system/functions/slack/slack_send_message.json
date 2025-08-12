@@ -1,5 +1,5 @@
 {
-  "id": "slack_send_message",
+  "id": "00000000-0000-0000-0000-000000000084",
   "name": "slack_send_message",
   "provider": "slack",
   "display_name": "Send Slack Message",

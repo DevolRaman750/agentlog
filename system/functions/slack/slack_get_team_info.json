@@ -10,8 +10,17 @@
   },
   "parameters": {
     "required": [],
-    "optional": [],
-    "schema": {"type": "object", "required": [], "properties": {"include_locale": {"type": "boolean", "default": false, "description": "Include locale information"}}}
+    "optional": ["include_locale"],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "include_locale": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include locale information"
+        }
+      }
+    }
   },
   "examples": [
     {

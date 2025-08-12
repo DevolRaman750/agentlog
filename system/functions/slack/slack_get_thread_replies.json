@@ -9,9 +9,34 @@
     "method": "GET"
   },
   "parameters": {
-    "required": [],
-    "optional": [],
-    "schema": {"type": "object", "required": ["channel", "ts"], "properties": {"ts": {"type": "string", "description": "Timestamp of the parent message"}, "limit": {"type": "integer", "default": 1000, "maximum": 1000, "minimum": 1, "description": "Maximum number of replies to return (1-1000, default 1000)"}, "channel": {"type": "string", "description": "Channel containing the message"}, "inclusive": {"type": "boolean", "default": false, "description": "Include the parent message in results"}}}
+    "required": ["channel", "ts"],
+    "optional": ["limit", "inclusive"],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string",
+          "description": "Channel containing the message"
+        },
+        "ts": {
+          "type": "string",
+          "description": "Timestamp of the parent message"
+        },
+        "limit": {
+          "type": "integer",
+          "default": 1000,
+          "maximum": 1000,
+          "minimum": 1,
+          "description": "Maximum number of replies to return (1-1000, default 1000)"
+        },
+        "inclusive": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include the parent message in results"
+        }
+      },
+      "required": ["channel", "ts"]
+    }
   },
   "examples": [
     {

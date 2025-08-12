@@ -9,9 +9,18 @@
     "method": "GET"
   },
   "parameters": {
-    "required": [],
+    "required": ["user"],
     "optional": [],
-    "schema": {"type": "object", "required": ["user"], "properties": {"user": {"type": "string", "description": "User ID to get presence for (e.g., U1234567890)"}}}
+    "schema": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string",
+          "description": "User ID to get presence for (e.g., U1234567890)"
+        }
+      },
+      "required": ["user"]
+    }
   },
   "examples": [
     {
