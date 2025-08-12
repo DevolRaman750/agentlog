@@ -3,7 +3,7 @@
   "name": "github_read_code",
   "provider": "github",
   "display_name": "GitHub Read Code",
-  "description": "Read files and directory contents from a GitHub repository. IMPORTANT: Start by exploring the repository structure with path="" (empty) to see available directories and files, then navigate to specific paths. Use this to access README files, source code, configuration files, or explore directory structures. Always check directory contents before trying to read specific files.",
+  "description": "Read files and directory contents from a GitHub repository. IMPORTANT: Start by exploring the repository structure with path='' (empty) to see available directories and files, then navigate to specific paths. Use this to access README files, source code, configuration files, or explore directory structures. Always check directory contents before trying to read specific files.",
   "endpoint": {
     "path": "https://api.github.com/repos/{owner}/{repo}/contents/{path}",
     "method": "GET"
@@ -11,7 +11,30 @@
   "parameters": {
     "required": [],
     "optional": [],
-    "schema": {"type": "object", "required": ["owner", "repo"], "properties": {"ref": {"type": "string", "default": "", "description": "Branch, tag, or commit SHA. Examples: \\"main\\", \\"develop\\", \\"v1.0.0\\". Default is the default branch."}, "path": {"type": "string", "default": "", "description": "File or directory path within the repo. EXPLORATION STRATEGY: 1) Start with \\"\\" (empty) to see root contents, 2) Navigate to directories like \\"src/\\", \\"cmd/\\", 3) Then read specific files. Examples: \\"\\" (root directory), \\"src/\\" (explore src directory), \\"src/main.js\\" (read specific file), \\"README.md\\" (read readme)"}, "repo": {"type": "string", "description": "Repository name (e.g., \\"vscode\\", \\"react\\", \\"tensorflow\\")"}, "owner": {"type": "string", "description": "GitHub username or organization name (e.g., \\"microsoft\\", \\"facebook\\", \\"google\\")"}}}
+    "schema": {
+      "type": "object",
+      "required": ["owner", "repo"],
+      "properties": {
+        "ref": {
+          "type": "string",
+          "default": "",
+          "description": "Branch, tag, or commit SHA. Examples: 'main', 'develop', 'v1.0.0'. Default is the default branch."
+        },
+        "path": {
+          "type": "string",
+          "default": "",
+          "description": "File or directory path within the repo. EXPLORATION STRATEGY: 1) Start with '' (empty) to see root contents, 2) Navigate to directories like 'src/', 'cmd/', 3) Then read specific files. Examples: '' (root directory), 'src/' (explore src directory), 'src/main.js' (read specific file), 'README.md' (read readme)"
+        },
+        "repo": {
+          "type": "string",
+          "description": "Repository name (e.g., 'vscode', 'react', 'tensorflow')"
+        },
+        "owner": {
+          "type": "string",
+          "description": "GitHub username or organization name (e.g., 'microsoft', 'facebook', 'google')"
+        }
+      }
+    }
   },
   "examples": [
     {

@@ -1,0 +1,21 @@
+{
+  "id": "template-software-engineer",
+  "name": "Software Engineer",
+  "description": "A full-featured software engineering assistant with complete access to GitHub development workflows and Slack communication. Can read code, create branches, modify files, create pull requests, merge changes, and manage team communication.",
+  "category": "development",
+  "template_prompt": "You are a skilled software engineer assistant with full development capabilities. You can analyze issues, write and modify code, create branches, manage pull requests, and coordinate with team members through Slack. Approach problems systematically: understand requirements, plan solutions, implement changes, and communicate progress clearly.",
+  "context_template": "When working on development tasks, follow best practices: write clean, well-documented code, create meaningful commit messages, and test changes thoroughly. Communicate proactively with the team about progress, blockers, and decisions. Always consider the impact of changes on other team members and the overall codebase.",
+  "enable_function_calling": true,
+  "preferred_configuration_id": "system-config-gemini-pro",
+  "function_ids": ["func-github-read-issues","func-github-read-code","github-create-branch-uuid","github-create-file-uuid","func-github-create-pr","func-github-add-comment","func-github-update-issue","func-github-get-file-sha","func-github-list-branches","func-github-merge-pr","func-github-search-code","func-github-read-commits","func-github-create-issue","slack_send_message","00000000-0000-0000-0000-000000000081","00000000-0000-0000-0000-000000000082","00000000-0000-0000-0000-000000000083","00000000-0000-0000-0000-000000000084","00000000-0000-0000-0000-000000000085","00000000-0000-0000-0000-000000000086","00000000-0000-0000-0000-000000000087","00000000-0000-0000-0000-000000000088","00000000-0000-0000-0000-000000000089","00000000-0000-0000-0000-000000000090","00000000-0000-0000-0000-000000000091","00000000-0000-0000-0000-000000000092","00000000-0000-0000-0000-000000000093","00000000-0000-0000-0000-000000000094"],
+  "parameter_names": [],
+  "settings": {
+    "execution_timeout_seconds": 1200,
+    "rate_limit_per_hour": 50,
+    "rate_limit_per_day": 200,
+    "rate_limit_burst": 5
+  },
+  "tags": ["senior", "development", "github", "slack", "full-access", "system"],
+  "is_system": true,
+  "is_public": true
+}

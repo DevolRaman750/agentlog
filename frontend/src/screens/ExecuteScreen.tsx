@@ -823,10 +823,21 @@ const ExecuteScreen: React.FC = () => {
         console.log('🤖 Loading agent data for execution:', reExecutionData.agentId);
         const agentResponse = await goGentAPI.getAgent(reExecutionData.agentId);
         if (agentResponse.success && agentResponse.data) {
+          const agentData = agentResponse.data;
+          
+          // Set agent data for the execution context
           setAgentData({
-            agent: agentResponse.data,
+            agent: agentData,
             isAgentExecution: true,
             showTooltip: false
+          });
+          
+          // Auto-select the agent in the agent selector
+          setSelectedAgent(agentData);
+          console.log('🎯 Auto-selected agent for execution:', {
+            agentId: agentData.id,
+            agentName: `${agentData.firstName} ${agentData.lastName}`,
+            templateId: agentData.templateId
           });
           
           // If we have a templateId, ensure template functions are loaded

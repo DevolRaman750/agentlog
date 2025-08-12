@@ -135,7 +135,7 @@ INSERT INTO api_configurations (
     'system-config-kimi-k2',
     'system',
     'Tool Use & Coding',
-    'moonshotai/kimi-k2-instruct',
+    'moonshotai/kimi-k2',
     'You are an expert AI assistant specialized in tool use and coding tasks. Excel at function calling, code analysis, and complex agentic workflows. Provide precise, technical solutions.',
     0.6,
     4096,

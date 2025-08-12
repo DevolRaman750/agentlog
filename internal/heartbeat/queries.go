@@ -161,13 +161,14 @@ func (aq *AgentQueries) GetAgentTemplate(ctx context.Context, templateID string)
 	query := `
 		SELECT 
 			id, name, description, template_prompt, context_template,
-			enable_function_calling, is_active, user_id, created_at, updated_at
+			enable_function_calling, preferred_configuration_id, is_active, user_id, created_at, updated_at
 		FROM execution_templates 
 		WHERE id = ? AND is_active = 1
 	`
 
 	var template types.ExecutionTemplate
 	var createdAt, updatedAt time.Time
+	var preferredConfigID sql.NullString
 
 	err := aq.db.QueryRowContext(ctx, query, templateID).Scan(
 		&template.ID,
@@ -176,6 +177,7 @@ func (aq *AgentQueries) GetAgentTemplate(ctx context.Context, templateID string)
 		&template.TemplatePrompt,
 		&template.ContextTemplate,
 		&template.EnableFunctionCalling,
+		&preferredConfigID,
 		&template.IsActive,
 		&template.UserID,
 		&createdAt,
@@ -192,7 +194,83 @@ func (aq *AgentQueries) GetAgentTemplate(ctx context.Context, templateID string)
 	template.CreatedAt = createdAt
 	template.UpdatedAt = updatedAt
 
+	// Handle the preferred configuration ID
+	if preferredConfigID.Valid {
+		template.PreferredConfigurationID = &preferredConfigID.String
+	}
+
 	return &template, nil
+}
+
+// GetConfiguration retrieves an API configuration by ID
+func (aq *AgentQueries) GetConfiguration(ctx context.Context, configID string) (*types.APIConfiguration, error) {
+	query := `
+		SELECT 
+			id, user_id, variation_name, model_name, system_prompt,
+			temperature, max_tokens, top_p, top_k,
+			safety_settings, generation_config, tools, tool_config,
+			created_at, updated_at
+		FROM api_configurations 
+		WHERE id = ?
+	`
+
+	var config types.APIConfiguration
+	var createdAt, updatedAt time.Time
+	var systemPrompt sql.NullString
+	var temperature, topP sql.NullFloat64
+	var maxTokens, topK sql.NullInt32
+	var safetySettings, generationConfig, tools, toolConfig sql.NullString
+
+	err := aq.db.QueryRowContext(ctx, query, configID).Scan(
+		&config.ID,
+		&config.UserID,
+		&config.VariationName,
+		&config.ModelName,
+		&systemPrompt,
+		&temperature,
+		&maxTokens,
+		&topP,
+		&topK,
+		&safetySettings,
+		&generationConfig,
+		&tools,
+		&toolConfig,
+		&createdAt,
+		&updatedAt,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("configuration %s not found", configID)
+		}
+		return nil, fmt.Errorf("failed to get configuration %s: %w", configID, err)
+	}
+
+	// Handle nullable fields
+	if systemPrompt.Valid {
+		config.SystemPrompt = systemPrompt.String
+	}
+	if temperature.Valid {
+		temp := float32(temperature.Float64)
+		config.Temperature = &temp
+	}
+	if maxTokens.Valid {
+		tokens := int32(maxTokens.Int32)
+		config.MaxTokens = &tokens
+	}
+	if topP.Valid {
+		p := float32(topP.Float64)
+		config.TopP = &p
+	}
+	if topK.Valid {
+		k := int32(topK.Int32)
+		config.TopK = &k
+	}
+
+	config.CreatedAt = createdAt
+	config.UpdatedAt = updatedAt
+
+	return &config, nil
 }
 
 // CheckAgentTokenLimit checks if an agent has reached its daily token limit

@@ -1812,10 +1812,10 @@ func (s *Server) getUserDatabaseStats(ctx context.Context, userID string) (map[s
 	err = db.QueryRowContext(ctx, `
 		SELECT 
 			COALESCE(SUM(CASE WHEN resp.response_status = 'success' THEN 1 ELSE 0 END), 0) as success_count,
-			COALESCE(COUNT(*), 0) as total_count
-		FROM api_responses resp 
-		INNER JOIN api_requests req ON resp.request_id = req.id 
-		INNER JOIN execution_runs er ON req.execution_run_id = er.id 
+			COALESCE(COUNT(resp.id), 0) as total_count
+		FROM execution_runs er
+		LEFT JOIN api_requests req ON req.execution_run_id = er.id 
+		LEFT JOIN api_responses resp ON resp.request_id = req.id 
 		WHERE er.user_id = ?
 	`, userID).Scan(&successCount, &totalCount)
 	if err != nil && err != sql.ErrNoRows {

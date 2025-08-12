@@ -293,13 +293,35 @@ const AgentsScreen: React.FC = () => {
         return;
       }
 
-      // Use default configuration or first available
+      // Get configurations and find template's preferred configuration
       const configurations = configResponse.data || [];
-      const defaultConfig = configurations.find(c => c.variationName === 'Software Engineer') || configurations[0];
       
-      if (!defaultConfig) {
+      if (configurations.length === 0) {
         AlertAPI.alert('Error', 'No configurations available');
         return;
+      }
+
+      // Use template's preferred configuration if available, otherwise fallback to first available
+      let selectedConfig = configurations[0]; // Default fallback
+      
+      if (template.preferredConfigurationId) {
+        const preferredConfig = configurations.find(c => c.id === template.preferredConfigurationId);
+        if (preferredConfig) {
+          selectedConfig = preferredConfig;
+          console.log('🎯 Using template preferred configuration for agent execution:', {
+            agentName: `${agent.firstName} ${agent.lastName}`,
+            templateName: template.name,
+            configId: preferredConfig.id,
+            configName: preferredConfig.variationName
+          });
+        } else {
+          console.warn('⚠️ Template preferred configuration not found, using fallback:', {
+            preferredConfigId: template.preferredConfigurationId,
+            availableConfigs: configurations.map(c => ({id: c.id, name: c.variationName}))
+          });
+        }
+      } else {
+        console.log('ℹ️ Template has no preferred configuration, using first available:', selectedConfig.variationName);
       }
 
       // Prepare execution data for the Execute screen
@@ -308,7 +330,7 @@ const AgentsScreen: React.FC = () => {
         description: `Agent execution for ${agent.firstName} ${agent.lastName} using template: ${template.name || 'Unknown Template'}`,
         basePrompt: template.templatePrompt || template.prompt || '',
         context: template.contextTemplate || template.context || '',
-        configurations: [defaultConfig],
+        configurations: [selectedConfig],
         enableFunctionCalling: template.enableFunctionCalling || false,
         functionTools: [], // Will be loaded by Execute screen
         isTemplateExecution: true, // Mark as template execution for read-only prompt

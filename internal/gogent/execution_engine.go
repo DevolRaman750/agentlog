@@ -1233,6 +1233,10 @@ func (c *Client) callGeminiRestAPIForSynthesis(ctx context.Context, config *type
 	}
 	defer geminiClient.Close()
 
+	// Use the config as-is - tool management is handled by the caller (SynthesisManager)
+	// The SynthesisManager has already determined the appropriate tool configuration
+	log.Printf("🔧 Using synthesis config with %d tools (managed by SynthesisManager)", len(config.Tools))
+
 	// Make the API call using the existing Gemini client
 	response, err := geminiClient.GenerateContent(ctx, config, request.Prompt, request.Context)
 	if err != nil {
@@ -1294,43 +1298,160 @@ func (c *Client) processIterativeFunctionCallsWithProvider(ctx context.Context, 
 	}
 
 	// Create a follow-up prompt asking the provider to synthesize the function results
-	synthesisPrompt := fmt.Sprintf("Based on the original request: \"%s\"\n\nI have executed the following functions:\n", originalPrompt)
+	synthesisPrompt := fmt.Sprintf("User's original request: \"%s\"\n\nFunction execution results:\n", originalPrompt)
 
 	for i, funcCall := range functionCalls {
 		resultJSON, _ := json.Marshal(functionResults[i])
-		synthesisPrompt += fmt.Sprintf("\nFunction: %s\nResult: %s\n", funcCall.FunctionCall.Name, string(resultJSON))
+		synthesisPrompt += fmt.Sprintf("\n• %s: %s\n", funcCall.FunctionCall.Name, string(resultJSON))
 	}
 
-	synthesisPrompt += "\nPlease provide a comprehensive analysis and response based on these function results."
+	synthesisPrompt += "\n**IMPORTANT: You must respond in natural language - DO NOT echo the function names or results above. Instead, analyze the data and provide a human-readable response that directly addresses the user's original request. Summarize what you found and what actions you took.**"
 
 	// Get effective API keys for the synthesis request
 	effectiveKeys := c.getEffectiveApiKeys()
+
+	// Use SynthesisManager for provider-based synthesis (Kimi K2, etc.)
+	synthesisManager := NewSynthesisManager()
+	synthesisConfig := &SynthesisConfig{
+		ProviderType:    providerType,
+		Depth:           1,     // Provider synthesis is typically single-step
+		ShouldComplete:  false, // Let provider decide naturally
+		FunctionCalls:   functionCalls,
+		FunctionResults: functionResults,
+		OriginalConfig:  config,
+	}
+
+	decision := synthesisManager.DetermineSynthesisStrategy(synthesisConfig)
+	synthesisManager.LogDecision(decision, synthesisConfig)
 
 	// Create a new request for the synthesis
 	synthesisRequest := &providers.ModelRequest{
 		Prompt:              synthesisPrompt,
 		Context:             request.Context,
 		SystemPrompt:        config.SystemPrompt,
-		Tools:               []types.Tool{}, // No tools for synthesis
+		Tools:               decision.Tools, // Use intelligent tool decision
 		ConversationHistory: []providers.ConversationMessage{},
 		SessionApiKeys:      effectiveKeys,
 	}
 
-	// Call the same provider for synthesis
-	synthesisResponse, err := provider.GenerateContent(ctx, config, synthesisRequest)
-	if err != nil {
-		log.Printf("⚠️ Failed to get synthesis from %s provider: %v", providerType, err)
-		// Fallback to simple summary
+	// Create a longer timeout context specifically for synthesis (may take longer due to large function results)
+	synthesisCtx, cancel := context.WithTimeout(ctx, 300*time.Second) // 5 minutes for synthesis
+	defer cancel()
+
+	// Call the provider for synthesis with iterative support
+	return c.processProviderSynthesisWithIteration(synthesisCtx, config, synthesisRequest, provider, providerType, functionCalls, functionResults, originalPrompt, 0, 6) // Max 6 iterations for providers
+}
+
+// processProviderSynthesisWithIteration handles iterative synthesis for non-Gemini providers
+func (c *Client) processProviderSynthesisWithIteration(ctx context.Context, config *types.APIConfiguration, synthesisRequest *providers.ModelRequest, provider providers.ModelProvider, providerType string, functionCalls []ResponsePart, functionResults []map[string]interface{}, originalPrompt string, depth int, maxDepth int) (string, error) {
+	if depth >= maxDepth {
+		log.Printf("⚠️ Maximum %s synthesis depth (%d) reached, stopping iteration", providerType, maxDepth)
 		return c.createFallbackSummary(functionCalls, functionResults), nil
 	}
 
+	log.Printf("🔧 %s synthesis iteration %d (max %d)", providerType, depth, maxDepth)
+
+	// Call the provider for synthesis
+	synthesisResponse, err := provider.GenerateContent(ctx, config, synthesisRequest)
+	if err != nil {
+		log.Printf("⚠️ Failed to get synthesis from %s provider: %v", providerType, err)
+		return c.createFallbackSummary(functionCalls, functionResults), nil
+	}
+
+	// Check if the provider wants to make additional function calls
+	if len(synthesisResponse.FunctionCalls) > 0 {
+		log.Printf("🔄 %s provider synthesis produced %d additional function calls at depth %d", providerType, len(synthesisResponse.FunctionCalls), depth)
+
+		// Execute the additional function calls
+		additionalResults := make([]map[string]interface{}, len(synthesisResponse.FunctionCalls))
+		for i, fc := range synthesisResponse.FunctionCalls {
+			result, err := c.executeFunctionCall(ctx, fc.Name, fc.Args)
+			if err != nil {
+				log.Printf("⚠️ Additional function %s failed: %v", fc.Name, err)
+				result = map[string]interface{}{
+					"error":  err.Error(),
+					"status": "failed",
+				}
+			}
+			additionalResults[i] = result
+		}
+
+		// Use SynthesisManager to determine if we should continue
+		synthesisManager := NewSynthesisManager()
+		allFunctionCalls := append(functionCalls, convertFunctionCallsToResponseParts(synthesisResponse.FunctionCalls)...)
+		allFunctionResults := append(functionResults, additionalResults...)
+
+		synthesisConfig := &SynthesisConfig{
+			ProviderType:    providerType,
+			Depth:           depth + 1,
+			ShouldComplete:  false,
+			FunctionCalls:   allFunctionCalls,
+			FunctionResults: allFunctionResults,
+			OriginalConfig:  config,
+		}
+
+		decision := synthesisManager.DetermineSynthesisStrategy(synthesisConfig)
+
+		if decision.ForceCompletion {
+			log.Printf("🛑 %s synthesis manager forcing completion at depth %d: %s", providerType, depth, decision.Reason)
+			if synthesisResponse.ResponseText != "" {
+				return synthesisResponse.ResponseText, nil
+			}
+			return c.createFallbackSummary(allFunctionCalls, allFunctionResults), nil
+		}
+
+		// Create a new synthesis prompt with all results
+		newSynthesisPrompt := fmt.Sprintf("User's original request: \"%s\"\n\nFunction execution results:\n", originalPrompt)
+		for i, funcCall := range allFunctionCalls {
+			if i < len(allFunctionResults) {
+				resultJSON, _ := json.Marshal(allFunctionResults[i])
+				newSynthesisPrompt += fmt.Sprintf("\n• %s: %s\n", funcCall.FunctionCall.Name, string(resultJSON))
+			}
+		}
+
+		// Add intelligent prompt suffix
+		promptSuffix := synthesisManager.GetSynthesisPromptSuffix(decision, providerType)
+		newSynthesisPrompt += promptSuffix
+
+		// Create new synthesis request
+		newSynthesisRequest := &providers.ModelRequest{
+			Prompt:              newSynthesisPrompt,
+			Context:             synthesisRequest.Context,
+			SystemPrompt:        synthesisRequest.SystemPrompt,
+			Tools:               decision.Tools,
+			ConversationHistory: synthesisRequest.ConversationHistory,
+			SessionApiKeys:      synthesisRequest.SessionApiKeys,
+		}
+
+		// Recursively continue synthesis
+		return c.processProviderSynthesisWithIteration(ctx, config, newSynthesisRequest, provider, providerType, allFunctionCalls, allFunctionResults, originalPrompt, depth+1, maxDepth)
+	}
+
+	// No additional function calls - provide final response
 	if synthesisResponse.ResponseText != "" {
-		log.Printf("✅ %s provided synthesis after function execution", providerType)
+		log.Printf("✅ %s provided final synthesis after function execution (depth %d)", providerType, depth)
 		return synthesisResponse.ResponseText, nil
 	}
 
 	// Fallback to simple summary
 	return c.createFallbackSummary(functionCalls, functionResults), nil
+}
+
+// convertFunctionCallsToResponseParts converts provider function calls to internal format
+func convertFunctionCallsToResponseParts(functionCalls []providers.FunctionCall) []ResponsePart {
+	responseParts := make([]ResponsePart, len(functionCalls))
+	for i, fc := range functionCalls {
+		responseParts[i] = ResponsePart{
+			FunctionCall: struct {
+				Name string                 `json:"name"`
+				Args map[string]interface{} `json:"args"`
+			}{
+				Name: fc.Name,
+				Args: fc.Args,
+			},
+		}
+	}
+	return responseParts
 }
 
 // executeFunctionCall executes a function call and returns the result
@@ -1585,11 +1706,11 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursive(ctx context
 	}
 
 	// Create a synthesis prompt with the function results
-	synthesisPrompt := fmt.Sprintf("Based on the original request: \"%s\"\n\nI have executed the following functions and retrieved this data:\n\n", originalPrompt)
+	synthesisPrompt := fmt.Sprintf("User's original request: \"%s\"\n\nFunction execution results:\n\n", originalPrompt)
 
 	var hasErrors bool
 	for i, funcCall := range functionCalls {
-		synthesisPrompt += fmt.Sprintf("Function: %s\n", funcCall.FunctionCall.Name)
+		synthesisPrompt += fmt.Sprintf("• %s: ", funcCall.FunctionCall.Name)
 
 		// Include the function result data, but truncate if too large
 		resultJSON, _ := json.Marshal(functionResults[i])
@@ -1597,7 +1718,7 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursive(ctx context
 		if len(resultStr) > 10000 {
 			resultStr = resultStr[:10000] + "... (truncated)"
 		}
-		synthesisPrompt += fmt.Sprintf("Result: %s\n\n", resultStr)
+		synthesisPrompt += fmt.Sprintf("%s\n\n", resultStr)
 
 		// Check if this function failed
 		if status, ok := functionResults[i]["status"].(string); ok && (status == "failed" || status == "validation_failed") {
@@ -1609,11 +1730,12 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursive(ctx context
 	shouldComplete := c.detectTaskCompletion(functionCalls, functionResults, depth, originalPrompt)
 
 	if hasErrors {
-		synthesisPrompt += "\nIMPORTANT: Some functions failed with errors. Please analyze the available data and provide your best response. DO NOT make additional function calls that might fail with the same errors."
+		synthesisPrompt += "\n**ERROR HANDLING:** Some functions failed with errors. Please analyze the available data and provide your best response. DO NOT make additional function calls that might fail with the same errors.\n\n**IMPORTANT: Respond in natural language - DO NOT echo the function names or raw data above. Instead, analyze the successful results and provide a human-readable response explaining what you were able to accomplish.**"
 	} else if shouldComplete {
-		synthesisPrompt += "\nYou now have all the necessary data to complete the user's request. STOP calling functions and provide a comprehensive final response using the data above. Do not call any additional functions - just synthesize the information and respond to the user."
+		synthesisPrompt += "\n**FINAL RESPONSE REQUIRED:** You now have all the necessary data to complete the user's request. STOP calling functions and provide a comprehensive final response using the data above. \n\n**IMPORTANT: Respond in natural language - DO NOT echo the function names or raw data above. Instead, analyze the results and provide a human-readable response that directly addresses the user's original request. Summarize what you found and what actions you took.**"
 	} else {
-		synthesisPrompt += "\nNow, please complete the user's original request using the data I've retrieved above.\n\nIMPORTANT: Only make additional function calls if they are absolutely necessary to complete the user's request (e.g., creating issues, updating files, etc.). If you have all the information needed to answer the user's question, provide a comprehensive response directly without making more function calls.\n\nFor requests like 'summarize', 'analyze', 'list', or 'describe', you likely have enough data already - just provide the answer."
+		// For non-error, non-completion cases, we'll set the prompt after synthesis strategy is determined
+		// This will be handled below after the SynthesisManager logic
 	}
 
 	// Create a new API request for synthesis
@@ -1648,22 +1770,46 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursive(ctx context
 	// Make another Gemini REST API call for synthesis
 	configForSynthesis := *config // Copy the config
 
-	// If we should complete the task, remove tools to force final response
-	if shouldComplete {
-		configForSynthesis.Tools = []types.Tool{} // Remove all tools to prevent further function calls
-		log.Printf("🎯 Removing function tools to force completion - no more function calls allowed")
-
-		c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryExecution,
-			"Forcing task completion - tools removed from synthesis",
-			map[string]interface{}{
-				"depth":          depth,
-				"originalTools":  len(config.Tools),
-				"synthesisTools": len(configForSynthesis.Tools),
-			})
+	// Use SynthesisManager for intelligent tool management following API best practices
+	synthesisManager := NewSynthesisManager()
+	synthesisConfig := &SynthesisConfig{
+		ProviderType:    "gemini", // This is Gemini-specific synthesis path
+		Depth:           depth,
+		ShouldComplete:  shouldComplete,
+		FunctionCalls:   functionCalls,
+		FunctionResults: functionResults,
+		OriginalConfig:  config,
 	}
-	// Otherwise, keep tools available so Gemini can make follow-up function calls
 
-	synthesisResponse, err := c.callGeminiRestAPIForSynthesis(ctx, &configForSynthesis, synthesisRequest)
+	decision := synthesisManager.DetermineSynthesisStrategy(synthesisConfig)
+	synthesisManager.LogDecision(decision, synthesisConfig)
+
+	// Apply the decision
+	configForSynthesis.Tools = decision.Tools
+
+	// Add intelligent prompt suffix if not already handled by error/completion logic
+	if !hasErrors && !shouldComplete {
+		promptSuffix := synthesisManager.GetSynthesisPromptSuffix(decision, "gemini")
+		synthesisPrompt += promptSuffix
+	}
+
+	c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryExecution,
+		"Synthesis strategy determined",
+		map[string]interface{}{
+			"depth":              depth,
+			"shouldComplete":     shouldComplete,
+			"allowFunctionCalls": decision.AllowFunctionCalls,
+			"originalTools":      len(config.Tools),
+			"synthesisTools":     len(configForSynthesis.Tools),
+			"reason":             decision.Reason,
+			"forceCompletion":    decision.ForceCompletion,
+		})
+
+	// Create a longer timeout context specifically for Gemini synthesis (may take longer due to large function results)
+	synthesisCtx, synthesisCancel := context.WithTimeout(ctx, 300*time.Second) // 5 minutes for synthesis
+	defer synthesisCancel()
+
+	synthesisResponse, err := c.callGeminiRestAPIForSynthesis(synthesisCtx, &configForSynthesis, synthesisRequest)
 	synthesisTimeMs := int32(time.Since(synthesisStartTime).Milliseconds())
 	if err != nil {
 		errorMsg := err.Error()

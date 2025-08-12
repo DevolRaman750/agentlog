@@ -1,0 +1,18 @@
+{
+  "id": "system-config-gemini-flash",
+  "name": "Fast & Efficient",
+  "model": "gemini-1.5-flash",
+  "description": "System configuration: Fast & Efficient",
+  "system_prompt": "You are a fast and efficient AI assistant optimized for quick responses. Provide concise, accurate answers while maintaining quality. Focus on speed and clarity.",
+  "parameters": {
+    "temperature": 0.30,
+    "max_tokens": 2048,
+    "top_p": 0.80,
+    "top_k": 40
+  },
+  "safety_settings": null,
+  "generation_config": {"topP": 0.8, "temperature": 0.3, "maxOutputTokens": 2048},
+  "tool_config": null,
+  "is_system": true,
+  "provider": "gemini-1.5-flash"
+}

@@ -2290,8 +2290,8 @@ func (c *Client) getExecutionStats(ctx context.Context, executionRunID string) (
 	query := `
 		SELECT 
 			COUNT(*) as total_requests,
-			SUM(CASE WHEN response_status = 'success' THEN 1 ELSE 0 END) as success_count,
-			SUM(CASE WHEN response_status = 'error' THEN 1 ELSE 0 END) as error_count
+			COALESCE(SUM(CASE WHEN response_status = 'success' THEN 1 ELSE 0 END), 0) as success_count,
+			COALESCE(SUM(CASE WHEN response_status = 'error' THEN 1 ELSE 0 END), 0) as error_count
 		FROM api_responses r
 		INNER JOIN api_requests req ON r.request_id = req.id
 		WHERE req.execution_run_id = ?

@@ -96,6 +96,9 @@ func (c *Client) logExecutionFlowEvent(eventType string, sequenceNumber int, sta
 		} else {
 			dbEventType = db.ExecutionFlowEventsEventTypeFunctionCallEnd
 		}
+	case "synthesis_start", "synthesis_end":
+		// Map synthesis events to ai_model_call since they represent AI processing
+		dbEventType = db.ExecutionFlowEventsEventTypeAiModelCall
 	default:
 		log.Printf("⚠️ [FLOW] Unknown event type '%s', using ai_model_call as fallback", eventType)
 		dbEventType = db.ExecutionFlowEventsEventTypeAiModelCall

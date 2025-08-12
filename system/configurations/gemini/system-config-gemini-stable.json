@@ -1,0 +1,18 @@
+{
+  "id": "system-config-gemini-stable",
+  "name": "Balanced & Reliable",
+  "model": "gemini-1.0-pro",
+  "description": "System configuration: Balanced & Reliable",
+  "system_prompt": "You are a reliable AI assistant providing balanced, well-tested responses. Focus on stability, consistency, and proven performance for production workloads.",
+  "parameters": {
+    "temperature": 0.40,
+    "max_tokens": 3072,
+    "top_p": 0.85,
+    "top_k": 40
+  },
+  "safety_settings": {},
+  "generation_config": {"topP": 0.85, "temperature": 0.4, "maxOutputTokens": 3072},
+  "tool_config": null,
+  "is_system": true,
+  "provider": "gemini-1.0-pro"
+}

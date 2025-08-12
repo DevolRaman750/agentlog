@@ -289,6 +289,50 @@ func (he *HeartbeatExecutor) executeAgent(agent *OverdueAgent) {
 
 // executeAgentTemplate executes the agent's template using the gogent client
 func (he *HeartbeatExecutor) executeAgentTemplate(ctx context.Context, agent *OverdueAgent, template *types.ExecutionTemplate) bool {
+	// Get the preferred configuration for the template
+	var config types.APIConfiguration
+	if template.PreferredConfigurationID != nil && *template.PreferredConfigurationID != "" {
+		// Load the preferred configuration from database
+		preferredConfig, err := he.queries.GetConfiguration(ctx, *template.PreferredConfigurationID)
+		if err != nil {
+			log.Printf("⚠️ Failed to load preferred configuration %s for agent %s: %v",
+				*template.PreferredConfigurationID, agent.ID, err)
+			log.Printf("🔧 Using default configuration for agent %s", agent.ID)
+			// Use default configuration
+			config = types.APIConfiguration{
+				ID:            uuid.New().String(),
+				UserID:        agent.UserID,
+				VariationName: "heartbeat-execution-default",
+				ModelName:     "gemini-1.5-pro",
+				Temperature:   &[]float32{0.7}[0],
+				MaxTokens:     &[]int32{4096}[0],
+				TopK:          &[]int32{40}[0],
+				TopP:          &[]float32{0.9}[0],
+			}
+		} else {
+			// Use the preferred configuration
+			config = *preferredConfig
+			// Update variation name to indicate heartbeat execution
+			config.VariationName = fmt.Sprintf("%s (Heartbeat)", config.VariationName)
+			log.Printf("🎯 Using template preferred configuration for agent %s: %s (%s)",
+				agent.ID, config.VariationName, config.ModelName)
+		}
+	} else {
+		// No preferred configuration, use default
+		log.Printf("ℹ️ No preferred configuration for template %s, using default for agent %s",
+			template.ID, agent.ID)
+		config = types.APIConfiguration{
+			ID:            uuid.New().String(),
+			UserID:        agent.UserID,
+			VariationName: "heartbeat-execution-default",
+			ModelName:     "gemini-1.5-pro",
+			Temperature:   &[]float32{0.7}[0],
+			MaxTokens:     &[]int32{4096}[0],
+			TopK:          &[]int32{40}[0],
+			TopP:          &[]float32{0.9}[0],
+		}
+	}
+
 	// Create execution request
 	executionRequest := &types.MultiExecutionRequest{
 		ExecutionRunName:      fmt.Sprintf("Agent: %s %s (Heartbeat)", agent.FirstName, agent.LastName),
@@ -297,18 +341,7 @@ func (he *HeartbeatExecutor) executeAgentTemplate(ctx context.Context, agent *Ov
 		Context:               template.ContextTemplate,
 		EnableFunctionCalling: template.EnableFunctionCalling,
 		AgentID:               &agent.ID, // Important: link execution to agent
-		Configurations: []types.APIConfiguration{
-			{
-				ID:            uuid.New().String(),
-				UserID:        agent.UserID,
-				VariationName: "heartbeat-execution",
-				ModelName:     "gemini-1.5-pro", // Default model for agents
-				Temperature:   &[]float32{0.7}[0],
-				MaxTokens:     &[]int32{4096}[0],
-				TopK:          &[]int32{40}[0],
-				TopP:          &[]float32{0.9}[0],
-			},
-		},
+		Configurations:        []types.APIConfiguration{config},
 		ComparisonConfig: &types.ComparisonConfig{
 			Enabled: false, // Disable comparison for heartbeat executions
 		},
