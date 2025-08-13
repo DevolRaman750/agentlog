@@ -2,7 +2,7 @@ export interface MarketplaceAgent {
   id: string;
   name: string;
   role: string;
-  category: 'Software Engineering' | 'Communication' | 'DevOps' | 'Research' | 'Analytics' | 'Support';
+  category: 'Software Engineering' | 'Communication' | 'DevOps' | 'Research' | 'Analytics' | 'Support' | 'Development Support';
   description: string;
   experienceLevel: 'Junior' | 'Mid-Level' | 'Senior' | 'Expert';
   hourlyRate?: string; // For visual appeal, like "$50-80/hour equivalent"

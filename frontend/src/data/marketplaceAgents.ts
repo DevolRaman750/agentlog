@@ -3,62 +3,185 @@ import { MarketplaceAgent } from '../types/marketplace';
 export const generateMarketplaceAgents = (): MarketplaceAgent[] => {
   return [
     {
-      id: 'agent-code-analyst-prime-7',
-      name: 'CodeAnalyst-Prime-7',
-      role: 'Software Research Intern',
-      category: 'Software Engineering',
-      description: 'Specialized AI agent for code analysis, issue creation, and research tasks. Designed with read-only access for safe repository exploration and continuous monitoring. Cannot modify code or make commits, ensuring secure operations.',
-      experienceLevel: 'Junior',
-      hourlyRate: '$40-60/hour equivalent',
+      id: 'agent-slack-responder-alpha',
+      name: 'ChatBot-Alpha',
+      role: 'Slack Responder',
+      category: 'Development Support',
+      description: 'An AI assistant that monitors and responds to questions in the #ai-intern Slack channel. Has full access to Slack functions and GitHub read/write capabilities for issues to provide comprehensive answers based on real repository data.',
+      experienceLevel: 'Senior',
+      hourlyRate: '$80-100/hour equivalent',
       avatar: {
-        initials: 'CA',
-        backgroundColor: '#34C759',
+        initials: 'CB',
+        backgroundColor: '#4CAF50',
         textColor: '#FFFFFF',
       },
       capabilities: {
         specialties: [
-          'READ-ONLY Repository Analysis',
-          'Issue Creation & Research',
-          'Code Pattern Detection',
-          'Repository Monitoring',
-          'Slack Communication',
-          'Security: Cannot Modify Code'
+          'Slack Channel Monitoring',
+          'Intelligent Question Answering',
+          'GitHub Data Integration',
+          'Real-time Code Analysis',
+          'Memory-based Context Tracking',
+          'Automated Response Marking'
         ],
-        functionGroups: ['GitHub (Read-Only)', 'Slack Communication'],
+        functionGroups: ['Slack Communication', 'GitHub (Read/Write Issues)', 'Agent Memory'],
         specificFunctions: [
+          'slack_read_messages',
+          'slack_list_channels', 
+          'slack_send_message',
+          'slack_search_messages',
           'github_read_issues',
           'github_read_code',
+          'github_read_commits',
           'github_search_code',
-          'github_list_branches',
           'github_create_issue',
           'github_add_comment',
-          'slack_send_message',
-          'slack_read_messages'
+          'github_update_issue',
+          'agent_memory_read',
+          'agent_memory_write',
+          'agent_memory_search',
+          'agent_memory_clear'
         ],
-        tools: ['GitHub API (Read)', 'Slack Bot API', 'Code Analysis', 'Issue Tracking']
+        tools: ['Slack Bot API', 'GitHub API', 'Memory Management', 'Code Analysis']
       },
-      templateId: 'template-code-analyst',
-      templateName: 'Code Research Analyst',
+      templateId: 'template-slack-responder',
+      templateName: 'Slack Responder',
       highlights: [
-        'SECURE: Read-only access prevents accidental code changes',
-        'Continuously monitors repositories for issues and patterns',
-        'Creates detailed issue reports with code references',
-        'Provides Slack updates on findings and recommendations',
-        'Perfect for code auditing and research tasks'
+        'INTELLIGENT: Leverages GitHub data for accurate responses',
+        'MEMORY-DRIVEN: Tracks conversation context and patterns',
+        'PROACTIVE: Monitors channels for unanswered questions',
+        'COMPREHENSIVE: Combines Slack communication with code knowledge',
+        'SAFE: Read-only code access with controlled issue management'
       ],
       apiRequirements: {
         requiredKeys: ['githubApiKey', 'SLACK_BOT_TOKEN'],
         displayNames: ['GitHub API Token', 'Slack Bot Token']
       },
       modelConfig: {
-        modelName: 'gemini-1.5-flash-latest',
-        configName: 'Gemini Flash Default',
+        modelName: 'gemini-1.5-pro-latest',
+        configName: 'Gemini Pro Default',
         temperature: 0.5,
-        maxTokens: 1024
+        maxTokens: 2048
       }
     },
     {
-      id: 'agent-dev-nexus-alpha-3',
+      id: 'agent-github-issue-enhancer-beta',
+      name: 'IssueBot-Beta',
+      role: 'GitHub Issue Enhancer',
+      category: 'Development Support',
+      description: 'An engineering assistant that keeps GitHub issues actionable by finding relevant code pointers and appending helpful context. Focuses on code analysis and issue enrichment with safe, non-destructive updates.',
+      experienceLevel: 'Expert',
+      hourlyRate: '$100-120/hour equivalent',
+      avatar: {
+        initials: 'IB',
+        backgroundColor: '#2196F3',
+        textColor: '#FFFFFF',
+      },
+      capabilities: {
+        specialties: [
+          'Automated Issue Enhancement',
+          'Code Pointer Discovery',
+          'Safe Context Appending',
+          'Repository Code Analysis',
+          'Issue Deduplication',
+          'Memory-based Processing'
+        ],
+        functionGroups: ['GitHub (Read/Write Issues)', 'Agent Memory'],
+        specificFunctions: [
+          'github_read_issues',
+          'github_read_code',
+          'github_read_commits',
+          'github_search_code',
+          'github_add_comment',
+          'github_update_issue',
+          'agent_memory_read',
+          'agent_memory_write',
+          'agent_memory_search',
+          'agent_memory_clear'
+        ],
+        tools: ['GitHub API', 'Code Analysis Engine', 'Memory Management', 'Issue Tracking']
+      },
+      templateId: 'template-github-issue-enhancer',
+      templateName: 'GitHub Issue Enhancer',
+      highlights: [
+        'NON-DESTRUCTIVE: Only appends context, never overwrites',
+        'INTELLIGENT: Finds relevant code pointers automatically',
+        'EFFICIENT: Memory-based deduplication prevents repeat work',
+        'ACTIONABLE: Provides concrete next steps for developers',
+        'COMPREHENSIVE: Deep code analysis with contextual insights'
+      ],
+      apiRequirements: {
+        requiredKeys: ['githubApiKey'],
+        displayNames: ['GitHub API Token']
+      },
+      modelConfig: {
+        modelName: 'gemini-1.5-pro-latest',
+        configName: 'Gemini Pro Default',
+        temperature: 0.3,
+        maxTokens: 4096
+      }
+    },
+    {
+      id: 'agent-slack-reporter-gamma',
+      name: 'ReportBot-Gamma',
+      role: 'Slack Reporter',
+      category: 'Development Support',
+      description: 'An engineering assistant that continuously monitors GitHub repository activity and reports fresh updates to the #ai-code-updates Slack channel. Provides comprehensive code update digests with memory-based deduplication.',
+      experienceLevel: 'Senior',
+      hourlyRate: '$90-110/hour equivalent',
+      avatar: {
+        initials: 'RB',
+        backgroundColor: '#FF5722',
+        textColor: '#FFFFFF',
+      },
+      capabilities: {
+        specialties: [
+          'Continuous Repository Monitoring',
+          'Automated Slack Reporting',
+          'Code Update Digests',
+          'Memory-based Deduplication',
+          'Multi-channel Communication',
+          'Activity Pattern Recognition'
+        ],
+        functionGroups: ['GitHub (Read)', 'Slack Communication', 'Agent Memory'],
+        specificFunctions: [
+          'github_read_issues',
+          'github_read_code',
+          'github_read_commits',
+          'github_search_code',
+          'slack_read_messages',
+          'slack_list_channels',
+          'slack_send_message',
+          'slack_search_messages',
+          'agent_memory_read',
+          'agent_memory_write',
+          'agent_memory_search',
+          'agent_memory_clear'
+        ],
+        tools: ['GitHub API', 'Slack Bot API', 'Memory Management', 'Activity Monitoring']
+      },
+      templateId: 'template-slack-reporter',
+      templateName: 'Slack Reporter',
+      highlights: [
+        'COMPREHENSIVE: Monitors issues, commits, and PRs automatically',
+        'SMART: Memory prevents duplicate reports and spam',
+        'TIMELY: Provides fresh updates on repository activity',
+        'ACTIONABLE: Highlights what needs team attention',
+        'EFFICIENT: Batches updates into digestible reports'
+      ],
+      apiRequirements: {
+        requiredKeys: ['githubApiKey', 'SLACK_BOT_TOKEN'],
+        displayNames: ['GitHub API Token', 'Slack Bot Token']
+      },
+      modelConfig: {
+        modelName: 'gemini-1.5-pro-latest',
+        configName: 'Gemini Pro Default',
+        temperature: 0.4,
+        maxTokens: 3072
+      }
+    },
+    {
+      id: 'agent-autonomous-swe-legacy',
       name: 'DevNexus-Alpha-3',
       role: 'Autonomous Software Engineer',
       category: 'Software Engineering',
@@ -114,60 +237,6 @@ export const generateMarketplaceAgents = (): MarketplaceAgent[] => {
         temperature: 0.3,
         maxTokens: 4096
       }
-    },
-    {
-      id: 'agent-weather-comm-sigma-9',
-      name: 'WeatherComm-Sigma-9',
-      role: 'Weather Communication Specialist',
-      category: 'Communication',
-      description: 'Specialized AI combining real-time weather data access with Slack communication capabilities. Monitors weather conditions and proactively alerts teams via Slack. Perfect for weather-dependent operations and team coordination.',
-      experienceLevel: 'Senior',
-      hourlyRate: '$80-100/hour equivalent',
-      avatar: {
-        initials: 'WC',
-        backgroundColor: '#FF9500',
-        textColor: '#FFFFFF',
-      },
-      capabilities: {
-        specialties: [
-          'Real-time Weather Monitoring',
-          'Slack Alert Management',
-          'Proactive Weather Communications',
-          'Location-based Weather Analysis',
-          'Team Weather Coordination',
-          'NO Code Access (Weather + Comms Only)'
-        ],
-        functionGroups: ['Weather API', 'Slack Communication'],
-        specificFunctions: [
-          'get_current_weather',
-          'slack_send_message',
-          'slack_read_messages',
-          'slack_list_channels',
-          'slack_get_channel_info',
-          'slack_search_users'
-        ],
-        tools: ['OpenWeather API', 'Slack Bot API', 'Location Services', 'Alert Systems']
-      },
-      templateId: 'template-weather-comms',
-      templateName: 'Weather Communication Specialist',
-      highlights: [
-        'FOCUSED: Weather data + Slack communication only',
-        'Proactive weather alerts for teams and operations',
-        'Location-aware weather monitoring and reporting',
-        'Perfect for weather-dependent business operations',
-        'Seamless integration between weather data and team communication'
-      ],
-      apiRequirements: {
-        requiredKeys: ['openWeatherApiKey', 'SLACK_BOT_TOKEN'],
-        displayNames: ['OpenWeather API Key', 'Slack Bot Token']
-      },
-      modelConfig: {
-        modelName: 'gemini-1.5-pro-latest',
-        configName: 'Gemini Pro Default',
-        temperature: 0.7,
-        maxTokens: 2048
-      }
     }
-
   ];
 };

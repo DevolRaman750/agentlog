@@ -30,6 +30,7 @@ import SuccessTooltip from '../components/SuccessTooltip';
 import { Agent, AgentFormData, LifecycleStatus, ExecutionTemplate, Team, TeamWithAgents } from '../types';
 import { useResponsive } from '../context/ResponsiveContext';
 import ScreenContainer from '../components/ScreenContainer';
+import { generateTemplateAgents, generateDevelopmentSupportTeam, isTemplateAgent } from '../data/templateAgents';
 
 
 const AgentsScreen: React.FC = () => {
