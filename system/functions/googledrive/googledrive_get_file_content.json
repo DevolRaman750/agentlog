@@ -1,0 +1,55 @@
+{
+  "id": "func-googledrive-get-file-content",
+  "name": "googledrive_get_file_content",
+  "provider": "googledrive",
+  "display_name": "Google Drive: Get File Content",
+  "description": "Get the content of a file from Google Drive. This works for text files, Google Docs, and other readable file types. For Google Docs, this retrieves the document content in plain text format.",
+  "endpoint": {
+    "path": "/files/{fileId}",
+    "method": "GET"
+  },
+  "parameters": {
+    "required": ["fileId"],
+    "optional": ["alt", "fields"],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "fileId": {
+          "type": "string",
+          "description": "The ID of the file to retrieve content from"
+        },
+        "alt": {
+          "type": "string",
+          "enum": ["media", "json"],
+          "default": "media",
+          "description": "Specifies the format of the response. Use 'media' to get file content, 'json' for metadata only"
+        },
+        "fields": {
+          "type": "string",
+          "description": "Fields to include in the response (only used when alt=json)"
+        }
+      },
+      "required": ["fileId"]
+    }
+  },
+  "response_transformer": {
+    "type": "googledrive_content",
+    "description": "Transform Google Drive file content API response to standardized format"
+  },
+  "examples": [
+    {
+      "name": "Get text file content",
+      "parameters": {
+        "fileId": "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
+        "alt": "media"
+      }
+    },
+    {
+      "name": "Get Google Doc content",
+      "parameters": {
+        "fileId": "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
+        "alt": "media"
+      }
+    }
+  ]
+}

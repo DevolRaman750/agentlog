@@ -26,6 +26,7 @@ import AssignTeamModal from '../components/AssignTeamModal';
 import CreateTeamForm from '../components/CreateTeamForm';
 import { TeamMemoryViewer } from '../components/TeamMemoryViewer';
 import { AgentMemoryViewer } from '../components/AgentMemoryViewer';
+import SuccessTooltip from '../components/SuccessTooltip';
 import { Agent, AgentFormData, LifecycleStatus, ExecutionTemplate, Team, TeamWithAgents } from '../types';
 import { useResponsive } from '../context/ResponsiveContext';
 import ScreenContainer from '../components/ScreenContainer';
@@ -53,6 +54,8 @@ const AgentsScreen: React.FC = () => {
   const [showTeamMemoryModal, setShowTeamMemoryModal] = useState(false);
   const [showAgentMemoryModal, setShowAgentMemoryModal] = useState(false);
   const [prefilledAgentData, setPrefilledAgentData] = useState<any>(null);
+  const [showSuccessTooltip, setShowSuccessTooltip] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   // Show loading screen while auth is loading
   if (authLoading) {
@@ -369,8 +372,14 @@ const AgentsScreen: React.FC = () => {
     setShowAssignTeamModal(true);
   };
 
-  const handleTeamCreated = () => {
+  const handleTeamCreated = (teamName?: string) => {
     setShowCreateTeamModal(false);
+    
+    // Show success tooltip
+    const message = teamName ? `Team "${teamName}" successfully created!` : 'Team successfully created!';
+    setSuccessMessage(message);
+    setShowSuccessTooltip(true);
+    
     loadAgents(); // Refresh to get updated teams and agents
   };
 
@@ -688,9 +697,15 @@ const AgentsScreen: React.FC = () => {
       {/* Create Agent Modal */}
       <Modal visible={showCreateModal} animationType="slide" presentationStyle="pageSheet">
         <CreateAgentForm
-          onSuccess={() => {
+          onSuccess={(agentName?: string) => {
             setShowCreateModal(false);
             setPrefilledAgentData(null);
+            
+            // Show success tooltip
+            const message = agentName ? `Agent "${agentName}" successfully created!` : 'Agent successfully created!';
+            setSuccessMessage(message);
+            setShowSuccessTooltip(true);
+            
             loadAgents(); // Refresh the agents list
           }}
           onCancel={() => {
@@ -792,6 +807,13 @@ const AgentsScreen: React.FC = () => {
           />
         )}
       </Modal>
+
+      {/* Success Tooltip */}
+      <SuccessTooltip
+        visible={showSuccessTooltip}
+        message={successMessage}
+        onHide={() => setShowSuccessTooltip(false)}
+      />
     </ScreenContainer>
   );
 };

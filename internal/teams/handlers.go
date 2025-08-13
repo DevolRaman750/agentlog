@@ -31,7 +31,12 @@ func (h *TeamsHandler) HandleTeams(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		h.listTeams(w, r)
 	case http.MethodPost:
-		h.createTeam(w, r)
+		// Check if this is a team-with-agents creation request
+		if r.URL.Query().Get("with_agents") == "true" {
+			h.createTeamWithAgents(w, r)
+		} else {
+			h.createTeam(w, r)
+		}
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -143,6 +148,131 @@ func (h *TeamsHandler) createTeam(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(team)
+}
+
+// createTeamWithAgents creates a new team with associated agents
+func (h *TeamsHandler) createTeamWithAgents(w http.ResponseWriter, r *http.Request) {
+	user, ok := auth.GetUserFromContext(r.Context())
+	if !ok {
+		http.Error(w, "User not found in context", http.StatusUnauthorized)
+		return
+	}
+
+	var req types.TeamWithAgentsCreateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Validate request
+	if err := h.validateTeamWithAgentsCreateRequest(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Start transaction
+	tx, err := h.db.Begin()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to start transaction: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback()
+
+	// Create team
+	team := types.Team{
+		ID:               uuid.New().String(),
+		UserID:           user.ID,
+		Name:             req.Name,
+		Description:      req.Description,
+		MaxTokensPerDay:  req.MaxTokensPerDay,
+		TokensUsedToday:  0,
+		TokensResetDate:  time.Now().Format("2006-01-02"),
+		AgentCount:       int32(len(req.Agents)),
+		ActiveAgentCount: 0, // Will be updated based on agent lifecycle status
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
+	}
+
+	// Insert team
+	err = h.createTeamInDBTx(tx, team)
+	if err != nil {
+		if strings.Contains(err.Error(), "uk_teams_user_name") {
+			http.Error(w, "A team with this name already exists", http.StatusConflict)
+			return
+		}
+		http.Error(w, fmt.Sprintf("Failed to create team: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Create agents
+	var createdAgents []types.Agent
+	activeAgentCount := int32(0)
+
+	for _, agentReq := range req.Agents {
+		// Verify template exists and is accessible
+		if err := h.verifyTemplateAccessTx(tx, user.ID, agentReq.TemplateID); err != nil {
+			http.Error(w, fmt.Sprintf("Template %s not accessible: %v", agentReq.TemplateID, err), http.StatusBadRequest)
+			return
+		}
+
+		agent := types.Agent{
+			ID:               uuid.New().String(),
+			UserID:           user.ID,
+			FirstName:        agentReq.FirstName,
+			LastName:         agentReq.LastName,
+			TemplateID:       agentReq.TemplateID,
+			TeamID:           &team.ID,
+			MaxTokensPerDay:  agentReq.MaxTokensPerDay,
+			HeartbeatMinutes: agentReq.HeartbeatMinutes,
+			LifecycleStatus:  agentReq.LifecycleStatus,
+			TokensUsedToday:  0,
+			TokensResetDate:  time.Now().Format("2006-01-02"),
+			TotalExecutions:  0,
+			CreatedAt:        time.Now(),
+			UpdatedAt:        time.Now(),
+		}
+
+		// Set default lifecycle status if not provided
+		if agent.LifecycleStatus == "" {
+			agent.LifecycleStatus = types.LifecycleStatusStandby
+		}
+
+		// Count active agents
+		if agent.LifecycleStatus == types.LifecycleStatusActive {
+			activeAgentCount++
+		}
+
+		// Insert agent
+		if err := h.insertAgentTx(tx, &agent); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to create agent %s: %v", agent.FirstName, err), http.StatusInternalServerError)
+			return
+		}
+
+		createdAgents = append(createdAgents, agent)
+	}
+
+	// Update team with correct active agent count
+	team.ActiveAgentCount = activeAgentCount
+	if err := h.updateTeamAgentCountTx(tx, team.ID, team.AgentCount, activeAgentCount); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to update team agent count: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Commit transaction
+	if err := tx.Commit(); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to commit transaction: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Return response
+	response := types.TeamWithAgentsCreateResponse{
+		Team:   team,
+		Agents: createdAgents,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(response)
 }
 
 // getTeam retrieves a specific team
@@ -447,4 +577,47 @@ func (h *TeamsHandler) handleTeamMemory(w http.ResponseWriter, r *http.Request, 
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+
+// validateTeamWithAgentsCreateRequest validates the team with agents creation request
+func (h *TeamsHandler) validateTeamWithAgentsCreateRequest(req *types.TeamWithAgentsCreateRequest) error {
+	if req.Name == "" {
+		return fmt.Errorf("name is required")
+	}
+	if req.MaxTokensPerDay <= 0 {
+		return fmt.Errorf("maxTokensPerDay must be greater than 0")
+	}
+	if len(req.Agents) == 0 {
+		return fmt.Errorf("at least one agent is required")
+	}
+
+	// Validate each agent
+	for i, agent := range req.Agents {
+		if agent.FirstName == "" {
+			return fmt.Errorf("agent %d: firstName is required", i+1)
+		}
+		if agent.LastName == "" {
+			return fmt.Errorf("agent %d: lastName is required", i+1)
+		}
+		if agent.TemplateID == "" {
+			return fmt.Errorf("agent %d: templateId is required", i+1)
+		}
+		if agent.MaxTokensPerDay <= 0 {
+			return fmt.Errorf("agent %d: maxTokensPerDay must be greater than 0", i+1)
+		}
+		if agent.HeartbeatMinutes < 5 {
+			return fmt.Errorf("agent %d: heartbeatMinutes must be at least 5", i+1)
+		}
+		if agent.LifecycleStatus != "" {
+			valid := agent.LifecycleStatus == types.LifecycleStatusStandby ||
+				agent.LifecycleStatus == types.LifecycleStatusActive ||
+				agent.LifecycleStatus == types.LifecycleStatusPaused ||
+				agent.LifecycleStatus == types.LifecycleStatusKilled
+			if !valid {
+				return fmt.Errorf("agent %d: invalid lifecycleStatus", i+1)
+			}
+		}
+	}
+
+	return nil
 }

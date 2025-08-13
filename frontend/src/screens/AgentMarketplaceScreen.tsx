@@ -14,10 +14,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import ScreenContainer from '../components/ScreenContainer';
 import AgentMarketplaceCard from '../components/AgentMarketplaceCard';
+import TeamMarketplaceCard from '../components/TeamMarketplaceCard';
 import AgentResumeModal from '../components/AgentResumeModal';
+import TeamResumeModal from '../components/TeamResumeModal';
+import SuccessTooltip from '../components/SuccessTooltip';
 import { useResponsive } from '../context/ResponsiveContext';
-import { MarketplaceAgent, FunctionDefinition } from '../types/marketplace';
+import { MarketplaceAgent, MarketplaceTeam, FunctionDefinition } from '../types/marketplace';
 import { generateMarketplaceAgents } from '../data/marketplaceAgents';
+import { generateMarketplaceTeams } from '../data/marketplaceTeams';
+import { goGentAPI } from '../api/client';
 
 // Remove static width, use screenWidth from useResponsive instead
 
@@ -28,14 +33,22 @@ interface FilterState {
   searchTerm: string;
 }
 
+type MarketplaceView = 'agents' | 'teams';
+
 const AgentMarketplaceScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { screenWidth, isSidebarLayout } = useResponsive();
   
   const [agents] = useState<MarketplaceAgent[]>(generateMarketplaceAgents());
+  const [teams] = useState<MarketplaceTeam[]>(generateMarketplaceTeams());
+  const [currentView, setCurrentView] = useState<MarketplaceView>('teams');
   const [selectedAgent, setSelectedAgent] = useState<MarketplaceAgent | null>(null);
+  const [selectedTeam, setSelectedTeam] = useState<MarketplaceTeam | null>(null);
   const [showResumeModal, setShowResumeModal] = useState(false);
+  const [showTeamModal, setShowTeamModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [showSuccessTooltip, setShowSuccessTooltip] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const [filters, setFilters] = useState<FilterState>({
     category: [],
     functions: [],
@@ -43,19 +56,35 @@ const AgentMarketplaceScreen: React.FC = () => {
     searchTerm: '',
   });
 
-  // Get unique filter options from agents
+  // Get unique filter options from agents and teams
   const filterOptions = useMemo(() => {
-    const categories = [...new Set(agents.map(agent => agent.category))];
-    const functionGroups = [...new Set(
-      agents.flatMap(agent => agent.capabilities.functionGroups)
-    )];
-    const experienceLevels = [...new Set(agents.map(agent => agent.experienceLevel))];
-    
-    return { categories, functionGroups, experienceLevels };
-  }, [agents]);
+    if (currentView === 'agents') {
+      const categories = [...new Set(agents.map(agent => agent.category))];
+      const functionGroups = [...new Set(
+        agents.flatMap(agent => agent.capabilities.functionGroups)
+      )];
+      const experienceLevels = [...new Set(agents.map(agent => agent.experienceLevel))];
+      
+      return { categories, functionGroups, experienceLevels };
+    } else {
+      const categories = [...new Set(teams.map(team => team.category))];
+      const integrations = [...new Set(
+        teams.flatMap(team => team.capabilities.integrations)
+      )];
+      const teamSizes = [...new Set(teams.map(team => `${team.teamSize} agents`))];
+      
+      return { 
+        categories, 
+        functionGroups: integrations, 
+        experienceLevels: teamSizes 
+      };
+    }
+  }, [agents, teams, currentView]);
 
   // Filter agents based on current filters
   const filteredAgents = useMemo(() => {
+    if (currentView !== 'agents') return [];
+    
     return agents.filter(agent => {
       // Search term filter
       if (filters.searchTerm) {
@@ -90,11 +119,61 @@ const AgentMarketplaceScreen: React.FC = () => {
 
       return true;
     });
-  }, [agents, filters]);
+  }, [agents, filters, currentView]);
+
+  // Filter teams based on current filters
+  const filteredTeams = useMemo(() => {
+    if (currentView !== 'teams') return [];
+    
+    return teams.filter(team => {
+      // Search term filter
+      if (filters.searchTerm) {
+        const searchLower = filters.searchTerm.toLowerCase();
+        const matchesSearch = 
+          team.name.toLowerCase().includes(searchLower) ||
+          team.description.toLowerCase().includes(searchLower) ||
+          team.capabilities.overview.some((item: string) => 
+            item.toLowerCase().includes(searchLower)
+          ) ||
+          team.capabilities.coverage.some((item: string) => 
+            item.toLowerCase().includes(searchLower)
+          );
+        if (!matchesSearch) return false;
+      }
+
+      // Category filter
+      if (filters.category.length > 0 && !filters.category.includes(team.category)) {
+        return false;
+      }
+
+      // Integration filter (mapped to functions)
+      if (filters.functions.length > 0) {
+        const hasRequiredIntegration = filters.functions.some(requiredFunc =>
+          team.capabilities.integrations.includes(requiredFunc)
+        );
+        if (!hasRequiredIntegration) return false;
+      }
+
+      // Team size filter (mapped to experience)
+      if (filters.experience.length > 0) {
+        const teamSizeString = `${team.teamSize} agents`;
+        if (!filters.experience.includes(teamSizeString)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [teams, filters, currentView]);
 
   const handleAgentSelect = (agent: MarketplaceAgent) => {
     setSelectedAgent(agent);
     setShowResumeModal(true);
+  };
+
+  const handleTeamSelect = (team: MarketplaceTeam) => {
+    setSelectedTeam(team);
+    setShowTeamModal(true);
   };
 
   const handleHireAgent = (agent: MarketplaceAgent) => {
@@ -180,34 +259,81 @@ const AgentMarketplaceScreen: React.FC = () => {
     const defaults = getAgentDefaults(agent.experienceLevel);
     const systemTemplateId = getSystemTemplateId(agent.templateId, agent.experienceLevel);
     
-    navigation.navigate('Agents', {
-      prefilledAgent: {
-        // Basic Info
-        firstName,
-        lastName,
-        templateId: systemTemplateId,
-        
-        // Operational Parameters (intelligent defaults)
-        maxTokensPerDay: defaults.maxTokensPerDay,
-        heartbeatMinutes: defaults.heartbeatMinutes,
-        lifecycleStatus: 'STANDBY' as any, // Start in standby mode
-        
-        // Additional metadata for the form
-        description: agent.description,
-        functionGroups: agent.capabilities.functionGroups,
-        
-        // Marketplace-specific info
-        marketplaceAgent: {
-          role: agent.role,
-          category: agent.category,
-          experienceLevel: agent.experienceLevel,
-          modelConfig: agent.modelConfig,
-          apiRequirements: agent.apiRequirements,
-          highlights: agent.highlights,
-        }
-      }
-    });
+    // Show success tooltip
+    setSuccessMessage(`Agent "${agent.name}" ready to be created!`);
+    setShowSuccessTooltip(true);
     setShowResumeModal(false);
+    
+    // Navigate to AgentsScreen with prefilled data after a short delay
+    setTimeout(() => {
+      navigation.navigate('Agents', {
+        prefilledAgent: {
+          // Basic Info
+          firstName,
+          lastName,
+          templateId: systemTemplateId,
+          
+          // Operational Parameters (intelligent defaults)
+          maxTokensPerDay: defaults.maxTokensPerDay,
+          heartbeatMinutes: defaults.heartbeatMinutes,
+          lifecycleStatus: 'STANDBY' as any, // Start in standby mode
+          
+          // Additional metadata for the form
+          description: agent.description,
+          functionGroups: agent.capabilities.functionGroups,
+          
+          // Marketplace-specific info
+          marketplaceAgent: {
+            role: agent.role,
+            category: agent.category,
+            experienceLevel: agent.experienceLevel,
+            modelConfig: agent.modelConfig,
+            apiRequirements: agent.apiRequirements,
+            highlights: agent.highlights,
+          }
+        }
+      });
+    }, 1000);
+  };
+
+  const handleHireTeam = async (team: MarketplaceTeam) => {
+    try {
+      // Create the team with all agents via API
+      const teamCreateRequest = {
+        name: team.name,
+        description: team.description,
+        maxTokensPerDay: team.agents.reduce((total, agent) => total + agent.defaultConfig.maxTokensPerDay, 0),
+        teamConfigId: team.teamConfigId,
+        agents: team.agents.map(agent => ({
+          firstName: agent.name.split(' ')[0] || agent.role.split(' ')[0],
+          lastName: agent.name.split(' ').slice(1).join(' ') || 'Agent',
+          templateId: agent.templateId,
+          maxTokensPerDay: agent.defaultConfig.maxTokensPerDay,
+          heartbeatMinutes: agent.defaultConfig.heartbeatMinutes,
+          lifecycleStatus: agent.defaultConfig.lifecycleStatus
+        }))
+      };
+
+      // Make the API call to create the team with agents
+      const response = await goGentAPI.createTeamWithAgents(teamCreateRequest);
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to create team');
+      }
+      
+      // Show success tooltip
+      setSuccessMessage(`Team "${team.name}" successfully created with ${team.agents.length} agents in standby mode!`);
+      setShowSuccessTooltip(true);
+      setShowTeamModal(false);
+      
+      // Navigate to AgentsScreen after a short delay to show the tooltip
+      setTimeout(() => {
+        navigation.navigate('Agents');
+      }, 1000);
+    } catch (error) {
+      console.error('Failed to create team:', error);
+      // Handle error - show alert or toast
+    }
   };
 
   const toggleFilter = (filterType: keyof FilterState, value: string) => {
@@ -272,7 +398,10 @@ const AgentMarketplaceScreen: React.FC = () => {
         <View>
           <Text style={styles.title}>Agent Marketplace</Text>
           <Text style={styles.subtitle}>
-            Find the perfect AI agent for your team
+            {currentView === 'agents' 
+              ? 'Find the perfect AI agent for your team'
+              : 'Deploy complete AI teams with coordinated agents'
+            }
           </Text>
         </View>
         <TouchableOpacity
@@ -284,12 +413,45 @@ const AgentMarketplaceScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
+      {/* View Toggle */}
+      <View style={styles.viewToggleContainer}>
+        <TouchableOpacity
+          style={[styles.viewToggleButton, currentView === 'agents' && styles.viewToggleButtonActive]}
+          onPress={() => setCurrentView('agents')}
+        >
+          <Ionicons 
+            name="person" 
+            size={20} 
+            color={currentView === 'agents' ? '#FFFFFF' : '#007AFF'} 
+          />
+          <Text style={[styles.viewToggleText, currentView === 'agents' && styles.viewToggleTextActive]}>
+            Individual Agents
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.viewToggleButton, currentView === 'teams' && styles.viewToggleButtonActive]}
+          onPress={() => setCurrentView('teams')}
+        >
+          <Ionicons 
+            name="people" 
+            size={20} 
+            color={currentView === 'teams' ? '#FFFFFF' : '#007AFF'} 
+          />
+          <Text style={[styles.viewToggleText, currentView === 'teams' && styles.viewToggleTextActive]}>
+            Complete Teams
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <Ionicons name="search" size={20} color="#8E8E93" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search agents by name, role, or skills..."
+          placeholder={currentView === 'agents' 
+            ? "Search agents by name, role, or skills..."
+            : "Search teams by name, description, or capabilities..."
+          }
           value={filters.searchTerm}
           onChangeText={(text) => setFilters(prev => ({ ...prev, searchTerm: text }))}
           placeholderTextColor="#8E8E93"
@@ -308,7 +470,10 @@ const AgentMarketplaceScreen: React.FC = () => {
       <View style={styles.resultsHeader}>
         <View style={styles.resultsLeft}>
           <Text style={styles.resultsCount}>
-            {filteredAgents.length} agent{filteredAgents.length !== 1 ? 's' : ''} available
+            {currentView === 'agents' 
+              ? `${filteredAgents.length} agent${filteredAgents.length !== 1 ? 's' : ''} available`
+              : `${filteredTeams.length} team${filteredTeams.length !== 1 ? 's' : ''} available`
+            }
           </Text>
           {(filters.category.length > 0 || filters.functions.length > 0 || 
             filters.experience.length > 0 || filters.searchTerm.length > 0) && (
@@ -337,7 +502,9 @@ const AgentMarketplaceScreen: React.FC = () => {
       <View style={styles.filtersContainer}>
         {/* Categories */}
         <View style={styles.filterSection}>
-          <Text style={styles.filterSectionTitle}>Role Category</Text>
+          <Text style={styles.filterSectionTitle}>
+            {currentView === 'agents' ? 'Role Category' : 'Team Category'}
+          </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.filterChipsContainer}>
               {filterOptions.categories.map(category =>
@@ -353,7 +520,9 @@ const AgentMarketplaceScreen: React.FC = () => {
 
         {/* Function Groups */}
         <View style={styles.filterSection}>
-          <Text style={styles.filterSectionTitle}>Available Integrations</Text>
+          <Text style={styles.filterSectionTitle}>
+            {currentView === 'agents' ? 'Available Integrations' : 'Team Integrations'}
+          </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.filterChipsContainer}>
               {filterOptions.functionGroups.map(functionGroup =>
@@ -369,7 +538,9 @@ const AgentMarketplaceScreen: React.FC = () => {
 
         {/* Experience Levels */}
         <View style={styles.filterSection}>
-          <Text style={styles.filterSectionTitle}>Experience Level</Text>
+          <Text style={styles.filterSectionTitle}>
+            {currentView === 'agents' ? 'Experience Level' : 'Team Size'}
+          </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.filterChipsContainer}>
               {filterOptions.experienceLevels.map(level =>
@@ -423,6 +594,43 @@ const AgentMarketplaceScreen: React.FC = () => {
     );
   };
 
+  const renderTeamGrid = () => {
+    const { numColumns, itemWidth, itemGap } = getGridLayout;
+    
+    // Create rows of teams based on numColumns
+    const rows: MarketplaceTeam[][] = [];
+    for (let i = 0; i < filteredTeams.length; i += numColumns) {
+      rows.push(filteredTeams.slice(i, i + numColumns));
+    }
+    
+    return (
+      <View style={styles.agentGrid}>
+        {rows.map((row, rowIndex) => (
+          <View key={`row-${rowIndex}`} style={styles.gridRow}>
+            {row.map((team, colIndex) => (
+              <View 
+                key={team.id} 
+                style={[
+                  styles.gridItem,
+                  {
+                    width: itemWidth,
+                    marginRight: colIndex < row.length - 1 ? itemGap : 0,
+                  }
+                ]}
+              >
+                <TeamMarketplaceCard
+                  team={team}
+                  onPress={() => handleTeamSelect(team)}
+                  style={{ width: '100%' }}
+                />
+              </View>
+            ))}
+          </View>
+        ))}
+      </View>
+    );
+  };
+
   return (
     <ScreenContainer
       enableScrolling={true}
@@ -432,7 +640,7 @@ const AgentMarketplaceScreen: React.FC = () => {
     >
       {renderHeader()}
       {renderFilters()}
-      {renderAgentGrid()}
+      {currentView === 'agents' ? renderAgentGrid() : renderTeamGrid()}
 
       {/* Agent Resume Modal */}
       <AgentResumeModal
@@ -440,6 +648,21 @@ const AgentMarketplaceScreen: React.FC = () => {
         agent={selectedAgent}
         onClose={() => setShowResumeModal(false)}
         onHire={selectedAgent ? () => handleHireAgent(selectedAgent) : undefined}
+      />
+
+      {/* Team Resume Modal */}
+      <TeamResumeModal
+        visible={showTeamModal}
+        team={selectedTeam}
+        onClose={() => setShowTeamModal(false)}
+        onHire={selectedTeam ? () => handleHireTeam(selectedTeam) : undefined}
+      />
+
+      {/* Success Tooltip */}
+      <SuccessTooltip
+        visible={showSuccessTooltip}
+        message={successMessage}
+        onHide={() => setShowSuccessTooltip(false)}
       />
     </ScreenContainer>
   );
@@ -490,6 +713,34 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#007AFF',
     fontWeight: '500',
+  },
+  viewToggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#F2F2F7',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 16,
+  },
+  viewToggleButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    gap: 6,
+  },
+  viewToggleButtonActive: {
+    backgroundColor: '#007AFF',
+  },
+  viewToggleText: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '500',
+  },
+  viewToggleTextActive: {
+    color: '#FFFFFF',
   },
   searchContainer: {
     flexDirection: 'row',

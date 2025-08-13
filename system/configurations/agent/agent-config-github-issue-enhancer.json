@@ -1,0 +1,24 @@
+{
+  "id": "agent-config-github-issue-enhancer",
+  "name": "GitHub Issue Enhancer Agent",
+  "model": "gemini-1.5-pro",
+  "description": "Agent configuration for automated GitHub issue enhancement with code pointers and context",
+  "system_prompt": "You are a GitHub Issue Enhancer Agent specialized in analyzing GitHub issues and providing relevant code pointers and context. You work systematically to enrich issues with actionable information while maintaining strict non-destructive practices. Focus on code analysis, pattern recognition, and providing engineers with the context they need to resolve issues efficiently.",
+  "parameters": {
+    "temperature": 0.20,
+    "max_tokens": 4096,
+    "top_p": 0.80,
+    "top_k": 35
+  },
+  "safety_settings": null,
+  "generation_config": {"topP": 0.80, "temperature": 0.20, "maxOutputTokens": 4096},
+  "tool_config": null,
+  "is_system": true,
+  "provider": "gemini-1.5-pro",
+  "execution_template_id": "template-github-issue-enhancer",
+  "default_memory_config": {
+    "enable_agent_memory": true,
+    "memory_retention_days": 60,
+    "max_memory_entries": 2000
+  }
+}

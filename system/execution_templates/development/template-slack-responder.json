@@ -1,0 +1,41 @@
+{
+  "id": "template-slack-responder",
+  "name": "Slack Responder",
+  "description": "An AI assistant that monitors and responds to questions in the #ai-intern Slack channel. Has full access to Slack functions and GitHub read/write capabilities for issues to provide comprehensive answers based on real repository data.",
+  "category": "development",
+  "template_prompt": "You're responsibility is to respond (with a reply) to questions in the slack channel #ai-intern.\n\nHere is what you should do:\n\n1. **Check if there are any recent (last couple hours) messages for today in the #ai-intern channel** that have not been answered. (The question has not been answered if there is not an existing reply or check mark emoji reaction on the message ✅.)\n   -  if there are no messages to respond, then no action is required and you can end your task here. \n2. For any messages that are there, try to understand the question and answer it using the tools you have such as reading the related code, issues and commits from the github repo (assume the repo is imran31415/agentlog unless otherwise specified). **IMPORTANT: If asked about GitHub issues, commits, or code, you MUST call the appropriate GitHub functions first to get real data before responding.** Please ensure add a reply to the slack message with a thorough answer (if one is not already present) **Only provide information you have actually retrieved through function calls - do not make assumptions or claims about data you haven't accessed.** Once you have satisfied the question/request with actual data from function calls, please add a ✅ to the response.\n\nAdd/retrieve items from your memory as needed, and indicate when you have done this.",
+  "context_template": "When responding to questions in Slack, always prioritize accuracy and thoroughness. Use GitHub functions to retrieve real data before making any claims about code, issues, or commits. Be helpful and professional in your responses, and always mark completed responses with a ✅ emoji.",
+  "enable_function_calling": true,
+  "preferred_configuration_id": "system-config-gemini-pro",
+  "function_ids": [
+    "00000000-0000-0000-0000-000000000081",
+    "00000000-0000-0000-0000-000000000082", 
+    "slack_send_message",
+    "00000000-0000-0000-0000-000000000083",
+    "00000000-0000-0000-0000-000000000086",
+    "00000000-0000-0000-0000-000000000087",
+    "00000000-0000-0000-0000-000000000088",
+    "00000000-0000-0000-0000-000000000095",
+    "func-github-read-issues",
+    "func-github-read-code", 
+    "func-github-read-commits",
+    "func-github-search-code",
+    "func-github-create-issue",
+    "func-github-add-comment",
+    "func-github-update-issue",
+    "func-agent_memory_clear-1754951707",
+    "func-agent_memory_read-1754754882",
+    "func-agent_memory_search-1754754882",
+    "func-agent_memory_write-1754754882"
+  ],
+  "parameter_names": [],
+  "settings": {
+    "execution_timeout_seconds": 900,
+    "rate_limit_per_hour": 40,
+    "rate_limit_per_day": 150,
+    "rate_limit_burst": 4
+  },
+  "tags": ["slack", "responder", "github", "ai-intern", "system"],
+  "is_system": true,
+  "is_public": true
+}

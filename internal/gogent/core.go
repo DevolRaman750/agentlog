@@ -244,6 +244,18 @@ func (c *Client) LoadDatabaseApiKeys(ctx context.Context, userID string) error {
 					return "EMPTY"
 				}())
 			log.Printf("🔍 DEBUG: Slack token stored in sessionKeys.SlackBotToken: %t", sessionKeys.SlackBotToken != "")
+		case "googledrive":
+			sessionKeys.GoogleDriveApiKey = decryptedKey
+			log.Printf("🔑 Loaded Google Drive API key from database - Length: %d, Prefix: %s",
+				len(decryptedKey),
+				func() string {
+					if len(decryptedKey) >= 10 {
+						return decryptedKey[:10] + "..."
+					} else if len(decryptedKey) > 0 {
+						return decryptedKey + "..."
+					}
+					return "EMPTY"
+				}())
 		case "neo4j":
 			// For Neo4j, we need to handle the connection details differently
 			// This is a simplified version - you might want to parse the connection string
@@ -253,12 +265,13 @@ func (c *Client) LoadDatabaseApiKeys(ctx context.Context, userID string) error {
 	}
 
 	c.databaseApiKeys = sessionKeys
-	log.Printf("🔑 Database API keys loaded: Gemini=%v, OpenWeather=%v, GitHub=%v, OpenRouter=%v, Slack=%v",
+	log.Printf("🔑 Database API keys loaded: Gemini=%v, OpenWeather=%v, GitHub=%v, OpenRouter=%v, Slack=%v, GoogleDrive=%v",
 		sessionKeys.GeminiApiKey != "",
 		sessionKeys.OpenWeatherApiKey != "",
 		sessionKeys.GithubApiKey != "",
 		sessionKeys.OpenRouterApiKey != "",
-		sessionKeys.SlackBotToken != "")
+		sessionKeys.SlackBotToken != "",
+		sessionKeys.GoogleDriveApiKey != "")
 
 	return nil
 }
@@ -853,6 +866,12 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 		if err != nil {
 			return nil, fmt.Errorf("failed to build GitHub API URL: %w", err)
 		}
+	} else if funcDef.FunctionGroup == "googledrive" {
+		// Use specialized Google Drive URL builder for Google Drive functions
+		url, err = c.buildGoogleDriveAPIURL(functionName, args)
+		if err != nil {
+			return nil, fmt.Errorf("failed to build Google Drive API URL: %w", err)
+		}
 	} else {
 		// Use generic URL building for non-GitHub functions
 		url, err = c.buildGenericAPIURL(funcDef, args)
@@ -912,7 +931,7 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 
 	// Add authentication based on function type and available headers
 	effectiveKeys := c.getEffectiveApiKeys()
-	log.Printf("🔍 DEBUG: Effective keys for %s - Slack: %s, GitHub: %s, Gemini: %s",
+	log.Printf("🔍 DEBUG: Effective keys for %s - Slack: %s, GitHub: %s, Gemini: %s, GoogleDrive: %s",
 		functionName,
 		func() string {
 			if effectiveKeys.SlackBotToken != "" {
@@ -928,6 +947,12 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 		}(),
 		func() string {
 			if effectiveKeys.GeminiApiKey != "" {
+				return "PRESENT"
+			}
+			return "MISSING"
+		}(),
+		func() string {
+			if effectiveKeys.GoogleDriveApiKey != "" {
 				return "PRESENT"
 			}
 			return "MISSING"
@@ -957,6 +982,9 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 				}
 				if strings.Contains(headerValue, "{GITHUB_API_KEY}") && effectiveKeys.GithubApiKey != "" {
 					headerValue = strings.ReplaceAll(headerValue, "{GITHUB_API_KEY}", effectiveKeys.GithubApiKey)
+				}
+				if strings.Contains(headerValue, "{GOOGLE_DRIVE_API_KEY}") && effectiveKeys.GoogleDriveApiKey != "" {
+					headerValue = strings.ReplaceAll(headerValue, "{GOOGLE_DRIVE_API_KEY}", effectiveKeys.GoogleDriveApiKey)
 				}
 				log.Printf("🔍 DEBUG: Setting header %s = %s", key,
 					func() string {
@@ -989,6 +1017,20 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 		}
 		if req.Header.Get("Accept") == "" {
 			req.Header.Set("Accept", "application/vnd.github.v3+json")
+		}
+	} else if funcDef.FunctionGroup == "googledrive" {
+		if req.Header.Get("Authorization") == "" && effectiveKeys.GoogleDriveApiKey != "" {
+			req.Header.Set("Authorization", "Bearer "+effectiveKeys.GoogleDriveApiKey)
+			log.Printf("🔑 Added Google Drive API authentication")
+		} else if effectiveKeys.GoogleDriveApiKey == "" {
+			log.Printf("⚠️ No Google Drive API key available - proceeding without authentication")
+		}
+		// Set Google Drive-specific headers if not already set
+		if req.Header.Get("User-Agent") == "" {
+			req.Header.Set("User-Agent", "gogent/1.0")
+		}
+		if req.Header.Get("Accept") == "" {
+			req.Header.Set("Accept", "application/json")
 		}
 	} else if funcDef.FunctionGroup == "communication" && strings.HasPrefix(functionName, "slack_") {
 		// Slack authentication should be handled via headers from database for all Slack functions
@@ -1024,6 +1066,8 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 			return "GitHub"
 		} else if funcDef.FunctionGroup == "communication" {
 			return "Slack"
+		} else if funcDef.FunctionGroup == "googledrive" {
+			return "Google Drive"
 		}
 		return "API"
 	}()
@@ -1044,6 +1088,8 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 			apiName = "GitHub API"
 		} else if funcDef.FunctionGroup == "communication" {
 			apiName = "Slack API"
+		} else if funcDef.FunctionGroup == "googledrive" {
+			apiName = "Google Drive API"
 		}
 		return nil, fmt.Errorf("%s returned %d: %s", apiName, resp.StatusCode, string(body))
 	}
@@ -1078,6 +1124,8 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 		apiSource = "slack_api" // TODO: Remove after migration 029 is applied
 	} else if funcDef.FunctionGroup == "weather" {
 		apiSource = "weather_api" // TODO: Remove after migration 029 is applied
+	} else if funcDef.FunctionGroup == "googledrive" {
+		apiSource = "googledrive_api" // TODO: Remove after migration 029 is applied
 	}
 
 	result := map[string]interface{}{
@@ -1155,6 +1203,56 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 				}
 			} else {
 				log.Printf("⚠️ Unexpected github_read_commits response type: %T", responseData)
+			}
+		}
+	}
+
+	// Add function-specific data processing for Google Drive functions
+	if funcDef.FunctionGroup == "googledrive" {
+		switch functionName {
+		case "googledrive_list_files":
+			if filesData, ok := responseData.(map[string]interface{}); ok {
+				if files, exists := filesData["files"].([]interface{}); exists {
+					result["files"] = files
+					result["total_count"] = len(files)
+					log.Printf("✅ Retrieved %d files from Google Drive", len(files))
+				}
+				if nextPageToken, exists := filesData["nextPageToken"]; exists {
+					result["next_page_token"] = nextPageToken
+				}
+			}
+		case "googledrive_get_file":
+			if fileData, ok := responseData.(map[string]interface{}); ok {
+				result["file"] = fileData
+				result["file_id"] = fileData["id"]
+				result["file_name"] = fileData["name"]
+				result["mime_type"] = fileData["mimeType"]
+				if size, exists := fileData["size"]; exists {
+					result["file_size"] = size
+				}
+				log.Printf("✅ Retrieved file metadata: %s", fileData["name"])
+			}
+		case "googledrive_get_file_content":
+			// For file content, the response might be text or binary
+			if content, ok := responseData.(string); ok {
+				result["content"] = content
+				result["content_length"] = len(content)
+				log.Printf("✅ Retrieved file content: %d characters", len(content))
+			} else {
+				// Handle binary content or other formats
+				result["content"] = responseData
+				log.Printf("✅ Retrieved file content (non-text format)")
+			}
+		case "googledrive_search_files":
+			if searchData, ok := responseData.(map[string]interface{}); ok {
+				if files, exists := searchData["files"].([]interface{}); exists {
+					result["files"] = files
+					result["total_count"] = len(files)
+					log.Printf("✅ Found %d files in Google Drive search", len(files))
+				}
+				if nextPageToken, exists := searchData["nextPageToken"]; exists {
+					result["next_page_token"] = nextPageToken
+				}
 			}
 		}
 	}
@@ -2364,4 +2462,202 @@ function_calls:
 	)
 
 	return yaml
+}
+
+// buildGoogleDriveAPIURL constructs the appropriate Google Drive API URL for the function
+func (c *Client) buildGoogleDriveAPIURL(functionName string, args map[string]interface{}) (string, error) {
+	baseURL := "https://www.googleapis.com/drive/v3"
+
+	switch functionName {
+	case "googledrive_list_files":
+		apiURL := baseURL + "/files"
+		params := []string{}
+
+		if pageSize, ok := args["pageSize"]; ok {
+			if pageSizeInt, ok := pageSize.(float64); ok {
+				params = append(params, fmt.Sprintf("pageSize=%.0f", pageSizeInt))
+			} else if pageSizeInt, ok := pageSize.(int); ok {
+				params = append(params, fmt.Sprintf("pageSize=%d", pageSizeInt))
+			}
+		} else {
+			params = append(params, "pageSize=100") // Default limit
+		}
+
+		if pageToken, ok := args["pageToken"].(string); ok && pageToken != "" {
+			params = append(params, fmt.Sprintf("pageToken=%s", url.QueryEscape(pageToken)))
+		}
+
+		if q, ok := args["q"].(string); ok && q != "" {
+			params = append(params, fmt.Sprintf("q=%s", url.QueryEscape(q)))
+		}
+
+		if orderBy, ok := args["orderBy"].(string); ok && orderBy != "" {
+			params = append(params, fmt.Sprintf("orderBy=%s", url.QueryEscape(orderBy)))
+		} else {
+			params = append(params, "orderBy=modifiedTime desc") // Default sort
+		}
+
+		if fields, ok := args["fields"].(string); ok && fields != "" {
+			params = append(params, fmt.Sprintf("fields=%s", url.QueryEscape(fields)))
+		} else {
+			params = append(params, "fields=nextPageToken, files(id, name, mimeType, size, createdTime, modifiedTime, parents, webViewLink)")
+		}
+
+		if spaces, ok := args["spaces"].(string); ok && spaces != "" {
+			params = append(params, fmt.Sprintf("spaces=%s", url.QueryEscape(spaces)))
+		} else {
+			params = append(params, "spaces=drive") // Default space
+		}
+
+		if corpora, ok := args["corpora"].(string); ok && corpora != "" {
+			params = append(params, fmt.Sprintf("corpora=%s", url.QueryEscape(corpora)))
+		}
+
+		if includeItemsFromAllDrives, ok := args["includeItemsFromAllDrives"]; ok {
+			if include, isBool := includeItemsFromAllDrives.(bool); isBool {
+				params = append(params, fmt.Sprintf("includeItemsFromAllDrives=%t", include))
+			}
+		} else {
+			params = append(params, "includeItemsFromAllDrives=true") // Default
+		}
+
+		if supportsAllDrives, ok := args["supportsAllDrives"]; ok {
+			if supports, isBool := supportsAllDrives.(bool); isBool {
+				params = append(params, fmt.Sprintf("supportsAllDrives=%t", supports))
+			}
+		} else {
+			params = append(params, "supportsAllDrives=true") // Default
+		}
+
+		if len(params) > 0 {
+			apiURL += "?" + strings.Join(params, "&")
+		}
+		return apiURL, nil
+
+	case "googledrive_get_file":
+		fileId, ok := args["fileId"].(string)
+		if !ok || fileId == "" {
+			return "", fmt.Errorf("fileId parameter is required for googledrive_get_file")
+		}
+		apiURL := baseURL + "/files/" + url.QueryEscape(fileId)
+		params := []string{}
+
+		if fields, ok := args["fields"].(string); ok && fields != "" {
+			params = append(params, fmt.Sprintf("fields=%s", url.QueryEscape(fields)))
+		} else {
+			params = append(params, "fields=id, name, mimeType, size, createdTime, modifiedTime, parents, webViewLink, permissions, owners, shared, trashed")
+		}
+
+		if supportsAllDrives, ok := args["supportsAllDrives"]; ok {
+			if supports, isBool := supportsAllDrives.(bool); isBool {
+				params = append(params, fmt.Sprintf("supportsAllDrives=%t", supports))
+			}
+		} else {
+			params = append(params, "supportsAllDrives=true") // Default
+		}
+
+		if includeItemsFromAllDrives, ok := args["includeItemsFromAllDrives"]; ok {
+			if include, isBool := includeItemsFromAllDrives.(bool); isBool {
+				params = append(params, fmt.Sprintf("includeItemsFromAllDrives=%t", include))
+			}
+		} else {
+			params = append(params, "includeItemsFromAllDrives=true") // Default
+		}
+
+		if len(params) > 0 {
+			apiURL += "?" + strings.Join(params, "&")
+		}
+		return apiURL, nil
+
+	case "googledrive_get_file_content":
+		fileId, ok := args["fileId"].(string)
+		if !ok || fileId == "" {
+			return "", fmt.Errorf("fileId parameter is required for googledrive_get_file_content")
+		}
+		apiURL := baseURL + "/files/" + url.QueryEscape(fileId)
+		params := []string{}
+
+		if alt, ok := args["alt"].(string); ok && alt != "" {
+			params = append(params, fmt.Sprintf("alt=%s", url.QueryEscape(alt)))
+		} else {
+			params = append(params, "alt=media") // Default to get content
+		}
+
+		if fields, ok := args["fields"].(string); ok && fields != "" {
+			params = append(params, fmt.Sprintf("fields=%s", url.QueryEscape(fields)))
+		}
+
+		if len(params) > 0 {
+			apiURL += "?" + strings.Join(params, "&")
+		}
+		return apiURL, nil
+
+	case "googledrive_search_files":
+		q, ok := args["q"].(string)
+		if !ok || q == "" {
+			return "", fmt.Errorf("q parameter is required for googledrive_search_files")
+		}
+		apiURL := baseURL + "/files"
+		params := []string{fmt.Sprintf("q=%s", url.QueryEscape(q))}
+
+		if pageSize, ok := args["pageSize"]; ok {
+			if pageSizeInt, ok := pageSize.(float64); ok {
+				params = append(params, fmt.Sprintf("pageSize=%.0f", pageSizeInt))
+			} else if pageSizeInt, ok := pageSize.(int); ok {
+				params = append(params, fmt.Sprintf("pageSize=%d", pageSizeInt))
+			}
+		} else {
+			params = append(params, "pageSize=100") // Default limit
+		}
+
+		if pageToken, ok := args["pageToken"].(string); ok && pageToken != "" {
+			params = append(params, fmt.Sprintf("pageToken=%s", url.QueryEscape(pageToken)))
+		}
+
+		if orderBy, ok := args["orderBy"].(string); ok && orderBy != "" {
+			params = append(params, fmt.Sprintf("orderBy=%s", url.QueryEscape(orderBy)))
+		} else {
+			params = append(params, "orderBy=relevance") // Default for search
+		}
+
+		if fields, ok := args["fields"].(string); ok && fields != "" {
+			params = append(params, fmt.Sprintf("fields=%s", url.QueryEscape(fields)))
+		} else {
+			params = append(params, "fields=nextPageToken, files(id, name, mimeType, size, createdTime, modifiedTime, parents, webViewLink)")
+		}
+
+		if spaces, ok := args["spaces"].(string); ok && spaces != "" {
+			params = append(params, fmt.Sprintf("spaces=%s", url.QueryEscape(spaces)))
+		} else {
+			params = append(params, "spaces=drive") // Default space
+		}
+
+		if corpora, ok := args["corpora"].(string); ok && corpora != "" {
+			params = append(params, fmt.Sprintf("corpora=%s", url.QueryEscape(corpora)))
+		}
+
+		if includeItemsFromAllDrives, ok := args["includeItemsFromAllDrives"]; ok {
+			if include, isBool := includeItemsFromAllDrives.(bool); isBool {
+				params = append(params, fmt.Sprintf("includeItemsFromAllDrives=%t", include))
+			}
+		} else {
+			params = append(params, "includeItemsFromAllDrives=true") // Default
+		}
+
+		if supportsAllDrives, ok := args["supportsAllDrives"]; ok {
+			if supports, isBool := supportsAllDrives.(bool); isBool {
+				params = append(params, fmt.Sprintf("supportsAllDrives=%t", supports))
+			}
+		} else {
+			params = append(params, "supportsAllDrives=true") // Default
+		}
+
+		if len(params) > 0 {
+			apiURL += "?" + strings.Join(params, "&")
+		}
+		return apiURL, nil
+
+	default:
+		return "", fmt.Errorf("unsupported Google Drive function: %s", functionName)
+	}
 }

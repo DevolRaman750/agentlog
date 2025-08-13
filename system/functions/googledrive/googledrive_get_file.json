@@ -1,0 +1,59 @@
+{
+  "id": "func-googledrive-get-file",
+  "name": "googledrive_get_file",
+  "provider": "googledrive",
+  "display_name": "Google Drive: Get File",
+  "description": "Get detailed metadata for a specific file in Google Drive. This includes file properties, permissions, and sharing information. Use this to understand file details before performing operations.",
+  "endpoint": {
+    "path": "/files/{fileId}",
+    "method": "GET"
+  },
+  "parameters": {
+    "required": ["fileId"],
+    "optional": ["fields", "supportsAllDrives", "includeItemsFromAllDrives"],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "fileId": {
+          "type": "string",
+          "description": "The ID of the file to retrieve"
+        },
+        "fields": {
+          "type": "string",
+          "default": "id, name, mimeType, size, createdTime, modifiedTime, parents, webViewLink, permissions, owners, shared, trashed",
+          "description": "Fields to include in the response"
+        },
+        "supportsAllDrives": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether the requesting application supports both My Drives and shared drives"
+        },
+        "includeItemsFromAllDrives": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether both My Drive and shared drive items should be included in results"
+        }
+      },
+      "required": ["fileId"]
+    }
+  },
+  "response_transformer": {
+    "type": "googledrive_file",
+    "description": "Transform Google Drive file API response to standardized format"
+  },
+  "examples": [
+    {
+      "name": "Get file metadata",
+      "parameters": {
+        "fileId": "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
+      }
+    },
+    {
+      "name": "Get file with specific fields",
+      "parameters": {
+        "fileId": "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
+        "fields": "id, name, mimeType, size, webViewLink, permissions"
+      }
+    }
+  ]
+}

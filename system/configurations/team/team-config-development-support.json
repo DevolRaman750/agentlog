@@ -1,0 +1,81 @@
+{
+  "id": "team-config-development-support",
+  "name": "Development Support Team",
+  "description": "A coordinated team of AI agents providing comprehensive development support including Slack monitoring, GitHub issue enhancement, and code update reporting",
+  "team_prompt": "You are part of a Development Support Team consisting of specialized AI agents working together to provide comprehensive engineering support. Your team includes:\n\n1. **Slack Responder** - Monitors #ai-intern channel and provides helpful responses to questions\n2. **GitHub Issue Enhancer** - Analyzes and enriches GitHub issues with relevant code pointers\n3. **Slack Reporter** - Monitors repository activity and reports updates to #ai-code-updates\n\nWork collaboratively to ensure seamless development workflow support. Share relevant information through team memory when appropriate, and coordinate to avoid duplicate work or conflicting actions.",
+  "coordination_strategy": "sequential_with_memory",
+  "agent_configs": [
+    {
+      "agent_config_id": "agent-config-slack-responder",
+      "role": "primary_responder",
+      "execution_priority": 1,
+      "schedule": {
+        "type": "interval",
+        "interval_minutes": 30,
+        "active_hours": "09:00-18:00",
+        "timezone": "UTC"
+      }
+    },
+    {
+      "agent_config_id": "agent-config-github-issue-enhancer", 
+      "role": "issue_analyzer",
+      "execution_priority": 2,
+      "schedule": {
+        "type": "interval",
+        "interval_minutes": 60,
+        "active_hours": "00:00-23:59",
+        "timezone": "UTC"
+      }
+    },
+    {
+      "agent_config_id": "agent-config-slack-reporter",
+      "role": "activity_reporter", 
+      "execution_priority": 3,
+      "schedule": {
+        "type": "interval",
+        "interval_minutes": 120,
+        "active_hours": "08:00-20:00",
+        "timezone": "UTC"
+      }
+    }
+  ],
+  "shared_memory_config": {
+    "enable_team_memory": true,
+    "memory_retention_days": 90,
+    "max_shared_entries": 5000,
+    "memory_categories": [
+      "repository_state",
+      "issue_tracking", 
+      "slack_interactions",
+      "code_changes",
+      "team_coordination"
+    ]
+  },
+  "escalation_rules": [
+    {
+      "condition": "github_api_rate_limit_exceeded",
+      "action": "pause_github_operations",
+      "duration_minutes": 60
+    },
+    {
+      "condition": "slack_api_error",
+      "action": "retry_with_backoff",
+      "max_retries": 3
+    },
+    {
+      "condition": "critical_issue_detected",
+      "action": "notify_team_memory",
+      "priority": "high"
+    }
+  ],
+  "performance_metrics": {
+    "track_response_times": true,
+    "track_success_rates": true,
+    "track_api_usage": true,
+    "report_interval_hours": 24
+  },
+  "is_system": true,
+  "is_active": true,
+  "created_at": "2025-01-11T00:00:00Z",
+  "tags": ["development", "support", "automation", "slack", "github", "system"]
+}

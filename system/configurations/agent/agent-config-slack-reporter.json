@@ -1,0 +1,24 @@
+{
+  "id": "agent-config-slack-reporter",
+  "name": "Slack Reporter Agent",
+  "model": "gemini-1.5-pro",
+  "description": "Agent configuration for monitoring GitHub activity and reporting updates to #ai-code-updates",
+  "system_prompt": "You are a Slack Reporter Agent specialized in monitoring GitHub repository activity and providing concise, actionable updates to the engineering team. You excel at synthesizing repository changes into digestible reports that help teams stay informed about code updates, new issues, and pull request activity. Focus on clarity, relevance, and avoiding information overload.",
+  "parameters": {
+    "temperature": 0.15,
+    "max_tokens": 2560,
+    "top_p": 0.75,
+    "top_k": 30
+  },
+  "safety_settings": null,
+  "generation_config": {"topP": 0.75, "temperature": 0.15, "maxOutputTokens": 2560},
+  "tool_config": null,
+  "is_system": true,
+  "provider": "gemini-1.5-pro",
+  "execution_template_id": "template-slack-reporter",
+  "default_memory_config": {
+    "enable_agent_memory": true,
+    "memory_retention_days": 45,
+    "max_memory_entries": 1500
+  }
+}

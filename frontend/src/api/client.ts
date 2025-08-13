@@ -30,6 +30,29 @@ import {
   TeamMemoryRequest,
   TeamMemoryResponse,
 } from '../types';
+
+// Team with agents creation types
+interface TeamWithAgentsCreateRequest {
+  name: string;
+  description?: string;
+  maxTokensPerDay: number;
+  teamConfigId?: string;
+  agents: AgentCreateRequestForTeam[];
+}
+
+interface AgentCreateRequestForTeam {
+  firstName: string;
+  lastName: string;
+  templateId: string;
+  maxTokensPerDay: number;
+  heartbeatMinutes: number;
+  lifecycleStatus: 'STANDBY' | 'ACTIVE' | 'PAUSED' | 'KILLED';
+}
+
+interface TeamWithAgentsCreateResponse {
+  team: Team;
+  agents: Agent[];
+}
 import { User } from '../context/AuthContext';
 import { BackendExecutionKeys } from './backendExecutionKeys';
 
@@ -1153,6 +1176,22 @@ class GoGentAPI {
     }
   }
 
+  async createTeamWithAgents(teamData: TeamWithAgentsCreateRequest): Promise<ApiResponse<TeamWithAgentsCreateResponse>> {
+    try {
+      const response: AxiosResponse = await this.api.post('/api/teams?with_agents=true', teamData);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (createTeamWithAgents):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to create team with agents',
+      };
+    }
+  }
+
   async updateTeam(id: string, teamData: Partial<TeamFormData>): Promise<ApiResponse<Team>> {
     try {
       const response: AxiosResponse = await this.api.put(`/api/teams/${id}`, teamData);
@@ -1616,6 +1655,9 @@ class GoGentAPI {
 
 // Create singleton instance
 export const goGentAPI = new GoGentAPI();
+
+// Export types for external use
+export type { TeamWithAgentsCreateRequest, AgentCreateRequestForTeam, TeamWithAgentsCreateResponse };
 
 // Export class for custom instances if needed
 export default GoGentAPI; 

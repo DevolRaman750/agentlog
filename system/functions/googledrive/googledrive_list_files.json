@@ -1,0 +1,91 @@
+{
+  "id": "func-googledrive-list-files",
+  "name": "googledrive_list_files",
+  "provider": "googledrive",
+  "display_name": "Google Drive: List Files",
+  "description": "List files and folders from Google Drive. You can list files from root directory, a specific folder, or search by various criteria. This helps understand the structure and content of your Google Drive.",
+  "endpoint": {
+    "path": "/files",
+    "method": "GET"
+  },
+  "parameters": {
+    "required": [],
+    "optional": ["pageSize", "pageToken", "q", "orderBy", "fields", "spaces", "corpora"],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "pageSize": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 100,
+          "description": "Maximum number of files to return"
+        },
+        "pageToken": {
+          "type": "string",
+          "description": "Token for pagination to get next page of results"
+        },
+        "q": {
+          "type": "string",
+          "description": "Query string for filtering files (e.g., 'name contains \"report\"', 'mimeType contains \"application/pdf\"')"
+        },
+        "orderBy": {
+          "type": "string",
+          "enum": ["createdTime", "modifiedTime", "modifiedByMeTime", "viewedByMeTime", "name", "quotaBytesUsed"],
+          "default": "modifiedTime desc",
+          "description": "Sort order for results"
+        },
+        "fields": {
+          "type": "string",
+          "default": "nextPageToken, files(id, name, mimeType, size, createdTime, modifiedTime, parents, webViewLink)",
+          "description": "Fields to include in the response"
+        },
+        "spaces": {
+          "type": "string",
+          "enum": ["drive", "appDataFolder", "photos"],
+          "default": "drive",
+          "description": "Space to search in"
+        },
+        "corpora": {
+          "type": "string",
+          "enum": ["user", "domain", "allDrives", "sharedDrive"],
+          "description": "Corpus of files to search"
+        }
+      }
+    }
+  },
+  "response_transformer": {
+    "type": "googledrive_files",
+    "description": "Transform Google Drive files API response to standardized format"
+  },
+  "examples": [
+    {
+      "name": "List recent files",
+      "parameters": {
+        "pageSize": 20,
+        "orderBy": "modifiedTime desc"
+      }
+    },
+    {
+      "name": "List files in a specific folder",
+      "parameters": {
+        "q": "'1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms' in parents",
+        "pageSize": 50
+      }
+    },
+    {
+      "name": "Search for PDF files",
+      "parameters": {
+        "q": "mimeType contains 'application/pdf'",
+        "orderBy": "name"
+      }
+    },
+    {
+      "name": "List shared files",
+      "parameters": {
+        "q": "sharedWithMe=true",
+        "pageSize": 100
+      }
+    }
+  ]
+}

@@ -53,3 +53,47 @@ export interface ExecutionTemplate {
   category: string;
   functionIds: string[];
 }
+
+export interface MarketplaceTeam {
+  id: string;
+  name: string;
+  description: string;
+  category: 'Development Support' | 'DevOps' | 'Customer Support' | 'Analytics' | 'Research';
+  teamSize: number;
+  estimatedCost: string; // e.g., "$300-450/month equivalent"
+  avatar: {
+    icon: string; // emoji or icon name
+    backgroundColor: string;
+    textColor: string;
+  };
+  capabilities: {
+    overview: string[];
+    coverage: string[]; // What areas this team covers
+    integrations: string[]; // What services/APIs it integrates with
+  };
+  agents: MarketplaceTeamAgent[];
+  highlights: string[]; // Key selling points for the team
+  apiRequirements: {
+    requiredKeys: string[];
+    displayNames: string[];
+  };
+  teamConfigId: string; // References the team configuration
+  testimonial?: {
+    text: string;
+    author: string;
+    rating: number;
+  };
+}
+
+export interface MarketplaceTeamAgent {
+  role: string;
+  name: string;
+  templateId: string;
+  description: string;
+  capabilities: string[];
+  defaultConfig: {
+    maxTokensPerDay: number;
+    heartbeatMinutes: number;
+    lifecycleStatus: 'STANDBY' | 'ACTIVE' | 'PAUSED' | 'KILLED';
+  };
+}

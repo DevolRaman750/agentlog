@@ -1,0 +1,40 @@
+{
+  "name": "googledrive",
+  "display_name": "Google Drive",
+  "description": "Google Drive API integration for document management, file operations, and content analysis",
+  "base_url": "https://www.googleapis.com/drive/v3",
+  "auth_methods": ["bearer"],
+  "auth_config": {
+    "bearer": {
+      "header": "Authorization",
+      "format": "Bearer {api_key}",
+      "description": "Google Drive API OAuth 2.0 Access Token or Service Account Key"
+    }
+  },
+  "rate_limits": {
+    "requests_per_100_seconds": 1000,
+    "requests_per_100_seconds_per_user": 1000
+  },
+  "common_headers": {
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+    "User-Agent": "GoGent/1.0"
+  },
+  "error_handling": {
+    "error_status_codes": [400, 401, 403, 404, 429, 500, 502, 503],
+    "retry_status_codes": [429, 500, 502, 503],
+    "max_retries": 3,
+    "retry_after_header": "Retry-After"
+  },
+  "supported_functions": [
+    "googledrive_list_files",
+    "googledrive_get_file",
+    "googledrive_get_file_content",
+    "googledrive_search_files",
+    "googledrive_create_file",
+    "googledrive_update_file",
+    "googledrive_delete_file",
+    "googledrive_share_file",
+    "googledrive_get_permissions"
+  ]
+}

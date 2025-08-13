@@ -249,7 +249,8 @@ type SessionApiKeys struct {
 	Neo4jPassword     string `json:"neo4jPassword,omitempty"`
 	Neo4jDatabase     string `json:"neo4jDatabase,omitempty"`
 	GithubApiKey      string `json:"githubApiKey,omitempty"`
-	SlackBotToken     string `json:"slackBotToken,omitempty"` // Slack Bot Token (xoxb-...)
+	SlackBotToken     string `json:"slackBotToken,omitempty"`     // Slack Bot Token (xoxb-...)
+	GoogleDriveApiKey string `json:"googleDriveApiKey,omitempty"` // Google Drive API OAuth 2.0 Access Token
 }
 
 // GeminiClientConfig represents the configuration for the Gemini client
@@ -696,6 +697,31 @@ type TeamUpdateRequest struct {
 	Name            *string `json:"name,omitempty" validate:"omitempty,min=1,max=100"`
 	Description     *string `json:"description,omitempty" validate:"omitempty,max=500"`
 	MaxTokensPerDay *int32  `json:"maxTokensPerDay,omitempty" validate:"omitempty,min=1000"`
+}
+
+// TeamWithAgentsCreateRequest represents the request to create a team with agents
+type TeamWithAgentsCreateRequest struct {
+	Name            string                      `json:"name" validate:"required,min=1,max=100"`
+	Description     *string                     `json:"description,omitempty" validate:"omitempty,max=500"`
+	MaxTokensPerDay int32                       `json:"maxTokensPerDay" validate:"required,min=1000"`
+	TeamConfigId    *string                     `json:"teamConfigId,omitempty"`
+	Agents          []AgentCreateRequestForTeam `json:"agents" validate:"required,min=1"`
+}
+
+// AgentCreateRequestForTeam represents an agent to be created as part of a team
+type AgentCreateRequestForTeam struct {
+	FirstName        string          `json:"firstName" validate:"required,min=1,max=100"`
+	LastName         string          `json:"lastName" validate:"required,min=1,max=100"`
+	TemplateID       string          `json:"templateId" validate:"required"`
+	MaxTokensPerDay  int32           `json:"maxTokensPerDay" validate:"required,min=1"`
+	HeartbeatMinutes int32           `json:"heartbeatMinutes" validate:"required,min=5"`
+	LifecycleStatus  LifecycleStatus `json:"lifecycleStatus"`
+}
+
+// TeamWithAgentsCreateResponse represents the response after creating a team with agents
+type TeamWithAgentsCreateResponse struct {
+	Team   Team    `json:"team"`
+	Agents []Agent `json:"agents"`
 }
 
 // TeamWithAgents represents a team with its associated agents

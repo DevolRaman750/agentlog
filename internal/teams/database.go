@@ -559,3 +559,78 @@ func (h *TeamsHandler) saveTeamMemory(teamID, userID string, memory *types.TeamM
 
 	return nil
 }
+
+// createTeamInDBTx creates a new team in the database within a transaction
+func (h *TeamsHandler) createTeamInDBTx(tx *sql.Tx, team types.Team) error {
+	query := `
+		INSERT INTO teams (id, user_id, name, description, max_tokens_per_day, 
+		                   tokens_used_today, tokens_reset_date, agent_count, 
+		                   active_agent_count, total_executions, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`
+
+	var description interface{}
+	if team.Description != nil {
+		description = *team.Description
+	}
+
+	_, err := tx.Exec(query,
+		team.ID, team.UserID, team.Name, description, team.MaxTokensPerDay,
+		team.TokensUsedToday, team.TokensResetDate, team.AgentCount,
+		team.ActiveAgentCount, team.TotalExecutions, team.CreatedAt, team.UpdatedAt,
+	)
+
+	return err
+}
+
+// insertAgentTx creates a new agent in the database within a transaction
+func (h *TeamsHandler) insertAgentTx(tx *sql.Tx, agent *types.Agent) error {
+	query := `
+		INSERT INTO agents (
+			id, user_id, first_name, last_name, template_id, team_id,
+			max_tokens_per_day, heartbeat_minutes, lifecycle_status,
+			tokens_used_today, tokens_reset_date, total_executions,
+			created_at, updated_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`
+
+	_, err := tx.Exec(query,
+		agent.ID, agent.UserID, agent.FirstName, agent.LastName, agent.TemplateID, agent.TeamID,
+		agent.MaxTokensPerDay, agent.HeartbeatMinutes, agent.LifecycleStatus,
+		agent.TokensUsedToday, agent.TokensResetDate, agent.TotalExecutions,
+		agent.CreatedAt, agent.UpdatedAt,
+	)
+	return err
+}
+
+// verifyTemplateAccessTx verifies that a template exists and is accessible to the user within a transaction
+func (h *TeamsHandler) verifyTemplateAccessTx(tx *sql.Tx, userID, templateID string) error {
+	query := `
+		SELECT COUNT(*) FROM execution_templates 
+		WHERE id = ? AND (user_id = ? OR user_id = 'system' OR is_public = TRUE) AND is_active = TRUE
+	`
+
+	var count int
+	err := tx.QueryRow(query, templateID, userID).Scan(&count)
+	if err != nil {
+		return fmt.Errorf("failed to verify template access: %w", err)
+	}
+
+	if count == 0 {
+		return fmt.Errorf("template not found or not accessible")
+	}
+
+	return nil
+}
+
+// updateTeamAgentCountTx updates the agent count for a team within a transaction
+func (h *TeamsHandler) updateTeamAgentCountTx(tx *sql.Tx, teamID string, agentCount, activeAgentCount int32) error {
+	query := `
+		UPDATE teams 
+		SET agent_count = ?, active_agent_count = ?, updated_at = ?
+		WHERE id = ?
+	`
+
+	_, err := tx.Exec(query, agentCount, activeAgentCount, time.Now(), teamID)
+	return err
+}

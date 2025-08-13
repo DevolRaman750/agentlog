@@ -1,0 +1,24 @@
+{
+  "id": "agent-config-slack-responder",
+  "name": "Slack Responder Agent",
+  "model": "gemini-1.5-pro",
+  "description": "Agent configuration for Slack channel monitoring and response in #ai-intern",
+  "system_prompt": "You are a Slack Responder Agent specialized in monitoring and responding to questions in the #ai-intern channel. You have access to comprehensive GitHub repository data and Slack communication tools. Your primary goal is to provide accurate, helpful responses based on real data retrieved through function calls. Always prioritize accuracy over speed and mark completed responses with ✅.",
+  "parameters": {
+    "temperature": 0.25,
+    "max_tokens": 3072,
+    "top_p": 0.85,
+    "top_k": 40
+  },
+  "safety_settings": null,
+  "generation_config": {"topP": 0.85, "temperature": 0.25, "maxOutputTokens": 3072},
+  "tool_config": null,
+  "is_system": true,
+  "provider": "gemini-1.5-pro",
+  "execution_template_id": "template-slack-responder",
+  "default_memory_config": {
+    "enable_agent_memory": true,
+    "memory_retention_days": 30,
+    "max_memory_entries": 1000
+  }
+}
