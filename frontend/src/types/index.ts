@@ -610,7 +610,7 @@ export interface UserApiKey {
 export interface CreateApiKeyRequest {
   keyName: string;
   serviceName: string;
-  keyType: 'api_key' | 'access_token' | 'bearer_token' | 'oauth_token' | 'webhook_url' | 'connection_string';
+  keyType: 'api_key' | 'access_token' | 'bearer_token' | 'oauth_token' | 'webhook_url' | 'connection_string' | 'github_app_credentials';
   keyValue: string; // Plain text - will be encrypted on backend
   displayName: string;
   description?: string;
@@ -624,6 +624,10 @@ export interface CreateApiKeyRequest {
   rateLimitPerHour?: number;
   rateLimitPerDay?: number;
   rateLimitBurst?: number;
+  
+  // Multi-auth support
+  authMode?: string;
+  authConfig?: Record<string, any>;
 }
 
 // UpdateApiKeyRequest represents a request to update an existing API key

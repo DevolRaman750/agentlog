@@ -55,7 +55,7 @@ describe('Performance and Load Tests', () => {
     if (!serverAvailable) {
       console.warn('⚠️  Backend server not available. Performance tests will use mock data.');
       // Setup mock authentication for tests without server
-      authToken = 'mock-token';
+      authToken = 'mock-jwt-token-12345';
       testUserId = 'mock-user-id';
       
       mockAsyncStorage.getItem.mockImplementation((key: string) => {
@@ -85,8 +85,15 @@ describe('Performance and Load Tests', () => {
     } else {
       console.warn('⚠️  Failed to create test user. Using mock setup.');
       serverAvailable = false;
-      authToken = 'mock-token';
+      authToken = 'mock-jwt-token-12345';
       testUserId = 'mock-user-id';
+      
+      // Mock AsyncStorage to return the auth token
+      mockAsyncStorage.getItem.mockImplementation((key: string) => {
+        if (key === 'auth_token') return Promise.resolve(authToken);
+        if (key === 'appConfig') return Promise.resolve('{}');
+        return Promise.resolve(null);
+      });
     }
   }, 30000); // Extended timeout for setup
 

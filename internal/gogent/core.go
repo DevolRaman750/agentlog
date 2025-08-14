@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"gogent/internal/agents"
+	"gogent/internal/apiauth"
 	"gogent/internal/apikeys"
 	"gogent/internal/code_analysis"
 	"gogent/internal/db"
@@ -52,6 +53,10 @@ type Client struct {
 	// Sequence number counter for flow events
 	sequenceCounter int
 
+	// Function call deduplication - prevents duplicate calls within same execution
+	functionCallHistory map[string]*FunctionCallHistory // executionRunID -> history
+	functionCallMutex   sync.RWMutex
+
 	// Refactored components
 	codeAnalyzer      *code_analysis.Analyzer
 	directoryAnalyzer *github.DirectoryAnalyzer
@@ -59,6 +64,125 @@ type Client struct {
 	// Integration framework
 	httpClient   *base.HTTPClient
 	integrations *integrations.Registry
+}
+
+// FunctionCallHistory tracks function calls within an execution session to prevent duplicates
+type FunctionCallHistory struct {
+	Calls   map[string][]map[string]interface{} // functionName -> []args
+	Results map[string]map[string]interface{}   // functionName+argsHash -> result
+	mutex   sync.RWMutex
+}
+
+// NewFunctionCallHistory creates a new function call history tracker
+func NewFunctionCallHistory() *FunctionCallHistory {
+	return &FunctionCallHistory{
+		Calls:   make(map[string][]map[string]interface{}),
+		Results: make(map[string]map[string]interface{}),
+	}
+}
+
+// normalizeArgs creates a stable JSON representation of function arguments for caching
+func (c *Client) normalizeArgs(args map[string]interface{}) string {
+	if args == nil {
+		return "{}"
+	}
+
+	// Create a sorted representation for consistent cache keys
+	normalized := make(map[string]interface{})
+	for k, v := range args {
+		normalized[k] = v
+	}
+
+	jsonBytes, err := json.Marshal(normalized)
+	if err != nil {
+		// Fallback to string representation if JSON fails
+		return fmt.Sprintf("%+v", args)
+	}
+	return string(jsonBytes)
+}
+
+// makeCacheKey creates a cache key from function name and normalized arguments
+func (c *Client) makeCacheKey(functionName string, args map[string]interface{}) string {
+	return functionName + "::" + c.normalizeArgs(args)
+}
+
+// getOrCreateHistory gets or creates function call history for an execution run
+func (c *Client) getOrCreateHistory(runID string) *FunctionCallHistory {
+	c.functionCallMutex.Lock()
+	defer c.functionCallMutex.Unlock()
+
+	if history, exists := c.functionCallHistory[runID]; exists {
+		return history
+	}
+
+	history := NewFunctionCallHistory()
+	c.functionCallHistory[runID] = history
+	return history
+}
+
+// cacheGet retrieves a cached function result
+func (c *Client) cacheGet(runID, key string) (map[string]interface{}, bool) {
+	history := c.getOrCreateHistory(runID)
+	history.mutex.RLock()
+	defer history.mutex.RUnlock()
+
+	result, exists := history.Results[key]
+	if !exists {
+		return nil, false
+	}
+
+	// Deep copy the result to avoid mutation
+	return c.deepCopyMap(result), true
+}
+
+// cachePut stores a function result in the cache
+func (c *Client) cachePut(runID, key string, result map[string]interface{}) {
+	history := c.getOrCreateHistory(runID)
+	history.mutex.Lock()
+	defer history.mutex.Unlock()
+
+	// Deep copy the result to avoid mutation
+	history.Results[key] = c.deepCopyMap(result)
+}
+
+// deepCopyMap creates a deep copy of a map[string]interface{}
+func (c *Client) deepCopyMap(original map[string]interface{}) map[string]interface{} {
+	if original == nil {
+		return nil
+	}
+
+	copy := make(map[string]interface{})
+	for k, v := range original {
+		switch val := v.(type) {
+		case map[string]interface{}:
+			copy[k] = c.deepCopyMap(val)
+		case []interface{}:
+			copy[k] = c.deepCopySlice(val)
+		default:
+			copy[k] = val
+		}
+	}
+	return copy
+}
+
+// deepCopySlice creates a deep copy of a []interface{}
+func (c *Client) deepCopySlice(original []interface{}) []interface{} {
+	if original == nil {
+		return nil
+	}
+
+	copy := make([]interface{}, len(original))
+	for i, v := range original {
+		switch val := v.(type) {
+		case map[string]interface{}:
+			copy[i] = c.deepCopyMap(val)
+		case []interface{}:
+			copy[i] = c.deepCopySlice(val)
+		default:
+			copy[i] = val
+		}
+	}
+	return copy
 }
 
 // ResponsePart represents a part of the Gemini API response
@@ -113,12 +237,14 @@ func NewClient(dbURL string, config *types.GeminiClientConfig, sessionApiKeys *t
 	}
 
 	client := &Client{
-		db:              database,
-		queries:         queries,
-		config:          config,
-		sessionApiKeys:  sessionApiKeys,
-		providerFactory: providers.NewProviderFactory(),
-		mutex:           sync.RWMutex{},
+		db:                  database,
+		queries:             queries,
+		config:              config,
+		sessionApiKeys:      sessionApiKeys,
+		providerFactory:     providers.NewProviderFactory(),
+		mutex:               sync.RWMutex{},
+		functionCallHistory: make(map[string]*FunctionCallHistory),
+		functionCallMutex:   sync.RWMutex{},
 	}
 
 	// Initialize refactored components
@@ -149,16 +275,34 @@ func (c *Client) Close() error {
 
 // registerIntegrations registers all available integrations
 func (c *Client) registerIntegrations() error {
-	// Get effective API keys
+	// Get effective API keys for legacy support
 	apiKeys := c.getEffectiveApiKeys()
 
-	// Register GitHub integration
-	githubInt := githubIntegration.NewIntegration(apiKeys)
+	// Create auth service if we have a current user
+	var authService *apiauth.Service
+	if c.currentUserID != "" {
+		apiKeyService, err := apikeys.NewService(c.db)
+		if err != nil {
+			log.Printf("⚠️ Failed to create API key service for integrations: %v", err)
+		} else {
+			authService = apiauth.NewService(apiKeyService)
+		}
+	}
+
+	// Register GitHub integration with new auth system
+	var githubInt base.APIIntegration
+	if authService != nil && c.currentUserID != "" {
+		githubInt = githubIntegration.NewIntegrationWithAuth(authService, c.currentUserID)
+		log.Printf("🔑 Registered GitHub integration with new auth system for user %s", c.currentUserID)
+	} else {
+		githubInt = githubIntegration.NewIntegration(apiKeys)
+		log.Printf("🔑 Registered GitHub integration with legacy auth system")
+	}
 	if err := c.integrations.Register(githubInt); err != nil {
 		return fmt.Errorf("failed to register GitHub integration: %w", err)
 	}
 
-	// Register Slack integration
+	// Register Slack integration (legacy for now)
 	slackInt := slackIntegration.NewIntegration(apiKeys)
 	if err := c.integrations.Register(slackInt); err != nil {
 		return fmt.Errorf("failed to register Slack integration: %w", err)
@@ -272,6 +416,12 @@ func (c *Client) LoadDatabaseApiKeys(ctx context.Context, userID string) error {
 		sessionKeys.OpenRouterApiKey != "",
 		sessionKeys.SlackBotToken != "",
 		sessionKeys.GoogleDriveApiKey != "")
+
+	// Re-register integrations with the new user context and auth system
+	if err := c.registerIntegrations(); err != nil {
+		log.Printf("⚠️ Failed to register integrations after loading API keys: %v", err)
+		// Don't fail completely - continue with existing integrations
+	}
 
 	return nil
 }
@@ -514,6 +664,11 @@ func (c *Client) executeDynamicFunction(ctx context.Context, funcDef *db.Functio
 	// Handle internal functions differently
 	if funcDef.FunctionGroup == "internal" {
 		return c.executeInternalFunction(ctx, funcDef, args)
+	}
+
+	// Route functions with registered integrations through the integration system
+	if c.integrations != nil && c.integrations.HasIntegration(funcDef.FunctionGroup) {
+		return c.executeIntegrationFunction(ctx, funcDef, args)
 	}
 
 	switch funcDef.HttpMethod.String {
@@ -849,6 +1004,45 @@ func (c *Client) createMockMemoryResponse(functionName string, args map[string]i
 			"message": "Memory function called in non-agent execution - operation mocked",
 		}
 	}
+}
+
+// executeIntegrationFunction executes functions through the registered integration system
+func (c *Client) executeIntegrationFunction(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+	functionName := funcDef.Name
+	log.Printf("🔧 Executing function through integration system: %s", functionName)
+
+	// Get the integration for this function group
+	integration, err := c.integrations.Get(funcDef.FunctionGroup)
+	if err != nil {
+		return nil, fmt.Errorf("integration not found for function group %s: %w", funcDef.FunctionGroup, err)
+	}
+
+	// Validate the function with the integration
+	if err := integration.ValidateFunction(funcDef); err != nil {
+		return nil, fmt.Errorf("function validation failed: %w", err)
+	}
+
+	// Create HTTP client for the integration
+	httpClient := c.getHTTPClientForIntegration()
+
+	// Execute the request through the integration
+	result, err := httpClient.ExecuteRequest(ctx, integration, funcDef, args)
+	if err != nil {
+		return nil, fmt.Errorf("integration execution failed: %w", err)
+	}
+
+	log.Printf("✅ Integration function executed successfully: %s", functionName)
+	return result, nil
+}
+
+// getHTTPClientForIntegration creates an HTTP client for integration use
+func (c *Client) getHTTPClientForIntegration() *base.HTTPClient {
+	config := base.HTTPClientConfig{
+		TimeoutSeconds: 30,
+		MaxRetries:     3,
+		UserAgent:      "GoGent/1.0",
+	}
+	return base.NewHTTPClient(config)
 }
 
 // executeAPIFunction executes any API function with real HTTP calls using the function definition's endpoint URL

@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 
+	"gogent/internal/apiauth"
 	"gogent/internal/db"
 	"gogent/internal/gogent/integrations/base"
 	"gogent/internal/types"
@@ -16,8 +17,10 @@ import (
 
 // Integration implements the GitHub API integration
 type Integration struct {
-	baseURL string
-	apiKeys *types.SessionApiKeys
+	baseURL     string
+	apiKeys     *types.SessionApiKeys // Legacy support
+	authService *apiauth.Service
+	userID      string
 }
 
 // NewIntegration creates a new GitHub integration
@@ -25,6 +28,15 @@ func NewIntegration(apiKeys *types.SessionApiKeys) *Integration {
 	return &Integration{
 		baseURL: "https://api.github.com",
 		apiKeys: apiKeys,
+	}
+}
+
+// NewIntegrationWithAuth creates a new GitHub integration with auth service
+func NewIntegrationWithAuth(authService *apiauth.Service, userID string) *Integration {
+	return &Integration{
+		baseURL:     "https://api.github.com",
+		authService: authService,
+		userID:      userID,
 	}
 }
 
@@ -126,13 +138,28 @@ func (g *Integration) BuildURL(funcDef *db.FunctionDefinition, args map[string]i
 
 // PrepareRequest prepares the HTTP request with GitHub authentication and headers
 func (g *Integration) PrepareRequest(ctx context.Context, req *http.Request, funcDef *db.FunctionDefinition, args map[string]interface{}) error {
-	// Add GitHub API authentication
-	if g.apiKeys != nil && g.apiKeys.GithubApiKey != "" {
-		req.Header.Set("Authorization", "token "+g.apiKeys.GithubApiKey)
+	// Try new auth system first
+	if g.authService != nil && g.userID != "" {
+		credentials, err := g.authService.GetAuthCredentialsForService(ctx, g.userID, "github")
+		if err == nil {
+			// Apply auth headers from the new system
+			for key, value := range credentials.Headers {
+				req.Header.Set(key, value)
+			}
+			fmt.Printf("🔑 GitHub integration using new auth system successfully\n")
+			return nil
+		}
+		// If new auth system fails, fall back to legacy system
+		fmt.Printf("⚠️ GitHub integration new auth system failed: %v, falling back to legacy\n", err)
 	}
 
-	// Set GitHub-specific headers
-	req.Header.Set("Accept", "application/vnd.github.v3+json")
+	// Legacy authentication fallback
+	if g.apiKeys != nil && g.apiKeys.GithubApiKey != "" {
+		req.Header.Set("Authorization", "token "+g.apiKeys.GithubApiKey)
+		req.Header.Set("Accept", "application/vnd.github+json")
+		req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+		req.Header.Set("User-Agent", "GoGent/1.0")
+	}
 
 	return nil
 }

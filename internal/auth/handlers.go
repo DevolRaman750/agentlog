@@ -3,131 +3,90 @@ package auth
 import (
 	"encoding/json"
 	"net/http"
-	"time"
 )
 
-// LoginRequest represents the login request body
+// Request/Response types for auth handlers
 type LoginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
 
-// LoginResponse represents the login response
 type LoginResponse struct {
-	Token     string    `json:"token"`
-	User      *User     `json:"user"`
-	ExpiresAt time.Time `json:"expires_at"`
+	Token     string `json:"token"`
+	User      User   `json:"user"`
+	ExpiresAt string `json:"expiresAt"`
 }
 
-// RegisterRequest represents the registration request body
 type RegisterRequest struct {
 	Username string `json:"username"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
-// RegisterResponse represents the registration response
 type RegisterResponse struct {
-	User  *User  `json:"user"`
+	User  User   `json:"user"`
 	Token string `json:"token"`
 }
 
-// CreateTemporaryUserRequest represents the temporary user creation request
 type CreateTemporaryUserRequest struct {
-	SessionID string `json:"session_id,omitempty"`
+	SessionID string `json:"sessionId"`
 }
 
-// CreateTemporaryUserResponse represents the temporary user creation response
 type CreateTemporaryUserResponse struct {
-	User              *User  `json:"user"`
-	TemporaryPassword string `json:"temporary_password"`
+	User              User   `json:"user"`
+	TemporaryPassword string `json:"temporaryPassword"`
 	Token             string `json:"token"`
 }
 
-// SaveTemporaryAccountRequest represents the save temporary account request
 type SaveTemporaryAccountRequest struct {
+	Username        string `json:"username"`
 	Email           string `json:"email"`
-	CurrentPassword string `json:"current_password"`
+	Password        string `json:"password"`
+	CurrentPassword string `json:"currentPassword"`
 }
 
-// SaveTemporaryAccountResponse represents the save temporary account response
 type SaveTemporaryAccountResponse struct {
-	User      *User `json:"user"`
-	EmailSent bool  `json:"email_sent"`
+	User User `json:"user"`
 }
 
-// ConnectTemporaryAccountRequest represents the connect temporary account request
 type ConnectTemporaryAccountRequest struct {
 	Email       string `json:"email"`
 	NewPassword string `json:"newPassword"`
 }
 
-// ConnectTemporaryAccountResponse represents the connect temporary account response
 type ConnectTemporaryAccountResponse struct {
+	User  User   `json:"user"`
 	Token string `json:"token"`
-	User  *User  `json:"user"`
 }
 
-// VerifyEmailRequest represents the email verification request
 type VerifyEmailRequest struct {
 	Token string `json:"token"`
 }
 
-// VerifyEmailResponse represents the email verification response
 type VerifyEmailResponse struct {
-	User     *User `json:"user"`
-	Verified bool  `json:"verified"`
+	Success  bool `json:"success"`
+	User     User `json:"user"`
+	Verified bool `json:"verified"`
 }
 
-// GetCurrentUserResponse represents the current user response
 type GetCurrentUserResponse struct {
-	User *User `json:"user"`
+	User User `json:"user"`
 }
 
-// AuthHandlers provides HTTP handlers for authentication
+// AuthHandlers provides HTTP handlers for authentication endpoints
 type AuthHandlers struct {
 	authService *AuthService
 }
 
-// NewAuthHandlers creates new authentication handlers
+// NewAuthHandlers creates a new AuthHandlers instance
 func NewAuthHandlers(authService *AuthService) *AuthHandlers {
 	return &AuthHandlers{
 		authService: authService,
 	}
 }
 
-// LoginHandler handles user login
-func (ah *AuthHandlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	var req LoginRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
-
-	user, token, err := ah.authService.Login(req.Username, req.Password)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		return
-	}
-
-	expiresAt := time.Now().Add(24 * time.Hour)
-	response := LoginResponse{
-		Token:     token,
-		User:      user,
-		ExpiresAt: expiresAt,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
-// RegisterHandler handles user registration
-func (ah *AuthHandlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
+// RegisterHandler handles user registration requests
+func (h *AuthHandlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -135,18 +94,18 @@ func (ah *AuthHandlers) RegisterHandler(w http.ResponseWriter, r *http.Request) 
 
 	var req RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	user, token, err := ah.authService.Register(req.Username, req.Email, req.Password)
+	user, token, err := h.authService.Register(req.Username, req.Email, req.Password)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	response := RegisterResponse{
-		User:  user,
+		User:  *user,
 		Token: token,
 	}
 
@@ -154,8 +113,37 @@ func (ah *AuthHandlers) RegisterHandler(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(response)
 }
 
+// LoginHandler handles user login requests
+func (h *AuthHandlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req LoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	user, token, err := h.authService.Login(req.Username, req.Password)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	response := LoginResponse{
+		Token:     token,
+		User:      *user,
+		ExpiresAt: "2024-12-31T23:59:59Z", // TODO: Get actual expiry from token
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
 // CreateTemporaryUserHandler handles temporary user creation
-func (ah *AuthHandlers) CreateTemporaryUserHandler(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandlers) CreateTemporaryUserHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -163,18 +151,18 @@ func (ah *AuthHandlers) CreateTemporaryUserHandler(w http.ResponseWriter, r *htt
 
 	var req CreateTemporaryUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	user, tempPassword, token, err := ah.authService.CreateTemporaryUser(req.SessionID)
+	user, tempPassword, token, err := h.authService.CreateTemporaryUser(req.SessionID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	response := CreateTemporaryUserResponse{
-		User:              user,
+		User:              *user,
 		TemporaryPassword: tempPassword,
 		Token:             token,
 	}
@@ -183,81 +171,8 @@ func (ah *AuthHandlers) CreateTemporaryUserHandler(w http.ResponseWriter, r *htt
 	json.NewEncoder(w).Encode(response)
 }
 
-// SaveTemporaryAccountHandler handles saving temporary accounts
-func (ah *AuthHandlers) SaveTemporaryAccountHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	var req SaveTemporaryAccountRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
-
-	// Get user from context (must be authenticated)
-	user, ok := GetUserFromContext(r.Context())
-	if !ok {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	updatedUser, err := ah.authService.SaveTemporaryAccount(user.ID, req.Email, req.CurrentPassword)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	// TODO: Send verification email
-	emailSent := false // Placeholder for email sending logic
-
-	response := SaveTemporaryAccountResponse{
-		User:      updatedUser,
-		EmailSent: emailSent,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
-// ConnectTemporaryAccountHandler handles connecting temporary accounts to email with new password
-func (ah *AuthHandlers) ConnectTemporaryAccountHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	var req ConnectTemporaryAccountRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
-
-	// Get user from context (must be authenticated)
-	user, ok := GetUserFromContext(r.Context())
-	if !ok {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	updatedUser, newToken, err := ah.authService.ConnectTemporaryAccount(user.ID, req.Email, req.NewPassword)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	response := ConnectTemporaryAccountResponse{
-		Token: newToken,
-		User:  updatedUser,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
 // VerifyEmailHandler handles email verification
-func (ah *AuthHandlers) VerifyEmailHandler(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandlers) VerifyEmailHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -265,18 +180,19 @@ func (ah *AuthHandlers) VerifyEmailHandler(w http.ResponseWriter, r *http.Reques
 
 	var req VerifyEmailRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	user, err := ah.authService.VerifyEmail(req.Token)
+	user, err := h.authService.VerifyEmail(req.Token)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	response := VerifyEmailResponse{
-		User:     user,
+		Success:  true,
+		User:     *user,
 		Verified: true,
 	}
 
@@ -284,8 +200,8 @@ func (ah *AuthHandlers) VerifyEmailHandler(w http.ResponseWriter, r *http.Reques
 	json.NewEncoder(w).Encode(response)
 }
 
-// GetCurrentUserHandler handles getting current user information
-func (ah *AuthHandlers) GetCurrentUserHandler(w http.ResponseWriter, r *http.Request) {
+// GetCurrentUserHandler handles getting current user info
+func (h *AuthHandlers) GetCurrentUserHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -293,12 +209,79 @@ func (ah *AuthHandlers) GetCurrentUserHandler(w http.ResponseWriter, r *http.Req
 
 	user, ok := GetUserFromContext(r.Context())
 	if !ok {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		http.Error(w, "User not found in context", http.StatusUnauthorized)
 		return
 	}
 
 	response := GetCurrentUserResponse{
-		User: user,
+		User: *user,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// SaveTemporaryAccountHandler handles saving temporary accounts
+func (h *AuthHandlers) SaveTemporaryAccountHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user, ok := GetUserFromContext(r.Context())
+	if !ok {
+		http.Error(w, "User not found in context", http.StatusUnauthorized)
+		return
+	}
+
+	var req SaveTemporaryAccountRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	updatedUser, err := h.authService.SaveTemporaryAccount(user.ID, req.Email, req.CurrentPassword)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	response := SaveTemporaryAccountResponse{
+		User: *updatedUser,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// ConnectTemporaryAccountHandler handles connecting temporary accounts
+func (h *AuthHandlers) ConnectTemporaryAccountHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user, ok := GetUserFromContext(r.Context())
+	if !ok {
+		http.Error(w, "User not found in context", http.StatusUnauthorized)
+		return
+	}
+
+	var req ConnectTemporaryAccountRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	updatedUser, token, err := h.authService.ConnectTemporaryAccount(user.ID, req.Email, req.NewPassword)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	response := ConnectTemporaryAccountResponse{
+		User:  *updatedUser,
+		Token: token,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

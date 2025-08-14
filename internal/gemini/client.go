@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"gogent/internal/types"
@@ -212,8 +213,17 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 		candidate := geminiResp.Candidates[0]
 		finishReason = candidate.FinishReason
 
-		for _, part := range candidate.Content.Parts {
+		// DEBUG: Log raw response parts to debug tool_code issue
+		log.Printf("🔍 DEBUG: Gemini response has %d parts", len(candidate.Content.Parts))
+
+		for i, part := range candidate.Content.Parts {
+			log.Printf("🔍 DEBUG: Part %d - Text: %q, HasFunctionCall: %v", i, part.Text, part.FunctionCall != nil)
+
 			if part.Text != "" {
+				// Check if the text contains tool_code blocks
+				if strings.Contains(part.Text, "tool_code") {
+					log.Printf("🚨 DEBUG: Found tool_code in Gemini response text: %s", part.Text)
+				}
 				responseText = part.Text
 			}
 			if part.FunctionCall != nil {

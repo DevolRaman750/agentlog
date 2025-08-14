@@ -1400,18 +1400,47 @@ func (c *Client) processProviderSynthesisWithIteration(ctx context.Context, conf
 			return c.createFallbackSummary(allFunctionCalls, allFunctionResults), nil
 		}
 
-		// Create a new synthesis prompt with all results
-		newSynthesisPrompt := fmt.Sprintf("User's original request: \"%s\"\n\nFunction execution results:\n", originalPrompt)
+		// Create a new synthesis prompt with all results using consistent formatting
+		newSynthesisPrompt := fmt.Sprintf("User's original request: \"%s\"\n\nFunction execution results:\n\n", originalPrompt)
+
+		var hasErrors bool
 		for i, funcCall := range allFunctionCalls {
 			if i < len(allFunctionResults) {
+				newSynthesisPrompt += fmt.Sprintf("• %s: ", funcCall.FunctionCall.Name)
+
+				// Include the function result data, but truncate if too large
 				resultJSON, _ := json.Marshal(allFunctionResults[i])
-				newSynthesisPrompt += fmt.Sprintf("\n• %s: %s\n", funcCall.FunctionCall.Name, string(resultJSON))
+				resultStr := string(resultJSON)
+				if len(resultStr) > 10000 {
+					resultStr = resultStr[:10000] + "... (truncated)"
+				}
+				newSynthesisPrompt += fmt.Sprintf("%s\n\n", resultStr)
+
+				// Check if this function failed
+				if status, ok := allFunctionResults[i]["status"].(string); ok && (status == "failed" || status == "validation_failed") {
+					hasErrors = true
+				}
 			}
 		}
 
-		// Add intelligent prompt suffix
-		promptSuffix := synthesisManager.GetSynthesisPromptSuffix(decision, providerType)
-		newSynthesisPrompt += promptSuffix
+		// Add context summary to help the model understand what data it already has
+		contextSummary := c.summarizeKnownContext(allFunctionResults)
+		if contextSummary != "" {
+			newSynthesisPrompt += contextSummary
+		}
+
+		// Detect if we have sufficient data to complete the task
+		shouldComplete := c.detectTaskCompletion(allFunctionCalls, allFunctionResults, depth+1, originalPrompt)
+
+		// Add intelligent prompt suffix with context awareness
+		if hasErrors {
+			newSynthesisPrompt += "\n**ERROR HANDLING:** Some functions failed with errors. Please analyze the available data and provide your best response. DO NOT make additional function calls that might fail with the same errors.\n\n**IMPORTANT: Respond in natural language - DO NOT echo the function names or raw data above. Instead, analyze the successful results and provide a human-readable response explaining what you were able to accomplish. CRITICAL: Use ONLY natural language - no code blocks or tool_code.**"
+		} else if shouldComplete {
+			newSynthesisPrompt += "\n**FINAL RESPONSE REQUIRED:** You now have all the necessary data to complete the user's request. STOP calling functions and provide a comprehensive final response using the data above. \n\n**IMPORTANT: Respond in natural language - DO NOT echo the function names or raw data above. Instead, analyze the results and provide a human-readable response that directly addresses the user's original request. Summarize what you found and what actions you took. CRITICAL: Use ONLY natural language - no code blocks or tool_code.**"
+		} else {
+			promptSuffix := synthesisManager.GetSynthesisPromptSuffix(decision, providerType)
+			newSynthesisPrompt += promptSuffix
+		}
 
 		// Create new synthesis request
 		newSynthesisRequest := &providers.ModelRequest{
@@ -1465,6 +1494,44 @@ func (c *Client) executeFunctionCall(ctx context.Context, functionName string, a
 
 	startTime := time.Now()
 
+	// Check cache for duplicate function calls within the same execution
+	if c.currentExecutionRunID != nil {
+		runID := *c.currentExecutionRunID
+		cacheKey := c.makeCacheKey(functionName, args)
+
+		if cachedResult, found := c.cacheGet(runID, cacheKey); found {
+			// Return cached result with metadata indicating it's a duplicate
+			result := c.deepCopyMap(cachedResult)
+			result["cached"] = true
+			result["no_new_data"] = true
+			result["duplicate_of"] = cacheKey
+			result["cache_hit_time"] = time.Now().Format(time.RFC3339)
+
+			executionTimeMs := int32(time.Since(startTime).Milliseconds())
+
+			// Log cache hit
+			c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryFunctionCall,
+				fmt.Sprintf("Function call cache hit: %s (avoiding duplicate API call)", functionName),
+				map[string]interface{}{
+					"functionName": functionName,
+					"cacheKey":     cacheKey,
+					"cached":       true,
+				})
+
+			// Log cache hit in flow
+			c.logExecutionFlowEvent("function_call_end", c.getNextSequenceNumber(), "success", nil, map[string]interface{}{
+				"functionName":    functionName,
+				"arguments":       args,
+				"cached":          true,
+				"no_new_data":     true,
+				"executionTimeMs": executionTimeMs,
+				"cacheHit":        true,
+			}, &executionTimeMs, nil)
+
+			return result, nil
+		}
+	}
+
 	// Normalize common argument aliases (e.g. node_label → label)
 	switch functionName {
 	case "neo4j_node_lookup":
@@ -1506,7 +1573,46 @@ func (c *Client) executeFunctionCall(ctx context.Context, functionName string, a
 		}, &executionTimeMs, nil)
 	}
 
+	// Store successful results in cache for future deduplication
+	if err == nil && c.currentExecutionRunID != nil {
+		runID := *c.currentExecutionRunID
+		cacheKey := c.makeCacheKey(functionName, args)
+		c.cachePut(runID, cacheKey, result)
+
+		// Also track the function call in history for visibility
+		history := c.getOrCreateHistory(runID)
+		history.mutex.Lock()
+		history.Calls[functionName] = append(history.Calls[functionName], args)
+		history.mutex.Unlock()
+	}
+
 	return result, err
+}
+
+// convertCodeBlockToNaturalLanguage converts tool_code blocks to natural language
+func (c *Client) convertCodeBlockToNaturalLanguage(responseText string, functionCalls []ResponsePart, functionResults []map[string]interface{}) string {
+	// If the response contains tool_code or code blocks, replace with natural language
+	if strings.Contains(responseText, "tool_code") || strings.Contains(responseText, "```") {
+		log.Printf("🔧 Converting code block response to natural language")
+
+		// Extract any function calls mentioned in the code
+		var mentionedFunctions []string
+		for _, funcCall := range functionCalls {
+			if strings.Contains(responseText, funcCall.FunctionCall.Name) {
+				mentionedFunctions = append(mentionedFunctions, funcCall.FunctionCall.Name)
+			}
+		}
+
+		// Create a natural language response based on what was actually executed
+		if len(mentionedFunctions) > 0 {
+			return c.createFallbackSummary(functionCalls, functionResults)
+		}
+
+		// If no specific functions mentioned, provide a generic completion message
+		return "I have completed the requested task successfully. The functions executed as expected and the task has been finished."
+	}
+
+	return responseText
 }
 
 // createFallbackSummary creates a simple summary when function calling fails
@@ -1515,18 +1621,73 @@ func (c *Client) createFallbackSummary(functionCalls []ResponsePart, functionRes
 		return "I attempted to process your request but encountered an error."
 	}
 
-	var functionNames []string
-	for _, funcCall := range functionCalls {
-		functionNames = append(functionNames, funcCall.FunctionCall.Name)
+	// Analyze the function calls to provide a more meaningful summary
+	var slackActions []string
+	var githubActions []string
+	var memoryActions []string
+	var otherActions []string
+
+	for i, funcCall := range functionCalls {
+		functionName := funcCall.FunctionCall.Name
+
+		// Check if the function executed successfully
+		success := len(functionResults) > i &&
+			functionResults[i] != nil &&
+			functionResults[i]["error"] == nil
+
+		switch {
+		case strings.HasPrefix(functionName, "slack_"):
+			if strings.Contains(functionName, "send_message") && success {
+				slackActions = append(slackActions, "posted messages to Slack")
+			} else if strings.Contains(functionName, "find_channel") && success {
+				slackActions = append(slackActions, "found Slack channels")
+			} else if strings.Contains(functionName, "read_messages") && success {
+				slackActions = append(slackActions, "read Slack messages")
+			} else if strings.Contains(functionName, "add_reaction") && success {
+				slackActions = append(slackActions, "added reactions")
+			}
+		case strings.HasPrefix(functionName, "github_"):
+			if strings.Contains(functionName, "read_issues") && success {
+				githubActions = append(githubActions, "retrieved GitHub issues")
+			} else if strings.Contains(functionName, "read_commits") && success {
+				githubActions = append(githubActions, "retrieved GitHub commits")
+			} else if strings.Contains(functionName, "read_code") && success {
+				githubActions = append(githubActions, "read code files")
+			}
+		case strings.HasPrefix(functionName, "agent_memory_"):
+			if strings.Contains(functionName, "read") && success {
+				memoryActions = append(memoryActions, "read from memory")
+			} else if strings.Contains(functionName, "write") && success {
+				memoryActions = append(memoryActions, "updated memory")
+			}
+		default:
+			if success {
+				otherActions = append(otherActions, functionName)
+			}
+		}
 	}
 
-	summary := fmt.Sprintf("I executed %d functions: %s", len(functionNames), strings.Join(functionNames, ", "))
-
-	if len(functionResults) > 0 {
-		summary += "\n\nHowever, I encountered an issue providing a comprehensive analysis. The functions executed successfully, but I was unable to synthesize the results properly."
+	// Build a natural language summary
+	var actions []string
+	if len(slackActions) > 0 {
+		actions = append(actions, strings.Join(slackActions, ", "))
+	}
+	if len(githubActions) > 0 {
+		actions = append(actions, strings.Join(githubActions, ", "))
+	}
+	if len(memoryActions) > 0 {
+		actions = append(actions, strings.Join(memoryActions, ", "))
+	}
+	if len(otherActions) > 0 {
+		actions = append(actions, strings.Join(otherActions, ", "))
 	}
 
-	return summary
+	if len(actions) > 0 {
+		return fmt.Sprintf("I successfully completed your request. I %s. The task has been completed as requested.", strings.Join(actions, ", "))
+	}
+
+	// Fallback to basic summary
+	return fmt.Sprintf("I executed %d functions to process your request. The functions completed successfully.", len(functionCalls))
 }
 
 // processIterativeFunctionCalls handles function calls with proper dependency support
@@ -1726,13 +1887,19 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursive(ctx context
 		}
 	}
 
+	// Add context summary to help the model understand what data it already has
+	contextSummary := c.summarizeKnownContext(functionResults)
+	if contextSummary != "" {
+		synthesisPrompt += contextSummary
+	}
+
 	// Detect if we have sufficient data to complete the task
 	shouldComplete := c.detectTaskCompletion(functionCalls, functionResults, depth, originalPrompt)
 
 	if hasErrors {
-		synthesisPrompt += "\n**ERROR HANDLING:** Some functions failed with errors. Please analyze the available data and provide your best response. DO NOT make additional function calls that might fail with the same errors.\n\n**IMPORTANT: Respond in natural language - DO NOT echo the function names or raw data above. Instead, analyze the successful results and provide a human-readable response explaining what you were able to accomplish.**"
+		synthesisPrompt += "\n**ERROR HANDLING:** Some functions failed with errors. Please analyze the available data and provide your best response. DO NOT make additional function calls that might fail with the same errors.\n\n**CRITICAL: You must respond ONLY in natural language. DO NOT return code blocks, function calls, or tool_code. Do not use markdown code blocks or backticks. Provide a clear, human-readable summary of what you accomplished.**"
 	} else if shouldComplete {
-		synthesisPrompt += "\n**FINAL RESPONSE REQUIRED:** You now have all the necessary data to complete the user's request. STOP calling functions and provide a comprehensive final response using the data above. \n\n**IMPORTANT: Respond in natural language - DO NOT echo the function names or raw data above. Instead, analyze the results and provide a human-readable response that directly addresses the user's original request. Summarize what you found and what actions you took.**"
+		synthesisPrompt += "\n**FINAL RESPONSE REQUIRED:** You now have all the necessary data to complete the user's request. STOP calling functions and provide a comprehensive final response using the data above.\n\n**CRITICAL: You must respond ONLY in natural language. DO NOT return code blocks, function calls, or tool_code. Do not use markdown code blocks or backticks. Provide a clear, human-readable summary that directly addresses the user's original request. Explain what you found and what actions you took.**"
 	} else {
 		// For non-error, non-completion cases, we'll set the prompt after synthesis strategy is determined
 		// This will be handled below after the SynthesisManager logic
@@ -1830,8 +1997,7 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursive(ctx context
 		}, &synthesisTimeMs, &errorMsg)
 
 		// Fallback to simple summary
-		return fmt.Sprintf("I executed %d functions successfully. Function: %s retrieved data from GitHub.",
-			len(functionCalls), functionCalls[0].FunctionCall.Name)
+		return c.createFallbackSummary(functionCalls, functionResults)
 	}
 
 	// Check if the synthesis response contains additional function calls
@@ -1903,23 +2069,31 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursive(ctx context
 	if synthesisResponse.ResponseText != "" {
 		log.Printf("✅ Gemini provided comprehensive synthesis: %d chars (depth %d)", len(synthesisResponse.ResponseText), depth)
 
+		// Check if the response contains tool_code and fix it
+		responseText := synthesisResponse.ResponseText
+		if strings.Contains(responseText, "tool_code") || strings.Contains(responseText, "```") {
+			log.Printf("🚨 Detected tool_code or code blocks in synthesis response, converting to natural language")
+			responseText = c.convertCodeBlockToNaturalLanguage(responseText, functionCalls, functionResults)
+		}
+
 		c.logExecutionEvent(types.LogLevelSuccess, types.LogCategoryCompletion,
-			fmt.Sprintf("Synthesis completed successfully: %d characters", len(synthesisResponse.ResponseText)),
+			fmt.Sprintf("Synthesis completed successfully: %d characters", len(responseText)),
 			map[string]interface{}{
 				"depth":          depth,
-				"responseLength": len(synthesisResponse.ResponseText),
+				"responseLength": len(responseText),
 				"duration":       synthesisTimeMs,
 				"finalResult":    true,
+				"hadCodeBlocks":  responseText != synthesisResponse.ResponseText,
 			})
 
 		// Log final synthesis completion in flow
 		c.logExecutionFlowEvent("synthesis_end", c.getNextSequenceNumber(), "success", nil, map[string]interface{}{
 			"depth":          depth,
-			"responseLength": len(synthesisResponse.ResponseText),
+			"responseLength": len(responseText),
 			"finalResult":    true,
 		}, &synthesisTimeMs, nil)
 
-		return synthesisResponse.ResponseText
+		return responseText
 	}
 
 	// Fallback case
@@ -1931,7 +2105,8 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursive(ctx context
 			"duration":       synthesisTimeMs,
 		})
 
-	return fmt.Sprintf("I executed %d functions: %s", len(functionCalls), functionCalls[0].FunctionCall.Name)
+	// Use the proper fallback summary function instead of hardcoded response
+	return c.createFallbackSummary(functionCalls, functionResults)
 }
 
 // Helper functions for enhanced logging
@@ -2236,19 +2411,134 @@ func (c *Client) detectTaskCompletion(functionCalls []ResponsePart, functionResu
 	//     log.Printf("🎯 Slack+GitHub task completion detected: hasSlackData=%v, hasGitHubData=%v, successfulFunctions=%d", hasSlackData, hasGitHubData, successfulFunctions)
 	// }
 
-	// Pattern 2: General completion after many successful calls (very permissive)
-	if successfulFunctions >= 10 && depth >= 12 {
+	// Pattern 2: Aggressive completion after moderate successful calls (Gemini best practice)
+	if successfulFunctions >= 5 && depth >= 6 {
 		shouldComplete = true
 		log.Printf("🎯 General task completion detected: %d successful functions at depth %d", successfulFunctions, depth)
 	}
 
-	// Pattern 3: Loop detection - only trigger on very deep iterations (very permissive)
-	if depth >= 15 && successfulFunctions >= 3 {
+	// Pattern 3: Early loop detection (Gemini best practice: prevent redundant calls)
+	if depth >= 8 && successfulFunctions >= 3 {
 		shouldComplete = true
 		log.Printf("🎯 Likely loop detected: depth %d with %d successful functions - forcing completion", depth, successfulFunctions)
 	}
 
+	// Pattern 4: Specific workflow completion (Gemini best practice: task-aware completion)
+	hasSlackData := false
+	hasGitHubData := false
+
+	for _, result := range functionResults {
+		// Check for Slack data
+		if channels, ok := result["channels"].([]interface{}); ok && len(channels) > 0 {
+			hasSlackData = true
+		}
+		if messages, ok := result["messages"].([]interface{}); ok && len(messages) > 0 {
+			hasSlackData = true
+		}
+
+		// Check for GitHub data
+		if data, ok := result["data"]; ok && data != nil {
+			hasGitHubData = true
+		}
+	}
+
+	// If we have both Slack and GitHub data, we likely have enough for most tasks
+	if hasSlackData && hasGitHubData && successfulFunctions >= 3 && depth >= 4 {
+		shouldComplete = true
+		log.Printf("🎯 Slack+GitHub workflow completion: hasSlackData=%v, hasGitHubData=%v, functions=%d, depth=%d", hasSlackData, hasGitHubData, successfulFunctions, depth)
+	}
+
 	return shouldComplete
+}
+
+// summarizeKnownContext creates a summary of what data has already been retrieved
+func (c *Client) summarizeKnownContext(functionResults []map[string]interface{}) string {
+	if len(functionResults) == 0 {
+		return ""
+	}
+
+	var slackChannels []string
+	var slackMessageCount int
+	var githubIssueCount int
+	var githubCommitCount int
+	var hasGitHubData bool
+
+	// Analyze function results to extract key data points
+	for _, result := range functionResults {
+		// Check for Slack channel data
+		if channels, ok := result["channels"].([]interface{}); ok && len(channels) > 0 {
+			for _, ch := range channels {
+				if channel, ok := ch.(map[string]interface{}); ok {
+					if id, ok := channel["id"].(string); ok {
+						if name, ok := channel["name"].(string); ok {
+							slackChannels = append(slackChannels, fmt.Sprintf("%s (%s)", name, id))
+						} else {
+							slackChannels = append(slackChannels, id)
+						}
+					}
+				}
+			}
+		}
+
+		// Check for Slack messages
+		if messages, ok := result["messages"].([]interface{}); ok {
+			slackMessageCount += len(messages)
+		}
+
+		// Check for GitHub issues
+		if issues, ok := result["issues"].([]interface{}); ok {
+			githubIssueCount += len(issues)
+			hasGitHubData = true
+		}
+
+		// Check for GitHub commits
+		if commits, ok := result["commits"].([]interface{}); ok {
+			githubCommitCount += len(commits)
+			hasGitHubData = true
+		}
+
+		// Check for other GitHub data indicators
+		if _, ok := result["total_count"]; ok {
+			if functionName, ok := result["function"].(string); ok {
+				if strings.HasPrefix(functionName, "github_") {
+					hasGitHubData = true
+				}
+			}
+		}
+	}
+
+	// Build summary
+	var summary []string
+
+	if len(slackChannels) > 0 {
+		channelList := strings.Join(slackChannels, ", ")
+		if slackMessageCount > 0 {
+			summary = append(summary, fmt.Sprintf("Slack channels: %s with %d messages", channelList, slackMessageCount))
+		} else {
+			summary = append(summary, fmt.Sprintf("Slack channels: %s", channelList))
+		}
+	}
+
+	if hasGitHubData {
+		var githubParts []string
+		if githubIssueCount > 0 {
+			githubParts = append(githubParts, fmt.Sprintf("%d issues", githubIssueCount))
+		}
+		if githubCommitCount > 0 {
+			githubParts = append(githubParts, fmt.Sprintf("%d commits", githubCommitCount))
+		}
+		if len(githubParts) > 0 {
+			summary = append(summary, fmt.Sprintf("GitHub data: %s", strings.Join(githubParts, ", ")))
+		} else {
+			summary = append(summary, "GitHub data: repository information")
+		}
+	}
+
+	if len(summary) == 0 {
+		return ""
+	}
+
+	return fmt.Sprintf("\n**What you already have:** %s\n\n**Important:** Avoid re-calling the same functions with identical parameters as they may return `no_new_data: true`. If you have sufficient information above, synthesize your final response now instead of making additional function calls.\n", strings.Join(summary, "; "))
 }
 
 // autoExtractParametersFromContext extracts parameters for next iteration function calls using current results

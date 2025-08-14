@@ -1,6 +1,7 @@
 package types
 
 import (
+	"context"
 	"encoding/json"
 	"time"
 )
@@ -12,6 +13,10 @@ type UserApiKey struct {
 	KeyName     string `json:"keyName"`
 	ServiceName string `json:"serviceName"`
 	KeyType     string `json:"keyType"`
+
+	// Multi-auth support
+	AuthMode   string                 `json:"authMode"`
+	AuthConfig map[string]interface{} `json:"authConfig,omitempty"`
 
 	// Encrypted storage - the actual key is never exposed in responses
 	EncryptedKeyValue    string `json:"-"` // Never expose in JSON
@@ -60,6 +65,8 @@ type CreateApiKeyRequest struct {
 	ServiceName      string                 `json:"serviceName"`
 	KeyType          string                 `json:"keyType"`
 	KeyValue         string                 `json:"keyValue"` // Plain text - will be encrypted
+	AuthMode         string                 `json:"authMode,omitempty"`
+	AuthConfig       map[string]interface{} `json:"authConfig,omitempty"`
 	DisplayName      string                 `json:"displayName"`
 	Description      string                 `json:"description,omitempty"`
 	AccessLevel      string                 `json:"accessLevel"`
@@ -78,6 +85,8 @@ type CreateApiKeyRequest struct {
 type UpdateApiKeyRequest struct {
 	KeyName          *string                `json:"keyName,omitempty"`
 	KeyValue         *string                `json:"keyValue,omitempty"` // If provided, will re-encrypt
+	AuthMode         *string                `json:"authMode,omitempty"`
+	AuthConfig       map[string]interface{} `json:"authConfig,omitempty"`
 	DisplayName      *string                `json:"displayName,omitempty"`
 	Description      *string                `json:"description,omitempty"`
 	AccessLevel      *string                `json:"accessLevel,omitempty"`
@@ -270,4 +279,87 @@ func (k *UserApiKey) UnmarshalServiceConfig(data []byte) error {
 		return nil
 	}
 	return json.Unmarshal(data, &k.ServiceConfig)
+}
+
+// MarshalAuthConfig converts auth config map to JSON for database storage
+func (k *UserApiKey) MarshalAuthConfig() ([]byte, error) {
+	if k.AuthConfig == nil {
+		return json.Marshal(map[string]interface{}{})
+	}
+	return json.Marshal(k.AuthConfig)
+}
+
+// UnmarshalAuthConfig converts JSON to auth config map from database
+func (k *UserApiKey) UnmarshalAuthConfig(data []byte) error {
+	if len(data) == 0 {
+		k.AuthConfig = map[string]interface{}{}
+		return nil
+	}
+	return json.Unmarshal(data, &k.AuthConfig)
+}
+
+// ProviderAuthMode represents an authentication mode for a provider
+type ProviderAuthMode struct {
+	ID                 string                 `json:"id"`
+	ProviderID         string                 `json:"providerId"`
+	AuthModeID         string                 `json:"authModeId"`
+	Name               string                 `json:"name"`
+	Description        string                 `json:"description"`
+	IsDefault          bool                   `json:"isDefault"`
+	SetupInstructions  string                 `json:"setupInstructions"`
+	RequiredFields     map[string]interface{} `json:"requiredFields"`
+	Capabilities       map[string]interface{} `json:"capabilities"`
+	ValidationEndpoint string                 `json:"validationEndpoint"`
+	RateLimitInfo      map[string]interface{} `json:"rateLimitInfo"`
+	CreatedAt          time.Time              `json:"createdAt"`
+	UpdatedAt          time.Time              `json:"updatedAt"`
+}
+
+// AuthCredentials represents authentication credentials for API calls
+type AuthCredentials struct {
+	Headers    map[string]string      `json:"headers"`
+	AuthMode   string                 `json:"authMode"`
+	AuthConfig map[string]interface{} `json:"authConfig"`
+	ExpiresAt  *time.Time             `json:"expiresAt,omitempty"`
+}
+
+// AuthHandler interface for different authentication modes
+type AuthHandler interface {
+	GetAuthCredentials(ctx context.Context, apiKey *UserApiKey) (*AuthCredentials, error)
+	ValidateCredentials(ctx context.Context, apiKey *UserApiKey) error
+	RefreshCredentials(ctx context.Context, apiKey *UserApiKey) (*AuthCredentials, error)
+	GetRateLimit() *RateLimit
+}
+
+// RateLimit represents rate limiting information
+type RateLimit struct {
+	RequestsPerHour int    `json:"requestsPerHour"`
+	RequestsPerDay  int    `json:"requestsPerDay,omitempty"`
+	BurstLimit      int    `json:"burstLimit,omitempty"`
+	ResetTime       string `json:"resetTime"`
+}
+
+// GitHubAppConfig represents GitHub App authentication configuration
+type GitHubAppConfig struct {
+	AppID          int64  `json:"app_id"`
+	PrivateKey     string `json:"private_key"` // PEM encoded private key
+	InstallationID int64  `json:"installation_id"`
+}
+
+// InstallationToken represents a GitHub App installation token
+type InstallationToken struct {
+	Token     string    `json:"token"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
+// AuthModeField represents a field configuration for auth mode setup
+type AuthModeField struct {
+	Name        string `json:"name"`
+	Type        string `json:"type"`
+	Label       string `json:"label"`
+	Placeholder string `json:"placeholder,omitempty"`
+	Required    bool   `json:"required"`
+	Validation  string `json:"validation,omitempty"`
+	Help        string `json:"help,omitempty"`
+	Accept      string `json:"accept,omitempty"` // for file inputs
 }

@@ -214,19 +214,19 @@ func (sm *SynthesisManager) hasSignificantErrors(results []map[string]interface{
 // GetSynthesisPromptSuffix returns the appropriate prompt suffix based on strategy
 func (sm *SynthesisManager) GetSynthesisPromptSuffix(decision *SynthesisDecision, providerType string) string {
 	if decision.ForceCompletion {
-		return "\n\n**IMPORTANT: You now have sufficient information to complete the user's request. Please provide a comprehensive final response using the data above. Do not call additional functions.**"
+		return "\n\n**IMPORTANT: You now have sufficient information to complete the user's request. Please provide a comprehensive final response using the data above. Do not call additional functions. CRITICAL: Respond ONLY in natural language - do not use code blocks, tool_code, or markdown formatting.**"
 	}
 
 	if providerType == "gemini" {
-		return "\n\nPlease analyze the data above and determine how to best address the user's original request. You may call additional functions to gather more specific information if needed, or provide a final response if you have sufficient data to fully answer the user's question."
+		return "\n\n**ANALYSIS REQUIRED**: Review the function results above. You have already gathered significant data. Consider:\n1. Do you have enough information to fully answer the user's request?\n2. Are you about to repeat a function call you've already made?\n3. Would additional function calls provide meaningfully different data?\n\n**DECISION**: Either provide a complete natural language response using the data above, OR call only genuinely new functions that will provide different information. CRITICAL: If providing a final response, use ONLY natural language - no code blocks or tool_code."
 	}
 
 	if providerType == "kimi" {
-		return "\n\nBased on the function results above, please continue with the user's request. You may call additional functions if more information is needed, or provide a complete response if you have all necessary data."
+		return "\n\nBased on the function results above, please continue with the user's request. You may call additional functions if more information is needed, or provide a complete response if you have all necessary data. CRITICAL: If providing a final response, use ONLY natural language - no code blocks or tool_code."
 	}
 
 	// Default neutral prompt
-	return "\n\nPlease analyze the data above and determine the best way to address the user's original request."
+	return "\n\nPlease analyze the data above and determine the best way to address the user's original request. CRITICAL: If providing a final response, use ONLY natural language - no code blocks or tool_code."
 }
 
 // LogDecision logs the synthesis decision for debugging

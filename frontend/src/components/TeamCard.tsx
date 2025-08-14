@@ -27,14 +27,22 @@ const TeamCard: React.FC<TeamCardProps> = ({
   onTeamPress,
   onMemoryPress
 }) => {
+  // Early return if team is not provided
+  if (!team) {
+    return null;
+  }
+  
+  // Ensure agents is an array
+  const safeAgents = Array.isArray(agents) ? agents : [];
+  
   const [isLoading, setIsLoading] = useState(false);
 
-  const activeAgents = agents.filter(agent => agent.lifecycleStatus === 'ACTIVE');
-  const pausedAgents = agents.filter(agent => agent.lifecycleStatus === 'PAUSED');
-  const standbyAgents = agents.filter(agent => agent.lifecycleStatus === 'STANDBY');
+  const activeAgents = safeAgents.filter(agent => agent?.lifecycleStatus === 'ACTIVE');
+  const pausedAgents = safeAgents.filter(agent => agent?.lifecycleStatus === 'PAUSED');
+  const standbyAgents = safeAgents.filter(agent => agent?.lifecycleStatus === 'STANDBY');
 
   const handlePauseAll = async () => {
-    if (activeAgents.length === 0) {
+    if (!activeAgents || activeAgents.length === 0) {
       AlertAPI.alert('Info', 'No active agents to pause in this team');
       return;
     }
@@ -57,11 +65,11 @@ const TeamCard: React.FC<TeamCardProps> = ({
   };
 
   const handleResumeAll = async () => {
-    const pausableAgents = agents.filter(agent => 
-      agent.lifecycleStatus === 'PAUSED' || agent.lifecycleStatus === 'STANDBY'
+    const pausableAgents = safeAgents.filter(agent => 
+      agent?.lifecycleStatus === 'PAUSED' || agent?.lifecycleStatus === 'STANDBY'
     );
     
-    if (pausableAgents.length === 0) {
+    if (!pausableAgents || pausableAgents.length === 0) {
       AlertAPI.alert('Info', 'No paused agents to resume in this team');
       return;
     }
@@ -94,27 +102,56 @@ const TeamCard: React.FC<TeamCardProps> = ({
     return Math.min((team.tokensUsedToday / team.maxTokensPerDay) * 100, 100);
   };
 
+  const formatCreatedDate = () => {
+    try {
+      const date = new Date(team.createdAt);
+      return isNaN(date.getTime()) ? 'Unknown' : date.toLocaleDateString();
+    } catch {
+      return 'Unknown';
+    }
+  };
+
+  const formatTokenUsage = () => {
+    try {
+      return `${team.tokensUsedToday.toLocaleString()} / ${team.maxTokensPerDay.toLocaleString()}`;
+    } catch {
+      return `${team.tokensUsedToday} / ${team.maxTokensPerDay}`;
+    }
+  };
+
+  const formatPercentage = () => {
+    try {
+      return `${getTokenUsagePercentage().toFixed(1)}%`;
+    } catch {
+      return `${Math.round(getTokenUsagePercentage())}%`;
+    }
+  };
+
   const handleMemoryPress = () => {
-    if (onMemoryPress) {
+    if (onMemoryPress && team) {
       onMemoryPress(team);
     }
   };
 
   const handleMemoryButtonLongPress = () => {
-    Alert.alert(
-      'Team Memory',
-      'Team memory allows agents in this team to share information and collaborate on tasks. All agents in the team can read and write to this shared memory using team_memory_* functions during execution.',
-      [
-        { text: 'Got it!', style: 'default' },
-        { text: 'View Memory', onPress: handleMemoryPress }
-      ]
-    );
+    try {
+      Alert.alert(
+        'Team Memory',
+        'Team memory allows agents in this team to share information and collaborate on tasks. All agents in the team can read and write to this shared memory using team_memory_* functions during execution.',
+        [
+          { text: 'Got it!', style: 'default' },
+          { text: 'View Memory', onPress: handleMemoryPress }
+        ]
+      );
+    } catch (error) {
+      console.error('Error showing team memory alert:', error);
+    }
   };
 
   return (
     <TouchableOpacity 
       style={styles.container}
-      onPress={() => onTeamPress?.(team)}
+      onPress={() => onTeamPress && onTeamPress(team)}
       activeOpacity={0.7}
     >
       {/* Team Header */}
@@ -124,12 +161,12 @@ const TeamCard: React.FC<TeamCardProps> = ({
             <Ionicons name="people" size={24} color="#007AFF" />
           </View>
           <View style={styles.teamDetails}>
-            <Text style={styles.teamName}>{team.name}</Text>
-            {team.description && (
+            <Text style={styles.teamName}>{team.name || 'Unnamed Team'}</Text>
+            {team.description ? (
               <Text style={styles.teamDescription} numberOfLines={2}>
                 {team.description}
               </Text>
-            )}
+            ) : null}
           </View>
         </View>
         
@@ -175,22 +212,22 @@ const TeamCard: React.FC<TeamCardProps> = ({
       <View style={styles.agentStats}>
         <View style={styles.statItem}>
           <View style={[styles.statusDot, { backgroundColor: '#34C759' }]} />
-          <Text style={styles.statText}>{activeAgents.length} Active</Text>
+          <Text style={styles.statText}>{activeAgents.length || 0} Active</Text>
         </View>
         <View style={styles.statItem}>
           <View style={[styles.statusDot, { backgroundColor: '#FF9500' }]} />
-          <Text style={styles.statText}>{pausedAgents.length} Paused</Text>
+          <Text style={styles.statText}>{pausedAgents.length || 0} Paused</Text>
         </View>
         <View style={styles.statItem}>
           <View style={[styles.statusDot, { backgroundColor: '#8E8E93' }]} />
-          <Text style={styles.statText}>{standbyAgents.length} Standby</Text>
+          <Text style={styles.statText}>{standbyAgents.length || 0} Standby</Text>
         </View>
-        {team.memory && (
+        {team.memory ? (
           <View style={styles.statItem}>
             <View style={[styles.statusDot, { backgroundColor: '#FF6B35' }]} />
             <Text style={styles.statText}>Memory</Text>
           </View>
-        )}
+        ) : null}
       </View>
 
       {/* Token Usage */}
@@ -198,7 +235,7 @@ const TeamCard: React.FC<TeamCardProps> = ({
         <View style={styles.tokenHeader}>
           <Text style={styles.tokenLabel}>Token Usage Today</Text>
           <Text style={styles.tokenValue}>
-            {team.tokensUsedToday.toLocaleString()} / {team.maxTokensPerDay.toLocaleString()}
+            {formatTokenUsage()}
           </Text>
         </View>
         <View style={styles.progressBarContainer}>
@@ -214,7 +251,7 @@ const TeamCard: React.FC<TeamCardProps> = ({
             />
           </View>
           <Text style={styles.progressText}>
-            {getTokenUsagePercentage().toFixed(1)}%
+            {formatPercentage()}
           </Text>
         </View>
       </View>
@@ -223,16 +260,16 @@ const TeamCard: React.FC<TeamCardProps> = ({
       <View style={styles.summary}>
         <View style={styles.summaryItem}>
           <Ionicons name="people-outline" size={16} color="#6B6B6B" />
-          <Text style={styles.summaryText}>{agents.length} agents</Text>
+          <Text style={styles.summaryText}>{safeAgents.length} agents</Text>
         </View>
         <View style={styles.summaryItem}>
           <Ionicons name="flash-outline" size={16} color="#6B6B6B" />
-          <Text style={styles.summaryText}>{team.totalExecutions} executions</Text>
+          <Text style={styles.summaryText}>{team.totalExecutions || 0} executions</Text>
         </View>
         <View style={styles.summaryItem}>
           <Ionicons name="calendar-outline" size={16} color="#6B6B6B" />
           <Text style={styles.summaryText}>
-            Created {new Date(team.createdAt).toLocaleDateString()}
+            Created {formatCreatedDate()}
           </Text>
         </View>
       </View>

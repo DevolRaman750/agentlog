@@ -187,6 +187,31 @@ func (s *Service) CreateAPIKey(ctx context.Context, userID string, req *types.Cr
 		return nil, fmt.Errorf("failed to marshal service config: %w", err)
 	}
 
+	authConfigJSON, err := json.Marshal(req.AuthConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal auth config: %w", err)
+	}
+
+	// Set default auth mode if not provided
+	authMode := req.AuthMode
+	if authMode == "" {
+		// Set default auth mode based on service and key type
+		switch req.ServiceName {
+		case "github":
+			if req.KeyType == "github_app_credentials" {
+				authMode = "github_app"
+			} else {
+				authMode = "personal_access_token"
+			}
+		case "slack":
+			authMode = "bot_token"
+		case "gemini":
+			authMode = "api_key"
+		default:
+			authMode = "api_key"
+		}
+	}
+
 	// Create the record
 	apiKey := &types.UserApiKey{
 		ID:                   uuid.New().String(),
@@ -194,6 +219,8 @@ func (s *Service) CreateAPIKey(ctx context.Context, userID string, req *types.Cr
 		KeyName:              req.KeyName,
 		ServiceName:          req.ServiceName,
 		KeyType:              req.KeyType,
+		AuthMode:             authMode,
+		AuthConfig:           req.AuthConfig,
 		EncryptedKeyValue:    encryptedValue,
 		EncryptionAlgorithm:  "AES-256-GCM",
 		EncryptionKeyVersion: s.encryptionKeyVersion,
@@ -220,7 +247,7 @@ func (s *Service) CreateAPIKey(ctx context.Context, userID string, req *types.Cr
 	// Insert into database
 	query := `
 		INSERT INTO user_api_keys (
-			id, user_id, key_name, service_name, key_type,
+			id, user_id, key_name, service_name, key_type, auth_mode, auth_config,
 			encrypted_key_value, encryption_algorithm, encryption_key_version,
 			display_name, description, access_level, scopes, permissions,
 			expires_at, validation_status, is_active, is_default,
@@ -228,7 +255,7 @@ func (s *Service) CreateAPIKey(ctx context.Context, userID string, req *types.Cr
 			rate_limit_per_hour, rate_limit_per_day, rate_limit_burst,
 			created_at, updated_at, created_by
 		) VALUES (
-			?, ?, ?, ?, ?,
+			?, ?, ?, ?, ?, ?, ?,
 			?, ?, ?,
 			?, ?, ?, ?, ?,
 			?, ?, ?, ?,
@@ -239,7 +266,7 @@ func (s *Service) CreateAPIKey(ctx context.Context, userID string, req *types.Cr
 	`
 
 	_, err = s.db.ExecContext(ctx, query,
-		apiKey.ID, apiKey.UserID, apiKey.KeyName, apiKey.ServiceName, apiKey.KeyType,
+		apiKey.ID, apiKey.UserID, apiKey.KeyName, apiKey.ServiceName, apiKey.KeyType, apiKey.AuthMode, authConfigJSON,
 		apiKey.EncryptedKeyValue, apiKey.EncryptionAlgorithm, apiKey.EncryptionKeyVersion,
 		apiKey.DisplayName, apiKey.Description, apiKey.AccessLevel, scopesJSON, permissionsJSON,
 		apiKey.ExpiresAt, apiKey.ValidationStatus, apiKey.IsActive, apiKey.IsDefault,
@@ -259,7 +286,7 @@ func (s *Service) CreateAPIKey(ctx context.Context, userID string, req *types.Cr
 func (s *Service) GetAPIKeys(ctx context.Context, userID string) ([]*types.UserApiKey, error) {
 	query := `
 		SELECT 
-			id, user_id, key_name, service_name, key_type,
+			id, user_id, key_name, service_name, key_type, auth_mode, auth_config,
 			encryption_algorithm, encryption_key_version,
 			display_name, description, access_level, scopes, permissions,
 			expires_at, last_validated_at, validation_status, validation_error,
@@ -298,7 +325,7 @@ func (s *Service) GetAPIKeys(ctx context.Context, userID string) ([]*types.UserA
 func (s *Service) GetAPIKeyByID(ctx context.Context, userID, keyID string) (*types.UserApiKey, error) {
 	query := `
 		SELECT 
-			id, user_id, key_name, service_name, key_type,
+			id, user_id, key_name, service_name, key_type, auth_mode, auth_config,
 			encryption_algorithm, encryption_key_version,
 			display_name, description, access_level, scopes, permissions,
 			expires_at, last_validated_at, validation_status, validation_error,
@@ -352,7 +379,7 @@ func (s *Service) GetDecryptedAPIKey(ctx context.Context, userID, keyID string) 
 func (s *Service) GetAPIKeysByService(ctx context.Context, userID, serviceName string) ([]*types.UserApiKey, error) {
 	query := `
 		SELECT 
-			id, user_id, key_name, service_name, key_type,
+			id, user_id, key_name, service_name, key_type, auth_mode, auth_config,
 			encryption_algorithm, encryption_key_version,
 			display_name, description, access_level, scopes, permissions,
 			expires_at, last_validated_at, validation_status, validation_error,
@@ -499,6 +526,7 @@ func (s *Service) validateCreateRequest(req *types.CreateApiKeyRequest) error {
 	validKeyTypes := map[string]bool{
 		"api_key": true, "access_token": true, "bearer_token": true,
 		"oauth_token": true, "webhook_url": true, "connection_string": true,
+		"github_app_credentials": true,
 	}
 	if !validKeyTypes[req.KeyType] {
 		return fmt.Errorf("invalid key type: %s", req.KeyType)
@@ -543,7 +571,7 @@ func (s *Service) UpdateAPIKey(ctx context.Context, userID, keyID string, req *t
 	// Check if the API key exists and belongs to the user
 	query := `
 		SELECT 
-			id, user_id, key_name, service_name, key_type,
+			id, user_id, key_name, service_name, key_type, auth_mode, auth_config,
 			encryption_algorithm, encryption_key_version,
 			display_name, description, access_level, scopes, permissions,
 			expires_at, last_validated_at, validation_status, validation_error,
@@ -644,8 +672,51 @@ func (s *Service) UpdateAPIKey(ctx context.Context, userID, keyID string, req *t
 }
 
 func (s *Service) DeleteAPIKey(ctx context.Context, userID, keyID string) error {
-	// For now, return not implemented
-	return fmt.Errorf("delete API key not yet implemented")
+	log.Printf("🔑 Deleting API key %s for user %s", keyID, userID)
+
+	// Start transaction
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to start transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Check if the API key exists and belongs to the user
+	var exists bool
+	checkQuery := `SELECT EXISTS(SELECT 1 FROM user_api_keys WHERE id = ? AND user_id = ?)`
+	err = tx.QueryRowContext(ctx, checkQuery, keyID, userID).Scan(&exists)
+	if err != nil {
+		return fmt.Errorf("failed to check API key existence: %w", err)
+	}
+
+	if !exists {
+		return fmt.Errorf("API key not found or does not belong to user")
+	}
+
+	// Delete the API key
+	deleteQuery := `DELETE FROM user_api_keys WHERE id = ? AND user_id = ?`
+	result, err := tx.ExecContext(ctx, deleteQuery, keyID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to delete API key: %w", err)
+	}
+
+	// Check if any rows were affected
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("no API key was deleted")
+	}
+
+	// Commit transaction
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	log.Printf("🔑 Successfully deleted API key %s for user %s", keyID, userID)
+	return nil
 }
 
 func (s *Service) TestAPIKey(ctx context.Context, userID, keyID string) (*types.ApiKeyValidationResult, error) {
@@ -667,13 +738,13 @@ func (s *Service) scanAPIKeyRow(scanner interface {
 	Scan(...interface{}) error
 }) (*types.UserApiKey, error) {
 	var apiKey types.UserApiKey
-	var scopesJSON, permissionsJSON, serviceConfigJSON []byte
+	var scopesJSON, permissionsJSON, serviceConfigJSON, authConfigJSON []byte
 	var expiresAt, lastValidatedAt, lastUsedAt sql.NullTime
 	var description, validationError, createdBy sql.NullString
 	var rateLimitPerHour, rateLimitPerDay, rateLimitBurst sql.NullInt32
 
 	err := scanner.Scan(
-		&apiKey.ID, &apiKey.UserID, &apiKey.KeyName, &apiKey.ServiceName, &apiKey.KeyType,
+		&apiKey.ID, &apiKey.UserID, &apiKey.KeyName, &apiKey.ServiceName, &apiKey.KeyType, &apiKey.AuthMode, &authConfigJSON,
 		&apiKey.EncryptionAlgorithm, &apiKey.EncryptionKeyVersion,
 		&apiKey.DisplayName, &description, &apiKey.AccessLevel, &scopesJSON, &permissionsJSON,
 		&expiresAt, &lastValidatedAt, &apiKey.ValidationStatus, &validationError,
@@ -727,6 +798,11 @@ func (s *Service) scanAPIKeyRow(scanner interface {
 	}
 	if err := json.Unmarshal(serviceConfigJSON, &apiKey.ServiceConfig); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal service config: %w", err)
+	}
+	if len(authConfigJSON) > 0 {
+		if err := json.Unmarshal(authConfigJSON, &apiKey.AuthConfig); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal auth config: %w", err)
+		}
 	}
 
 	return &apiKey, nil

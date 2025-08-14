@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Platform,
   RefreshControl,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
@@ -20,6 +21,8 @@ import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../types';
 import ApiKeyModal from '../components/ApiKeyModal';
 import { useToast } from '../context/ToastContext';
+import { GitHubAuthSetup } from '../components/GitHubAuthSetup';
+import { AuthModeComparison } from '../components/AuthModeComparison';
 
 type ApiKeysScreenRouteProp = RouteProp<RootStackParamList, 'API Keys'>;
 
@@ -409,6 +412,9 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
     data_services: false,
     development: false,
   });
+  const [showGitHubAuthSetup, setShowGitHubAuthSetup] = useState(false);
+  const [showAuthComparison, setShowAuthComparison] = useState(false);
+  const [isGitHubAuthLoading, setIsGitHubAuthLoading] = useState(false);
 
   const loadApiKeys = useCallback(async () => {
     try {
@@ -497,6 +503,12 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
   };
 
   const handleAddKey = (serviceName: string) => {
+    // Special handling for GitHub - show auth mode comparison first
+    if (serviceName === 'github') {
+      setShowAuthComparison(true);
+      return;
+    }
+
     const existingKeys = getServiceKeys(serviceName);
     
     if (existingKeys.length > 0) {
@@ -540,6 +552,56 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
       setModalInitialService('');
       setShowApiKeyModal(true);
     }
+  };
+
+  const handleAuthModeSelect = (mode: 'personal_access_token' | 'github_app') => {
+    setShowGitHubAuthSetup(true);
+  };
+
+  const handleGitHubAuthSave = async (authMode: 'personal_access_token' | 'github_app', config: any) => {
+    setIsGitHubAuthLoading(true);
+    
+    try {
+      const keyName = authMode === 'personal_access_token' 
+        ? 'GitHub Personal Access Token' 
+        : 'GitHub App Integration';
+      
+      const createRequest: CreateApiKeyRequest = {
+        keyName,
+        serviceName: 'github',
+        keyType: authMode === 'personal_access_token' ? 'access_token' : 'github_app_credentials',
+        keyValue: authMode === 'personal_access_token' ? config.token : 'github_app_auth',
+        authMode,
+        authConfig: config,
+        displayName: keyName,
+        description: authMode === 'personal_access_token' 
+          ? 'Personal Access Token for GitHub API access'
+          : 'GitHub App authentication with enhanced permissions',
+        accessLevel: 'read_write',
+        scopes: ['repo', 'read:user'],
+        isDefault: true,
+        environment: 'production',
+      };
+
+      const response = await goGentAPI.createApiKey(createRequest);
+      
+      if (response.success) {
+        showSuccess(`GitHub ${authMode === 'personal_access_token' ? 'PAT' : 'App'} configured successfully!`);
+        setShowGitHubAuthSetup(false);
+        await loadApiKeys(); // Refresh the list
+      } else {
+        throw new Error(response.error || 'Failed to save GitHub authentication');
+      }
+    } catch (error) {
+      console.error('GitHub auth save error:', error);
+      showError(error instanceof Error ? error.message : 'Failed to save GitHub authentication');
+    } finally {
+      setIsGitHubAuthLoading(false);
+    }
+  };
+
+  const handleGitHubAuthCancel = () => {
+    setShowGitHubAuthSetup(false);
   };
 
   const handleTestKey = async (keyId: string) => {
@@ -836,6 +898,29 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
         editingKey={editingKey}
         initialService={modalInitialService}
       />
+
+      {/* GitHub Auth Mode Comparison Modal */}
+      <AuthModeComparison
+        isVisible={showAuthComparison}
+        onClose={() => setShowAuthComparison(false)}
+        onSelectMode={handleAuthModeSelect}
+      />
+
+      {/* GitHub Auth Setup Modal */}
+      {showGitHubAuthSetup && (
+        <Modal
+          visible={showGitHubAuthSetup}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={handleGitHubAuthCancel}
+        >
+          <GitHubAuthSetup
+            onSave={handleGitHubAuthSave}
+            onCancel={handleGitHubAuthCancel}
+            isLoading={isGitHubAuthLoading}
+          />
+        </Modal>
+      )}
     </View>
   );
 };
