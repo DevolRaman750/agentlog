@@ -3,29 +3,37 @@
   "name": "slack_read_messages",
   "provider": "slack", 
   "display_name": "Slack: Read Messages",
-  "description": "Read messages from a Slack channel. Requires channel ID (use slack_find_channel first to get the ID). Returns the most recent messages by default. Use limit parameter to control how many messages to return.",
+  "description": "Read recent messages from a Slack channel. Requires a channel ID (e.g., C099KTQE1L5). Returns message history with timestamps, user info, and content for analysis.",
   "endpoint": {
     "path": "/conversations.history",
-    "method": "GET"
+    "method": "GET",
+    "url": "https://slack.com/api/conversations.history"
   },
   "parameters": {
     "required": ["channel"],
-    "optional": ["limit", "inclusive", "cursor"],
+    "optional": ["limit", "latest", "oldest", "inclusive", "cursor"],
     "schema": {
       "type": "object",
       "properties": {
         "channel": {
           "type": "string",
-          "description": "Channel ID (e.g., C1234567890). Use slack_find_channel to get this."
+          "description": "Channel ID (e.g., C1234567890). MUST be the exact 'id' value from slack_find_channel response. Do NOT use channel names or names with # prefix."
         },
         "limit": {
           "type": "integer",
-          "minimum": 1,
+          "default": 10,
           "maximum": 1000,
-          "default": 100,
-          "description": "Number of messages to return (max 1000)"
+          "minimum": 1,
+          "description": "Number of messages to return (1-1000, default 10)"
         },
-
+        "latest": {
+          "type": "string",
+          "description": "End of time range of messages to include in results (timestamp)"
+        },
+        "oldest": {
+          "type": "string", 
+          "description": "Start of time range of messages to include in results (timestamp)"
+        },
         "inclusive": {
           "type": "boolean",
           "default": false,
@@ -39,30 +47,21 @@
       "required": ["channel"]
     }
   },
-  "parameter_dependencies": {
-    "channel": {
-      "source_function": "slack_find_channel",
-      "extraction_path": "channels[0].id",
-      "description": "Auto-extract channel ID from slack_find_channel results"
-    }
-  },
-  "response_transformer": {
-    "type": "slack_messages",
-    "description": "Transform Slack messages API response to standardized format"
-  },
+
+
   "examples": [
     {
-      "name": "Read recent messages",
+      "name": "Read recent messages (recommended)",
       "parameters": {
         "channel": "C1234567890",
-        "limit": 50
+        "limit": 10
       }
     },
     {
-      "name": "Read more recent messages",
+      "name": "Read a few more messages if needed",
       "parameters": {
         "channel": "C1234567890",
-        "limit": 100
+        "limit": 20
       }
     }
   ]

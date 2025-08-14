@@ -41,10 +41,18 @@ func (c *GeminiClient) Close() error {
 func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APIConfiguration, prompt, contextStr string) (*types.APIResponse, error) {
 	startTime := time.Now()
 
-	// Build the full prompt with system prompt and context
-	fullPrompt := prompt
+	// Add current time context following LLM function calling best practices
+	currentTime := time.Now()
+	timeContext := fmt.Sprintf("**SYSTEM TIME CONTEXT:**\n- Current time: %s\n- UTC time: %s\n- Unix timestamp: %d\n- Timezone: %s\n\nUse this current time information for any time-sensitive operations, queries, or when interpreting relative time references like 'recent', 'today', 'last hour', etc.\n\n",
+		currentTime.Format("2006-01-02 15:04:05 MST"),
+		currentTime.UTC().Format("2006-01-02 15:04:05 UTC"),
+		currentTime.Unix(),
+		currentTime.Location().String())
+
+	// Build the full prompt with system prompt, time context, and user context
+	fullPrompt := timeContext + prompt
 	if config.SystemPrompt != "" {
-		fullPrompt = fmt.Sprintf("System: %s\n\nUser: %s", config.SystemPrompt, prompt)
+		fullPrompt = fmt.Sprintf("System: %s\n\n%sUser: %s", config.SystemPrompt, timeContext, prompt)
 	}
 	if contextStr != "" {
 		fullPrompt = fmt.Sprintf("%s\n\nContext: %s", fullPrompt, contextStr)
@@ -63,11 +71,17 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 		},
 	}
 
-	// Add generation config if specified
+	// Add generation config with function calling optimizations
 	generationConfig := make(map[string]interface{})
-	if config.Temperature != nil {
+
+	// For function calling, use temperature=0 for deterministic behavior (best practice)
+	if len(config.Tools) > 0 {
+		generationConfig["temperature"] = 0.0
+		log.Printf("🎯 Using temperature=0 for function calling (best practice)")
+	} else if config.Temperature != nil {
 		generationConfig["temperature"] = *config.Temperature
 	}
+
 	if config.MaxTokens != nil {
 		generationConfig["maxOutputTokens"] = *config.MaxTokens
 	}

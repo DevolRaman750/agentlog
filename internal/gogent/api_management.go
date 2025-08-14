@@ -26,6 +26,13 @@ func (c *Client) CreateExecutionRun(ctx context.Context, userID, name, descripti
 		log.Printf("🔧 Creating execution run with enableFunctionCalling: %v, agentID: <nil>", enableFunctionCalling)
 	}
 
+	// Truncate name to fit database column limit (255 characters)
+	truncatedName := name
+	if len(name) > 255 {
+		truncatedName = name[:252] + "..."
+		log.Printf("⚠️ Execution run name truncated from %d to %d characters", len(name), len(truncatedName))
+	}
+
 	// Convert agentID pointer to sql.NullString
 	var agentIDNull sql.NullString
 	if agentID != nil && *agentID != "" {
@@ -35,7 +42,7 @@ func (c *Client) CreateExecutionRun(ctx context.Context, userID, name, descripti
 	err := c.queries.CreateExecutionRun(ctx, db.CreateExecutionRunParams{
 		ID:                    id,
 		UserID:                userID,
-		Name:                  name,
+		Name:                  truncatedName,
 		Description:           sql.NullString{String: description, Valid: description != ""},
 		EnableFunctionCalling: enableFunctionCalling,
 		AgentID:               agentIDNull,
@@ -46,7 +53,7 @@ func (c *Client) CreateExecutionRun(ctx context.Context, userID, name, descripti
 
 	return &types.ExecutionRun{
 		ID:                    id,
-		Name:                  name,
+		Name:                  truncatedName,
 		Description:           description,
 		EnableFunctionCalling: enableFunctionCalling,
 		Status:                "pending", // Start with pending status

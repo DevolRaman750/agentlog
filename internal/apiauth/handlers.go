@@ -36,13 +36,14 @@ func NewAuthResolver() *AuthResolver {
 	resolver := &AuthResolver{
 		handlers: make(map[string]map[string]AuthHandler),
 	}
-	
+
 	// Register default handlers
 	resolver.RegisterHandler("github", "personal_access_token", NewGitHubPATHandler())
 	resolver.RegisterHandler("github", "github_app", NewGitHubAppHandler())
 	resolver.RegisterHandler("slack", "bot_token", NewSlackBotTokenHandler())
+	resolver.RegisterHandler("slack", "personal_access_token", NewSlackBotTokenHandler()) // Alias for bot_token
 	resolver.RegisterHandler("gemini", "api_key", NewGeminiAPIKeyHandler())
-	
+
 	return resolver
 }
 
@@ -50,7 +51,7 @@ func NewAuthResolver() *AuthResolver {
 func (r *AuthResolver) RegisterHandler(provider, authMode string, handler AuthHandler) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-	
+
 	if r.handlers[provider] == nil {
 		r.handlers[provider] = make(map[string]AuthHandler)
 	}
@@ -61,17 +62,17 @@ func (r *AuthResolver) RegisterHandler(provider, authMode string, handler AuthHa
 func (r *AuthResolver) GetHandler(provider, authMode string) (AuthHandler, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
-	
+
 	providerHandlers, exists := r.handlers[provider]
 	if !exists {
 		return nil, fmt.Errorf("no handlers registered for provider: %s", provider)
 	}
-	
+
 	handler, exists := providerHandlers[authMode]
 	if !exists {
 		return nil, fmt.Errorf("no handler registered for provider %s with auth mode: %s", provider, authMode)
 	}
-	
+
 	return handler, nil
 }
 
@@ -81,12 +82,12 @@ func (r *AuthResolver) ResolveAuth(ctx context.Context, apiKey *types.UserApiKey
 	if err != nil {
 		return nil, fmt.Errorf("failed to get auth handler: %w", err)
 	}
-	
+
 	headers, err := handler.GetAuthHeaders(ctx, apiKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get auth headers: %w", err)
 	}
-	
+
 	return &types.AuthCredentials{
 		Headers:    headers,
 		AuthMode:   apiKey.AuthMode,
@@ -108,20 +109,20 @@ func (h *GitHubPATHandler) GetAuthMode() string {
 func (h *GitHubPATHandler) GetAuthHeaders(ctx context.Context, apiKey *types.UserApiKey) (map[string]string, error) {
 	// For PAT, the token should be in the auth config under "decrypted_token"
 	// This is set by the auth service when it decrypts the key value
-	
+
 	var token string
 	if tokenVal, exists := apiKey.AuthConfig["decrypted_token"]; exists {
 		if tokenStr, ok := tokenVal.(string); ok {
 			token = tokenStr
 		}
 	}
-	
+
 	if token == "" {
 		return nil, fmt.Errorf("GitHub PAT token not found - decrypted token not provided")
 	}
-	
+
 	return map[string]string{
-		"Authorization":         "token " + token,
+		"Authorization":        "token " + token,
 		"Accept":               "application/vnd.github+json",
 		"X-GitHub-Api-Version": "2022-11-28",
 		"User-Agent":           "GoGent/1.0",
@@ -133,28 +134,28 @@ func (h *GitHubPATHandler) ValidateCredentials(ctx context.Context, apiKey *type
 	if err != nil {
 		return err
 	}
-	
+
 	// Make a test request to GitHub API
 	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/user", nil)
 	if err != nil {
 		return fmt.Errorf("failed to create validation request: %w", err)
 	}
-	
+
 	for key, value := range headers {
 		req.Header.Set(key, value)
 	}
-	
+
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("validation request failed: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("GitHub PAT validation failed with status: %d", resp.StatusCode)
 	}
-	
+
 	return nil
 }
 
@@ -164,7 +165,7 @@ func (h *GitHubPATHandler) RefreshCredentials(ctx context.Context, apiKey *types
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return &types.AuthCredentials{
 		Headers:    headers,
 		AuthMode:   apiKey.AuthMode,
@@ -201,15 +202,15 @@ func (h *GitHubAppHandler) GetAuthHeaders(ctx context.Context, apiKey *types.Use
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse GitHub App config: %w", err)
 	}
-	
+
 	// Get or refresh installation token
 	installationToken, err := h.getInstallationToken(ctx, appConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get installation token: %w", err)
 	}
-	
+
 	return map[string]string{
-		"Authorization":         "token " + installationToken.Token,
+		"Authorization":        "token " + installationToken.Token,
 		"Accept":               "application/vnd.github+json",
 		"X-GitHub-Api-Version": "2022-11-28",
 		"User-Agent":           "GoGent/1.0",
@@ -221,21 +222,21 @@ func (h *GitHubAppHandler) parseAppConfig(authConfig map[string]interface{}) (*t
 	if !exists {
 		return nil, fmt.Errorf("app_id not found in auth config")
 	}
-	
+
 	privateKeyVal, exists := authConfig["private_key"]
 	if !exists {
 		return nil, fmt.Errorf("private_key not found in auth config")
 	}
-	
+
 	installationIDVal, exists := authConfig["installation_id"]
 	if !exists {
 		return nil, fmt.Errorf("installation_id not found in auth config")
 	}
-	
+
 	// Convert values to appropriate types
 	var appID, installationID int64
 	var privateKey string
-	
+
 	switch v := appIDVal.(type) {
 	case float64:
 		appID = int64(v)
@@ -246,7 +247,7 @@ func (h *GitHubAppHandler) parseAppConfig(authConfig map[string]interface{}) (*t
 	default:
 		return nil, fmt.Errorf("invalid app_id type: %T", v)
 	}
-	
+
 	switch v := installationIDVal.(type) {
 	case float64:
 		installationID = int64(v)
@@ -257,13 +258,13 @@ func (h *GitHubAppHandler) parseAppConfig(authConfig map[string]interface{}) (*t
 	default:
 		return nil, fmt.Errorf("invalid installation_id type: %T", v)
 	}
-	
+
 	if keyStr, ok := privateKeyVal.(string); ok {
 		privateKey = keyStr
 	} else {
 		return nil, fmt.Errorf("invalid private_key type: %T", privateKeyVal)
 	}
-	
+
 	return &types.GitHubAppConfig{
 		AppID:          appID,
 		PrivateKey:     privateKey,
@@ -281,24 +282,24 @@ func (h *GitHubAppHandler) getInstallationToken(ctx context.Context, config *typ
 		}
 	}
 	h.cacheMutex.RUnlock()
-	
+
 	// Generate JWT for GitHub App authentication
 	jwt, err := h.generateJWT(config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate JWT: %w", err)
 	}
-	
+
 	// Request installation token
 	installationToken, err := h.requestInstallationToken(ctx, config.InstallationID, jwt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to request installation token: %w", err)
 	}
-	
+
 	// Cache the token
 	h.cacheMutex.Lock()
 	h.tokenCache[config.InstallationID] = installationToken
 	h.cacheMutex.Unlock()
-	
+
 	return installationToken, nil
 }
 
@@ -308,7 +309,7 @@ func (h *GitHubAppHandler) generateJWT(config *types.GitHubAppConfig) (string, e
 	if block == nil {
 		return "", fmt.Errorf("failed to decode PEM block containing private key")
 	}
-	
+
 	privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if err != nil {
 		// Try PKCS8 format
@@ -322,7 +323,7 @@ func (h *GitHubAppHandler) generateJWT(config *types.GitHubAppConfig) (string, e
 			return "", fmt.Errorf("private key is not RSA")
 		}
 	}
-	
+
 	// Create JWT claims
 	now := time.Now()
 	claims := jwt.MapClaims{
@@ -330,7 +331,7 @@ func (h *GitHubAppHandler) generateJWT(config *types.GitHubAppConfig) (string, e
 		"exp": now.Add(10 * time.Minute).Unix(), // JWT expires in 10 minutes
 		"iss": config.AppID,
 	}
-	
+
 	// Create and sign token
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 	return token.SignedString(privateKey)
@@ -338,37 +339,37 @@ func (h *GitHubAppHandler) generateJWT(config *types.GitHubAppConfig) (string, e
 
 func (h *GitHubAppHandler) requestInstallationToken(ctx context.Context, installationID int64, jwtToken string) (*types.InstallationToken, error) {
 	url := fmt.Sprintf("https://api.github.com/app/installations/%d/access_tokens", installationID)
-	
+
 	req, err := http.NewRequestWithContext(ctx, "POST", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	req.Header.Set("Authorization", "Bearer "+jwtToken)
 	req.Header.Set("Accept", "application/vnd.github+json")
 	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
 	req.Header.Set("User-Agent", "GoGent/1.0")
-	
+
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusCreated {
 		return nil, fmt.Errorf("GitHub API returned status %d", resp.StatusCode)
 	}
-	
+
 	var tokenResp struct {
 		Token     string    `json:"token"`
 		ExpiresAt time.Time `json:"expires_at"`
 	}
-	
+
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
-	
+
 	return &types.InstallationToken{
 		Token:     tokenResp.Token,
 		ExpiresAt: tokenResp.ExpiresAt,
@@ -380,35 +381,35 @@ func (h *GitHubAppHandler) ValidateCredentials(ctx context.Context, apiKey *type
 	if err != nil {
 		return err
 	}
-	
+
 	// Parse config to get installation ID for validation endpoint
 	appConfig, err := h.parseAppConfig(apiKey.AuthConfig)
 	if err != nil {
 		return fmt.Errorf("failed to parse app config: %w", err)
 	}
-	
+
 	// Make a test request to validate the installation
 	url := fmt.Sprintf("https://api.github.com/app/installations/%d", appConfig.InstallationID)
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create validation request: %w", err)
 	}
-	
+
 	for key, value := range headers {
 		req.Header.Set(key, value)
 	}
-	
+
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("validation request failed: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("GitHub App validation failed with status: %d", resp.StatusCode)
 	}
-	
+
 	return nil
 }
 
@@ -418,18 +419,18 @@ func (h *GitHubAppHandler) RefreshCredentials(ctx context.Context, apiKey *types
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse app config: %w", err)
 	}
-	
+
 	// Clear cached token to force refresh
 	h.cacheMutex.Lock()
 	delete(h.tokenCache, appConfig.InstallationID)
 	h.cacheMutex.Unlock()
-	
+
 	// Get fresh headers
 	headers, err := h.GetAuthHeaders(ctx, apiKey)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return &types.AuthCredentials{
 		Headers:    headers,
 		AuthMode:   apiKey.AuthMode,
@@ -458,16 +459,27 @@ func (h *SlackBotTokenHandler) GetAuthMode() string {
 func (h *SlackBotTokenHandler) GetAuthHeaders(ctx context.Context, apiKey *types.UserApiKey) (map[string]string, error) {
 	// For Slack, the token should be in the encrypted key value or auth config
 	var token string
-	if tokenVal, exists := apiKey.AuthConfig["token"]; exists {
+
+	// Try decrypted_token first (from auth service)
+	if tokenVal, exists := apiKey.AuthConfig["decrypted_token"]; exists {
 		if tokenStr, ok := tokenVal.(string); ok {
 			token = tokenStr
 		}
 	}
-	
+
+	// Fallback to token field
 	if token == "" {
-		return nil, fmt.Errorf("Slack bot token not found in auth config")
+		if tokenVal, exists := apiKey.AuthConfig["token"]; exists {
+			if tokenStr, ok := tokenVal.(string); ok {
+				token = tokenStr
+			}
+		}
 	}
-	
+
+	if token == "" {
+		return nil, fmt.Errorf("Slack bot token not found in auth config (checked 'decrypted_token' and 'token' fields)")
+	}
+
 	return map[string]string{
 		"Authorization": "Bearer " + token,
 		"Content-Type":  "application/json",
@@ -485,7 +497,7 @@ func (h *SlackBotTokenHandler) RefreshCredentials(ctx context.Context, apiKey *t
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return &types.AuthCredentials{
 		Headers:    headers,
 		AuthMode:   apiKey.AuthMode,
@@ -518,11 +530,11 @@ func (h *GeminiAPIKeyHandler) GetAuthHeaders(ctx context.Context, apiKey *types.
 			token = tokenStr
 		}
 	}
-	
+
 	if token == "" {
 		return nil, fmt.Errorf("Gemini API key not found in auth config")
 	}
-	
+
 	return map[string]string{
 		"x-goog-api-key": token,
 		"Content-Type":   "application/json",
@@ -540,7 +552,7 @@ func (h *GeminiAPIKeyHandler) RefreshCredentials(ctx context.Context, apiKey *ty
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return &types.AuthCredentials{
 		Headers:    headers,
 		AuthMode:   apiKey.AuthMode,

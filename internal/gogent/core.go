@@ -258,6 +258,12 @@ func NewClient(dbURL string, config *types.GeminiClientConfig, sessionApiKeys *t
 	})
 	client.integrations = integrations.NewRegistry()
 
+	// Register all integrations during client initialization
+	if err := client.registerIntegrations(); err != nil {
+		log.Printf("⚠️ Warning: failed to register integrations: %v", err)
+		// Continue without integrations rather than failing completely
+	}
+
 	// Force REST API usage - no Go SDK client
 	client.geminiClient = nil
 	log.Printf("Go SDK disabled - using REST API for all Gemini calls")
@@ -302,8 +308,15 @@ func (c *Client) registerIntegrations() error {
 		return fmt.Errorf("failed to register GitHub integration: %w", err)
 	}
 
-	// Register Slack integration (legacy for now)
-	slackInt := slackIntegration.NewIntegration(apiKeys)
+	// Register Slack integration with new auth system
+	var slackInt base.APIIntegration
+	if authService != nil && c.currentUserID != "" {
+		slackInt = slackIntegration.NewIntegrationWithAuth(authService, c.currentUserID)
+		log.Printf("🔑 Registered Slack integration with new auth system for user %s", c.currentUserID)
+	} else {
+		slackInt = slackIntegration.NewIntegration(apiKeys)
+		log.Printf("🔑 Registered Slack integration with legacy auth system")
+	}
 	if err := c.integrations.Register(slackInt); err != nil {
 		return fmt.Errorf("failed to register Slack integration: %w", err)
 	}
@@ -1017,6 +1030,40 @@ func (c *Client) executeIntegrationFunction(ctx context.Context, funcDef *db.Fun
 		return nil, fmt.Errorf("integration not found for function group %s: %w", funcDef.FunctionGroup, err)
 	}
 
+	// For Slack functions, create a new integration with current user context if available
+	if funcDef.FunctionGroup == "slack" && c.currentUserID != "" {
+		log.Printf("🔑 [SLACK_DEBUG] Creating Slack integration with current user context: %s", c.currentUserID)
+
+		// Create auth service for current user
+		apiKeyService, err := apikeys.NewService(c.db)
+		if err != nil {
+			log.Printf("❌ [SLACK_DEBUG] Failed to create API key service: %v", err)
+		} else {
+			authService := apiauth.NewService(apiKeyService)
+			// Create new Slack integration with auth service and current user
+			slackInt := slackIntegration.NewIntegrationWithAuth(authService, c.currentUserID)
+			integration = slackInt
+			log.Printf("✅ [SLACK_DEBUG] Created Slack integration with user context: %s", c.currentUserID)
+		}
+	}
+
+	// For GitHub functions, create a new integration with current user context if available
+	if funcDef.FunctionGroup == "github" && c.currentUserID != "" {
+		log.Printf("🔑 [GITHUB_DEBUG] Creating GitHub integration with current user context: %s", c.currentUserID)
+
+		// Create auth service for current user
+		apiKeyService, err := apikeys.NewService(c.db)
+		if err != nil {
+			log.Printf("❌ [GITHUB_DEBUG] Failed to create API key service: %v", err)
+		} else {
+			authService := apiauth.NewService(apiKeyService)
+			// Create new GitHub integration with auth service and current user
+			githubInt := githubIntegration.NewIntegrationWithAuth(authService, c.currentUserID)
+			integration = githubInt
+			log.Printf("✅ [GITHUB_DEBUG] Created GitHub integration with user context: %s", c.currentUserID)
+		}
+	}
+
 	// Validate the function with the integration
 	if err := integration.ValidateFunction(funcDef); err != nil {
 		return nil, fmt.Errorf("function validation failed: %w", err)
@@ -1673,11 +1720,15 @@ func (c *Client) LoadSystemFunctionTools(ctx context.Context, userID string) ([]
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 
+	log.Printf("🔍 DEBUG: LoadSystemFunctionTools called with userID: %s", userID)
+
 	// Get all active function definitions (both system and user functions)
 	funcDefs, err := c.queries.ListFunctionDefinitions(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load function definitions: %w", err)
 	}
+
+	log.Printf("🔍 DEBUG: Found %d function definitions total", len(funcDefs))
 
 	tools := make([]types.Tool, 0, len(funcDefs))
 
@@ -1702,6 +1753,15 @@ func (c *Client) LoadSystemFunctionTools(ctx context.Context, userID string) ([]
 		description := ""
 		if funcDef.Description.Valid {
 			description = funcDef.Description.String
+		}
+
+		// DEBUG: Log Slack function descriptions to see what's actually being loaded
+		if funcDef.Name == "slack_find_channel" || funcDef.Name == "slack_read_messages" {
+			preview := description
+			if len(description) > 100 {
+				preview = description[:100] + "..."
+			}
+			log.Printf("🔍 DEBUG: Loading function %s with description: %s", funcDef.Name, preview)
 		}
 
 		tool := types.Tool{

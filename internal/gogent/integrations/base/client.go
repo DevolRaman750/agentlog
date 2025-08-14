@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"time"
 
@@ -42,32 +43,42 @@ func NewHTTPClient(config HTTPClientConfig) *HTTPClient {
 
 // ExecuteRequest executes an HTTP request using the integration
 func (c *HTTPClient) ExecuteRequest(ctx context.Context, integration APIIntegration, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+	log.Printf("🔍 [HTTP_DEBUG] Starting HTTP request for function: %s", funcDef.Name)
+	log.Printf("🔍 [HTTP_DEBUG] Integration: %s", integration.Name())
+	log.Printf("🔍 [HTTP_DEBUG] Function args: %+v", args)
+
 	// Build URL
 	url, err := integration.BuildURL(funcDef, args)
 	if err != nil {
+		log.Printf("❌ [HTTP_DEBUG] Failed to build URL: %v", err)
 		return nil, fmt.Errorf("failed to build URL: %w", err)
 	}
+	log.Printf("🔍 [HTTP_DEBUG] Built URL: %s", url)
 
 	// Determine HTTP method
 	httpMethod := "GET"
 	if funcDef.HttpMethod.Valid && funcDef.HttpMethod.String != "" {
 		httpMethod = funcDef.HttpMethod.String
 	}
+	log.Printf("🔍 [HTTP_DEBUG] HTTP method: %s", httpMethod)
 
 	// Create request
 	var requestBody io.Reader
 	if httpMethod != "GET" && len(args) > 0 {
 		bodyData, err := c.prepareRequestBody(integration, funcDef, args)
 		if err != nil {
+			log.Printf("❌ [HTTP_DEBUG] Failed to prepare request body: %v", err)
 			return nil, fmt.Errorf("failed to prepare request body: %w", err)
 		}
 		if bodyData != nil {
 			requestBody = bytes.NewReader(bodyData)
+			log.Printf("🔍 [HTTP_DEBUG] Request body: %s", string(bodyData))
 		}
 	}
 
 	req, err := http.NewRequestWithContext(ctx, httpMethod, url, requestBody)
 	if err != nil {
+		log.Printf("❌ [HTTP_DEBUG] Failed to create request: %v", err)
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
@@ -77,24 +88,35 @@ func (c *HTTPClient) ExecuteRequest(ctx context.Context, integration APIIntegrat
 		req.Header.Set("Content-Type", "application/json")
 	}
 
+	log.Printf("🔍 [HTTP_DEBUG] Request headers before integration: %+v", req.Header)
+
 	// Let integration prepare the request (auth, custom headers, etc.)
 	if err := integration.PrepareRequest(ctx, req, funcDef, args); err != nil {
+		log.Printf("❌ [HTTP_DEBUG] Failed to prepare request: %v", err)
 		return nil, fmt.Errorf("failed to prepare request: %w", err)
 	}
+
+	log.Printf("🔍 [HTTP_DEBUG] About to execute HTTP request: %s %s", httpMethod, url)
 
 	// Execute request
 	resp, err := c.client.Do(req)
 	if err != nil {
+		log.Printf("❌ [HTTP_DEBUG] HTTP request failed: %v", err)
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
+	log.Printf("🔍 [HTTP_DEBUG] HTTP response received - Status: %s", resp.Status)
+	log.Printf("🔍 [HTTP_DEBUG] Response headers: %+v", resp.Header)
+
 	// Let integration process the response
 	result, err := integration.ProcessResponse(resp, funcDef)
 	if err != nil {
+		log.Printf("❌ [HTTP_DEBUG] Failed to process response: %v", err)
 		return nil, fmt.Errorf("failed to process response: %w", err)
 	}
 
+	log.Printf("✅ [HTTP_DEBUG] Request completed successfully")
 	return result, nil
 }
 
@@ -102,7 +124,7 @@ func (c *HTTPClient) ExecuteRequest(ctx context.Context, integration APIIntegrat
 func (c *HTTPClient) prepareRequestBody(integration APIIntegration, funcDef *db.FunctionDefinition, args map[string]interface{}) ([]byte, error) {
 	// Filter args based on integration type
 	bodyData := make(map[string]interface{})
-	
+
 	switch integration.Name() {
 	case "github":
 		// For GitHub, exclude URL parameters from body

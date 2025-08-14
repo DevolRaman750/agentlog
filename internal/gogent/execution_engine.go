@@ -1169,10 +1169,16 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 	response.ID = uuid.New().String()
 
 	// Handle function calls if present - check for temporary FunctionCalls field in raw response body
+	log.Printf("🔍 [FUNCTION_CALL_DEBUG] Checking for function calls in response body: %v", response.ResponseBody != nil)
 	if response.ResponseBody != nil {
+		log.Printf("🔍 [FUNCTION_CALL_DEBUG] Response body keys: %v", getMapKeys(response.ResponseBody))
 		if functionCalls, ok := response.ResponseBody["function_calls"]; ok {
+			log.Printf("🔍 [FUNCTION_CALL_DEBUG] Found function_calls field, type: %T", functionCalls)
 			if fcArray, ok := functionCalls.([]map[string]interface{}); ok && len(fcArray) > 0 {
 				log.Printf("🔧 Processing %d function calls from Gemini REST API", len(fcArray))
+				for i, fc := range fcArray {
+					log.Printf("🔍 [FUNCTION_CALL_DEBUG] Function call %d: %s with args: %+v", i, fc["name"], fc["args"])
+				}
 
 				// Convert to ResponsePart format
 				responseParts := make([]ResponsePart, len(fcArray))
@@ -1197,6 +1203,15 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 
 	log.Printf("✅ Gemini API call successful - Response: %d chars", len(response.ResponseText))
 	return response, nil
+}
+
+// Helper function to get map keys for debugging
+func getMapKeys(m map[string]interface{}) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
 }
 
 // callGeminiRestAPIForSynthesis is like callGeminiRestAPI but doesn't process function calls
@@ -1297,15 +1312,16 @@ func (c *Client) processIterativeFunctionCallsWithProvider(ctx context.Context, 
 		functionResults[i] = result
 	}
 
-	// Create a follow-up prompt asking the provider to synthesize the function results
-	synthesisPrompt := fmt.Sprintf("User's original request: \"%s\"\n\nFunction execution results:\n", originalPrompt)
+	// Create a clean synthesis prompt with current time context
+	currentTime := time.Now()
+	timeContext := fmt.Sprintf("Current time: %s (UTC: %s, Unix timestamp: %d)",
+		currentTime.Format("2006-01-02 15:04:05 MST"),
+		currentTime.UTC().Format("2006-01-02 15:04:05 UTC"),
+		currentTime.Unix())
 
-	for i, funcCall := range functionCalls {
-		resultJSON, _ := json.Marshal(functionResults[i])
-		synthesisPrompt += fmt.Sprintf("\n• %s: %s\n", funcCall.FunctionCall.Name, string(resultJSON))
-	}
-
-	synthesisPrompt += "\n**IMPORTANT: You must respond in natural language - DO NOT echo the function names or results above. Instead, analyze the data and provide a human-readable response that directly addresses the user's original request. Summarize what you found and what actions you took.**"
+	synthesisPrompt := fmt.Sprintf("User's original request: \"%s\"\n\n%s\n\n", originalPrompt, timeContext)
+	synthesisPrompt += "**TASK:** Analyze the function results (available through your tools) and provide a comprehensive response that addresses the user's request. Use the data you've gathered to complete the requested actions.\n\n"
+	synthesisPrompt += "**IMPORTANT: Respond in natural language. Summarize what you found and what actions you took to fulfill the user's request.**"
 
 	// Get effective API keys for the synthesis request
 	effectiveKeys := c.getEffectiveApiKeys()
@@ -1400,34 +1416,19 @@ func (c *Client) processProviderSynthesisWithIteration(ctx context.Context, conf
 			return c.createFallbackSummary(allFunctionCalls, allFunctionResults), nil
 		}
 
-		// Create a new synthesis prompt with all results using consistent formatting
-		newSynthesisPrompt := fmt.Sprintf("User's original request: \"%s\"\n\nFunction execution results:\n\n", originalPrompt)
+		// Create a clean synthesis prompt focused on task guidance
+		newSynthesisPrompt := fmt.Sprintf("User's original request: \"%s\"\n\n", originalPrompt)
 
 		var hasErrors bool
-		for i, funcCall := range allFunctionCalls {
-			if i < len(allFunctionResults) {
-				newSynthesisPrompt += fmt.Sprintf("• %s: ", funcCall.FunctionCall.Name)
-
-				// Include the function result data, but truncate if too large
-				resultJSON, _ := json.Marshal(allFunctionResults[i])
-				resultStr := string(resultJSON)
-				if len(resultStr) > 10000 {
-					resultStr = resultStr[:10000] + "... (truncated)"
-				}
-				newSynthesisPrompt += fmt.Sprintf("%s\n\n", resultStr)
-
-				// Check if this function failed
-				if status, ok := allFunctionResults[i]["status"].(string); ok && (status == "failed" || status == "validation_failed") {
-					hasErrors = true
-				}
+		// Check for errors without duplicating function data in the prompt
+		for i := range allFunctionResults {
+			if status, ok := allFunctionResults[i]["status"].(string); ok && (status == "failed" || status == "validation_failed") {
+				hasErrors = true
 			}
 		}
 
-		// Add context summary to help the model understand what data it already has
-		contextSummary := c.summarizeKnownContext(allFunctionResults)
-		if contextSummary != "" {
-			newSynthesisPrompt += contextSummary
-		}
+		// Removed problematic context summarizer that was confusing the LLM
+		// The LLM should decide what to do next based on the actual function results
 
 		// Detect if we have sufficient data to complete the task
 		shouldComplete := c.detectTaskCompletion(allFunctionCalls, allFunctionResults, depth+1, originalPrompt)
@@ -1495,21 +1496,20 @@ func (c *Client) executeFunctionCall(ctx context.Context, functionName string, a
 	startTime := time.Now()
 
 	// Check cache for duplicate function calls within the same execution
-	if c.currentExecutionRunID != nil {
+	// Skip cache for slack_find_channel to ensure fresh channel data
+	if c.currentExecutionRunID != nil && functionName != "slack_find_channel" {
 		runID := *c.currentExecutionRunID
 		cacheKey := c.makeCacheKey(functionName, args)
 
 		if cachedResult, found := c.cacheGet(runID, cacheKey); found {
-			// Return cached result with metadata indicating it's a duplicate
+			// Return cached result WITHOUT confusing metadata that makes Gemini think it needs to retry
 			result := c.deepCopyMap(cachedResult)
-			result["cached"] = true
-			result["no_new_data"] = true
-			result["duplicate_of"] = cacheKey
-			result["cache_hit_time"] = time.Now().Format(time.RFC3339)
+			// DO NOT add "no_new_data" or other metadata that confuses Gemini
+			// The cached result should look identical to the original result
 
 			executionTimeMs := int32(time.Since(startTime).Milliseconds())
 
-			// Log cache hit
+			// Log cache hit (for debugging only - not visible to Gemini)
 			c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryFunctionCall,
 				fmt.Sprintf("Function call cache hit: %s (avoiding duplicate API call)", functionName),
 				map[string]interface{}{
@@ -1518,12 +1518,11 @@ func (c *Client) executeFunctionCall(ctx context.Context, functionName string, a
 					"cached":       true,
 				})
 
-			// Log cache hit in flow
+			// Log cache hit in flow (for debugging only - not visible to Gemini)
 			c.logExecutionFlowEvent("function_call_end", c.getNextSequenceNumber(), "success", nil, map[string]interface{}{
 				"functionName":    functionName,
 				"arguments":       args,
 				"cached":          true,
-				"no_new_data":     true,
 				"executionTimeMs": executionTimeMs,
 				"cacheHit":        true,
 			}, &executionTimeMs, nil)
@@ -1728,22 +1727,27 @@ func (c *Client) processIterativeFunctionCalls(ctx context.Context, config *type
 }
 
 // processIterativeFunctionCallsWithSynthesis executes functions and gets LLM synthesis using Gemini REST API
-// Current max depth is set to 20 - this allows complex multi-step workflows while preventing runaway costs
+// Allow natural workflow completion without artificial depth limits
 func (c *Client) processIterativeFunctionCallsWithSynthesis(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest, functionCalls []ResponsePart, originalPrompt string) string {
-	const maxIterationDepth = 20 // Configurable limit - can be increased for more complex workflows
+	const maxIterationDepth = 12 // Allow natural workflow completion
 
 	return c.processIterativeFunctionCallsWithSynthesisRecursive(ctx, config, request, functionCalls, originalPrompt, 0, maxIterationDepth)
 }
 
 // processIterativeFunctionCallsWithSynthesisRecursive handles recursive function calling with depth limiting
 func (c *Client) processIterativeFunctionCallsWithSynthesisRecursive(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest, functionCalls []ResponsePart, originalPrompt string, depth int, maxDepth int) string {
+	return c.processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(ctx, config, request, functionCalls, originalPrompt, depth, maxDepth, []ResponsePart{}, []map[string]interface{}{})
+}
+
+// processIterativeFunctionCallsWithSynthesisRecursiveAccumulated handles recursive function calling with accumulated context
+func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest, functionCalls []ResponsePart, originalPrompt string, depth int, maxDepth int, allFunctionCalls []ResponsePart, allFunctionResults []map[string]interface{}) string {
 	if depth >= maxDepth {
 		log.Printf("⚠️ Maximum function calling depth (%d) reached, stopping iteration", maxDepth)
 		return fmt.Sprintf("I executed %d functions but reached maximum iteration depth. Results may be incomplete.", len(functionCalls))
 	}
 	log.Printf("🔧 Starting function calling with Gemini synthesis for %d function(s)", len(functionCalls))
 
-	// Execute all function calls first
+	// Execute current function calls
 	functionResults := make([]map[string]interface{}, len(functionCalls))
 	var errorCount int
 	var hasValidationErrors bool
@@ -1866,35 +1870,49 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursive(ctx context
 		return c.createErrorSummary(functionCalls, functionResults, hasValidationErrors)
 	}
 
-	// Create a synthesis prompt with the function results
-	synthesisPrompt := fmt.Sprintf("User's original request: \"%s\"\n\nFunction execution results:\n\n", originalPrompt)
+	// Accumulate all function calls and results across iterations
+	currentAllFunctionCalls := append(allFunctionCalls, functionCalls...)
+	currentAllFunctionResults := append(allFunctionResults, functionResults...)
+
+	// Create a clean synthesis prompt with current time context
+	currentTime := time.Now()
+	timeContext := fmt.Sprintf("Current time: %s (UTC: %s, Unix timestamp: %d)",
+		currentTime.Format("2006-01-02 15:04:05 MST"),
+		currentTime.UTC().Format("2006-01-02 15:04:05 UTC"),
+		currentTime.Unix())
+
+	synthesisPrompt := fmt.Sprintf("User's original request: \"%s\"\n\n%s\n\n", originalPrompt, timeContext)
+
+	// Add function results to synthesis prompt so LLM can see what data it already has
+	if len(currentAllFunctionResults) > 0 {
+		synthesisPrompt += "**Function Results:**\n"
+		for i, result := range currentAllFunctionResults {
+			if i < len(currentAllFunctionCalls) {
+				functionName := currentAllFunctionCalls[i].FunctionCall.Name
+				// Convert result to JSON for clean display
+				if resultJSON, err := json.MarshalIndent(result, "", "  "); err == nil {
+					synthesisPrompt += fmt.Sprintf("- %s: %s\n", functionName, string(resultJSON))
+				} else {
+					synthesisPrompt += fmt.Sprintf("- %s: %v\n", functionName, result)
+				}
+			}
+		}
+		synthesisPrompt += "\n"
+	}
 
 	var hasErrors bool
-	for i, funcCall := range functionCalls {
-		synthesisPrompt += fmt.Sprintf("• %s: ", funcCall.FunctionCall.Name)
-
-		// Include the function result data, but truncate if too large
-		resultJSON, _ := json.Marshal(functionResults[i])
-		resultStr := string(resultJSON)
-		if len(resultStr) > 10000 {
-			resultStr = resultStr[:10000] + "... (truncated)"
-		}
-		synthesisPrompt += fmt.Sprintf("%s\n\n", resultStr)
-
-		// Check if this function failed
-		if status, ok := functionResults[i]["status"].(string); ok && (status == "failed" || status == "validation_failed") {
+	// Check for errors without duplicating function data in the prompt
+	for i := range currentAllFunctionResults {
+		if status, ok := currentAllFunctionResults[i]["status"].(string); ok && (status == "failed" || status == "validation_failed") {
 			hasErrors = true
 		}
 	}
 
-	// Add context summary to help the model understand what data it already has
-	contextSummary := c.summarizeKnownContext(functionResults)
-	if contextSummary != "" {
-		synthesisPrompt += contextSummary
-	}
+	// Add task-oriented guidance to help Gemini understand what to do next
+	synthesisPrompt += c.generateTaskGuidance(originalPrompt, currentAllFunctionCalls, currentAllFunctionResults)
 
-	// Detect if we have sufficient data to complete the task
-	shouldComplete := c.detectTaskCompletion(functionCalls, functionResults, depth, originalPrompt)
+	// Detect if we have sufficient data to complete the task (using accumulated results)
+	shouldComplete := c.detectTaskCompletion(currentAllFunctionCalls, currentAllFunctionResults, depth, originalPrompt)
 
 	if hasErrors {
 		synthesisPrompt += "\n**ERROR HANDLING:** Some functions failed with errors. Please analyze the available data and provide your best response. DO NOT make additional function calls that might fail with the same errors.\n\n**CRITICAL: You must respond ONLY in natural language. DO NOT return code blocks, function calls, or tool_code. Do not use markdown code blocks or backticks. Provide a clear, human-readable summary of what you accomplished.**"
@@ -1943,8 +1961,8 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursive(ctx context
 		ProviderType:    "gemini", // This is Gemini-specific synthesis path
 		Depth:           depth,
 		ShouldComplete:  shouldComplete,
-		FunctionCalls:   functionCalls,
-		FunctionResults: functionResults,
+		FunctionCalls:   currentAllFunctionCalls,   // Use accumulated function calls
+		FunctionResults: currentAllFunctionResults, // Use accumulated function results
 		OriginalConfig:  config,
 	}
 
@@ -1959,6 +1977,9 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursive(ctx context
 		promptSuffix := synthesisManager.GetSynthesisPromptSuffix(decision, "gemini")
 		synthesisPrompt += promptSuffix
 	}
+
+	// DEBUG: Log the exact prompt being sent to Gemini to understand the loop
+	log.Printf("🔍 [DEBUG] Synthesis prompt being sent to Gemini (depth %d):\n%s", depth, synthesisPrompt)
 
 	c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryExecution,
 		"Synthesis strategy determined",
@@ -2060,8 +2081,8 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursive(ctx context
 				// Auto-extract parameters for the next iteration using current results
 				c.autoExtractParametersFromContext(additionalResponseParts, functionResults)
 
-				// Recursively process additional function calls
-				return c.processIterativeFunctionCallsWithSynthesisRecursive(ctx, config, request, additionalResponseParts, originalPrompt, depth+1, maxDepth)
+				// Recursively process additional function calls with accumulated context
+				return c.processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(ctx, config, request, additionalResponseParts, originalPrompt, depth+1, maxDepth, currentAllFunctionCalls, currentAllFunctionResults)
 			}
 		}
 	}
@@ -2350,34 +2371,25 @@ func (c *Client) argumentsSimilar(args1, args2 map[string]interface{}) bool {
 }
 
 // autoExtractParameters automatically extracts missing parameters from previous function results
+// Following LLM function calling best practices - minimal intervention, let LLM handle parameter selection
 func (c *Client) autoExtractParameters(ctx context.Context, funcCall *ResponsePart, previousResults []map[string]interface{}) {
-	// Slack workflow: slack_read_messages needs channel from slack_find_channel
-	if funcCall.FunctionCall.Name == "slack_read_messages" {
-		if _, exists := funcCall.FunctionCall.Args["channel"]; !exists {
-			// Look for slack_find_channel result in previous results
-			for _, result := range previousResults {
-				if channels, ok := result["channels"].([]interface{}); ok && len(channels) > 0 {
-					if channel, ok := channels[0].(map[string]interface{}); ok {
-						if channelID, ok := channel["id"].(string); ok {
-							funcCall.FunctionCall.Args["channel"] = channelID
-							log.Printf("🔄 Auto-extracted channel=%s for slack_read_messages from slack_find_channel", channelID)
-							return
-						}
-					}
-				}
-			}
-		}
+	// Minimal parameter extraction - only for truly generic cases where the LLM clearly needs help
+	// Most parameter selection should be handled by the LLM itself using the function results
+
+	if funcCall.FunctionCall.Args == nil {
+		funcCall.FunctionCall.Args = make(map[string]interface{})
 	}
 
-	// GitHub workflow examples (for future expansion)
-	if funcCall.FunctionCall.Name == "github_create_update_file" {
-		if _, exists := funcCall.FunctionCall.Args["sha"]; !exists {
-			// Look for github_get_file_sha result
-			for _, result := range previousResults {
-				if sha, ok := result["sha"].(string); ok && sha != "" {
-					funcCall.FunctionCall.Args["sha"] = sha
-					log.Printf("🔄 Auto-extracted sha=%s for github_create_update_file from github_get_file_sha", sha)
-					return
+	// Only extract channel ID if completely missing and there's an obvious source
+	if _, exists := funcCall.FunctionCall.Args["channel"]; !exists {
+		for _, result := range previousResults {
+			if channels, ok := result["channels"].([]interface{}); ok && len(channels) > 0 {
+				if channel, ok := channels[0].(map[string]interface{}); ok {
+					if channelID, ok := channel["id"].(string); ok && channelID != "" {
+						funcCall.FunctionCall.Args["channel"] = channelID
+						log.Printf("🔄 Auto-extracted channel=%s for %s", channelID, funcCall.FunctionCall.Name)
+						return
+					}
 				}
 			}
 		}
@@ -2386,162 +2398,139 @@ func (c *Client) autoExtractParameters(ctx context.Context, funcCall *ResponsePa
 
 // detectTaskCompletion determines if we have enough data to complete the user's task
 func (c *Client) detectTaskCompletion(functionCalls []ResponsePart, functionResults []map[string]interface{}, depth int, originalPrompt string) bool {
-	// Force completion at very high depths to prevent infinite loops (safety net)
-	if depth >= 25 {
-		log.Printf("🎯 Force completion at depth %d to prevent infinite loops", depth)
+	// Only force completion at extremely high depths as an absolute safety net
+	if depth >= 15 {
+		log.Printf("🛑 Safety net: Force completion at depth %d to prevent runaway execution", depth)
 		return true
 	}
 
-	// Count successful functions
-	successfulFunctions := 0
-
-	for i, funcCall := range functionCalls {
-		if status, ok := functionResults[i]["status"].(string); !ok || status != "failed" {
-			successfulFunctions++
-		}
-		_ = funcCall // Use funcCall to avoid unused variable warning
-	}
-
-	// Detect common task completion patterns - much more permissive now
-	shouldComplete := false
-
-	// Pattern 1: Only for very specific Slack + GitHub workflow - disabled for now to allow more flexibility
-	// if hasSlackData && hasGitHubData && successfulFunctions >= 2 {
-	//     shouldComplete = true
-	//     log.Printf("🎯 Slack+GitHub task completion detected: hasSlackData=%v, hasGitHubData=%v, successfulFunctions=%d", hasSlackData, hasGitHubData, successfulFunctions)
-	// }
-
-	// Pattern 2: Aggressive completion after moderate successful calls (Gemini best practice)
-	if successfulFunctions >= 5 && depth >= 6 {
-		shouldComplete = true
-		log.Printf("🎯 General task completion detected: %d successful functions at depth %d", successfulFunctions, depth)
-	}
-
-	// Pattern 3: Early loop detection (Gemini best practice: prevent redundant calls)
-	if depth >= 8 && successfulFunctions >= 3 {
-		shouldComplete = true
-		log.Printf("🎯 Likely loop detected: depth %d with %d successful functions - forcing completion", depth, successfulFunctions)
-	}
-
-	// Pattern 4: Specific workflow completion (Gemini best practice: task-aware completion)
-	hasSlackData := false
-	hasGitHubData := false
-
-	for _, result := range functionResults {
-		// Check for Slack data
-		if channels, ok := result["channels"].([]interface{}); ok && len(channels) > 0 {
-			hasSlackData = true
-		}
-		if messages, ok := result["messages"].([]interface{}); ok && len(messages) > 0 {
-			hasSlackData = true
-		}
-
-		// Check for GitHub data
-		if data, ok := result["data"]; ok && data != nil {
-			hasGitHubData = true
-		}
-	}
-
-	// If we have both Slack and GitHub data, we likely have enough for most tasks
-	if hasSlackData && hasGitHubData && successfulFunctions >= 3 && depth >= 4 {
-		shouldComplete = true
-		log.Printf("🎯 Slack+GitHub workflow completion: hasSlackData=%v, hasGitHubData=%v, functions=%d, depth=%d", hasSlackData, hasGitHubData, successfulFunctions, depth)
-	}
-
-	return shouldComplete
+	// Let the LLM decide when it's done - no artificial task completion detection
+	// The synthesis manager and infinite loop detection will handle edge cases
+	log.Printf("🔍 Task completion check: depth=%d, functions=%d - letting LLM decide naturally", depth, len(functionCalls))
+	return false
 }
 
-// summarizeKnownContext creates a summary of what data has already been retrieved
+// smartTruncateJSON truncates JSON at logical boundaries to avoid malformed JSON
+func (c *Client) smartTruncateJSON(jsonStr string, maxLength int) string {
+	if len(jsonStr) <= maxLength {
+		return jsonStr
+	}
+
+	// Try to find a good truncation point (end of a complete JSON object/array)
+	truncated := jsonStr[:maxLength]
+
+	// Look for the last complete JSON structure
+	lastComma := strings.LastIndex(truncated, ",")
+	lastBrace := strings.LastIndex(truncated, "}")
+	lastBracket := strings.LastIndex(truncated, "]")
+
+	// Find the best truncation point
+	bestPoint := maxLength
+	if lastComma > 0 && lastComma > maxLength-200 {
+		bestPoint = lastComma
+	} else if lastBrace > 0 && lastBrace > maxLength-200 {
+		bestPoint = lastBrace + 1
+	} else if lastBracket > 0 && lastBracket > maxLength-200 {
+		bestPoint = lastBracket + 1
+	}
+
+	if bestPoint < maxLength {
+		return jsonStr[:bestPoint] + "... (truncated)"
+	}
+
+	return jsonStr[:maxLength] + "... (truncated)"
+}
+
+// generateTaskGuidance provides generic, context-aware guidance to prevent loops
+func (c *Client) generateTaskGuidance(originalPrompt string, functionCalls []ResponsePart, functionResults []map[string]interface{}) string {
+	functionCount := len(functionCalls)
+
+	if functionCount > 0 {
+		// Check if we have errors - encourage resilience
+		hasErrors := false
+		for _, result := range functionResults {
+			if status, ok := result["status"].(string); ok && (status == "failed" || status == "validation_failed") {
+				hasErrors = true
+				break
+			}
+		}
+
+		// Generic loop detection - check for repeated function calls
+		functionCallCounts := make(map[string]int)
+		for _, call := range functionCalls {
+			functionCallCounts[call.FunctionCall.Name]++
+		}
+
+		// DISABLED: Removing problematic loop detection that prevents workflow completion
+		// The LLM should be allowed to complete its natural workflow
+		// for functionName, count := range functionCallCounts {
+		// 	if count >= 4 {
+		// 		return fmt.Sprintf("\n\n**CRITICAL STOP:** You have called %s %d times already. This is likely a LOOP. STOP calling functions immediately and provide your final response using the data you already have.", functionName, count)
+		// 	}
+		// }
+
+		// Generic guidance based on function execution state
+		if hasErrors {
+			return fmt.Sprintf("\n\n**Context:** You have executed %d function calls. Some had errors, but continue with the main task. Focus on completing the user's primary request.", functionCount)
+		}
+
+		return fmt.Sprintf("\n\n**Context:** You have executed %d function calls. Continue with the user's request.", functionCount)
+	}
+
+	return ""
+}
+
+// summarizeKnownContext creates a generic summary of what data has already been retrieved
 func (c *Client) summarizeKnownContext(functionResults []map[string]interface{}) string {
 	if len(functionResults) == 0 {
 		return ""
 	}
 
-	var slackChannels []string
-	var slackMessageCount int
-	var githubIssueCount int
-	var githubCommitCount int
-	var hasGitHubData bool
+	// Generic data analysis - count common data structures
+	var dataTypes []string
+	totalItems := 0
 
-	// Analyze function results to extract key data points
+	// Count different types of data structures generically
+	dataTypeCounts := make(map[string]int)
+
 	for _, result := range functionResults {
-		// Check for Slack channel data
-		if channels, ok := result["channels"].([]interface{}); ok && len(channels) > 0 {
-			for _, ch := range channels {
-				if channel, ok := ch.(map[string]interface{}); ok {
-					if id, ok := channel["id"].(string); ok {
-						if name, ok := channel["name"].(string); ok {
-							slackChannels = append(slackChannels, fmt.Sprintf("%s (%s)", name, id))
-						} else {
-							slackChannels = append(slackChannels, id)
-						}
-					}
-				}
+		for key, value := range result {
+			// Skip error/status fields
+			if key == "error" || key == "status" {
+				continue
 			}
-		}
 
-		// Check for Slack messages
-		if messages, ok := result["messages"].([]interface{}); ok {
-			slackMessageCount += len(messages)
-		}
-
-		// Check for GitHub issues
-		if issues, ok := result["issues"].([]interface{}); ok {
-			githubIssueCount += len(issues)
-			hasGitHubData = true
-		}
-
-		// Check for GitHub commits
-		if commits, ok := result["commits"].([]interface{}); ok {
-			githubCommitCount += len(commits)
-			hasGitHubData = true
-		}
-
-		// Check for other GitHub data indicators
-		if _, ok := result["total_count"]; ok {
-			if functionName, ok := result["function"].(string); ok {
-				if strings.HasPrefix(functionName, "github_") {
-					hasGitHubData = true
-				}
+			// Count array-type data
+			if array, ok := value.([]interface{}); ok && len(array) > 0 {
+				dataTypeCounts[key] += len(array)
+				totalItems += len(array)
 			}
 		}
 	}
 
-	// Build summary
-	var summary []string
-
-	if len(slackChannels) > 0 {
-		channelList := strings.Join(slackChannels, ", ")
-		if slackMessageCount > 0 {
-			summary = append(summary, fmt.Sprintf("Slack channels: %s with %d messages", channelList, slackMessageCount))
-		} else {
-			summary = append(summary, fmt.Sprintf("Slack channels: %s", channelList))
+	// Build generic summary
+	for dataType, count := range dataTypeCounts {
+		if count > 0 {
+			dataTypes = append(dataTypes, fmt.Sprintf("%d %s", count, dataType))
 		}
 	}
 
-	if hasGitHubData {
-		var githubParts []string
-		if githubIssueCount > 0 {
-			githubParts = append(githubParts, fmt.Sprintf("%d issues", githubIssueCount))
-		}
-		if githubCommitCount > 0 {
-			githubParts = append(githubParts, fmt.Sprintf("%d commits", githubCommitCount))
-		}
-		if len(githubParts) > 0 {
-			summary = append(summary, fmt.Sprintf("GitHub data: %s", strings.Join(githubParts, ", ")))
-		} else {
-			summary = append(summary, "GitHub data: repository information")
-		}
-	}
-
-	if len(summary) == 0 {
+	if len(dataTypes) == 0 {
 		return ""
 	}
 
-	return fmt.Sprintf("\n**What you already have:** %s\n\n**Important:** Avoid re-calling the same functions with identical parameters as they may return `no_new_data: true`. If you have sufficient information above, synthesize your final response now instead of making additional function calls.\n", strings.Join(summary, "; "))
+	contextMessage := fmt.Sprintf("\n**What you already have:** %s\n\n**Important:** You have sufficient information above to complete the user's request. Please synthesize your final response now using the data you've already retrieved.\n", strings.Join(dataTypes, ", "))
+
+	// Generic instruction about not repeating function calls
+	if totalItems > 0 {
+		contextMessage += fmt.Sprintf("\n**CRITICAL:** You have already retrieved and can access %d data items. DO NOT repeat the same function calls - you already have the data. Use the information you've gathered to complete the task.\n", totalItems)
+	}
+
+	return contextMessage
 }
 
 // autoExtractParametersFromContext extracts parameters for next iteration function calls using current results
+// Simplified version - let LLM handle most parameter selection
 func (c *Client) autoExtractParametersFromContext(nextCalls []ResponsePart, currentResults []map[string]interface{}) {
 	log.Printf("🔍 Auto-extraction: Processing %d next calls with %d current results", len(nextCalls), len(currentResults))
 
@@ -2549,47 +2538,24 @@ func (c *Client) autoExtractParametersFromContext(nextCalls []ResponsePart, curr
 		funcCall := &nextCalls[i]
 		log.Printf("🔍 Auto-extraction: Checking function %s with current args: %+v", funcCall.FunctionCall.Name, funcCall.FunctionCall.Args)
 
-		// Slack workflow: slack_read_messages needs channel from slack_find_channel
-		if funcCall.FunctionCall.Name == "slack_read_messages" {
-			if _, exists := funcCall.FunctionCall.Args["channel"]; !exists {
-				log.Printf("🔍 Auto-extraction: slack_read_messages missing channel, searching in %d results", len(currentResults))
-				// Look for slack_find_channel result in current results
-				for j, result := range currentResults {
-					log.Printf("🔍 Auto-extraction: Checking result %d: %+v", j, result)
-					if channels, ok := result["channels"].([]interface{}); ok && len(channels) > 0 {
-						if channel, ok := channels[0].(map[string]interface{}); ok {
-							if channelID, ok := channel["id"].(string); ok {
-								if funcCall.FunctionCall.Args == nil {
-									funcCall.FunctionCall.Args = make(map[string]interface{})
-								}
-								funcCall.FunctionCall.Args["channel"] = channelID
-								log.Printf("🔄 Auto-extracted channel=%s for slack_read_messages from previous slack_find_channel result", channelID)
-								return
+		// Only extract channel if completely missing - let LLM handle timestamps and other parameters
+		if _, exists := funcCall.FunctionCall.Args["channel"]; !exists {
+			for _, result := range currentResults {
+				if channels, ok := result["channels"].([]interface{}); ok && len(channels) > 0 {
+					if channel, ok := channels[0].(map[string]interface{}); ok {
+						if channelID, ok := channel["id"].(string); ok {
+							if funcCall.FunctionCall.Args == nil {
+								funcCall.FunctionCall.Args = make(map[string]interface{})
 							}
+							funcCall.FunctionCall.Args["channel"] = channelID
+							log.Printf("🔄 Auto-extracted channel=%s for %s (LLM should handle other parameters)", channelID, funcCall.FunctionCall.Name)
+							break
 						}
 					}
 				}
-				log.Printf("⚠️ Auto-extraction: Could not find channel ID in any of the %d results", len(currentResults))
-			} else {
-				log.Printf("✅ Auto-extraction: slack_read_messages already has channel parameter")
 			}
-		}
-
-		// GitHub workflow examples (for future expansion)
-		if funcCall.FunctionCall.Name == "github_create_update_file" {
-			if _, exists := funcCall.FunctionCall.Args["sha"]; !exists {
-				// Look for github_get_file_sha result
-				for _, result := range currentResults {
-					if sha, ok := result["sha"].(string); ok && sha != "" {
-						if funcCall.FunctionCall.Args == nil {
-							funcCall.FunctionCall.Args = make(map[string]interface{})
-						}
-						funcCall.FunctionCall.Args["sha"] = sha
-						log.Printf("🔄 Auto-extracted sha=%s for github_create_update_file from previous result", sha)
-						return
-					}
-				}
-			}
+		} else {
+			log.Printf("✅ Auto-extraction: %s already has channel parameter", funcCall.FunctionCall.Name)
 		}
 	}
 }

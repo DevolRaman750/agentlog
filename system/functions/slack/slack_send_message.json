@@ -3,7 +3,7 @@
   "name": "slack_send_message",
   "provider": "slack",
   "display_name": "Send Slack Message",
-  "description": "Send messages to Slack channels or users with rich formatting and attachments. If you get a 'channel_not_found' error, use slack_find_channel first to verify the channel exists and get the correct channel ID.",
+  "description": "Send messages to Slack channels or users with rich formatting and attachments. IMPORTANT: Use channel IDs (e.g., 'C099KTQE1L5') from slack_find_channel for reliable delivery. Channel names may work but channel IDs are preferred to avoid 'channel_not_found' errors.",
   "endpoint": {
     "path": "/chat.postMessage",
     "method": "POST"
@@ -16,7 +16,7 @@
       "properties": {
         "channel": {
           "type": "string",
-          "description": "Channel name with # prefix (e.g., #general, #ai-code-updates) or channel ID (e.g., C1234567890) or user ID (@username)"
+          "description": "Channel ID (e.g., C1234567890) from slack_find_channel, or channel name (e.g., general), or user ID (@username). Channel IDs are most reliable."
         },
         "text": {
           "type": "string",

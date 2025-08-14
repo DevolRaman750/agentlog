@@ -16,8 +16,8 @@ type SynthesisManager struct {
 // NewSynthesisManager creates a new synthesis manager with default settings
 func NewSynthesisManager() *SynthesisManager {
 	return &SynthesisManager{
-		maxDepth:               10, // Reasonable depth for compositional workflows
-		maxSameFunctionRepeats: 3,  // Prevent infinite loops of same function
+		maxDepth:               10, // Allow more natural workflow completion
+		maxSameFunctionRepeats: 5,  // Allow reasonable exploration before detecting loops
 	}
 }
 
@@ -40,30 +40,45 @@ type SynthesisDecision struct {
 }
 
 // DetermineSynthesisStrategy decides whether to allow function calls during synthesis
-// following Gemini's compositional function calling and Kimi K2 best practices
+// Following Gemini best practices: provide intelligent guidance while preventing obvious loops
 func (sm *SynthesisManager) DetermineSynthesisStrategy(config *SynthesisConfig) *SynthesisDecision {
-	// Check for hard limits first
-	if config.Depth >= sm.maxDepth {
+	// Check for identical function loops first (Gemini best practice: prevent obvious repetition)
+	if sm.detectIdenticalFunctionLoop(config.FunctionCalls) {
+		log.Printf("🔄 [LOOP] Identical function loop detected - stopping function calls")
 		return &SynthesisDecision{
 			AllowFunctionCalls: false,
 			Tools:              []types.Tool{},
-			Reason:             fmt.Sprintf("Maximum depth (%d) reached", sm.maxDepth),
+			Reason:             "Identical function loop detected - preventing repetition",
 			ForceCompletion:    true,
 		}
 	}
 
-	// Check for infinite loops (same function repeated too many times)
-	if sm.detectInfiniteLoop(config.FunctionCalls, config.FunctionResults) {
+	// Check for excessive function calls (stronger loop detection)
+	// Allow more calls for complex workflows (Slack + GitHub integration needs multiple calls)
+	if len(config.FunctionCalls) >= 20 {
+		log.Printf("🛑 [EXCESSIVE] Too many function calls (%d) - forcing completion", len(config.FunctionCalls))
 		return &SynthesisDecision{
 			AllowFunctionCalls: false,
 			Tools:              []types.Tool{},
-			Reason:             "Infinite loop detected - same function repeated",
+			Reason:             "Excessive function calls detected - forcing completion",
 			ForceCompletion:    true,
 		}
 	}
 
-	// If external logic determined completion is needed
+	// Only stop for absolute safety net (prevent runaway costs)
+	if config.Depth >= 15 {
+		log.Printf("🛑 [SAFETY] Maximum depth reached: %d - preventing runaway execution", config.Depth)
+		return &SynthesisDecision{
+			AllowFunctionCalls: false,
+			Tools:              []types.Tool{},
+			Reason:             "Safety limit reached - preventing runaway execution",
+			ForceCompletion:    true,
+		}
+	}
+
+	// Honor external completion signals (e.g., from task completion detection)
 	if config.ShouldComplete {
+		log.Printf("🏁 [EXTERNAL] External completion signal received")
 		return &SynthesisDecision{
 			AllowFunctionCalls: false,
 			Tools:              []types.Tool{},
@@ -72,121 +87,94 @@ func (sm *SynthesisManager) DetermineSynthesisStrategy(config *SynthesisConfig) 
 		}
 	}
 
-	// For Gemini: Enable compositional function calling for natural workflows
-	if config.ProviderType == "gemini" {
-		return sm.geminiCompositionalStrategy(config)
-	}
-
-	// For Kimi K2: Enable multi-step reasoning with function calls
-	if config.ProviderType == "kimi" {
-		return sm.kimiMultiStepStrategy(config)
-	}
-
-	// Default: allow function calls for legitimate workflows
+	// Default: Trust the LLM provider to make intelligent decisions
+	// Provide all tools and let the provider decide when to stop
+	log.Printf("✅ [NATURAL] Allowing natural LLM workflow - depth %d, tools: %d", config.Depth, len(config.OriginalConfig.Tools))
 	return &SynthesisDecision{
 		AllowFunctionCalls: true,
 		Tools:              config.OriginalConfig.Tools,
-		Reason:             "Default strategy - allowing function calls",
+		Reason:             "Natural LLM workflow - provider decides completion",
 		ForceCompletion:    false,
 	}
 }
 
-// geminiCompositionalStrategy implements Gemini's compositional function calling pattern
-func (sm *SynthesisManager) geminiCompositionalStrategy(config *SynthesisConfig) *SynthesisDecision {
-	// Gemini excels at compositional workflows - allow it to chain functions naturally
-	// Key insight: Let Gemini decide when it has enough information to complete the task
+// Removed provider-specific strategies - let each LLM provider handle workflows naturally
 
-	// Only force completion in specific error scenarios or very deep workflows
-	if config.Depth >= 8 { // More generous for Gemini's compositional abilities
-		return &SynthesisDecision{
-			AllowFunctionCalls: false,
-			Tools:              []types.Tool{},
-			Reason:             "Gemini compositional workflow depth limit reached",
-			ForceCompletion:    true,
-		}
-	}
-
-	// Check if we have errors that suggest we should stop
-	hasErrors := sm.hasSignificantErrors(config.FunctionResults)
-	if hasErrors && config.Depth >= 3 {
-		return &SynthesisDecision{
-			AllowFunctionCalls: false,
-			Tools:              []types.Tool{},
-			Reason:             "Errors detected - stopping Gemini compositional flow",
-			ForceCompletion:    true,
-		}
-	}
-
-	// Enable full compositional function calling for Gemini
-	return &SynthesisDecision{
-		AllowFunctionCalls: true,
-		Tools:              config.OriginalConfig.Tools,
-		Reason:             "Gemini compositional function calling enabled",
-		ForceCompletion:    false,
-	}
-}
-
-// kimiMultiStepStrategy implements Kimi K2's multi-step reasoning pattern
-func (sm *SynthesisManager) kimiMultiStepStrategy(config *SynthesisConfig) *SynthesisDecision {
-	// Kimi K2 is excellent at multi-step reasoning - allow it to continue workflows
-
-	// Conservative depth limit for Kimi K2
-	if config.Depth >= 6 {
-		return &SynthesisDecision{
-			AllowFunctionCalls: false,
-			Tools:              []types.Tool{},
-			Reason:             "Kimi K2 multi-step workflow depth limit reached",
-			ForceCompletion:    true,
-		}
-	}
-
-	// Check for error patterns that suggest stopping
-	hasErrors := sm.hasSignificantErrors(config.FunctionResults)
-	if hasErrors && config.Depth >= 2 {
-		return &SynthesisDecision{
-			AllowFunctionCalls: false,
-			Tools:              []types.Tool{},
-			Reason:             "Errors detected - stopping Kimi K2 workflow",
-			ForceCompletion:    true,
-		}
-	}
-
-	// Enable multi-step function calling for Kimi K2
-	return &SynthesisDecision{
-		AllowFunctionCalls: true,
-		Tools:              config.OriginalConfig.Tools,
-		Reason:             "Kimi K2 multi-step reasoning enabled",
-		ForceCompletion:    false,
-	}
-}
-
-// detectInfiniteLoop checks if the same function is being called repeatedly
-func (sm *SynthesisManager) detectInfiniteLoop(recentCalls []ResponsePart, recentResults []map[string]interface{}) bool {
-	if len(recentCalls) < 2 {
+// detectIdenticalFunctionLoop checks for functional loops (same function, same key parameters)
+// This prevents Gemini from calling slack_read_messages repeatedly with just different limits
+func (sm *SynthesisManager) detectIdenticalFunctionLoop(functionCalls []ResponsePart) bool {
+	if len(functionCalls) < 3 {
 		return false
 	}
 
-	// Check last few function calls for repetition
-	functionCallHistory := make(map[string]int)
+	// Check the last 3 function calls
+	recent := functionCalls[len(functionCalls)-3:]
 
-	// Look at the last few calls to detect patterns
-	startIndex := 0
-	if len(recentCalls) > 5 {
-		startIndex = len(recentCalls) - 5
-	}
+	// If all 3 recent calls are the same function, it's likely a loop
+	if len(recent) == 3 {
+		first := recent[0]
+		functionName := first.FunctionCall.Name
 
-	for i := startIndex; i < len(recentCalls); i++ {
-		functionName := recentCalls[i].FunctionCall.Name
-		functionCallHistory[functionName]++
+		// Check if all 3 calls are the same function
+		for i := 1; i < 3; i++ {
+			if recent[i].FunctionCall.Name != functionName {
+				return false
+			}
+		}
 
-		// If any function has been called too many times recently, it's likely a loop
-		if functionCallHistory[functionName] > sm.maxSameFunctionRepeats {
-			log.Printf("🛑 Infinite loop detected: %s called %d times", functionName, functionCallHistory[functionName])
+		// Special handling for slack_read_messages - if same channel, it's a loop regardless of limit
+		if functionName == "slack_read_messages" {
+			firstChannel := sm.getChannelFromArgs(first.FunctionCall.Args)
+			for i := 1; i < 3; i++ {
+				if sm.getChannelFromArgs(recent[i].FunctionCall.Args) != firstChannel {
+					return false
+				}
+			}
+			log.Printf("🔄 [LOOP] Detected slack_read_messages loop: channel=%s (called 3+ times)", firstChannel)
 			return true
 		}
+
+		// Special handling for slack_find_channel - if same channel name, it's a loop
+		if functionName == "slack_find_channel" {
+			firstChannelName := sm.getChannelNameFromArgs(first.FunctionCall.Args)
+			for i := 1; i < 3; i++ {
+				if sm.getChannelNameFromArgs(recent[i].FunctionCall.Args) != firstChannelName {
+					return false
+				}
+			}
+			log.Printf("🔄 [LOOP] Detected slack_find_channel loop: channel_name=%s (called 3+ times)", firstChannelName)
+			return true
+		}
+
+		// For other functions, check if parameters are identical
+		for i := 1; i < 3; i++ {
+			if fmt.Sprintf("%v", recent[i].FunctionCall.Args) != fmt.Sprintf("%v", first.FunctionCall.Args) {
+				return false
+			}
+		}
+
+		log.Printf("🔄 [LOOP] Detected identical function loop: %s with args %v",
+			functionName, first.FunctionCall.Args)
+		return true
 	}
 
 	return false
+}
+
+// getChannelFromArgs extracts the channel parameter from function arguments
+func (sm *SynthesisManager) getChannelFromArgs(args map[string]interface{}) string {
+	if channel, ok := args["channel"].(string); ok {
+		return channel
+	}
+	return ""
+}
+
+// getChannelNameFromArgs extracts the channel_name parameter from function arguments
+func (sm *SynthesisManager) getChannelNameFromArgs(args map[string]interface{}) string {
+	if channelName, ok := args["channel_name"].(string); ok {
+		return channelName
+	}
+	return ""
 }
 
 // hasSignificantErrors checks if recent function calls have significant errors
@@ -211,22 +199,20 @@ func (sm *SynthesisManager) hasSignificantErrors(results []map[string]interface{
 	return float64(errorCount)/float64(len(results)) > 0.5
 }
 
-// GetSynthesisPromptSuffix returns the appropriate prompt suffix based on strategy
+// GetSynthesisPromptSuffix returns guidance following Gemini function calling best practices
 func (sm *SynthesisManager) GetSynthesisPromptSuffix(decision *SynthesisDecision, providerType string) string {
 	if decision.ForceCompletion {
-		return "\n\n**IMPORTANT: You now have sufficient information to complete the user's request. Please provide a comprehensive final response using the data above. Do not call additional functions. CRITICAL: Respond ONLY in natural language - do not use code blocks, tool_code, or markdown formatting.**"
+		return "\n\n**COMPLETION REQUIRED:** Please provide your final response using the information you've gathered. Focus on the user's primary request."
 	}
 
-	if providerType == "gemini" {
-		return "\n\n**ANALYSIS REQUIRED**: Review the function results above. You have already gathered significant data. Consider:\n1. Do you have enough information to fully answer the user's request?\n2. Are you about to repeat a function call you've already made?\n3. Would additional function calls provide meaningfully different data?\n\n**DECISION**: Either provide a complete natural language response using the data above, OR call only genuinely new functions that will provide different information. CRITICAL: If providing a final response, use ONLY natural language - no code blocks or tool_code."
-	}
-
-	if providerType == "kimi" {
-		return "\n\nBased on the function results above, please continue with the user's request. You may call additional functions if more information is needed, or provide a complete response if you have all necessary data. CRITICAL: If providing a final response, use ONLY natural language - no code blocks or tool_code."
-	}
-
-	// Default neutral prompt
-	return "\n\nPlease analyze the data above and determine the best way to address the user's original request. CRITICAL: If providing a final response, use ONLY natural language - no code blocks or tool_code."
+	// Following Gemini best practices: provide clear, specific instructions
+	return "\n\n**INSTRUCTIONS:**\n" +
+		"- You are an intelligent assistant that can call functions to complete user requests\n" +
+		"- Use the available functions to gather information and take actions as needed\n" +
+		"- If you have already gathered the necessary data, proceed to complete the requested actions\n" +
+		"- Do not repeat the same function calls with identical parameters\n" +
+		"- Focus on completing the user's primary request efficiently\n" +
+		"- If some functions fail, continue with the main task using available data"
 }
 
 // LogDecision logs the synthesis decision for debugging
