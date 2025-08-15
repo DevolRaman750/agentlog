@@ -577,7 +577,7 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
         <View style={styles.footer}>
           <TouchableOpacity 
             style={styles.reExecuteButton} 
-            onPress={() => onReExecute(executionResult)}
+            onPress={() => onReExecute(createReExecutionData())}
           >
             <Ionicons name="repeat" size={18} color="#FFFFFF" />
             <Text style={styles.reExecuteButtonText}>Re-Execute</Text>

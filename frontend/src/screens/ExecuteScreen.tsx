@@ -994,6 +994,13 @@ const ExecuteScreen: React.FC = () => {
       currentUserId: user?.id
     });
     
+    // Add null safety check for configurations
+    if (!reExecutionData.configurations || !Array.isArray(reExecutionData.configurations)) {
+      console.error('❌ Re-execution data is missing configurations array:', reExecutionData);
+      AlertAPI.alert('Error', 'Invalid re-execution data: missing configurations');
+      return;
+    }
+
     const configIds = reExecutionData.configurations
       .map((config: any) => {
         console.log(`🔍 Mapping config "${config.variationName}" (ID: ${config.id}) from re-execution data`);
