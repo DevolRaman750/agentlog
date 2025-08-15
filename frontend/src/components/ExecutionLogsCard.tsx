@@ -9,6 +9,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { AlertAPI } from './CustomAlert';
 import { goGentAPI } from '../api/client';
+import { generateRerunName } from '../utils/executionNaming';
 
 export interface ExecutionLogsCardProps {
   executionResult: ExecutionResult;
@@ -32,6 +33,44 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
   const [configFilteredLogs, setConfigFilteredLogs] = useState<ExecutionLog[] | null>(null);
   const [isLoadingFilteredLogs, setIsLoadingFilteredLogs] = useState(false);
   const [filtersExpanded, setFiltersExpanded] = useState(true); // Start expanded by default for better discoverability
+
+  // Helper function to create proper reExecutionData structure
+  const createReExecutionData = () => {
+    // Extract function tools from the execution data
+    const functionTools: any[] = [];
+    if (executionResult.results && executionResult.results.length > 0) {
+      executionResult.results.forEach(result => {
+        if (result.functionCalls && result.functionCalls.length > 0) {
+          result.functionCalls.forEach(functionCall => {
+            const funcName = functionCall.functionName;
+            if (funcName && !functionTools.find(t => t.name === funcName)) {
+              functionTools.push({
+                name: funcName,
+                description: `${funcName} function`,
+                parameters: {}
+              });
+            }
+          });
+        }
+      });
+    }
+
+    // Extract the original base prompt and context
+    const basePrompt = executionResult.results?.[0]?.request?.prompt || executionResult.executionRun.basePrompt || '';
+    const context = executionResult.results?.[0]?.request?.context || executionResult.executionRun.contextPrompt || '';
+
+    return {
+      executionRunName: generateRerunName(executionResult.executionRun.name),
+      description: executionResult.executionRun.description || '',
+      basePrompt: basePrompt,
+      context: context,
+      configurations: executionResult.results?.map(r => r.configuration) || [],
+      enableFunctionCalling: executionResult.executionRun.enableFunctionCalling || functionTools.length > 0,
+      functionTools: functionTools,
+      // Pass agent information if this was an agent execution
+      agentId: executionResult.executionRun.agentId || undefined
+    };
+  };
 
   // Fetch logs filtered by configuration when configurationId is provided
   useEffect(() => {

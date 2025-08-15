@@ -568,7 +568,7 @@ export interface UserApiKey {
   userId: string;
   keyName: string;
   serviceName: string;
-  keyType: 'api_key' | 'access_token' | 'bearer_token' | 'oauth_token' | 'webhook_url' | 'connection_string';
+  keyType: 'api_key' | 'access_token' | 'bearer_token' | 'oauth_token' | 'webhook_url' | 'connection_string' | 'github_app_credentials';
   
   // Metadata and configuration
   displayName: string;
@@ -599,6 +599,10 @@ export interface UserApiKey {
   rateLimitPerHour?: number;
   rateLimitPerDay?: number;
   rateLimitBurst?: number;
+  
+  // Multi-auth support
+  authMode?: string;
+  authConfig?: Record<string, any>;
   
   // Audit trail
   createdAt: string;
@@ -647,6 +651,10 @@ export interface UpdateApiKeyRequest {
   rateLimitPerHour?: number;
   rateLimitPerDay?: number;
   rateLimitBurst?: number;
+  
+  // Multi-auth support
+  authMode?: string;
+  authConfig?: Record<string, any>;
 }
 
 // ApiKeyValidationResult represents the result of validating an API key

@@ -415,6 +415,7 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
   const [showGitHubAuthSetup, setShowGitHubAuthSetup] = useState(false);
   const [showAuthComparison, setShowAuthComparison] = useState(false);
   const [isGitHubAuthLoading, setIsGitHubAuthLoading] = useState(false);
+  const [gitHubEditingKey, setGitHubEditingKey] = useState<UserApiKey | null>(null);
 
   const loadApiKeys = useCallback(async () => {
     try {
@@ -548,6 +549,14 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
   const handleEditKey = (keyId: string) => {
     const key = apiKeys.find(k => k.id === keyId);
     if (key) {
+      // Special handling for GitHub keys - route to appropriate auth flow
+      if (key.serviceName === 'github') {
+        setGitHubEditingKey(key);
+        setShowGitHubAuthSetup(true);
+        return;
+      }
+      
+      // For non-GitHub keys, use the generic modal
       setEditingKey(key);
       setModalInitialService('');
       setShowApiKeyModal(true);
@@ -562,35 +571,56 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
     setIsGitHubAuthLoading(true);
     
     try {
-      const keyName = authMode === 'personal_access_token' 
-        ? 'GitHub Personal Access Token' 
-        : 'GitHub App Integration';
-      
-      const createRequest: CreateApiKeyRequest = {
-        keyName,
-        serviceName: 'github',
-        keyType: authMode === 'personal_access_token' ? 'access_token' : 'github_app_credentials',
-        keyValue: authMode === 'personal_access_token' ? config.token : 'github_app_auth',
-        authMode,
-        authConfig: config,
-        displayName: keyName,
-        description: authMode === 'personal_access_token' 
-          ? 'Personal Access Token for GitHub API access'
-          : 'GitHub App authentication with enhanced permissions',
-        accessLevel: 'read_write',
-        scopes: ['repo', 'read:user'],
-        isDefault: true,
-        environment: 'production',
-      };
+      if (gitHubEditingKey) {
+        // Update existing key
+        const updateRequest: UpdateApiKeyRequest = {
+          keyValue: authMode === 'personal_access_token' ? config.token : 'github_app_auth',
+          authMode,
+          authConfig: config,
+        };
 
-      const response = await goGentAPI.createApiKey(createRequest);
-      
-      if (response.success) {
-        showSuccess(`GitHub ${authMode === 'personal_access_token' ? 'PAT' : 'App'} configured successfully!`);
-        setShowGitHubAuthSetup(false);
-        await loadApiKeys(); // Refresh the list
+        const response = await goGentAPI.updateApiKey(gitHubEditingKey.id, updateRequest);
+        
+        if (response.success) {
+          showSuccess(`GitHub ${authMode === 'personal_access_token' ? 'PAT' : 'App'} updated successfully!`);
+          setShowGitHubAuthSetup(false);
+          setGitHubEditingKey(null);
+          await loadApiKeys(); // Refresh the list
+        } else {
+          throw new Error(response.error || 'Failed to update GitHub authentication');
+        }
       } else {
-        throw new Error(response.error || 'Failed to save GitHub authentication');
+        // Create new key
+        const keyName = authMode === 'personal_access_token' 
+          ? 'GitHub Personal Access Token' 
+          : 'GitHub App Integration';
+        
+        const createRequest: CreateApiKeyRequest = {
+          keyName,
+          serviceName: 'github',
+          keyType: authMode === 'personal_access_token' ? 'access_token' : 'github_app_credentials',
+          keyValue: authMode === 'personal_access_token' ? config.token : 'github_app_auth',
+          authMode,
+          authConfig: config,
+          displayName: keyName,
+          description: authMode === 'personal_access_token' 
+            ? 'Personal Access Token for GitHub API access'
+            : 'GitHub App authentication with enhanced permissions',
+          accessLevel: 'read_write',
+          scopes: ['repo', 'read:user'],
+          isDefault: true,
+          environment: 'production',
+        };
+
+        const response = await goGentAPI.createApiKey(createRequest);
+        
+        if (response.success) {
+          showSuccess(`GitHub ${authMode === 'personal_access_token' ? 'PAT' : 'App'} configured successfully!`);
+          setShowGitHubAuthSetup(false);
+          await loadApiKeys(); // Refresh the list
+        } else {
+          throw new Error(response.error || 'Failed to save GitHub authentication');
+        }
       }
     } catch (error) {
       console.error('GitHub auth save error:', error);
@@ -602,6 +632,7 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
 
   const handleGitHubAuthCancel = () => {
     setShowGitHubAuthSetup(false);
+    setGitHubEditingKey(null);
   };
 
   const handleTestKey = async (keyId: string) => {
@@ -840,7 +871,7 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
         <View>
           <Text style={styles.headerTitle}>API Keys</Text>
           <Text style={styles.headerSubtitle}>
-            {apiKeys.length} keys configured across {SERVICE_GROUPS.length} categories
+            {apiKeys.length} kthiseys configured across {SERVICE_GROUPS.length} categories
           </Text>
         </View>
         
@@ -918,6 +949,7 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
             onSave={handleGitHubAuthSave}
             onCancel={handleGitHubAuthCancel}
             isLoading={isGitHubAuthLoading}
+            editingKey={gitHubEditingKey}
           />
         </Modal>
       )}

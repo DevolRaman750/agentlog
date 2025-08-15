@@ -7,18 +7,55 @@ interface GitHubAuthSetupProps {
   onSave: (authMode: 'personal_access_token' | 'github_app', config: any) => Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
+  editingKey?: any; // UserApiKey type - will be used to pre-populate form
 }
 
 export const GitHubAuthSetup: React.FC<GitHubAuthSetupProps> = ({
   onSave,
   onCancel,
   isLoading = false,
+  editingKey,
 }) => {
-  const [selectedMode, setSelectedMode] = useState<'personal_access_token' | 'github_app'>('personal_access_token');
-  const [patToken, setPATToken] = useState('');
-  const [appId, setAppId] = useState('');
-  const [privateKey, setPrivateKey] = useState('');
-  const [installationId, setInstallationId] = useState('');
+  // Initialize form based on editing key or defaults
+  const getInitialMode = (): 'personal_access_token' | 'github_app' => {
+    if (editingKey) {
+      return editingKey.keyType === 'github_app_credentials' ? 'github_app' : 'personal_access_token';
+    }
+    return 'personal_access_token';
+  };
+
+  const getInitialValues = () => {
+    if (editingKey && editingKey.authConfig) {
+      if (editingKey.keyType === 'github_app_credentials') {
+        return {
+          appId: editingKey.authConfig.app_id?.toString() || '',
+          privateKey: editingKey.authConfig.private_key || '',
+          installationId: editingKey.authConfig.installation_id?.toString() || '',
+          patToken: '',
+        };
+      } else {
+        return {
+          appId: '',
+          privateKey: '',
+          installationId: '',
+          patToken: editingKey.authConfig.token || '',
+        };
+      }
+    }
+    return {
+      appId: '',
+      privateKey: '',
+      installationId: '',
+      patToken: '',
+    };
+  };
+
+  const initialValues = getInitialValues();
+  const [selectedMode, setSelectedMode] = useState<'personal_access_token' | 'github_app'>(getInitialMode());
+  const [patToken, setPATToken] = useState(initialValues.patToken);
+  const [appId, setAppId] = useState(initialValues.appId);
+  const [privateKey, setPrivateKey] = useState(initialValues.privateKey);
+  const [installationId, setInstallationId] = useState(initialValues.installationId);
 
   const validatePAT = (token: string): boolean => {
     return /^ghp_[A-Za-z0-9]{36}$/.test(token);
