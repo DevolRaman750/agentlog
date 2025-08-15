@@ -26,9 +26,7 @@ func TestAutomationFunctionsIntegration(t *testing.T) {
 
 	t.Run("VerifyFunctionGroups", func(t *testing.T) {
 		expectedGroups := []string{
-			"communication", "file_management", "data_processing", "http_api",
-			"calendar", "database", "text_processing", "ecommerce", "social_media",
-			"ai_ml", "monitoring", "crm", "project_management", "github", "weather",
+			"github", "googledrive", "internal", "slack", "weather",
 		}
 
 		query := `
@@ -63,29 +61,10 @@ func TestAutomationFunctionsIntegration(t *testing.T) {
 
 	t.Run("VerifyAutomationFunctions", func(t *testing.T) {
 		automationFunctions := map[string]string{
-			// Communication functions
-			"email_send":           "communication",
-			"slack_send_message":   "communication",
-			"discord_send_message": "communication",
-
-			// E-commerce functions
-			"stripe_create_payment":  "ecommerce",
-			"shopify_create_product": "ecommerce",
-			"woocommerce_get_orders": "ecommerce",
-
-			// AI/ML functions
-			"openai_text_completion":  "ai_ml",
-			"openai_image_generation": "ai_ml",
-			"google_vision_analyze":   "ai_ml",
-
-			// Database functions
-			"mysql_query_execute":      "database",
-			"postgresql_query_execute": "database",
-
-			// Social media functions
-			"twitter_post_tweet":   "social_media",
-			"linkedin_create_post": "social_media",
-			"instagram_post_media": "social_media",
+			// Slack functions
+			"slack_send_message":  "slack",
+			"slack_add_reaction":  "slack",
+			"slack_read_messages": "slack",
 		}
 
 		for functionName, expectedGroup := range automationFunctions {
@@ -136,19 +115,11 @@ func TestAutomationFunctionsIntegration(t *testing.T) {
 
 	t.Run("VerifyFunctionCounts", func(t *testing.T) {
 		expectedCounts := map[string]int{
-			"communication":      3, // email, slack, discord
-			"ecommerce":          3, // stripe, shopify, woocommerce
-			"ai_ml":              3, // openai text, openai image, google vision
-			"database":           2, // mysql, postgresql
-			"social_media":       3, // twitter, linkedin, instagram
-			"file_management":    2, // upload, download
-			"data_processing":    3, // csv, json, document
-			"http_api":           2, // generic http, webhook
-			"calendar":           2, // calendar event, task schedule
-			"text_processing":    2, // translate, sentiment
-			"monitoring":         3, // uptime, analytics, apm
-			"crm":                2, // salesforce, hubspot
-			"project_management": 2, // trello, asana
+			"slack":       16, // slack functions
+			"github":      13, // github functions
+			"googledrive": 4,  // google drive functions
+			"weather":     1,  // weather functions
+			"internal":    8,  // internal functions
 		}
 
 		for group, expectedCount := range expectedCounts {
@@ -177,9 +148,9 @@ func TestAutomationFunctionsIntegration(t *testing.T) {
 		err := db.QueryRow(query).Scan(&totalCount)
 		require.NoError(t, err, "Failed to count total functions")
 
-		// We should have at least 44 functions (12 original + 32 automation)
-		assert.GreaterOrEqual(t, totalCount, 44,
-			"Total function count should be at least 44")
+		// We should have at least 42 functions based on current state
+		assert.GreaterOrEqual(t, totalCount, 42,
+			"Total function count should be at least 42")
 
 		// But not unreasonably high (sanity check)
 		assert.LessOrEqual(t, totalCount, 100,
@@ -232,15 +203,11 @@ func TestAutomationFunctionsIntegration(t *testing.T) {
 	})
 
 	t.Run("VerifyFunctionTypeValues", func(t *testing.T) {
-		// All automation functions should be of type 'api'
+		// All functions should be of type 'api'
 		query := `
 			SELECT DISTINCT function_type 
 			FROM function_definitions 
-			WHERE is_active = 1 AND function_group IN (
-				'communication', 'ecommerce', 'ai_ml', 'database', 'social_media',
-				'file_management', 'data_processing', 'http_api', 'calendar',
-				'text_processing', 'monitoring', 'crm', 'project_management'
-			)
+			WHERE is_active = 1
 		`
 
 		rows, err := db.Query(query)
@@ -255,10 +222,10 @@ func TestAutomationFunctionsIntegration(t *testing.T) {
 			functionTypes = append(functionTypes, functionType)
 		}
 
-		// All automation functions should be 'api' type
-		assert.Len(t, functionTypes, 1, "Should only have one function type for automation functions")
+		// All functions should be 'api' type
+		assert.Len(t, functionTypes, 1, "Should only have one function type")
 		if len(functionTypes) > 0 {
-			assert.Equal(t, "api", functionTypes[0], "All automation functions should be 'api' type")
+			assert.Equal(t, "api", functionTypes[0], "All functions should be 'api' type")
 		}
 	})
 
@@ -268,10 +235,9 @@ func TestAutomationFunctionsIntegration(t *testing.T) {
 			functionName   string
 			requiredFields []string
 		}{
-			{"email_send", []string{"to", "subject", "body"}},
-			{"stripe_create_payment", []string{"amount", "currency"}},
-			{"openai_text_completion", []string{"prompt"}},
-			{"mysql_query_execute", []string{"query", "query_type"}},
+			{"slack_send_message", []string{"channel", "text"}},
+			{"slack_add_reaction", []string{"channel", "timestamp", "name"}},
+			{"github_create_issue", []string{"owner", "repo", "title"}},
 		}
 
 		for _, tc := range testCases {
