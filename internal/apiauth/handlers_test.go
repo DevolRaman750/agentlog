@@ -21,7 +21,7 @@ func TestGitHubPATHandler(t *testing.T) {
 		apiKey := &types.UserApiKey{
 			AuthMode: "personal_access_token",
 			AuthConfig: map[string]interface{}{
-				"token": "ghp_test1234567890abcdef1234567890abcdef",
+				"decrypted_token": "ghp_test1234567890abcdef1234567890abcdef",
 			},
 		}
 		
@@ -204,7 +204,7 @@ func TestAuthResolver(t *testing.T) {
 			ServiceName: "github",
 			AuthMode:    "personal_access_token",
 			AuthConfig: map[string]interface{}{
-				"token": "ghp_test1234567890abcdef1234567890abcdef",
+				"decrypted_token": "ghp_test1234567890abcdef1234567890abcdef",
 			},
 		}
 		
