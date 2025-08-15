@@ -58,8 +58,8 @@
     {
       "name": "Get open issues",
       "parameters": {
-        "owner": "microsoft",
-        "repo": "vscode",
+        "owner": "imran31415",
+        "repo": "agentlog",
         "state": "open",
         "per_page": 10
       }

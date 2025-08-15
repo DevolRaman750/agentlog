@@ -931,12 +931,13 @@ func getGitHubMockResponse(functionName string) interface{} {
 
 	case "github_read_code":
 		return map[string]interface{}{
-			"name":     "package.json",
-			"type":     "file",
-			"size":     1024,
-			"content":  "ewogICJuYW1lIjogInZzY29kZSIsCiAgInZlcnNpb24iOiAiMS44NS4wIgp9", // base64 encoded
-			"encoding": "base64",
-			"sha":      "abc123def456",
+			"name":              "package.json",
+			"type":              "file",
+			"size":              1024,
+			"content":           "{\n  \"name\": \"vscode\",\n  \"version\": \"1.85.0\"\n}", // decoded content
+			"encoding":          "utf-8",                                                    // after decoding
+			"original_encoding": "base64",                                                   // track original encoding
+			"sha":               "abc123def456",
 		}
 
 	default:

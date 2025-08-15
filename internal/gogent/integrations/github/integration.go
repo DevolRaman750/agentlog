@@ -2,9 +2,11 @@ package github
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -86,9 +88,27 @@ func (g *Integration) BuildURL(funcDef *db.FunctionDefinition, args map[string]i
 			path = fmt.Sprintf("/repos/%s/%s/contents", owner, repo)
 		}
 
+		// Add optional ref parameter for branch/commit specification
+		if ref, ok := args["ref"].(string); ok && ref != "" {
+			queryParams = append(queryParams, fmt.Sprintf("ref=%s", url.QueryEscape(ref)))
+		}
+
 	case "github_read_commits":
 		path = fmt.Sprintf("/repos/%s/%s/commits", owner, repo)
 
+		// Add optional query parameters
+		if sha, ok := args["sha"].(string); ok && sha != "" {
+			queryParams = append(queryParams, fmt.Sprintf("sha=%s", url.QueryEscape(sha)))
+		}
+		if pathParam, ok := args["path"].(string); ok && pathParam != "" {
+			queryParams = append(queryParams, fmt.Sprintf("path=%s", url.QueryEscape(pathParam)))
+		}
+		if since, ok := args["since"].(string); ok && since != "" {
+			queryParams = append(queryParams, fmt.Sprintf("since=%s", url.QueryEscape(since)))
+		}
+		if until, ok := args["until"].(string); ok && until != "" {
+			queryParams = append(queryParams, fmt.Sprintf("until=%s", url.QueryEscape(until)))
+		}
 		if per_page, ok := args["per_page"]; ok {
 			queryParams = append(queryParams, fmt.Sprintf("per_page=%v", per_page))
 		} else {
@@ -194,6 +214,11 @@ func (g *Integration) ProcessResponse(resp *http.Response, funcDef *db.FunctionD
 		return nil, fmt.Errorf("failed to parse JSON response: %w", err)
 	}
 
+	// Handle base64 decoding for github_read_code function
+	if funcDef.Name == "github_read_code" {
+		result = g.decodeGitHubContent(result)
+	}
+
 	// Return structured response
 	return map[string]interface{}{
 		"status": "success",
@@ -236,4 +261,68 @@ func (g *Integration) ValidateFunction(funcDef *db.FunctionDefinition) error {
 // GetRequiredAuth returns the authentication methods required by GitHub
 func (g *Integration) GetRequiredAuth() []base.AuthMethod {
 	return []base.AuthMethod{base.AuthMethodAPIKey}
+}
+
+// decodeGitHubContent decodes base64 content in GitHub API responses
+func (g *Integration) decodeGitHubContent(data interface{}) interface{} {
+	// Handle single file response (map)
+	if fileData, ok := data.(map[string]interface{}); ok {
+		return g.decodeFileContent(fileData)
+	}
+
+	// Handle directory listing response (array)
+	if items, ok := data.([]interface{}); ok {
+		decodedItems := make([]interface{}, len(items))
+		for i, item := range items {
+			if itemMap, ok := item.(map[string]interface{}); ok {
+				decodedItems[i] = g.decodeFileContent(itemMap)
+			} else {
+				decodedItems[i] = item
+			}
+		}
+		return decodedItems
+	}
+
+	// Return unchanged if not a recognized format
+	return data
+}
+
+// decodeFileContent decodes base64 content in a single file object
+func (g *Integration) decodeFileContent(fileData map[string]interface{}) map[string]interface{} {
+	// Check if this is a file with content
+	fileType, hasType := fileData["type"].(string)
+	if !hasType || fileType != "file" {
+		return fileData // Not a file, return as-is
+	}
+
+	// Check if content exists and is base64 encoded
+	content, hasContent := fileData["content"].(string)
+	encoding, hasEncoding := fileData["encoding"].(string)
+
+	if !hasContent || !hasEncoding || encoding != "base64" {
+		return fileData // No content or not base64, return as-is
+	}
+
+	// Decode base64 content
+	decodedBytes, err := base64.StdEncoding.DecodeString(content)
+	if err != nil {
+		log.Printf("⚠️ Failed to decode base64 content for file %s: %v", fileData["name"], err)
+		return fileData // Return original on decode error
+	}
+
+	// Create a copy of the file data with decoded content
+	result := make(map[string]interface{})
+	for k, v := range fileData {
+		result[k] = v
+	}
+
+	// Replace content with decoded text and update encoding
+	result["content"] = string(decodedBytes)
+	result["encoding"] = "utf-8"
+	result["original_encoding"] = "base64" // Keep track of original encoding
+
+	log.Printf("✅ Decoded base64 content for file: %s (%d bytes -> %d chars)",
+		fileData["name"], len(content), len(decodedBytes))
+
+	return result
 }
