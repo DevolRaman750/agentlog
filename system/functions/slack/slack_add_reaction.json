@@ -21,7 +21,7 @@
         },
         "timestamp": {
           "type": "string",
-          "description": "Timestamp of the message to react to (e.g., 1234567890.123456)"
+          "description": "EXACT timestamp of the message to react to. Use the 'ts' field from slack_read_messages response (e.g., '1755275438.285079'). DO NOT generate or modify timestamps."
         },
         "name": {
           "type": "string",
@@ -32,18 +32,18 @@
   },
   "examples": [
     {
-      "name": "Add thumbs up reaction",
+      "name": "Add thumbs up reaction to a message",
       "parameters": {
         "channel": "C1234567890",
-        "timestamp": "1234567890.123456",
+        "timestamp": "1755275438.285079",
         "name": "thumbsup"
       }
     },
     {
-      "name": "Add check mark reaction",
+      "name": "Add check mark reaction using exact timestamp from slack_read_messages",
       "parameters": {
         "channel": "C1234567890",
-        "timestamp": "1234567890.123456",
+        "timestamp": "1755275438.285079",
         "name": "white_check_mark"
       }
     }
