@@ -103,20 +103,30 @@ func (sm *SynthesisManager) DetermineSynthesisStrategy(config *SynthesisConfig) 
 // detectIdenticalFunctionLoop checks for functional loops (same function, same key parameters)
 // This prevents Gemini from calling slack_read_messages repeatedly with just different limits
 func (sm *SynthesisManager) detectIdenticalFunctionLoop(functionCalls []ResponsePart) bool {
-	if len(functionCalls) < 3 {
+	if len(functionCalls) < 5 {
 		return false
 	}
 
-	// Check the last 3 function calls
-	recent := functionCalls[len(functionCalls)-3:]
+	// Check the last 5 function calls for slack_find_channel (give more chances)
+	// Check the last 3 function calls for other functions
+	checkCount := 3
+	if len(functionCalls) >= 5 {
+		// Peek at the last call to see if it's slack_find_channel
+		lastCall := functionCalls[len(functionCalls)-1]
+		if lastCall.FunctionCall.Name == "slack_find_channel" {
+			checkCount = 5
+		}
+	}
 
-	// If all 3 recent calls are the same function, it's likely a loop
-	if len(recent) == 3 {
+	recent := functionCalls[len(functionCalls)-checkCount:]
+
+	// If all recent calls are the same function, it's likely a loop
+	if len(recent) == checkCount {
 		first := recent[0]
 		functionName := first.FunctionCall.Name
 
-		// Check if all 3 calls are the same function
-		for i := 1; i < 3; i++ {
+		// Check if all recent calls are the same function
+		for i := 1; i < checkCount; i++ {
 			if recent[i].FunctionCall.Name != functionName {
 				return false
 			}
@@ -125,29 +135,29 @@ func (sm *SynthesisManager) detectIdenticalFunctionLoop(functionCalls []Response
 		// Special handling for slack_read_messages - if same channel, it's a loop regardless of limit
 		if functionName == "slack_read_messages" {
 			firstChannel := sm.getChannelFromArgs(first.FunctionCall.Args)
-			for i := 1; i < 3; i++ {
+			for i := 1; i < checkCount; i++ {
 				if sm.getChannelFromArgs(recent[i].FunctionCall.Args) != firstChannel {
 					return false
 				}
 			}
-			log.Printf("🔄 [LOOP] Detected slack_read_messages loop: channel=%s (called 3+ times)", firstChannel)
+			log.Printf("🔄 [LOOP] Detected slack_read_messages loop: channel=%s (called %d+ times)", firstChannel, checkCount)
 			return true
 		}
 
 		// Special handling for slack_find_channel - if same channel name, it's a loop
 		if functionName == "slack_find_channel" {
 			firstChannelName := sm.getChannelNameFromArgs(first.FunctionCall.Args)
-			for i := 1; i < 3; i++ {
+			for i := 1; i < checkCount; i++ {
 				if sm.getChannelNameFromArgs(recent[i].FunctionCall.Args) != firstChannelName {
 					return false
 				}
 			}
-			log.Printf("🔄 [LOOP] Detected slack_find_channel loop: channel_name=%s (called 3+ times)", firstChannelName)
+			log.Printf("🔄 [LOOP] Detected slack_find_channel loop: channel_name=%s (called %d+ times)", firstChannelName, checkCount)
 			return true
 		}
 
 		// For other functions, check if parameters are identical
-		for i := 1; i < 3; i++ {
+		for i := 1; i < checkCount; i++ {
 			if fmt.Sprintf("%v", recent[i].FunctionCall.Args) != fmt.Sprintf("%v", first.FunctionCall.Args) {
 				return false
 			}
