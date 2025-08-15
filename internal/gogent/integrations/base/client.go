@@ -107,7 +107,7 @@ func (c *HTTPClient) ExecuteRequest(ctx context.Context, integration APIIntegrat
 	defer resp.Body.Close()
 
 	log.Printf("🔍 [HTTP_DEBUG] HTTP response received - Status: %s", resp.Status)
-	log.Printf("🔍 [HTTP_DEBUG] Response headers: %+v", resp.Header)
+	// Headers truncated for readability - use debug mode for full headers
 
 	// Let integration process the response
 	result, err := integration.ProcessResponse(resp, funcDef)

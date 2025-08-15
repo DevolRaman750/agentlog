@@ -1327,7 +1327,11 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 
 	// DEBUG: Log Slack API response content to understand the loop issue
 	if funcDef.FunctionGroup == "communication" && strings.HasPrefix(functionName, "slack_") {
-		log.Printf("🔍 DEBUG Slack %s response content: %s", functionName, string(body))
+		if len(body) > 500 {
+			log.Printf("🔍 DEBUG Slack %s response preview: %.500s...", functionName, string(body))
+		} else {
+			log.Printf("🔍 DEBUG Slack %s response content: %s", functionName, string(body))
+		}
 		log.Printf("🔍 DEBUG Slack %s response length: %d bytes", functionName, len(body))
 		log.Printf("🔍 DEBUG Slack %s request URL: %s", functionName, url)
 	}

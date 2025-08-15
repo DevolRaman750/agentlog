@@ -1889,11 +1889,20 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 		for i, result := range currentAllFunctionResults {
 			if i < len(currentAllFunctionCalls) {
 				functionName := currentAllFunctionCalls[i].FunctionCall.Name
-				// Convert result to JSON for clean display
+				// Convert result to JSON for clean display - truncate if too long
 				if resultJSON, err := json.MarshalIndent(result, "", "  "); err == nil {
-					synthesisPrompt += fmt.Sprintf("- %s: %s\n", functionName, string(resultJSON))
+					if len(resultJSON) > 1000 {
+						synthesisPrompt += fmt.Sprintf("- %s: %.1000s...\n", functionName, string(resultJSON))
+					} else {
+						synthesisPrompt += fmt.Sprintf("- %s: %s\n", functionName, string(resultJSON))
+					}
 				} else {
-					synthesisPrompt += fmt.Sprintf("- %s: %v\n", functionName, result)
+					resultStr := fmt.Sprintf("%v", result)
+					if len(resultStr) > 1000 {
+						synthesisPrompt += fmt.Sprintf("- %s: %.1000s...\n", functionName, resultStr)
+					} else {
+						synthesisPrompt += fmt.Sprintf("- %s: %s\n", functionName, resultStr)
+					}
 				}
 			}
 		}
@@ -1979,7 +1988,11 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 	}
 
 	// DEBUG: Log the exact prompt being sent to Gemini to understand the loop
-	log.Printf("🔍 [DEBUG] Synthesis prompt being sent to Gemini (depth %d):\n%s", depth, synthesisPrompt)
+	if len(synthesisPrompt) > 1000 {
+		log.Printf("🔍 [DEBUG] Synthesis prompt being sent to Gemini (depth %d, %d chars): %.1000s...", depth, len(synthesisPrompt), synthesisPrompt)
+	} else {
+		log.Printf("🔍 [DEBUG] Synthesis prompt being sent to Gemini (depth %d): %s", depth, synthesisPrompt)
+	}
 
 	c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryExecution,
 		"Synthesis strategy determined",

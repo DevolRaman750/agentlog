@@ -183,7 +183,7 @@ func (s *Integration) PrepareRequest(ctx context.Context, req *http.Request, fun
 func (s *Integration) ProcessResponse(resp *http.Response, funcDef *db.FunctionDefinition) (map[string]interface{}, error) {
 	log.Printf("🔍 [SLACK_DEBUG] Processing response for function: %s", funcDef.Name)
 	log.Printf("🔍 [SLACK_DEBUG] Response status: %d", resp.StatusCode)
-	log.Printf("🔍 [SLACK_DEBUG] Response headers: %v", resp.Header)
+	// Headers truncated for readability
 
 	// Read response body
 	body, err := io.ReadAll(resp.Body)
@@ -193,7 +193,12 @@ func (s *Integration) ProcessResponse(resp *http.Response, funcDef *db.FunctionD
 	}
 
 	log.Printf("🔍 [SLACK_DEBUG] Response body length: %d bytes", len(body))
-	log.Printf("🔍 [SLACK_DEBUG] Response body: %s", string(body))
+	// Response body truncated - first 200 chars: %.200s", string(body))
+	if len(body) > 200 {
+		log.Printf("🔍 [SLACK_DEBUG] Response body preview: %.200s...", string(body))
+	} else {
+		log.Printf("🔍 [SLACK_DEBUG] Response body: %s", string(body))
+	}
 
 	// Check for HTTP errors
 	if resp.StatusCode >= 400 {
