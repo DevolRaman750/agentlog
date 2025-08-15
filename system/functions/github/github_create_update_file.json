@@ -2,6 +2,7 @@
   "id": "github-create-file-uuid",
   "name": "github_create_update_file",
   "provider": "github",
+  "function_group": "github",
   "display_name": "Create/Update GitHub File",
   "description": "Create or update a file in a GitHub repository",
   "endpoint": {

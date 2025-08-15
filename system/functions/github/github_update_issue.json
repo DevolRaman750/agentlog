@@ -2,6 +2,7 @@
   "id": "func-github-update-issue",
   "name": "github_update_issue",
   "provider": "github",
+  "function_group": "github",
   "display_name": "GitHub Update Issue",
   "description": "Update a GitHub issue with additional analysis, insights, or findings. Perfect for AI agents to enhance issues with code analysis.",
   "endpoint": {

@@ -2,6 +2,7 @@
   "id": "func-github-read-issues",
   "name": "github_read_issues",
   "provider": "github",
+  "function_group": "github",
   "display_name": "GitHub: Read Issues",
   "description": "Read and analyze issues from a GitHub repository. Provide valid owner/repo combinations like microsoft/vscode, facebook/react, or vercel/next.js. This helps understand bugs, feature requests, and project status.",
   "endpoint": {

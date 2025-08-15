@@ -2,6 +2,7 @@
   "id": "func-github-get-file-sha",
   "name": "github_get_file_sha",
   "provider": "github",
+  "function_group": "github",
   "display_name": "GitHub Get File SHA",
   "description": "Get the SHA hash of a specific file in a GitHub repository. Required for updating existing files.",
   "endpoint": {

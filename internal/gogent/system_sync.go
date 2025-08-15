@@ -31,11 +31,12 @@ type ProviderSpec struct {
 
 // FunctionSpec defines the JSON structure for function specifications
 type FunctionSpec struct {
-	Name        string `json:"name"`
-	Provider    string `json:"provider"`
-	DisplayName string `json:"display_name"`
-	Description string `json:"description"`
-	Endpoint    struct {
+	Name          string `json:"name"`
+	Provider      string `json:"provider"`
+	FunctionGroup string `json:"function_group"`
+	DisplayName   string `json:"display_name"`
+	Description   string `json:"description"`
+	Endpoint      struct {
 		Path   string `json:"path"`
 		Method string `json:"method"`
 	} `json:"endpoint"`
@@ -161,6 +162,11 @@ func (c *Client) syncFunctions(ctx context.Context) error {
 			return fmt.Errorf("function spec %s missing provider", path)
 		}
 
+		// Set function_group to provider if not explicitly set (backward compatibility)
+		if spec.FunctionGroup == "" {
+			spec.FunctionGroup = spec.Provider
+		}
+
 		// Sync function to database
 		if err := c.syncFunctionToDatabase(ctx, &spec); err != nil {
 			return fmt.Errorf("failed to sync function %s: %w", spec.Name, err)
@@ -214,7 +220,7 @@ func (c *Client) syncFunctionToDatabase(ctx context.Context, spec *FunctionSpec)
 
 	// Build headers based on provider configuration
 	headers := map[string]interface{}{}
-	
+
 	// Add provider-specific authentication headers
 	if spec.Provider == "slack" {
 		headers["Authorization"] = "Bearer {SLACK_BOT_TOKEN}"
@@ -224,7 +230,7 @@ func (c *Client) syncFunctionToDatabase(ctx context.Context, spec *FunctionSpec)
 		headers["Accept"] = "application/vnd.github.v3+json"
 		headers["User-Agent"] = "gogent/1.0"
 	}
-	
+
 	headersJSON, err := json.Marshal(headers)
 	if err != nil {
 		return fmt.Errorf("failed to marshal headers: %w", err)
@@ -247,7 +253,7 @@ func (c *Client) syncFunctionToDatabase(ctx context.Context, spec *FunctionSpec)
 	} else if spec.Provider == "github" {
 		requiredApiKeys = []string{"GITHUB_API_KEY"}
 	}
-	
+
 	requiredApiKeysJSON, err := json.Marshal(requiredApiKeys)
 	if err != nil {
 		return fmt.Errorf("failed to marshal required API keys: %w", err)
@@ -273,7 +279,7 @@ func (c *Client) syncFunctionToDatabase(ctx context.Context, spec *FunctionSpec)
 			UserID:            "system",
 			Name:              spec.Name,
 			DisplayName:       spec.DisplayName,
-			FunctionGroup:     spec.Provider,
+			FunctionGroup:     spec.FunctionGroup,
 			FunctionType:      "api", // Default to "api" type
 			Description:       sql.NullString{String: spec.Description, Valid: true},
 			ParametersSchema:  parametersSchema,
@@ -301,7 +307,7 @@ func (c *Client) syncFunctionToDatabase(ctx context.Context, spec *FunctionSpec)
 			ID:                existingFunc.ID,
 			UserID:            "system",
 			DisplayName:       spec.DisplayName,
-			FunctionGroup:     spec.Provider,
+			FunctionGroup:     spec.FunctionGroup,
 			FunctionType:      "api", // Default to "api" type
 			Description:       sql.NullString{String: spec.Description, Valid: true},
 			ParametersSchema:  parametersSchema,

@@ -2,6 +2,7 @@
   "id": "func-github-read-commits",
   "name": "github_read_commits",
   "provider": "github",
+  "function_group": "github",
   "display_name": "GitHub Read Commits",
   "description": "Read commit history from a GitHub repository. Get the latest commits, commit messages, authors, dates, and changed files. Perfect for understanding recent changes and project activity.",
   "endpoint": {

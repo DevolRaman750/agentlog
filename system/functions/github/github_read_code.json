@@ -2,6 +2,7 @@
   "id": "func-github-read-code",
   "name": "github_read_code",
   "provider": "github",
+  "function_group": "github",
   "display_name": "GitHub Read Code",
   "description": "Read files and directory contents from a GitHub repository. IMPORTANT: Start by exploring the repository structure with path='' (empty) to see available directories and files, then navigate to specific paths. Use this to access README files, source code, configuration files, or explore directory structures. Always check directory contents before trying to read specific files.",
   "endpoint": {

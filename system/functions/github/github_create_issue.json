@@ -2,6 +2,7 @@
   "id": "func-github-create-issue",
   "name": "github_create_issue",
   "provider": "github",
+  "function_group": "github",
   "display_name": "GitHub Create Issue",
   "description": "Create a new issue in a GitHub repository. Essential for tracking bugs, feature requests, and project tasks.",
   "endpoint": {

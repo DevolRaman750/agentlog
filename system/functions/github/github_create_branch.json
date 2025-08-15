@@ -2,6 +2,7 @@
   "id": "github-create-branch-uuid",
   "name": "github_create_branch",
   "provider": "github",
+  "function_group": "github",
   "display_name": "Create GitHub Branch",
   "description": "Create a new branch in a GitHub repository from an existing branch, tag, or commit",
   "endpoint": {

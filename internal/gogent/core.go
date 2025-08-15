@@ -674,22 +674,32 @@ func (c *Client) executeMCPFunction(ctx context.Context, funcDef *db.FunctionDef
 
 // executeDynamicFunction routes to the appropriate execution method based on function definition
 func (c *Client) executeDynamicFunction(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+	// Debug logging for function routing
+	log.Printf("🔍 [ROUTING_DEBUG] Function: %s, FunctionGroup: %s, HttpMethod: %s", funcDef.Name, funcDef.FunctionGroup, funcDef.HttpMethod.String)
+
 	// Handle internal functions differently
 	if funcDef.FunctionGroup == "internal" {
+		log.Printf("🔍 [ROUTING_DEBUG] Routing %s to executeInternalFunction", funcDef.Name)
 		return c.executeInternalFunction(ctx, funcDef, args)
 	}
 
 	// Route functions with registered integrations through the integration system
+	// This ensures proper authentication and user context for all integration functions
 	if c.integrations != nil && c.integrations.HasIntegration(funcDef.FunctionGroup) {
+		log.Printf("🔍 [ROUTING_DEBUG] Routing %s to executeIntegrationFunction (function_group: %s)", funcDef.Name, funcDef.FunctionGroup)
 		return c.executeIntegrationFunction(ctx, funcDef, args)
 	}
 
+	log.Printf("🔍 [ROUTING_DEBUG] No integration found for function_group: %s, falling back to HTTP method routing", funcDef.FunctionGroup)
 	switch funcDef.HttpMethod.String {
 	case "MYSQL":
+		log.Printf("🔍 [ROUTING_DEBUG] Routing %s to executeMySQLFunction", funcDef.Name)
 		return c.executeMySQLFunction(ctx, funcDef, args)
 	case "MCP":
+		log.Printf("🔍 [ROUTING_DEBUG] Routing %s to executeMCPFunction", funcDef.Name)
 		return c.executeMCPFunction(ctx, funcDef, args)
 	case "GET", "POST", "PUT", "PATCH", "DELETE":
+		log.Printf("🔍 [ROUTING_DEBUG] Routing %s to executeAPIFunction (HTTP method: %s)", funcDef.Name, funcDef.HttpMethod.String)
 		return c.executeAPIFunction(ctx, funcDef, args)
 	default:
 		return nil, fmt.Errorf("unsupported execution method: %s", funcDef.HttpMethod.String)

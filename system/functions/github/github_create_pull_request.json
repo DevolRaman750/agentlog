@@ -2,6 +2,7 @@
   "id": "func-github-create-pr",
   "name": "github_create_pull_request",
   "provider": "github",
+  "function_group": "github",
   "display_name": "GitHub Create Pull Request",
   "description": "Create a pull request in a GitHub repository to propose code changes. Essential for autonomous development workflows.",
   "endpoint": {

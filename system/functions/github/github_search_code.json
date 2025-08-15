@@ -2,6 +2,7 @@
   "id": "func-github-search-code",
   "name": "github_search_code",
   "provider": "github",
+  "function_group": "github",
   "display_name": "GitHub Search Code",
   "description": "Search for code patterns within a GitHub repository. Useful for finding specific functions, classes, or patterns.",
   "endpoint": {

@@ -260,7 +260,8 @@ func (h *GitHubAppHandler) parseAppConfig(authConfig map[string]interface{}) (*t
 	}
 
 	if keyStr, ok := privateKeyVal.(string); ok {
-		privateKey = keyStr
+		// Normalize PEM key format to fix common issues
+		privateKey = h.normalizePEMKey(keyStr)
 	} else {
 		return nil, fmt.Errorf("invalid private_key type: %T", privateKeyVal)
 	}
@@ -304,11 +305,22 @@ func (h *GitHubAppHandler) getInstallationToken(ctx context.Context, config *typ
 }
 
 func (h *GitHubAppHandler) generateJWT(config *types.GitHubAppConfig) (string, error) {
+	// Debug: Log private key info (first/last 50 chars for security)
+	keyLen := len(config.PrivateKey)
+	if keyLen > 100 {
+		fmt.Printf("🔍 [PEM_DEBUG] Private key length: %d, starts with: %s..., ends with: ...%s\n", 
+			keyLen, config.PrivateKey[:50], config.PrivateKey[keyLen-50:])
+	} else {
+		fmt.Printf("🔍 [PEM_DEBUG] Private key length: %d, content: %s\n", keyLen, config.PrivateKey)
+	}
+	
 	// Parse private key
 	block, _ := pem.Decode([]byte(config.PrivateKey))
 	if block == nil {
+		fmt.Printf("❌ [PEM_DEBUG] Failed to decode PEM block - key might be missing newlines or have formatting issues\n")
 		return "", fmt.Errorf("failed to decode PEM block containing private key")
 	}
+	fmt.Printf("✅ [PEM_DEBUG] Successfully decoded PEM block, type: %s\n", block.Type)
 
 	privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if err != nil {
@@ -374,6 +386,45 @@ func (h *GitHubAppHandler) requestInstallationToken(ctx context.Context, install
 		Token:     tokenResp.Token,
 		ExpiresAt: tokenResp.ExpiresAt,
 	}, nil
+}
+
+// normalizePEMKey fixes common PEM key formatting issues
+func (h *GitHubAppHandler) normalizePEMKey(key string) string {
+	// Remove any extra whitespace
+	key = strings.TrimSpace(key)
+	
+	// If the key doesn't have proper line breaks, add them
+	if !strings.Contains(key, "\n") {
+		// Split on common PEM markers and rejoin with newlines
+		key = strings.ReplaceAll(key, "-----BEGIN RSA PRIVATE KEY-----", "-----BEGIN RSA PRIVATE KEY-----\n")
+		key = strings.ReplaceAll(key, "-----END RSA PRIVATE KEY-----", "\n-----END RSA PRIVATE KEY-----")
+		key = strings.ReplaceAll(key, "-----BEGIN PRIVATE KEY-----", "-----BEGIN PRIVATE KEY-----\n")
+		key = strings.ReplaceAll(key, "-----END PRIVATE KEY-----", "\n-----END PRIVATE KEY-----")
+		
+		// Add newlines every 64 characters for the key content (standard PEM format)
+		lines := strings.Split(key, "\n")
+		var normalizedLines []string
+		for _, line := range lines {
+			if strings.HasPrefix(line, "-----") {
+				normalizedLines = append(normalizedLines, line)
+			} else if len(line) > 64 {
+				// Split long lines into 64-character chunks
+				for i := 0; i < len(line); i += 64 {
+					end := i + 64
+					if end > len(line) {
+						end = len(line)
+					}
+					normalizedLines = append(normalizedLines, line[i:end])
+				}
+			} else if line != "" {
+				normalizedLines = append(normalizedLines, line)
+			}
+		}
+		key = strings.Join(normalizedLines, "\n")
+	}
+	
+	fmt.Printf("🔧 [PEM_DEBUG] Normalized PEM key length: %d\n", len(key))
+	return key
 }
 
 func (h *GitHubAppHandler) ValidateCredentials(ctx context.Context, apiKey *types.UserApiKey) error {
