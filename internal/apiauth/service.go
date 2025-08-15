@@ -70,8 +70,12 @@ func (s *Service) GetAuthCredentialsForService(ctx context.Context, userID, serv
 
 	// Handle different auth modes differently
 	if selectedKey.AuthMode == "github_app" {
-		// For GitHub App, the decrypted value is the private key
-		authConfig["private_key"] = decryptedValue
+		// For GitHub App, check if private_key already exists in auth_config
+		if _, exists := authConfig["private_key"]; !exists {
+			// Only use decrypted value if private_key is not already in auth_config
+			authConfig["private_key"] = decryptedValue
+		}
+		// Note: For GitHub App, the private_key should be in auth_config JSON, not encrypted_key_value
 	} else {
 		// For PAT and other modes, use decrypted_token
 		authConfig["decrypted_token"] = decryptedValue
