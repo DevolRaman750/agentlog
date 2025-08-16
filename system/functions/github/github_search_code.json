@@ -4,7 +4,7 @@
   "provider": "github",
   "function_group": "github",
   "display_name": "GitHub Search Code",
-  "description": "Search for code patterns within a GitHub repository. Useful for finding specific functions, classes, or patterns.",
+  "description": "Search for code patterns, file names, or functions within a GitHub repository. Useful for finding files when you don't know their exact location or when expected paths don't exist.",
   "endpoint": {
     "path": "/search/code",
     "method": "GET"

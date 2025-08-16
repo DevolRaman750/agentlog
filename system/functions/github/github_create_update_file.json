@@ -4,29 +4,33 @@
   "provider": "github",
   "function_group": "github",
   "display_name": "Create/Update GitHub File",
-  "description": "Create or update a file in a GitHub repository",
+  "description": "Create or update a file in a GitHub repository. CRITICAL WORKFLOW: For updating existing files, you MUST first call github_get_file_sha or github_read_code to get the current file SHA, then EXTRACT the 'sha' field from that response and use it here. For new files, use empty string '' for SHA.",
   "endpoint": {
     "path": "/repos/{owner}/{repo}/contents/{path}",
-    "method": "MCP"
+    "method": "PUT"
   },
   "parameters": {
-    "required": ["owner", "repo", "path", "content", "message"],
-    "optional": ["sha", "branch"],
-    "schema": {"type": "object", "required": ["owner", "repo", "path", "content", "message"], "properties": {"sha": {"type": "string", "description": "SHA of the file being replaced (required for updates)"}, "path": {"type": "string", "description": "Path to the file in the repository"}, "repo": {"type": "string", "description": "Repository name"}, "owner": {"type": "string", "description": "GitHub username or organization"}, "branch": {"type": "string", "default": "main", "description": "Branch to commit to"}, "content": {"type": "string", "description": "File content (will be base64 encoded automatically)"}, "message": {"type": "string", "description": "Commit message for the file change"}}}
+    "required": ["owner", "repo", "path", "content", "message", "sha"],
+    "optional": ["branch"],
+    "schema": {"type": "object", "required": ["owner", "repo", "path", "content", "message", "sha"], "properties": {"sha": {"type": "string", "description": "SHA of the current file (REQUIRED). Get this first using github_read_code or github_get_file_sha. Use empty string '' for new files only."}, "path": {"type": "string", "description": "Path to the file in the repository"}, "repo": {"type": "string", "description": "Repository name"}, "owner": {"type": "string", "description": "GitHub username or organization"}, "branch": {"type": "string", "default": "main", "description": "Branch to commit to"}, "content": {"type": "string", "description": "File content (will be base64 encoded automatically)"}, "message": {"type": "string", "description": "Commit message for the file change"}}}
   },
+  "workflow": "FOR UPDATING EXISTING FILES: STEP 1: Call github_get_file_sha or github_read_code with owner, repo, path, AND the SAME branch/ref you plan to update. STEP 2: Call github_create_update_file with that SHA, content, and SAME branch. CRITICAL: The SHA must be from the exact same branch you're updating! FOR NEW FILES: Call github_create_update_file with sha='' (empty string).",
   "examples": [
     {
       "name": "Create new file",
+      "description": "For new files, use empty string for SHA",
       "parameters": {
         "owner": "microsoft",
         "repo": "vscode",
         "path": "docs/new-feature.md",
         "content": "# New Feature\n\nThis is a new feature documentation.",
-        "message": "Add new feature documentation"
+        "message": "Add new feature documentation",
+        "sha": ""
       }
     },
     {
       "name": "Update existing file",
+      "description": "After getting current SHA from github_read_code",
       "parameters": {
         "owner": "facebook",
         "repo": "react",

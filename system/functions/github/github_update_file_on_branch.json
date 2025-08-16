@@ -1,0 +1,84 @@
+{
+  "id": "func-github-update-file-branch",
+  "name": "github_update_file_on_branch",
+  "provider": "github",
+  "function_group": "github",
+  "display_name": "GitHub Update File on Branch",
+  "description": "Update a file on a specific branch in one atomic operation. Automatically handles SHA retrieval, content encoding, and branch targeting. This is the recommended way to update files as part of a branch workflow.",
+  "endpoint": {
+    "path": "/repos/{owner}/{repo}/contents/{path}",
+    "method": "PUT"
+  },
+  "parameters": {
+    "required": ["owner", "repo", "path", "content", "message", "branch"],
+    "optional": ["committer_name", "committer_email"],
+    "schema": {
+      "type": "object",
+      "required": ["owner", "repo", "path", "content", "message", "branch"],
+      "properties": {
+        "owner": {
+          "type": "string",
+          "description": "GitHub username or organization name"
+        },
+        "repo": {
+          "type": "string",
+          "description": "Repository name"
+        },
+        "path": {
+          "type": "string",
+          "description": "Path to the file in the repository"
+        },
+        "content": {
+          "type": "string",
+          "description": "New file content (will be base64 encoded automatically)"
+        },
+        "message": {
+          "type": "string",
+          "description": "Commit message for the file change"
+        },
+        "branch": {
+          "type": "string",
+          "description": "Branch to update the file on. Function will automatically get the current SHA from this branch."
+        },
+        "committer_name": {
+          "type": "string",
+          "description": "Name of the committer (optional)"
+        },
+        "committer_email": {
+          "type": "string",
+          "description": "Email of the committer (optional)"
+        }
+      }
+    }
+  },
+  "workflow": "SINGLE STEP: Call this function with the target branch name. It will automatically: 1) Get the current file SHA from that branch, 2) Update the file with your content, 3) Commit to the specified branch. No manual SHA handling required!",
+  "internal_steps": [
+    "1. GET /repos/{owner}/{repo}/contents/{path}?ref={branch} to get current SHA",
+    "2. PUT /repos/{owner}/{repo}/contents/{path} with SHA and content to update file"
+  ],
+  "examples": [
+    {
+      "name": "Update README on feature branch",
+      "description": "Update a file on a specific branch - SHA handled automatically",
+      "parameters": {
+        "owner": "microsoft",
+        "repo": "vscode",
+        "path": "README.md",
+        "content": "# Updated README\n\nThis is the new content.",
+        "message": "Update README with new information",
+        "branch": "feature/update-docs"
+      }
+    },
+    {
+      "name": "Update config on development branch",
+      "parameters": {
+        "owner": "facebook",
+        "repo": "react",
+        "path": "package.json",
+        "content": "{\n  \"name\": \"react\",\n  \"version\": \"18.0.0\"\n}",
+        "message": "Update package.json version",
+        "branch": "develop"
+      }
+    }
+  ]
+}

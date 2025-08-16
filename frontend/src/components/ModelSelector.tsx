@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,79 +7,72 @@ import {
   FlatList,
   StyleSheet,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useApp } from '../context/AppContext';
+import { APIConfiguration } from '../types';
 
 const { width } = Dimensions.get('window');
 
-// Define supported models - easy to extend in the future
-// To add a new model:
-// 1. Add a new entry to the SUPPORTED_MODELS array below
-// 2. Set the appropriate category ('gemini', 'gpt', 'claude', 'other')
-// 3. Use isRecommended: true for the preferred default model
-// 4. Use isNew: true for newly added models (temporary flag)
+// Model information interface
 export interface ModelInfo {
   id: string;
   name: string;
   displayName: string;
   description: string;
-  category: 'gemini' | 'gpt' | 'claude' | 'kimi' | 'other';
+  category: 'gemini' | 'gpt' | 'claude' | 'kimi' | 'openrouter' | 'other';
   isRecommended?: boolean;
   isNew?: boolean;
 }
 
-export const SUPPORTED_MODELS: ModelInfo[] = [
-  {
-    id: 'gemini-1.5-flash',
-    name: 'gemini-1.5-flash',
-    displayName: 'Gemini 1.5 Flash',
-    description: 'Fast and efficient model for quick responses',
-    category: 'gemini',
-    isRecommended: true,
-  },
-  {
-    id: 'gemini-1.5-pro',
-    name: 'gemini-1.5-pro',
-    displayName: 'Gemini 1.5 Pro',
-    description: 'Advanced model with superior reasoning capabilities',
-    category: 'gemini',
-  },
-  {
-    id: 'gemini-1.0-pro',
-    name: 'gemini-1.0-pro',
-    displayName: 'Gemini 1.0 Pro',
-    description: 'Stable production model with proven performance',
-    category: 'gemini',
-  },
-  {
-    id: 'gemini-1.5-flash-8b',
-    name: 'gemini-1.5-flash-8b',
-    displayName: 'Gemini 1.5 Flash 8B',
-    description: 'Lightweight model optimized for speed',
-    category: 'gemini',
-  },
-  {
-    id: 'moonshotai/kimi-k2-instruct',
-    name: 'moonshotai/kimi-k2-instruct',
-    displayName: 'Kimi K2 Instruct',
-    description: 'Advanced MoE model with excellent tool use and coding capabilities',
-    category: 'kimi',
-    isRecommended: true,
-    isNew: true,
-  },
-  {
-    id: 'moonshotai/kimi-k2',
-    name: 'moonshotai/kimi-k2',
-    displayName: 'Kimi K2',
-    description: '1T parameter MoE model optimized for agentic tasks',
-    category: 'kimi',
-    isNew: true,
-  },
-];
+// Helper function to determine model category from model name
+const getModelCategory = (modelName: string): ModelInfo['category'] => {
+  if (modelName.includes('gemini')) return 'gemini';
+  if (modelName.includes('gpt') || modelName.includes('openai')) return 'gpt';
+  if (modelName.includes('claude') || modelName.includes('anthropic')) return 'claude';
+  if (modelName.includes('kimi') || modelName.includes('moonshot')) return 'kimi';
+  if (modelName.includes('/')) return 'openrouter'; // OpenRouter models typically have provider/model format
+  return 'other';
+};
+
+// Helper function to determine if a model should be marked as recommended
+const isRecommendedModel = (modelName: string): boolean => {
+  const recommendedModels = [
+    'gemini-1.5-pro',
+    'moonshotai/kimi-k2-instruct',
+    'anthropic/claude-3.5-sonnet',
+    'openai/gpt-4o'
+  ];
+  return recommendedModels.includes(modelName);
+};
+
+// Helper function to determine if a model should be marked as new
+const isNewModel = (modelName: string): boolean => {
+  const newModels = [
+    'anthropic/claude-3.5-sonnet',
+    'openai/gpt-4o',
+    'qwen/qwen-2.5-coder-32b-instruct',
+    'deepseek/deepseek-v3',
+    'meta-llama/llama-3.1-405b-instruct'
+  ];
+  return newModels.includes(modelName);
+};
+
+// Transform API configuration to ModelInfo
+const transformConfigurationToModel = (config: APIConfiguration): ModelInfo => ({
+  id: config.id,
+  name: config.modelName,
+  displayName: config.variationName,
+  description: `System configuration: ${config.variationName}`,
+  category: getModelCategory(config.modelName),
+  isRecommended: isRecommendedModel(config.modelName),
+  isNew: isNewModel(config.modelName),
+});
 
 interface ModelSelectorProps {
   selectedModel: string;
-  onModelChange: (modelName: string) => void;
+  onModelChange: (model: string) => void;
   style?: any;
   disabled?: boolean;
 }
@@ -91,8 +84,47 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
   disabled = false,
 }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { state } = useApp();
 
-  const selectedModelInfo = SUPPORTED_MODELS.find(m => m.name === selectedModel);
+  // Load models from configurations
+  useEffect(() => {
+    const loadModels = () => {
+      setIsLoading(true);
+      try {
+        // Filter system configurations and transform to models
+        const systemConfigs = state.configurations.filter(config => 
+          config.id.startsWith('system-config-') || 
+          config.variationName.includes('System configuration:') ||
+          // Also include configs that look like system configs based on naming patterns
+          ['gemini-1-5-pro', 'kimi-k2', 'claude-3-5-sonnet', 'gpt-4o', 'qwen-2-5-coder', 'deepseek-v3', 'llama-3-1-405b'].includes(config.id)
+        );
+        
+        const models = systemConfigs.map(transformConfigurationToModel);
+        
+        // Sort models: recommended first, then by category, then by name
+        models.sort((a, b) => {
+          if (a.isRecommended && !b.isRecommended) return -1;
+          if (!a.isRecommended && b.isRecommended) return 1;
+          if (a.category !== b.category) return a.category.localeCompare(b.category);
+          return a.displayName.localeCompare(b.displayName);
+        });
+        
+        setAvailableModels(models);
+        console.log('📋 Loaded', models.length, 'models from configurations');
+      } catch (error) {
+        console.error('Failed to load models:', error);
+        setAvailableModels([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadModels();
+  }, [state.configurations]);
+
+  const selectedModelInfo = availableModels.find(m => m.name === selectedModel);
 
   const handleModelSelect = (model: ModelInfo) => {
     onModelChange(model.name);
@@ -147,6 +179,23 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
     </TouchableOpacity>
   );
 
+  const renderEmptyState = () => (
+    <View style={styles.emptyState}>
+      <Ionicons name="warning-outline" size={48} color="#8E8E93" />
+      <Text style={styles.emptyStateTitle}>No Models Available</Text>
+      <Text style={styles.emptyStateDescription}>
+        No model configurations found. Please check your system configuration.
+      </Text>
+    </View>
+  );
+
+  const renderLoadingState = () => (
+    <View style={styles.loadingState}>
+      <ActivityIndicator size="large" color="#007AFF" />
+      <Text style={styles.loadingText}>Loading models...</Text>
+    </View>
+  );
+
   return (
     <View style={[styles.container, style]}>
       <TouchableOpacity
@@ -197,13 +246,19 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
             </TouchableOpacity>
           </View>
           
-          <FlatList
-            data={SUPPORTED_MODELS}
-            keyExtractor={(item) => item.id}
-            renderItem={renderModelItem}
-            contentContainerStyle={styles.modelList}
-            showsVerticalScrollIndicator={false}
-          />
+          {isLoading ? (
+            renderLoadingState()
+          ) : availableModels.length === 0 ? (
+            renderEmptyState()
+          ) : (
+            <FlatList
+              data={availableModels}
+              keyExtractor={(item) => item.id}
+              renderItem={renderModelItem}
+              contentContainerStyle={styles.modelList}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
         </View>
       </Modal>
     </View>
@@ -215,16 +270,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   selector: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
+    backgroundColor: '#F2F2F7',
+    borderRadius: 12,
+    padding: 16,
     borderWidth: 1,
-    borderColor: '#E1E5E9',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    minHeight: 44,
+    borderColor: '#E5E5EA',
   },
   disabledSelector: {
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F8F8F8',
     borderColor: '#E5E5EA',
   },
   selectorContent: {
@@ -238,7 +291,7 @@ const styles = StyleSheet.create({
   selectedDisplayName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: '#000000',
     marginBottom: 2,
   },
   selectedModelName: {
@@ -250,37 +303,34 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#FFFFFF',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    backgroundColor: '#FFFFFF',
+    padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#E1E5E9',
+    borderBottomColor: '#E5E5EA',
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: '#000000',
   },
   closeButton: {
     padding: 4,
   },
   modelList: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
+    padding: 20,
   },
   modelItem: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F2F2F7',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E1E5E9',
+    borderColor: '#E5E5EA',
     position: 'relative',
   },
   selectedModelItem: {
@@ -291,20 +341,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   modelDisplayName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: '#000000',
     flex: 1,
+    marginRight: 8,
   },
   selectedModelText: {
     color: '#FFFFFF',
-  },
-  selectedModelSecondaryText: {
-    color: '#FFFFFF',
-    opacity: 0.8,
   },
   modelBadges: {
     flexDirection: 'row',
@@ -313,13 +360,13 @@ const styles = StyleSheet.create({
   recommendedBadge: {
     backgroundColor: '#34C759',
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 4,
     borderRadius: 12,
   },
   newBadge: {
     backgroundColor: '#FF9500',
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 4,
     borderRadius: 12,
   },
   badgeText: {
@@ -331,8 +378,10 @@ const styles = StyleSheet.create({
   modelName: {
     fontSize: 14,
     color: '#8E8E93',
-    fontFamily: 'monospace',
     marginBottom: 4,
+  },
+  selectedModelSecondaryText: {
+    color: '#E5E5EA',
   },
   modelDescription: {
     fontSize: 14,
@@ -341,9 +390,39 @@ const styles = StyleSheet.create({
   },
   selectedIndicator: {
     position: 'absolute',
-    top: 12,
-    right: 12,
+    top: 16,
+    right: 16,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000000',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyStateDescription: {
+    fontSize: 14,
+    color: '#8E8E93',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  loadingState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#8E8E93',
+    marginTop: 16,
   },
 });
 
-export default ModelSelector; 
+export default ModelSelector;

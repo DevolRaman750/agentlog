@@ -130,15 +130,17 @@ func (f *ProviderFactory) createKimiProvider(sessionKeys *types.SessionApiKeys) 
 
 // getProviderTypeFromModel determines the provider type from model name
 func (f *ProviderFactory) getProviderTypeFromModel(modelName string) string {
-	// Kimi models
-	if strings.HasPrefix(modelName, "moonshotai/") ||
-		strings.Contains(strings.ToLower(modelName), "kimi") {
-		return "kimi"
-	}
-
-	// Gemini models (default for existing models)
+	// Gemini models (direct Google API)
 	if strings.HasPrefix(modelName, "gemini") {
 		return "gemini"
+	}
+
+	// OpenRouter models (all models with provider/model format)
+	// This includes Kimi, OpenAI, Anthropic, Meta, Qwen, DeepSeek, etc.
+	if strings.Contains(modelName, "/") {
+		// Models with provider/model format are OpenRouter models
+		// Examples: moonshotai/kimi-k2, openai/gpt-4o, anthropic/claude-3-5-sonnet, meta-llama/llama-3.1-405b-instruct
+		return "kimi" // Using "kimi" provider name for backwards compatibility, but it handles all OpenRouter models
 	}
 
 	// Default to gemini for backwards compatibility
@@ -161,9 +163,16 @@ func (f *ProviderFactory) GetSupportedModels() map[string][]string {
 			"gemini-1.5-pro-latest",
 		},
 		"kimi": {
+			// All OpenRouter models (including Kimi, OpenAI, Anthropic, Meta, etc.)
 			"moonshotai/kimi-k2",
 			"moonshotai/kimi-k2-instruct",
 			"moonshotai/Kimi-K2-Instruct",
+			"openai/gpt-4o-2024-08-06",
+			"openai/gpt-4o-mini",
+			"anthropic/claude-3.5-sonnet-20241022",
+			"anthropic/claude-3-haiku-20240307",
+			"meta-llama/llama-3.1-8b-instruct:free",
+			"meta-llama/llama-3.1-70b-instruct:free",
 		},
 	}
 }

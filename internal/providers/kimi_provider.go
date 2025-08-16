@@ -13,17 +13,17 @@ import (
 	"gogent/internal/types"
 )
 
-// KimiProvider implements the ModelProvider interface for Kimi K2 models
+// KimiProvider implements the ModelProvider interface for OpenRouter models (including Kimi K2)
 type KimiProvider struct {
 	apiKey     string
 	baseURL    string
 	httpClient *http.Client
 }
 
-// NewKimiProvider creates a new Kimi provider instance
+// NewKimiProvider creates a new Kimi provider instance (actually OpenRouter provider)
 func NewKimiProvider(apiKey string, baseURL string) (*KimiProvider, error) {
 	if apiKey == "" {
-		return nil, fmt.Errorf("API key is required for Kimi provider")
+		return nil, fmt.Errorf("API key is required for OpenRouter provider")
 	}
 
 	if baseURL == "" {
@@ -39,19 +39,29 @@ func NewKimiProvider(apiKey string, baseURL string) (*KimiProvider, error) {
 
 // GetProviderName returns the provider name
 func (p *KimiProvider) GetProviderName() string {
-	return "kimi"
+	return "openrouter"
 }
 
-// GetSupportedModels returns list of supported Kimi models
+// GetSupportedModels returns list of supported OpenRouter models
 func (p *KimiProvider) GetSupportedModels() []string {
 	return []string{
+		// Kimi models (working)
 		"moonshotai/kimi-k2",
 		"moonshotai/kimi-k2-instruct",
 		"moonshotai/Kimi-K2-Instruct",
+		// OpenAI models (working with function calling)
+		"openai/gpt-4o-2024-08-06",
+		"openai/gpt-4o-mini",
+		// Anthropic models (working with function calling)
+		"anthropic/claude-3.5-sonnet-20241022",
+		"anthropic/claude-3-haiku-20240307",
+		// Meta models (working with function calling)
+		"meta-llama/llama-3.1-8b-instruct:free",
+		"meta-llama/llama-3.1-70b-instruct:free",
 	}
 }
 
-// ValidateConfig validates Kimi-specific configuration
+// ValidateConfig validates OpenRouter-specific configuration
 func (p *KimiProvider) ValidateConfig(config *types.APIConfiguration) error {
 	if config.ModelName == "" {
 		return fmt.Errorf("model name is required")
@@ -68,7 +78,7 @@ func (p *KimiProvider) ValidateConfig(config *types.APIConfiguration) error {
 	}
 
 	if !isSupported {
-		return fmt.Errorf("model %s is not supported by Kimi provider", config.ModelName)
+		return fmt.Errorf("model %s is not supported by OpenRouter provider", config.ModelName)
 	}
 
 	return nil

@@ -21,10 +21,10 @@
         },
         "limit": {
           "type": "integer",
-          "default": 10,
-          "maximum": 1000,
+          "default": 5,
+          "maximum": 10,
           "minimum": 1,
-          "description": "Number of messages to return (1-1000, default 10)"
+          "description": "Number of messages to return (1-10, default 5). Keep small to avoid context overflow."
         },
         "latest": {
           "type": "string",
@@ -54,14 +54,14 @@
       "name": "Read recent messages (recommended)",
       "parameters": {
         "channel": "C1234567890",
-        "limit": 10
+        "limit": 5
       }
     },
     {
       "name": "Read a few more messages if needed",
       "parameters": {
         "channel": "C1234567890",
-        "limit": 20
+        "limit": 8
       }
     }
   ]

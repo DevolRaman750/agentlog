@@ -1,0 +1,102 @@
+{
+  "id": "func-github-branch-update-pr",
+  "name": "github_branch_update_pr_workflow",
+  "provider": "github",
+  "function_group": "github",
+  "display_name": "GitHub Branch Update PR Workflow",
+  "description": "Complete workflow: Create branch, update file, and create PR in one atomic operation. This is the recommended way to make changes following proper Git workflow.",
+  "endpoint": {
+    "path": "/repos/{owner}/{repo}/pulls",
+    "method": "POST"
+  },
+  "parameters": {
+    "required": ["owner", "repo", "branch_name", "file_path", "file_content", "commit_message", "pr_title"],
+    "optional": ["pr_body", "base_branch", "draft"],
+    "schema": {
+      "type": "object",
+      "required": ["owner", "repo", "branch_name", "file_path", "file_content", "commit_message", "pr_title"],
+      "properties": {
+        "owner": {
+          "type": "string",
+          "description": "GitHub username or organization name"
+        },
+        "repo": {
+          "type": "string",
+          "description": "Repository name"
+        },
+        "branch_name": {
+          "type": "string",
+          "description": "Name for the new branch (without refs/heads/ prefix)"
+        },
+        "file_path": {
+          "type": "string",
+          "description": "Path to the file to update"
+        },
+        "file_content": {
+          "type": "string",
+          "description": "New content for the file"
+        },
+        "commit_message": {
+          "type": "string",
+          "description": "Commit message for the file change"
+        },
+        "pr_title": {
+          "type": "string",
+          "description": "Title for the pull request"
+        },
+        "pr_body": {
+          "type": "string",
+          "description": "Description for the pull request (optional)"
+        },
+        "base_branch": {
+          "type": "string",
+          "default": "main",
+          "description": "Base branch to create the new branch from and merge PR into"
+        },
+        "draft": {
+          "type": "boolean",
+          "default": false,
+          "description": "Create as draft PR"
+        }
+      }
+    }
+  },
+  "workflow": "SINGLE STEP: Call this function with all parameters. It will automatically: 1) Create a new branch from base, 2) Update the specified file on that branch, 3) Create a pull request. Complete Git workflow in one call!",
+  "internal_steps": [
+    "1. GET /repos/{owner}/{repo}/git/refs/heads/{base_branch} to get base SHA",
+    "2. POST /repos/{owner}/{repo}/git/refs to create new branch",
+    "3. GET /repos/{owner}/{repo}/contents/{file_path}?ref={branch_name} to get file SHA",
+    "4. PUT /repos/{owner}/{repo}/contents/{file_path} to update file on new branch",
+    "5. POST /repos/{owner}/{repo}/pulls to create pull request"
+  ],
+  "examples": [
+    {
+      "name": "Update README with new branch and PR",
+      "description": "Complete workflow to update a file via proper Git flow",
+      "parameters": {
+        "owner": "microsoft",
+        "repo": "vscode",
+        "branch_name": "update-readme-2024",
+        "file_path": "README.md",
+        "file_content": "# VS Code\n\nUpdated documentation for 2024.",
+        "commit_message": "Update README for 2024",
+        "pr_title": "Update README documentation",
+        "pr_body": "This PR updates the README with current information for 2024.",
+        "base_branch": "main"
+      }
+    },
+    {
+      "name": "Update config file with draft PR",
+      "parameters": {
+        "owner": "facebook",
+        "repo": "react",
+        "branch_name": "config-update",
+        "file_path": "package.json",
+        "file_content": "{\n  \"name\": \"react\",\n  \"version\": \"18.1.0\"\n}",
+        "commit_message": "Update React version to 18.1.0",
+        "pr_title": "Update React version",
+        "draft": true
+      }
+    }
+  ]
+}

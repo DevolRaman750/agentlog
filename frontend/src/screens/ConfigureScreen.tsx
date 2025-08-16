@@ -25,7 +25,7 @@ import { SessionManager } from '../components/SessionManager';
 import { containerStyles, webInputStyles } from '../styles/containers';
 import LoadingScreen from '../components/LoadingScreen';
 import { CustomAlert, AlertAPI, AlertButton } from '../components/CustomAlert';
-import ModelSelector, { SUPPORTED_MODELS } from '../components/ModelSelector';
+import ModelSelector from '../components/ModelSelector';
 import { APIConfiguration, getResourceOwnership } from '../types';
 import { debugAuthState, clearAllAuthData, createTestUser } from '../utils/debugAuth';
 import TextEditor from '../components/TextEditor';
@@ -725,7 +725,7 @@ const NewConfigurationFormModal: React.FC<{
   
   const [formData, setFormData] = useState({
     variationName: editingConfig?.variationName || '',
-    modelName: editingConfig?.modelName || SUPPORTED_MODELS[0].name, // Default to first recommended model
+    modelName: editingConfig?.modelName || 'gemini-1-5-pro', // Default to Gemini Pro
     systemPrompt: editingConfig?.systemPrompt || '',
     temperature: editingConfig?.temperature || 0.5,
     maxTokens: editingConfig?.maxTokens || 500,

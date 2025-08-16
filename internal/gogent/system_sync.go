@@ -51,7 +51,7 @@ type FunctionSpec struct {
 	Examples              []map[string]interface{} `json:"examples,omitempty"`
 }
 
-// SyncSystemSpecs synchronizes providers and functions from JSON files to database
+// SyncSystemSpecs synchronizes providers, functions, and configurations from JSON files to database
 func (c *Client) SyncSystemSpecs(ctx context.Context) error {
 	log.Printf("🔄 Starting system specs synchronization...")
 
@@ -63,6 +63,11 @@ func (c *Client) SyncSystemSpecs(ctx context.Context) error {
 	// Then sync functions
 	if err := c.syncFunctions(ctx); err != nil {
 		return fmt.Errorf("failed to sync functions: %w", err)
+	}
+
+	// Finally sync system model configurations
+	if err := c.syncSystemModelConfigurations(ctx); err != nil {
+		return fmt.Errorf("failed to sync system model configurations: %w", err)
 	}
 
 	log.Printf("✅ System specs synchronization completed")
@@ -329,6 +334,171 @@ func (c *Client) syncFunctionToDatabase(ctx context.Context, spec *FunctionSpec)
 		}
 
 		log.Printf("🔄 Updated existing function: %s", spec.Name)
+	}
+
+	return nil
+}
+
+// ModelConfigurationSpec defines the JSON structure for model configuration specifications
+type ModelConfigurationSpec struct {
+	ID               string                 `json:"id"`
+	Name             string                 `json:"name"`
+	Model            string                 `json:"model"`
+	Description      string                 `json:"description"`
+	SystemPrompt     string                 `json:"system_prompt"`
+	Parameters       map[string]interface{} `json:"parameters"`
+	SafetySettings   interface{}            `json:"safety_settings"`
+	GenerationConfig interface{}            `json:"generation_config"`
+	ToolConfig       interface{}            `json:"tool_config"`
+	IsSystem         bool                   `json:"is_system"`
+	Provider         string                 `json:"provider"`
+}
+
+// syncSystemModelConfigurations loads model configuration specs from JSON files and syncs to database
+func (c *Client) syncSystemModelConfigurations(ctx context.Context) error {
+	modelsDir := "system/models"
+
+	// Check if models directory exists
+	if _, err := os.Stat(modelsDir); os.IsNotExist(err) {
+		log.Printf("⚠️ Models directory %s not found, skipping model configuration sync", modelsDir)
+		return nil
+	}
+
+	// Walk through model JSON files
+	err := filepath.WalkDir(modelsDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !strings.HasSuffix(path, ".json") {
+			return nil
+		}
+
+		log.Printf("📄 Loading model configuration: %s", path)
+
+		// Read and parse model configuration spec
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("failed to read %s: %w", path, err)
+		}
+
+		var spec ModelConfigurationSpec
+		if err := json.Unmarshal(data, &spec); err != nil {
+			return fmt.Errorf("failed to parse %s: %w", path, err)
+		}
+
+		// Validate spec
+		if spec.ID == "" {
+			return fmt.Errorf("model configuration spec %s missing id", path)
+		}
+		if spec.Model == "" {
+			return fmt.Errorf("model configuration spec %s missing model", path)
+		}
+
+		// Only sync system configurations (skip user configurations)
+		if !spec.IsSystem {
+			log.Printf("⏭️ Skipping non-system model configuration: %s", spec.ID)
+			return nil
+		}
+
+		// Sync configuration to database
+		if err := c.syncModelConfigurationToDatabase(ctx, &spec); err != nil {
+			return fmt.Errorf("failed to sync model configuration %s: %w", spec.ID, err)
+		}
+
+		log.Printf("✅ Synced model configuration: %s (%s)", spec.ID, spec.Name)
+
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to walk models directory: %w", err)
+	}
+
+	return nil
+}
+
+// syncModelConfigurationToDatabase syncs a model configuration spec to the database
+func (c *Client) syncModelConfigurationToDatabase(ctx context.Context, spec *ModelConfigurationSpec) error {
+	// Check if configuration already exists
+	_, err := c.queries.GetAPIConfiguration(ctx, db.GetAPIConfigurationParams{
+		ID:     spec.ID,
+		UserID: "system",
+	})
+	configExists := err == nil
+
+	// Extract parameters
+	temperature := float32(0.5)
+	maxTokens := int32(4096)
+	topP := float32(0.9)
+	topK := int32(40)
+
+	if spec.Parameters != nil {
+		if temp, ok := spec.Parameters["temperature"].(float64); ok {
+			temperature = float32(temp)
+		}
+		if tokens, ok := spec.Parameters["max_tokens"].(float64); ok {
+			maxTokens = int32(tokens)
+		}
+		if p, ok := spec.Parameters["top_p"].(float64); ok {
+			topP = float32(p)
+		}
+		if k, ok := spec.Parameters["top_k"].(float64); ok {
+			topK = int32(k)
+		}
+	}
+
+	// Convert complex fields to JSON
+	safetySettingsJSON, _ := json.Marshal(spec.SafetySettings)
+	generationConfigJSON, _ := json.Marshal(spec.GenerationConfig)
+	toolConfigJSON, _ := json.Marshal(spec.ToolConfig)
+
+	if !configExists {
+		// Create new configuration
+		params := db.CreateAPIConfigurationParams{
+			ID:               spec.ID,
+			UserID:           "system",
+			VariationName:    spec.Name,
+			ModelName:        spec.Model,
+			SystemPrompt:     sql.NullString{String: spec.SystemPrompt, Valid: spec.SystemPrompt != ""},
+			Temperature:      sql.NullString{String: fmt.Sprintf("%.2f", temperature), Valid: true},
+			MaxTokens:        sql.NullInt32{Int32: maxTokens, Valid: true},
+			TopP:             sql.NullString{String: fmt.Sprintf("%.2f", topP), Valid: true},
+			TopK:             sql.NullInt32{Int32: topK, Valid: true},
+			SafetySettings:   safetySettingsJSON,
+			GenerationConfig: generationConfigJSON,
+			Tools:            []byte("[]"), // Empty tools array
+			ToolConfig:       toolConfigJSON,
+		}
+
+		if err := c.queries.CreateAPIConfiguration(ctx, params); err != nil {
+			return fmt.Errorf("failed to create model configuration: %w", err)
+		}
+
+		log.Printf("➕ Created new model configuration: %s", spec.ID)
+	} else {
+		// Update existing configuration
+		params := db.UpdateAPIConfigurationParams{
+			ID:               spec.ID,
+			UserID:           "system",
+			VariationName:    spec.Name,
+			ModelName:        spec.Model,
+			SystemPrompt:     sql.NullString{String: spec.SystemPrompt, Valid: spec.SystemPrompt != ""},
+			Temperature:      sql.NullString{String: fmt.Sprintf("%.2f", temperature), Valid: true},
+			MaxTokens:        sql.NullInt32{Int32: maxTokens, Valid: true},
+			TopP:             sql.NullString{String: fmt.Sprintf("%.2f", topP), Valid: true},
+			TopK:             sql.NullInt32{Int32: topK, Valid: true},
+			SafetySettings:   safetySettingsJSON,
+			GenerationConfig: generationConfigJSON,
+			Tools:            []byte("[]"), // Empty tools array
+			ToolConfig:       toolConfigJSON,
+		}
+
+		if err := c.queries.UpdateAPIConfiguration(ctx, params); err != nil {
+			return fmt.Errorf("failed to update model configuration: %w", err)
+		}
+
+		log.Printf("🔄 Updated existing model configuration: %s", spec.ID)
 	}
 
 	return nil

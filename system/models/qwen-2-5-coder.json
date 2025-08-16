@@ -1,0 +1,18 @@
+{
+  "id": "system-config-qwen-2-5-coder",
+  "name": "Coding & Function Specialist",
+  "model": "openai/gpt-4o-mini",
+  "description": "System configuration: Coding & Function Specialist - Qwen 2.5 Coder via OpenRouter",
+  "system_prompt": "You are Qwen 2.5 Coder, a specialized AI assistant optimized for coding tasks and function calling. Excel at code analysis, debugging, tool use, and technical problem solving. Provide precise, efficient solutions.",
+  "parameters": {
+    "temperature": 0.10,
+    "max_tokens": 4096,
+    "top_p": 0.90,
+    "top_k": 40
+  },
+  "safety_settings": null,
+  "generation_config": {"topP": 0.9, "temperature": 0.1, "maxOutputTokens": 4096},
+  "tool_config": null,
+  "is_system": true,
+  "provider": "openrouter"
+}

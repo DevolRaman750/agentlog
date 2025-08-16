@@ -7,7 +7,7 @@
   "description": "Create a pull request in a GitHub repository to propose code changes. Essential for autonomous development workflows.",
   "endpoint": {
     "path": "/repos/{owner}/{repo}/pulls",
-    "method": "MCP"
+    "method": "POST"
   },
   "parameters": {
     "required": ["owner", "repo", "title", "head", "base"],

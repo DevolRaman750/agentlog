@@ -25,7 +25,7 @@
         },
         "name": {
           "type": "string",
-          "description": "Emoji name (without colons, e.g., \"thumbsup\", \"white_check_mark\")"
+          "description": "Valid Slack emoji name (without colons). Common valid names: \"white_check_mark\", \"thumbsup\", \"thumbsdown\", \"heart\", \"eyes\", \"fire\", \"100\". DO NOT use custom emojis or invalid names."
         }
       }
     }

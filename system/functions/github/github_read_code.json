@@ -4,7 +4,7 @@
   "provider": "github",
   "function_group": "github",
   "display_name": "GitHub Read Code",
-  "description": "Read files and directory contents from a GitHub repository. IMPORTANT: Start by exploring the repository structure with path='' (empty) to see available directories and files, then navigate to specific paths. Use this to access README files, source code, configuration files, or explore directory structures. Always check directory contents before trying to read specific files.",
+  "description": "Read files and directory contents from a GitHub repository. Returns file content AND the SHA hash needed for github_create_update_file. Start by exploring the repository structure with an empty path to see what directories and files actually exist before accessing specific paths. If a path doesn't exist, use github_search_code to find similar files or try common alternatives.",
   "endpoint": {
     "path": "/repos/{owner}/{repo}/contents/{path}",
     "method": "GET"
@@ -24,7 +24,7 @@
         "path": {
           "type": "string",
           "default": "",
-          "description": "File or directory path within the repo. EXPLORATION STRATEGY: 1) Start with '' (empty) to see root contents, 2) Navigate to directories like 'src/', 'cmd/', 3) Then read specific files. Examples: '' (root directory), 'src/' (explore src directory), 'src/main.js' (read specific file), 'README.md' (read readme)"
+          "description": "File or directory path within the repo. Use empty string '' to explore the repository root first and see what directories exist. Then navigate to specific paths based on what you discover. Examples: '' (root directory), 'src/' (if it exists), 'README.md'"
         },
         "repo": {
           "type": "string",
@@ -55,12 +55,11 @@
       }
     },
     {
-      "name": "Read file from specific branch",
+      "name": "Explore directory",
       "parameters": {
         "owner": "google",
         "repo": "tensorflow",
-        "path": "README.md",
-        "ref": "main"
+        "path": "tensorflow"
       }
     }
   ]

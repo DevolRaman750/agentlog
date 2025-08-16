@@ -223,15 +223,28 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 	var finishReason string
 	var functionCalls []map[string]interface{}
 
+	// ENHANCED DEBUG: Log the full response structure for empty response investigation
+	log.Printf("🔍 [SYNTHESIS_DEBUG] Full Gemini response structure:")
+	log.Printf("🔍 [SYNTHESIS_DEBUG] - Candidates count: %d", len(geminiResp.Candidates))
+	
 	if len(geminiResp.Candidates) > 0 {
 		candidate := geminiResp.Candidates[0]
 		finishReason = candidate.FinishReason
+		
+		log.Printf("🔍 [SYNTHESIS_DEBUG] - Finish reason: %s", finishReason)
+		log.Printf("🔍 [SYNTHESIS_DEBUG] - Parts count: %d", len(candidate.Content.Parts))
 
-		// DEBUG: Log raw response parts to debug tool_code issue
+		// DEBUG: Log raw response parts to debug empty response issue
 		log.Printf("🔍 DEBUG: Gemini response has %d parts", len(candidate.Content.Parts))
+
+		if len(candidate.Content.Parts) == 0 {
+			log.Printf("🚨 [SYNTHESIS_DEBUG] EMPTY RESPONSE DETECTED: No parts in candidate content")
+			log.Printf("🚨 [SYNTHESIS_DEBUG] Raw response body: %s", string(body))
+		}
 
 		for i, part := range candidate.Content.Parts {
 			log.Printf("🔍 DEBUG: Part %d - Text: %q, HasFunctionCall: %v", i, part.Text, part.FunctionCall != nil)
+			log.Printf("🔍 [SYNTHESIS_DEBUG] Part %d details - Text length: %d, Text preview: %.200s", i, len(part.Text), part.Text)
 
 			if part.Text != "" {
 				// Check if the text contains tool_code blocks
@@ -241,13 +254,23 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 				responseText = part.Text
 			}
 			if part.FunctionCall != nil {
+				log.Printf("🔍 [SYNTHESIS_DEBUG] Function call detected: %s", part.FunctionCall.Name)
 				functionCalls = append(functionCalls, map[string]interface{}{
 					"name": part.FunctionCall.Name,
 					"args": part.FunctionCall.Args,
 				})
 			}
 		}
+	} else {
+		log.Printf("🚨 [SYNTHESIS_DEBUG] CRITICAL: No candidates in Gemini response")
+		log.Printf("🚨 [SYNTHESIS_DEBUG] Raw response body: %s", string(body))
 	}
+
+	// Log final extracted values
+	log.Printf("🔍 [SYNTHESIS_DEBUG] Final extracted values:")
+	log.Printf("🔍 [SYNTHESIS_DEBUG] - Response text length: %d", len(responseText))
+	log.Printf("🔍 [SYNTHESIS_DEBUG] - Function calls count: %d", len(functionCalls))
+	log.Printf("🔍 [SYNTHESIS_DEBUG] - Finish reason: %s", finishReason)
 
 	// Build usage metadata
 	usageMetadata := map[string]interface{}{

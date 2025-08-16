@@ -1320,7 +1320,23 @@ func (c *Client) processIterativeFunctionCallsWithProvider(ctx context.Context, 
 		currentTime.Unix())
 
 	synthesisPrompt := fmt.Sprintf("User's original request: \"%s\"\n\n%s\n\n", originalPrompt, timeContext)
-	synthesisPrompt += "**TASK:** Analyze the function results (available through your tools) and provide a comprehensive response that addresses the user's request. Use the data you've gathered to complete the requested actions.\n\n"
+
+	// Add function results to synthesis prompt so LLM can see what data it already has
+	if len(functionResults) > 0 {
+		synthesisPrompt += "**Function Results:**\n"
+		for i, result := range functionResults {
+			if i < len(functionCalls) {
+				functionName := functionCalls[i].FunctionCall.Name
+
+				// Create intelligent summaries instead of truncating raw JSON
+				summary := c.createIntelligentResultSummary(functionName, result)
+				synthesisPrompt += fmt.Sprintf("- %s: %s\n", functionName, summary)
+			}
+		}
+		synthesisPrompt += "\n"
+	}
+
+	synthesisPrompt += "**TASK:** Analyze the function results above and provide a comprehensive response that addresses the user's request. Use the data you've gathered to complete the requested actions.\n\n"
 	synthesisPrompt += "**IMPORTANT: Respond in natural language. Summarize what you found and what actions you took to fulfill the user's request.**"
 
 	// Get effective API keys for the synthesis request
@@ -1419,6 +1435,21 @@ func (c *Client) processProviderSynthesisWithIteration(ctx context.Context, conf
 		// Create a clean synthesis prompt focused on task guidance
 		newSynthesisPrompt := fmt.Sprintf("User's original request: \"%s\"\n\n", originalPrompt)
 
+		// Add accumulated function results to synthesis prompt so LLM can see what data it already has
+		if len(allFunctionResults) > 0 {
+			newSynthesisPrompt += "**Function Results:**\n"
+			for i, result := range allFunctionResults {
+				if i < len(allFunctionCalls) {
+					functionName := allFunctionCalls[i].FunctionCall.Name
+
+					// Create intelligent summaries instead of truncating raw JSON
+					summary := c.createIntelligentResultSummary(functionName, result)
+					newSynthesisPrompt += fmt.Sprintf("- %s: %s\n", functionName, summary)
+				}
+			}
+			newSynthesisPrompt += "\n"
+		}
+
 		var hasErrors bool
 		// Check for errors without duplicating function data in the prompt
 		for i := range allFunctionResults {
@@ -1426,9 +1457,6 @@ func (c *Client) processProviderSynthesisWithIteration(ctx context.Context, conf
 				hasErrors = true
 			}
 		}
-
-		// Removed problematic context summarizer that was confusing the LLM
-		// The LLM should decide what to do next based on the actual function results
 
 		// Detect if we have sufficient data to complete the task
 		shouldComplete := c.detectTaskCompletion(allFunctionCalls, allFunctionResults, depth+1, originalPrompt)
@@ -1782,6 +1810,7 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 			errorMsg := fmt.Sprintf("Validation failed: %v", err)
 
 			log.Printf("❌ Function call validation failed for %s: %v", funcCall.FunctionCall.Name, err)
+			log.Printf("❌ [VALIDATION_DEBUG] Function %s received args: %+v", funcCall.FunctionCall.Name, funcCall.FunctionCall.Args)
 			c.logExecutionEvent(types.LogLevelError, types.LogCategoryError,
 				fmt.Sprintf("Function validation failed: %s - %v", funcCall.FunctionCall.Name, err),
 				map[string]interface{}{
@@ -1889,21 +1918,10 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 		for i, result := range currentAllFunctionResults {
 			if i < len(currentAllFunctionCalls) {
 				functionName := currentAllFunctionCalls[i].FunctionCall.Name
-				// Convert result to JSON for clean display - truncate if too long
-				if resultJSON, err := json.MarshalIndent(result, "", "  "); err == nil {
-					if len(resultJSON) > 1000 {
-						synthesisPrompt += fmt.Sprintf("- %s: %.1000s...\n", functionName, string(resultJSON))
-					} else {
-						synthesisPrompt += fmt.Sprintf("- %s: %s\n", functionName, string(resultJSON))
-					}
-				} else {
-					resultStr := fmt.Sprintf("%v", result)
-					if len(resultStr) > 1000 {
-						synthesisPrompt += fmt.Sprintf("- %s: %.1000s...\n", functionName, resultStr)
-					} else {
-						synthesisPrompt += fmt.Sprintf("- %s: %s\n", functionName, resultStr)
-					}
-				}
+
+				// Create intelligent summaries instead of truncating raw JSON
+				summary := c.createIntelligentResultSummary(functionName, result)
+				synthesisPrompt += fmt.Sprintf("- %s: %s\n", functionName, summary)
 			}
 		}
 		synthesisPrompt += "\n"
@@ -1928,8 +1946,9 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 	} else if shouldComplete {
 		synthesisPrompt += "\n**FINAL RESPONSE REQUIRED:** You now have all the necessary data to complete the user's request. STOP calling functions and provide a comprehensive final response using the data above.\n\n**CRITICAL: You must respond ONLY in natural language. DO NOT return code blocks, function calls, or tool_code. Do not use markdown code blocks or backticks. Provide a clear, human-readable summary that directly addresses the user's original request. Explain what you found and what actions you took.**"
 	} else {
-		// For non-error, non-completion cases, we'll set the prompt after synthesis strategy is determined
-		// This will be handled below after the SynthesisManager logic
+		// Add state management instructions based on research best practices
+		synthesisPrompt += "\n**PROGRESS TRACKING:** Before making any function calls, briefly recap what you have already accomplished in this task. Consider whether you have enough data to complete the user's request.\n\n"
+		synthesisPrompt += "**IMPORTANT:** If you have already gathered the necessary data (channel info, messages, GitHub data), proceed to complete the task (send replies, add reactions) rather than repeating data collection functions."
 	}
 
 	// Create a new API request for synthesis
@@ -1987,11 +2006,19 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 		synthesisPrompt += promptSuffix
 	}
 
-	// DEBUG: Log the exact prompt being sent to Gemini to understand the loop
-	if len(synthesisPrompt) > 1000 {
-		log.Printf("🔍 [DEBUG] Synthesis prompt being sent to Gemini (depth %d, %d chars): %.1000s...", depth, len(synthesisPrompt), synthesisPrompt)
+	// ENHANCED DEBUG: Log the exact prompt being sent to Gemini to understand empty response issue
+	log.Printf("🔍 [SYNTHESIS_DEBUG] Synthesis prompt details:")
+	log.Printf("🔍 [SYNTHESIS_DEBUG] - Depth: %d", depth)
+	log.Printf("🔍 [SYNTHESIS_DEBUG] - Prompt length: %d chars", len(synthesisPrompt))
+	log.Printf("🔍 [SYNTHESIS_DEBUG] - Function results count: %d", len(functionResults))
+	log.Printf("🔍 [SYNTHESIS_DEBUG] - Tools available: %d", len(configForSynthesis.Tools))
+	log.Printf("🔍 [SYNTHESIS_DEBUG] - Allow function calls: %v", decision.AllowFunctionCalls)
+
+	if len(synthesisPrompt) > 2000 {
+		log.Printf("🔍 [SYNTHESIS_DEBUG] Synthesis prompt (first 1000 chars): %.1000s...", synthesisPrompt)
+		log.Printf("🔍 [SYNTHESIS_DEBUG] Synthesis prompt (last 1000 chars): ...%s", synthesisPrompt[len(synthesisPrompt)-1000:])
 	} else {
-		log.Printf("🔍 [DEBUG] Synthesis prompt being sent to Gemini (depth %d): %s", depth, synthesisPrompt)
+		log.Printf("🔍 [SYNTHESIS_DEBUG] Full synthesis prompt: %s", synthesisPrompt)
 	}
 
 	c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryExecution,
@@ -2100,8 +2127,16 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 		}
 	}
 
+	// ENHANCED DEBUG: Log synthesis response processing
+	log.Printf("🔍 [SYNTHESIS_DEBUG] Processing synthesis response:")
+	log.Printf("🔍 [SYNTHESIS_DEBUG] - Response text length: %d", len(synthesisResponse.ResponseText))
+	log.Printf("🔍 [SYNTHESIS_DEBUG] - Response status: %s", synthesisResponse.ResponseStatus)
+	log.Printf("🔍 [SYNTHESIS_DEBUG] - Error message: %s", synthesisResponse.ErrorMessage)
+	log.Printf("🔍 [SYNTHESIS_DEBUG] - Response body present: %v", synthesisResponse.ResponseBody != nil)
+
 	if synthesisResponse.ResponseText != "" {
 		log.Printf("✅ Gemini provided comprehensive synthesis: %d chars (depth %d)", len(synthesisResponse.ResponseText), depth)
+		log.Printf("🔍 [SYNTHESIS_DEBUG] Response text preview: %.500s", synthesisResponse.ResponseText)
 
 		// Check if the response contains tool_code and fix it
 		responseText := synthesisResponse.ResponseText
@@ -2130,17 +2165,30 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 		return responseText
 	}
 
-	// Fallback case
+	// Fallback case - ENHANCED DEBUG
+	log.Printf("🚨 [SYNTHESIS_DEBUG] FALLBACK TRIGGERED:")
+	log.Printf("🚨 [SYNTHESIS_DEBUG] - Synthesis response text empty: %v", synthesisResponse.ResponseText == "")
+	log.Printf("🚨 [SYNTHESIS_DEBUG] - Response status: %s", synthesisResponse.ResponseStatus)
+	log.Printf("🚨 [SYNTHESIS_DEBUG] - Error message: %s", synthesisResponse.ErrorMessage)
+	log.Printf("🚨 [SYNTHESIS_DEBUG] - Function calls count: %d", len(functionCalls))
+	log.Printf("🚨 [SYNTHESIS_DEBUG] - Function results count: %d", len(functionResults))
+	log.Printf("🚨 [SYNTHESIS_DEBUG] - Depth: %d", depth)
+
 	c.logExecutionEvent(types.LogLevelWarn, types.LogCategoryCompletion,
 		"Synthesis completed with fallback response",
 		map[string]interface{}{
 			"depth":          depth,
 			"functionsCount": len(functionCalls),
 			"duration":       synthesisTimeMs,
+			"responseEmpty":  synthesisResponse.ResponseText == "",
+			"responseStatus": synthesisResponse.ResponseStatus,
+			"errorMessage":   synthesisResponse.ErrorMessage,
 		})
 
 	// Use the proper fallback summary function instead of hardcoded response
-	return c.createFallbackSummary(functionCalls, functionResults)
+	fallbackResponse := c.createFallbackSummary(functionCalls, functionResults)
+	log.Printf("🔍 [SYNTHESIS_DEBUG] Fallback response generated: %.200s", fallbackResponse)
+	return fallbackResponse
 }
 
 // Helper functions for enhanced logging
@@ -2287,6 +2335,12 @@ func (c *Client) validateFunctionCall(ctx context.Context, functionName string, 
 		var schema map[string]interface{}
 		if err := json.Unmarshal(funcDef.ParametersSchema, &schema); err == nil {
 			if required, ok := schema["required"].([]interface{}); ok {
+				// Debug logging for github_create_branch
+				if functionName == "github_create_branch" {
+					log.Printf("🔍 [VALIDATION_DEBUG] %s expects required params: %+v", functionName, required)
+					log.Printf("🔍 [VALIDATION_DEBUG] %s received params: %+v", functionName, args)
+				}
+
 				for _, reqField := range required {
 					if reqFieldStr, ok := reqField.(string); ok {
 						if _, exists := args[reqFieldStr]; !exists {
@@ -2381,6 +2435,289 @@ func (c *Client) argumentsSimilar(args1, args2 map[string]interface{}) bool {
 	}
 
 	return false
+}
+
+// createIntelligentResultSummary extracts only essential information from function results
+// This prevents context overflow by avoiding large JSON blobs in synthesis prompts
+func (c *Client) createIntelligentResultSummary(functionName string, result map[string]interface{}) string {
+	if result == nil {
+		return "No data returned"
+	}
+
+	// Check for errors first
+	if status, ok := result["status"].(string); ok && (status == "failed" || status == "validation_failed") {
+		if errorMsg, ok := result["error"].(string); ok {
+			return fmt.Sprintf("FAILED: %s", errorMsg)
+		}
+		return "FAILED: Unknown error"
+	}
+
+	switch functionName {
+	case "slack_find_channel":
+		return c.summarizeSlackFindChannel(result)
+	case "slack_read_messages":
+		return c.summarizeSlackReadMessages(result)
+	case "github_read_issues":
+		return c.summarizeGitHubReadIssues(result)
+	case "github_read_commits":
+		return c.summarizeGitHubReadCommits(result)
+	case "github_list_branches":
+		// Return full raw data for github_list_branches - no summarization
+		return c.createFullDataSummary(result)
+	case "github_read_code":
+		// Return full raw data for github_read_code - no summarization
+		return c.createFullDataSummary(result)
+	default:
+		// For other functions, provide a generic summary
+		return c.createGenericSummary(result)
+	}
+}
+
+// summarizeSlackFindChannel extracts essential channel information
+func (c *Client) summarizeSlackFindChannel(result map[string]interface{}) string {
+	var channels []interface{}
+
+	// Handle Slack integration response structure: {"status": "success", "data": {...}}
+	if data, ok := result["data"].(map[string]interface{}); ok {
+		if ch, ok := data["channels"].([]interface{}); ok {
+			channels = ch
+		}
+	} else if ch, ok := result["channels"].([]interface{}); ok {
+		// Fallback for direct structure
+		channels = ch
+	}
+
+	if len(channels) > 0 {
+		if channel, ok := channels[0].(map[string]interface{}); ok {
+			channelID, _ := channel["id"].(string)
+			channelName, _ := channel["name"].(string)
+			return fmt.Sprintf("Found channel '%s' (ID: %s)", channelName, channelID)
+		}
+	}
+	return "No channels found"
+}
+
+// summarizeSlackReadMessages extracts essential message information
+func (c *Client) summarizeSlackReadMessages(result map[string]interface{}) string {
+	var messages []interface{}
+
+	// Handle Slack integration response structure: {"status": "success", "data": {...}}
+	if data, ok := result["data"].(map[string]interface{}); ok {
+		if msgs, ok := data["messages"].([]interface{}); ok {
+			messages = msgs
+		}
+	} else if msgs, ok := result["messages"].([]interface{}); ok {
+		// Fallback for direct structure
+		messages = msgs
+	} else if response, ok := result["response"].(map[string]interface{}); ok {
+		// Fallback for other nested structures
+		if msgs, ok := response["messages"].([]interface{}); ok {
+			messages = msgs
+		}
+	}
+
+	if len(messages) == 0 {
+		return "No messages found"
+	}
+
+	var summary strings.Builder
+	summary.WriteString(fmt.Sprintf("Found %d messages:", len(messages)))
+
+	// Extract key information from each message (limit to essential data)
+	for i, msg := range messages {
+		if i >= 3 { // Only show first 3 messages to prevent context overflow
+			summary.WriteString(fmt.Sprintf(" [+%d more messages]", len(messages)-3))
+			break
+		}
+
+		if msgMap, ok := msg.(map[string]interface{}); ok {
+			text, _ := msgMap["text"].(string)
+			ts, _ := msgMap["ts"].(string)
+			user, _ := msgMap["user"].(string)
+
+			// Truncate long messages but preserve essential content
+			if len(text) > 100 {
+				text = text[:100] + "..."
+			}
+
+			summary.WriteString(fmt.Sprintf("\n  [%s] %s: %s", ts, user, text))
+		}
+	}
+
+	return summary.String()
+}
+
+// summarizeGitHubReadIssues extracts essential issue information
+func (c *Client) summarizeGitHubReadIssues(result map[string]interface{}) string {
+	var issues []interface{}
+
+	// Handle GitHub integration response structure: {"status": "success", "data": [...]}
+	if data, ok := result["data"].([]interface{}); ok {
+		issues = data
+	} else if iss, ok := result["issues"].([]interface{}); ok {
+		// Fallback for legacy structure
+		issues = iss
+	} else if response, ok := result["response"].([]interface{}); ok {
+		// Fallback for other structures
+		issues = response
+	}
+
+	if len(issues) == 0 {
+		return "No open issues found"
+	}
+
+	var summary strings.Builder
+	summary.WriteString(fmt.Sprintf("Found %d open issues:", len(issues)))
+
+	// Extract key information from each issue (limit to essential data)
+	for i, issue := range issues {
+		if i >= 5 { // Only show first 5 issues to prevent context overflow
+			summary.WriteString(fmt.Sprintf(" [+%d more issues]", len(issues)-5))
+			break
+		}
+
+		if issueMap, ok := issue.(map[string]interface{}); ok {
+			title, _ := issueMap["title"].(string)
+			number, _ := issueMap["number"].(float64)
+			state, _ := issueMap["state"].(string)
+
+			// Truncate long titles
+			if len(title) > 60 {
+				title = title[:60] + "..."
+			}
+
+			summary.WriteString(fmt.Sprintf("\n  #%.0f (%s): %s", number, state, title))
+		}
+	}
+
+	return summary.String()
+}
+
+// summarizeGitHubReadCode extracts essential code information
+func (c *Client) summarizeGitHubReadCode(result map[string]interface{}) string {
+	var data map[string]interface{}
+
+	// Handle GitHub integration response structure: {"status": "success", "data": {...}}
+	if d, ok := result["data"].(map[string]interface{}); ok {
+		data = d
+	} else {
+		// Fallback for direct structure
+		data = result
+	}
+
+	if fileType, ok := data["type"].(string); ok {
+		if fileType == "file" {
+			name, _ := data["name"].(string)
+			size, _ := data["size"].(float64)
+			encoding, _ := data["encoding"].(string)
+
+			return fmt.Sprintf("Retrieved file '%s' (%.0f bytes, %s encoding)", name, size, encoding)
+		} else if fileType == "dir" {
+			if items, ok := data["items"].([]interface{}); ok {
+				return fmt.Sprintf("Retrieved directory with %d items", len(items))
+			}
+		}
+	}
+	return "Retrieved code data"
+}
+
+// summarizeGitHubReadCommits extracts essential commit information
+func (c *Client) summarizeGitHubReadCommits(result map[string]interface{}) string {
+	var commits []interface{}
+
+	// Handle GitHub integration response structure: {"status": "success", "data": [...]}
+	if data, ok := result["data"].([]interface{}); ok {
+		commits = data
+	} else if response, ok := result["response"].([]interface{}); ok {
+		// Fallback for other structures
+		commits = response
+	}
+
+	if len(commits) == 0 {
+		return "No commits found"
+	}
+
+	return fmt.Sprintf("Retrieved %d recent commits", len(commits))
+}
+
+// summarizeGitHubListBranches extracts essential branch information including SHAs
+func (c *Client) summarizeGitHubListBranches(result map[string]interface{}) string {
+	var branches []interface{}
+
+	// Handle GitHub integration response structure: {"status": "success", "data": [...]}
+	if data, ok := result["data"].([]interface{}); ok {
+		branches = data
+	} else if response, ok := result["response"].([]interface{}); ok {
+		// Fallback for other structures
+		branches = response
+	}
+
+	if len(branches) == 0 {
+		return "No branches found"
+	}
+
+	var summary strings.Builder
+	summary.WriteString(fmt.Sprintf("Found %d branches:", len(branches)))
+
+	// Extract key information from each branch (name and SHA for github_create_branch)
+	for i, branch := range branches {
+		if i >= 5 { // Only show first 5 branches to prevent context overflow
+			summary.WriteString(fmt.Sprintf(" [+%d more branches]", len(branches)-5))
+			break
+		}
+
+		if branchMap, ok := branch.(map[string]interface{}); ok {
+			name, _ := branchMap["name"].(string)
+
+			// Extract SHA from commit object
+			var sha string
+			if commit, ok := branchMap["commit"].(map[string]interface{}); ok {
+				sha, _ = commit["sha"].(string)
+			}
+
+			if sha != "" {
+				// Provide full SHA prominently for API calls
+				summary.WriteString(fmt.Sprintf("\n  %s (SHA: %s)", name, sha))
+			} else {
+				summary.WriteString(fmt.Sprintf("\n  %s", name))
+			}
+		}
+	}
+
+	return summary.String()
+}
+
+// createGenericSummary provides a fallback summary for unknown functions
+func (c *Client) createGenericSummary(result map[string]interface{}) string {
+	if len(result) == 0 {
+		return "No data returned"
+	}
+
+	// Count data elements
+	dataCount := 0
+	for key, value := range result {
+		if key != "metadata" && key != "_metadata" && value != nil {
+			dataCount++
+		}
+	}
+
+	return fmt.Sprintf("Retrieved data with %d fields", dataCount)
+}
+
+// createFullDataSummary returns the full raw data as JSON for functions that need complete information
+func (c *Client) createFullDataSummary(result map[string]interface{}) string {
+	if len(result) == 0 {
+		return "No data returned"
+	}
+
+	// Convert the result to JSON string for full data access
+	jsonBytes, err := json.Marshal(result)
+	if err != nil {
+		log.Printf("⚠️ Failed to marshal result to JSON: %v", err)
+		return c.createGenericSummary(result)
+	}
+
+	return string(jsonBytes)
 }
 
 // autoExtractParameters automatically extracts missing parameters from previous function results

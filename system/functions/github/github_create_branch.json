@@ -1,35 +1,60 @@
 {
-  "id": "github-create-branch-uuid",
+  "id": "func-github-create-branch",
   "name": "github_create_branch",
   "provider": "github",
   "function_group": "github",
-  "display_name": "Create GitHub Branch",
-  "description": "Create a new branch in a GitHub repository from an existing branch, tag, or commit",
+  "display_name": "GitHub Create Branch",
+  "description": "Create a new branch in a GitHub repository from an existing branch, tag, or commit SHA. IMPORTANT: You must first get the SHA of the source branch using github_list_branches or github_read_commits, then use that SHA here. The branch will be created as a reference pointing to the specified commit.",
   "endpoint": {
     "path": "/repos/{owner}/{repo}/git/refs",
-    "method": "MCP"
+    "method": "POST"
   },
   "parameters": {
-    "required": ["owner", "repo", "branch_name"],
-    "optional": ["source_branch"],
-    "schema": {"type": "object", "required": ["owner", "repo", "branch_name"], "properties": {"repo": {"type": "string", "description": "Repository name"}, "owner": {"type": "string", "description": "GitHub username or organization"}, "branch_name": {"type": "string", "description": "Name of the new branch to create"}, "source_branch": {"type": "string", "default": "main", "description": "Source branch to create from"}}}
+    "required": ["owner", "repo", "ref", "sha"],
+    "optional": [],
+    "schema": {
+      "type": "object",
+      "required": ["owner", "repo", "ref", "sha"],
+      "properties": {
+        "owner": {
+          "type": "string",
+          "description": "GitHub username or organization name"
+        },
+        "repo": {
+          "type": "string",
+          "description": "Repository name"
+        },
+        "ref": {
+          "type": "string",
+          "description": "The full reference name for the new branch. MUST be in format 'refs/heads/BRANCH_NAME'. Example: if you want to create branch 'feature/my-feature', use 'refs/heads/feature/my-feature'."
+        },
+        "sha": {
+          "type": "string",
+          "description": "The SHA1 commit hash that the new branch will point to. REQUIRED: First call github_list_branches to get the SHA of your source branch (like 'main'), then use that SHA here."
+        }
+      }
+    }
   },
+  "workflow": "STEP 1: Call github_list_branches to get SHA of source branch. STEP 2: Call github_create_branch with that SHA and your new branch name in refs/heads/ format.",
   "examples": [
     {
-      "name": "Create a new branch",
+      "name": "Create a new branch from main",
+      "description": "After getting main branch SHA from github_list_branches",
       "parameters": {
         "owner": "microsoft",
         "repo": "vscode",
-        "branch_name": "feature/new-feature"
+        "ref": "refs/heads/feature/new-feature",
+        "sha": "a1b2c3d4e5f6789012345678901234567890abcd"
       }
     },
     {
-      "name": "Create branch from specific source",
+      "name": "Create branch from specific commit",
+      "description": "Using a specific commit SHA",
       "parameters": {
         "owner": "facebook",
         "repo": "react",
-        "branch_name": "bugfix/issue-123",
-        "source_branch": "develop"
+        "ref": "refs/heads/bugfix/issue-123",
+        "sha": "1234567890abcdef1234567890abcdef12345678"
       }
     }
   ]

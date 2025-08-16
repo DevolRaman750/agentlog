@@ -4,7 +4,7 @@
   "provider": "github",
   "function_group": "github",
   "display_name": "GitHub Get File SHA",
-  "description": "Get the SHA hash of a specific file in a GitHub repository. Required for updating existing files.",
+  "description": "Get the SHA hash of a specific file in a GitHub repository. This SHA is REQUIRED when calling github_create_update_file to update existing files. Use this function first to get the SHA, then pass it to github_create_update_file.",
   "endpoint": {
     "path": "/repos/{owner}/{repo}/contents/{path}",
     "method": "GET"

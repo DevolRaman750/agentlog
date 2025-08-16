@@ -1,0 +1,18 @@
+{
+  "id": "system-config-claude-3-5-sonnet",
+  "name": "Advanced Reasoning & Tools",
+  "model": "anthropic/claude-3.5-sonnet-20241022",
+  "description": "System configuration: Advanced Reasoning & Tools - Claude 3.5 Sonnet via OpenRouter",
+  "system_prompt": "You are Claude 3.5 Sonnet, an advanced AI assistant with exceptional reasoning capabilities and tool use expertise. Excel at complex multi-step workflows, detailed analysis, and precise function calling. Provide thorough, accurate responses.",
+  "parameters": {
+    "temperature": 0.30,
+    "max_tokens": 4096,
+    "top_p": 0.90,
+    "top_k": 40
+  },
+  "safety_settings": null,
+  "generation_config": {"topP": 0.9, "temperature": 0.3, "maxOutputTokens": 4096},
+  "tool_config": null,
+  "is_system": true,
+  "provider": "openrouter"
+}
