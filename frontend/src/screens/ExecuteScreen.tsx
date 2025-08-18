@@ -1518,162 +1518,168 @@ const ExecuteScreen: React.FC = () => {
         )}
 
         {/* Header */}
-        <View style={[styles.header, (agentData.isAgentExecution || currentExecutionMode !== 'experiment') && styles.headerCompact]}>
-          <View style={styles.titleContainer}>
-            <Ionicons 
-              name={currentModeInfo.icon as any} 
-              size={24} 
-              color={currentModeInfo.color} 
-              style={styles.titleIcon}
-            />
-            <Text style={styles.title}>
-              {currentModeInfo.title}
-            </Text>
-          </View>
-          <Text style={styles.subtitle}>
-            {currentModeInfo.description}
-          </Text>
-          
-          {/* Mode-specific warnings or info */}
-          {currentExecutionMode === 'experiment' && formState.selectedConfigs.length > 1 && (
-            <View style={styles.warningContainer}>
-              <Ionicons name="warning" size={16} color="#FF9500" />
-              <Text style={styles.warningText}>
-                Multiple configurations selected - this will run {formState.selectedConfigs.length} separate executions
+        {!currentExecution?.isExecuting && (
+          <View style={[styles.header, (agentData.isAgentExecution || currentExecutionMode !== 'experiment') && styles.headerCompact]}>
+            <View style={styles.titleContainer}>
+              <Ionicons 
+                name={currentModeInfo.icon as any} 
+                size={24} 
+                color={currentModeInfo.color} 
+                style={styles.titleIcon}
+              />
+              <Text style={styles.title}>
+                {currentModeInfo.title}
               </Text>
             </View>
-          )}
-          
-          {currentExecutionMode === 'agent' && !hasAgentsOrTeams && (
-            <View style={styles.infoContainer}>
-              <Ionicons name="information-circle" size={16} color="#007AFF" />
-              <Text style={styles.infoText}>
-                Create an agent first to use agent execution mode
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* Main Prompt - First and Most Prominent */}
-        <View style={[styles.fieldContainer, styles.primaryField, (templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution) && styles.readOnlyField]}>
-          <View style={styles.labelContainer}>
-            <Ionicons name="chatbubble-ellipses" size={18} color="#007AFF" />
-            <Text style={[styles.fieldLabel, styles.primaryFieldLabel]}>
-              {(templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution) 
-                ? (templateExecutionData.isAgentExecution ? 'Agent Prompt Template' : 'Template Prompt')
-                : 'What do you want the AI to do?'
-              }
-            </Text>
-            {(templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution) ? (
-              <View style={styles.templateBadge}>
-                <Text style={styles.templateBadgeText}>Template</Text>
-              </View>
-            ) : (
-              <Text style={styles.requiredText}>Required</Text>
-            )}
-          </View>
-          
-          <EnhancedTextEditor
-            value={formState.prompt}
-            onChangeText={(text) => updateField('prompt', text)}
-            placeholder="Write a compelling product description for a sustainable water bottle that highlights its eco-friendly features..."
-            label={(templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution) 
-              ? (templateExecutionData.isAgentExecution ? 'Agent Prompt Template' : 'Template Prompt')
-              : 'What do you want the AI to do?'
-            }
-            minHeight={200}
-            maxHeight={600}
-            allowFullscreen={true}
-            showCharacterCount={true}
-            showWordCount={true}
-            showLineNumbers={false}
-            showToolbar={true}
-            enableMarkdown={true}
-            required={true}
-            helperText={
-              (templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution) && parameterValues.length > 0
-                ? "This prompt is from a template. Use the parameter inputs below to customize the execution."
-                : "Provide clear, detailed instructions for what you want the AI to accomplish"
-            }
-            editable={true}
-          />
-        </View>
-
-        {/* Execution Tags - Quick Configuration Access */}
-        <ExecutionTags
-          selectedConfigsCount={formState.selectedConfigs.length}
-          selectedFunctionsCount={formState.selectedFunctions.length}
-          otherOptionsCount={getOtherOptionsCount()}
-          onConfigurationPress={() => setShowConfigurationModal(true)}
-          onFunctionsPress={() => setShowFunctionsModal(true)}
-          onOtherOptionsPress={() => setShowOtherOptionsModal(true)}
-        />
-
-        {/* Template Parameters Section - Show when parameters are detected */}
-        {showParameters && parameterValues.length > 0 && (
-          <View style={[styles.fieldContainer, styles.parametersField]}>
-            <View style={styles.labelContainer}>
-              <Ionicons name="code-slash" size={18} color="#FF9500" />
-              <Text style={[styles.fieldLabel, styles.parametersFieldLabel]}>Template Parameters</Text>
-              <View style={styles.parameterBadge}>
-                <Text style={styles.parameterBadgeText}>{parameterValues.length}</Text>
-              </View>
-            </View>
-            <Text style={styles.parametersDescription}>
-              Your prompt contains parameters. Please provide values below:
+            <Text style={styles.subtitle}>
+              {currentModeInfo.description}
             </Text>
             
-            <View style={styles.parametersContainer}>
-              {parameterValues.map((param, index) => (
-                <View key={param.name} style={styles.parameterInputContainer}>
-                  <View style={styles.parameterHeader}>
-                    <Text style={styles.parameterName}>{`{{${param.name}}}`}</Text>
-                    {param.isRequired && (
-                      <Text style={styles.parameterRequired}>Required</Text>
-                    )}
-                  </View>
-                  
-                  {param.value.length > 100 || param.description?.toLowerCase().includes('long') || param.description?.toLowerCase().includes('detailed') ? (
-                    <EnhancedTextEditor
-                      value={param.value}
-                      onChangeText={(value) => updateParameterValue(param.name, value)}
-                      placeholder={`Enter value for ${param.name}...`}
-                      minHeight={80}
-                      maxHeight={200}
-                      allowFullscreen={true}
-                      showCharacterCount={true}
-                      showWordCount={false}
-                      showLineNumbers={false}
-                      showToolbar={false}
-                      autoExpandOnFocus={true}
-                      required={param.isRequired}
-                      helperText={param.description}
-                    />
-                  ) : (
-                    <TextInput
-                      style={styles.parameterInput}
-                      value={param.value}
-                      onChangeText={(value) => updateParameterValue(param.name, value)}
-                      placeholder={`Enter value for ${param.name}...`}
-                      placeholderTextColor="#8E8E93"
-                      multiline={param.value.length > 50}
-                      numberOfLines={param.value.length > 50 ? 3 : 1}
-                    />
-                  )}
-                  
-                  {param.description && (
-                    <Text style={styles.parameterDescription}>{param.description}</Text>
-                  )}
-                </View>
-              ))}
-            </View>
+            {/* Mode-specific warnings or info */}
+            {currentExecutionMode === 'experiment' && formState.selectedConfigs.length > 1 && (
+              <View style={styles.warningContainer}>
+                <Ionicons name="warning" size={16} color="#FF9500" />
+                <Text style={styles.warningText}>
+                  Multiple configurations selected - this will run {formState.selectedConfigs.length} separate executions
+                </Text>
+              </View>
+            )}
+            
+            {currentExecutionMode === 'agent' && !hasAgentsOrTeams && (
+              <View style={styles.infoContainer}>
+                <Ionicons name="information-circle" size={16} color="#007AFF" />
+                <Text style={styles.infoText}>
+                  Create an agent first to use agent execution mode
+                </Text>
+              </View>
+            )}
           </View>
+        )}
+
+        {/* Main Prompt - First and Most Prominent */}
+        {!currentExecution?.isExecuting && (
+          <>
+            <View style={[styles.fieldContainer, styles.primaryField, (templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution) && styles.readOnlyField]}>
+              <View style={styles.labelContainer}>
+                <Ionicons name="chatbubble-ellipses" size={18} color="#007AFF" />
+                <Text style={[styles.fieldLabel, styles.primaryFieldLabel]}>
+                  {(templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution) 
+                    ? (templateExecutionData.isAgentExecution ? 'Agent Prompt Template' : 'Template Prompt')
+                    : 'What do you want the AI to do?'
+                  }
+                </Text>
+                {(templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution) ? (
+                  <View style={styles.templateBadge}>
+                    <Text style={styles.templateBadgeText}>Template</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.requiredText}>Required</Text>
+                )}
+              </View>
+              
+              <EnhancedTextEditor
+                value={formState.prompt}
+                onChangeText={(text) => updateField('prompt', text)}
+                placeholder="Write a compelling product description for a sustainable water bottle that highlights its eco-friendly features..."
+                label={(templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution) 
+                  ? (templateExecutionData.isAgentExecution ? 'Agent Prompt Template' : 'Template Prompt')
+                  : 'What do you want the AI to do?'
+                }
+                minHeight={200}
+                maxHeight={600}
+                allowFullscreen={true}
+                showCharacterCount={true}
+                showWordCount={true}
+                showLineNumbers={false}
+                showToolbar={true}
+                enableMarkdown={true}
+                required={true}
+                helperText={
+                  (templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution) && parameterValues.length > 0
+                    ? "This prompt is from a template. Use the parameter inputs below to customize the execution."
+                    : "Provide clear, detailed instructions for what you want the AI to accomplish"
+                }
+                editable={true}
+              />
+            </View>
+
+            {/* Execution Tags - Quick Configuration Access */}
+            <ExecutionTags
+              selectedConfigsCount={formState.selectedConfigs.length}
+              selectedFunctionsCount={formState.selectedFunctions.length}
+              otherOptionsCount={getOtherOptionsCount()}
+              onConfigurationPress={() => setShowConfigurationModal(true)}
+              onFunctionsPress={() => setShowFunctionsModal(true)}
+              onOtherOptionsPress={() => setShowOtherOptionsModal(true)}
+            />
+
+            {/* Template Parameters Section - Show when parameters are detected */}
+            {showParameters && parameterValues.length > 0 && (
+              <View style={[styles.fieldContainer, styles.parametersField]}>
+                <View style={styles.labelContainer}>
+                  <Ionicons name="code-slash" size={18} color="#FF9500" />
+                  <Text style={[styles.fieldLabel, styles.parametersFieldLabel]}>Template Parameters</Text>
+                  <View style={styles.parameterBadge}>
+                    <Text style={styles.parameterBadgeText}>{parameterValues.length}</Text>
+                  </View>
+                </View>
+                <Text style={styles.parametersDescription}>
+                  Your prompt contains parameters. Please provide values below:
+                </Text>
+                
+                <View style={styles.parametersContainer}>
+                  {parameterValues.map((param, index) => (
+                    <View key={param.name} style={styles.parameterInputContainer}>
+                      <View style={styles.parameterHeader}>
+                        <Text style={styles.parameterName}>{`{{${param.name}}}`}</Text>
+                        {param.isRequired && (
+                          <Text style={styles.parameterRequired}>Required</Text>
+                        )}
+                      </View>
+                      
+                      {param.value.length > 100 || param.description?.toLowerCase().includes('long') || param.description?.toLowerCase().includes('detailed') ? (
+                        <EnhancedTextEditor
+                          value={param.value}
+                          onChangeText={(value) => updateParameterValue(param.name, value)}
+                          placeholder={`Enter value for ${param.name}...`}
+                          minHeight={80}
+                          maxHeight={200}
+                          allowFullscreen={true}
+                          showCharacterCount={true}
+                          showWordCount={false}
+                          showLineNumbers={false}
+                          showToolbar={false}
+                          autoExpandOnFocus={true}
+                          required={param.isRequired}
+                          helperText={param.description}
+                        />
+                      ) : (
+                        <TextInput
+                          style={styles.parameterInput}
+                          value={param.value}
+                          onChangeText={(value) => updateParameterValue(param.name, value)}
+                          placeholder={`Enter value for ${param.name}...`}
+                          placeholderTextColor="#8E8E93"
+                          multiline={param.value.length > 50}
+                          numberOfLines={param.value.length > 50 ? 3 : 1}
+                        />
+                      )}
+                      
+                      {param.description && (
+                        <Text style={styles.parameterDescription}>{param.description}</Text>
+                      )}
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+          </>
         )}
 
 
 
         {/* Execute Button */}
-        <View style={styles.executeContainer}>
+        <View style={[styles.executeContainer, currentExecution?.isExecuting && styles.executeContainerExpanded]}>
           {currentExecution?.isExecuting ? (
             <LiveExecutionViewer
               executionId={currentExecution.executionId || ''}
@@ -1702,9 +1708,11 @@ const ExecuteScreen: React.FC = () => {
             </Animated.View>
           )}
           
-          <Text style={styles.executeDescription}>
-            This will run your prompt across all selected AI configurations and provide comparison results
-          </Text>
+          {!currentExecution?.isExecuting && (
+            <Text style={styles.executeDescription}>
+              This will run your prompt across all selected AI configurations and provide comparison results
+            </Text>
+          )}
         </View>
 
         {/* Execution Started Feedback Overlay */}
@@ -2118,6 +2126,10 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: Platform.OS === 'ios' ? 40 : 30, // Platform-specific margin
     paddingHorizontal: Platform.OS === 'ios' ? 0 : 4, // Slight padding on Android
+  },
+  executeContainerExpanded: {
+    flex: 1,
+    minHeight: 800,
   },
   executingContainer: {
     backgroundColor: '#FFFFFF',

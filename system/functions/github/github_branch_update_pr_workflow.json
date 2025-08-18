@@ -10,54 +10,58 @@
     "method": "POST"
   },
   "parameters": {
-    "required": ["owner", "repo", "branch_name", "file_path", "file_content", "commit_message", "pr_title"],
-    "optional": ["pr_body", "base_branch", "draft"],
-    "schema": {
-      "type": "object",
-      "required": ["owner", "repo", "branch_name", "file_path", "file_content", "commit_message", "pr_title"],
-      "properties": {
-        "owner": {
-          "type": "string",
-          "description": "GitHub username or organization name"
-        },
-        "repo": {
-          "type": "string",
-          "description": "Repository name"
-        },
-        "branch_name": {
-          "type": "string",
-          "description": "Name for the new branch (without refs/heads/ prefix)"
-        },
-        "file_path": {
-          "type": "string",
-          "description": "Path to the file to update"
-        },
-        "file_content": {
-          "type": "string",
-          "description": "New content for the file"
-        },
-        "commit_message": {
-          "type": "string",
-          "description": "Commit message for the file change"
-        },
-        "pr_title": {
-          "type": "string",
-          "description": "Title for the pull request"
-        },
-        "pr_body": {
-          "type": "string",
-          "description": "Description for the pull request (optional)"
-        },
-        "base_branch": {
-          "type": "string",
-          "default": "main",
-          "description": "Base branch to create the new branch from and merge PR into"
-        },
-        "draft": {
-          "type": "boolean",
-          "default": false,
-          "description": "Create as draft PR"
-        }
+    "type": "object",
+    "required": [
+      "owner",
+      "repo",
+      "branch_name",
+      "file_path",
+      "file_content",
+      "commit_message",
+      "pr_title"
+    ],
+    "properties": {
+      "owner": {
+        "type": "string",
+        "description": "GitHub username or organization name"
+      },
+      "repo": {
+        "type": "string",
+        "description": "Repository name"
+      },
+      "branch_name": {
+        "type": "string",
+        "description": "Name for the new branch (without refs/heads/ prefix)"
+      },
+      "file_path": {
+        "type": "string",
+        "description": "Path to the file to update"
+      },
+      "file_content": {
+        "type": "string",
+        "description": "New content for the file"
+      },
+      "commit_message": {
+        "type": "string",
+        "description": "Commit message for the file change"
+      },
+      "pr_title": {
+        "type": "string",
+        "description": "Title for the pull request"
+      },
+      "pr_body": {
+        "type": "string",
+        "description": "Description for the pull request (optional)"
+      },
+      "base_branch": {
+        "type": "string",
+        "default": "main",
+        "description": "Base branch to create the new branch from and merge PR into"
+      },
+      "draft": {
+        "type": "boolean",
+        "default": false,
+        "description": "Create as draft PR"
       }
     }
   },

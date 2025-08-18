@@ -9,16 +9,12 @@
     "method": "GET"
   },
   "parameters": {
-    "required": [],
-    "optional": ["include_locale"],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "include_locale": {
-          "type": "boolean",
-          "default": false,
-          "description": "Include locale information"
-        }
+    "type": "object",
+    "properties": {
+      "include_locale": {
+        "type": "boolean",
+        "default": false,
+        "description": "Include locale information"
       }
     }
   },

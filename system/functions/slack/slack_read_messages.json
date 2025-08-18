@@ -1,7 +1,7 @@
 {
   "id": "00000000-0000-0000-0000-000000000081",
   "name": "slack_read_messages",
-  "provider": "slack", 
+  "provider": "slack",
   "display_name": "Slack: Read Messages",
   "description": "Read recent messages from a Slack channel. Requires a channel ID (e.g., C099KTQE1L5). Returns message history with timestamps, user info, and content for analysis.",
   "endpoint": {
@@ -10,45 +10,41 @@
     "url": "https://slack.com/api/conversations.history"
   },
   "parameters": {
-    "required": ["channel"],
-    "optional": ["limit", "latest", "oldest", "inclusive", "cursor"],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "channel": {
-          "type": "string",
-          "description": "Channel ID (e.g., C1234567890). MUST be the exact 'id' value from slack_find_channel response. Do NOT use channel names or names with # prefix."
-        },
-        "limit": {
-          "type": "integer",
-          "default": 5,
-          "maximum": 10,
-          "minimum": 1,
-          "description": "Number of messages to return (1-10, default 5). Keep small to avoid context overflow."
-        },
-        "latest": {
-          "type": "string",
-          "description": "End of time range of messages to include in results (timestamp)"
-        },
-        "oldest": {
-          "type": "string", 
-          "description": "Start of time range of messages to include in results (timestamp)"
-        },
-        "inclusive": {
-          "type": "boolean",
-          "default": false,
-          "description": "Include messages with latest or oldest timestamp in results"
-        },
-        "cursor": {
-          "type": "string",
-          "description": "Paginate through collections of data by setting the cursor parameter to a next_cursor attribute returned by a previous request's response_metadata"
-        }
+    "type": "object",
+    "properties": {
+      "channel": {
+        "type": "string",
+        "description": "Channel ID (e.g., C1234567890). MUST be the exact 'id' value from slack_find_channel response. Do NOT use channel names or names with # prefix."
       },
-      "required": ["channel"]
-    }
+      "limit": {
+        "type": "integer",
+        "default": 5,
+        "maximum": 10,
+        "minimum": 1,
+        "description": "Number of messages to return (1-10, default 5). Keep small to avoid context overflow."
+      },
+      "latest": {
+        "type": "string",
+        "description": "End of time range of messages to include in results (timestamp)"
+      },
+      "oldest": {
+        "type": "string",
+        "description": "Start of time range of messages to include in results (timestamp)"
+      },
+      "inclusive": {
+        "type": "boolean",
+        "default": false,
+        "description": "Include messages with latest or oldest timestamp in results"
+      },
+      "cursor": {
+        "type": "string",
+        "description": "Paginate through collections of data by setting the cursor parameter to a next_cursor attribute returned by a previous request's response_metadata"
+      }
+    },
+    "required": [
+      "channel"
+    ]
   },
-
-
   "examples": [
     {
       "name": "Read recent messages (recommended)",

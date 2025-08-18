@@ -845,6 +845,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
     overflow: 'hidden',
+    flex: 1,
+    minHeight: 800,
+    maxHeight: '100%',
   },
   progressHeader: {
     flexDirection: 'row',
@@ -976,7 +979,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    minHeight: 400,
+    minHeight: 700,
   },
   logsContainer: {
     flex: 1,
@@ -1010,13 +1013,12 @@ const styles = StyleSheet.create({
   },
   logsScrollView: {
     flex: 1,
-    maxHeight: 350,
   },
   emptyListContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    minHeight: 200,
+    minHeight: 400,
   },
   emptyState: {
     alignItems: 'center',

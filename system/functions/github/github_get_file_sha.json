@@ -10,9 +10,31 @@
     "method": "GET"
   },
   "parameters": {
-    "required": ["owner", "repo", "path"],
-    "optional": ["ref"],
-    "schema": {"type": "object", "required": ["owner", "repo", "path"], "properties": {"ref": {"type": "string", "default": "main", "description": "Branch, tag, or commit SHA"}, "path": {"type": "string", "description": "Path to the file"}, "repo": {"type": "string", "description": "Repository name"}, "owner": {"type": "string", "description": "GitHub username or organization"}}}
+    "type": "object",
+    "required": [
+      "owner",
+      "repo",
+      "path"
+    ],
+    "properties": {
+      "ref": {
+        "type": "string",
+        "default": "main",
+        "description": "Branch, tag, or commit SHA"
+      },
+      "path": {
+        "type": "string",
+        "description": "Path to the file"
+      },
+      "repo": {
+        "type": "string",
+        "description": "Repository name"
+      },
+      "owner": {
+        "type": "string",
+        "description": "GitHub username or organization"
+      }
+    }
   },
   "examples": [
     {

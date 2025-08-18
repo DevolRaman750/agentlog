@@ -1032,7 +1032,27 @@ func (c *Client) createMockMemoryResponse(functionName string, args map[string]i
 // executeIntegrationFunction executes functions through the registered integration system
 func (c *Client) executeIntegrationFunction(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
 	functionName := funcDef.Name
+	startTime := time.Now()
+
+	// Enhanced logging for integration function execution
+	c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryIntegration,
+		fmt.Sprintf("🔧 Executing function through integration system: %s", functionName),
+		map[string]interface{}{
+			"functionName":     functionName,
+			"functionGroup":    funcDef.FunctionGroup,
+			"arguments":        args,
+			"argumentCount":    len(args),
+			"endpointUrl":      funcDef.EndpointUrl.String,
+			"httpMethod":       funcDef.HttpMethod.String,
+			"integrationStart": time.Now().Format("15:04:05.000"),
+		})
+
 	log.Printf("🔧 Executing function through integration system: %s", functionName)
+
+	// Handle special composite workflow functions
+	if functionName == "github_branch_update_pr_workflow" {
+		return c.executeGitHubBranchUpdatePRWorkflow(ctx, funcDef, args)
+	}
 
 	// Get the integration for this function group
 	integration, err := c.integrations.Get(funcDef.FunctionGroup)
@@ -1084,12 +1104,214 @@ func (c *Client) executeIntegrationFunction(ctx context.Context, funcDef *db.Fun
 
 	// Execute the request through the integration
 	result, err := httpClient.ExecuteRequest(ctx, integration, funcDef, args)
+	executionTimeMs := time.Since(startTime).Milliseconds()
+
 	if err != nil {
+		// Enhanced error logging for integration failures
+		c.logExecutionEvent(types.LogLevelError, types.LogCategoryIntegration,
+			fmt.Sprintf("❌ Integration function failed: %s - %v", functionName, err),
+			map[string]interface{}{
+				"functionName":     functionName,
+				"functionGroup":    funcDef.FunctionGroup,
+				"integrationError": err.Error(),
+				"duration":         executionTimeMs,
+				"integrationEnd":   time.Now().Format("15:04:05.000"),
+			})
 		return nil, fmt.Errorf("integration execution failed: %w", err)
 	}
 
+	// Enhanced success logging for integration execution
+	resultSummary := c.createIntegrationResultSummary(functionName, result)
+	c.logExecutionEvent(types.LogLevelSuccess, types.LogCategoryIntegration,
+		fmt.Sprintf("✅ Integration function executed successfully: %s - %s", functionName, resultSummary),
+		map[string]interface{}{
+			"functionName":   functionName,
+			"functionGroup":  funcDef.FunctionGroup,
+			"duration":       executionTimeMs,
+			"resultSummary":  resultSummary,
+			"resultKeys":     c.getMapKeysFromResult(result),
+			"integrationEnd": time.Now().Format("15:04:05.000"),
+			"resultPreview":  c.truncateString(fmt.Sprintf("%v", result), 300),
+		})
+
 	log.Printf("✅ Integration function executed successfully: %s", functionName)
 	return result, nil
+}
+
+// createIntegrationResultSummary creates a summary of integration execution results
+func (c *Client) createIntegrationResultSummary(functionName string, result map[string]interface{}) string {
+	if result == nil {
+		return "No data returned"
+	}
+
+	// Check for integration response structure
+	if status, ok := result["status"].(string); ok {
+		if status == "success" {
+			if data, ok := result["data"]; ok {
+				switch functionName {
+				case "github_read_issues", "github_read_commits", "github_read_code", "github_search_code":
+					return fmt.Sprintf("GitHub API success - data type: %T", data)
+				case "slack_find_channel", "slack_read_messages", "slack_send_message":
+					return fmt.Sprintf("Slack API success - data type: %T", data)
+				default:
+					return fmt.Sprintf("API success - data type: %T", data)
+				}
+			}
+			return "API success"
+		} else {
+			return fmt.Sprintf("API status: %s", status)
+		}
+	}
+
+	return fmt.Sprintf("Result with %d fields", len(result))
+}
+
+// getMapKeysFromResult gets keys from a result map, handling nested structures
+func (c *Client) getMapKeysFromResult(result map[string]interface{}) []string {
+	if result == nil {
+		return []string{}
+	}
+
+	keys := make([]string, 0, len(result))
+	for k := range result {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+// executeGitHubBranchUpdatePRWorkflow executes the complete GitHub branch-update-PR workflow
+func (c *Client) executeGitHubBranchUpdatePRWorkflow(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+	// Extract required parameters
+	owner, _ := args["owner"].(string)
+	repo, _ := args["repo"].(string)
+	branchName, _ := args["branch_name"].(string)
+	filePath, _ := args["file_path"].(string)
+	fileContent, _ := args["file_content"].(string)
+	commitMessage, _ := args["commit_message"].(string)
+	prTitle, _ := args["pr_title"].(string)
+	prBody, _ := args["pr_body"].(string)
+	baseBranch, _ := args["base_branch"].(string)
+	draft, _ := args["draft"].(bool)
+
+	// Set default base branch
+	if baseBranch == "" {
+		baseBranch = "main"
+	}
+
+	if owner == "" || repo == "" || branchName == "" || filePath == "" || fileContent == "" || commitMessage == "" || prTitle == "" {
+		return nil, fmt.Errorf("missing required parameters for github_branch_update_pr_workflow")
+	}
+
+	c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryIntegration,
+		fmt.Sprintf("🔧 Starting GitHub branch-update-PR workflow: %s -> %s", branchName, filePath),
+		map[string]interface{}{
+			"owner":         owner,
+			"repo":          repo,
+			"branchName":    branchName,
+			"filePath":      filePath,
+			"baseBranch":    baseBranch,
+			"prTitle":       prTitle,
+			"workflowStart": time.Now().Format("15:04:05.000"),
+		})
+
+	// Get GitHub integration
+	integration, err := c.integrations.Get("github")
+	if err != nil {
+		return nil, fmt.Errorf("GitHub integration not found: %w", err)
+	}
+
+	githubInt, ok := integration.(*githubIntegration.Integration)
+	if !ok {
+		return nil, fmt.Errorf("invalid GitHub integration type")
+	}
+
+	// Set up auth context for the integration
+	if c.currentUserID != "" {
+		apiKeyService, err := apikeys.NewService(c.db)
+		if err == nil {
+			authService := apiauth.NewService(apiKeyService)
+			githubInt = githubIntegration.NewIntegrationWithAuth(authService, c.currentUserID)
+		}
+	}
+
+	// Execute the complete workflow
+	result, err := c.executeCompleteGitHubWorkflow(ctx, githubInt, owner, repo, branchName, filePath, fileContent, commitMessage, prTitle, prBody, baseBranch, draft)
+	if err != nil {
+		c.logExecutionEvent(types.LogLevelError, types.LogCategoryIntegration,
+			fmt.Sprintf("❌ GitHub workflow failed: %v", err),
+			map[string]interface{}{
+				"error":       err.Error(),
+				"owner":       owner,
+				"repo":        repo,
+				"branchName":  branchName,
+				"workflowEnd": time.Now().Format("15:04:05.000"),
+			})
+		return nil, err
+	}
+
+	c.logExecutionEvent(types.LogLevelSuccess, types.LogCategoryIntegration,
+		"✅ GitHub branch-update-PR workflow completed successfully",
+		map[string]interface{}{
+			"owner":       owner,
+			"repo":        repo,
+			"branchName":  branchName,
+			"prNumber":    result["number"],
+			"prUrl":       result["html_url"],
+			"workflowEnd": time.Now().Format("15:04:05.000"),
+		})
+
+	return map[string]interface{}{
+		"status":   "success",
+		"workflow": "branch_update_pr",
+		"data":     result,
+	}, nil
+}
+
+// executeCompleteGitHubWorkflow executes all steps of the GitHub workflow
+func (c *Client) executeCompleteGitHubWorkflow(ctx context.Context, githubInt *githubIntegration.Integration, owner, repo, branchName, filePath, fileContent, commitMessage, prTitle, prBody, baseBranch string, draft bool) (map[string]interface{}, error) {
+	// Step 1: Get base branch SHA
+	baseSHA, err := githubInt.GetBranchSHA(ctx, owner, repo, baseBranch)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get base branch %s SHA: %w", baseBranch, err)
+	}
+	c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryIntegration,
+		fmt.Sprintf("✅ Got base branch %s SHA: %s", baseBranch, baseSHA), nil)
+
+	// Step 2: Create new branch
+	err = githubInt.CreateBranch(ctx, owner, repo, branchName, baseSHA)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create branch %s: %w", branchName, err)
+	}
+	c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryIntegration,
+		fmt.Sprintf("✅ Created branch: %s", branchName), nil)
+
+	// Step 3: Update file on new branch
+	err = githubInt.UpdateFileOnBranch(ctx, owner, repo, filePath, fileContent, commitMessage, branchName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update file %s on branch %s: %w", filePath, branchName, err)
+	}
+	c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryIntegration,
+		fmt.Sprintf("✅ Updated file %s on branch %s", filePath, branchName), nil)
+
+	// Step 4: Create pull request
+	prData := map[string]interface{}{
+		"title": prTitle,
+		"head":  branchName,
+		"base":  baseBranch,
+		"draft": draft,
+	}
+	if prBody != "" {
+		prData["body"] = prBody
+	}
+
+	prResult, err := githubInt.CreatePullRequest(ctx, owner, repo, prData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create pull request: %w", err)
+	}
+	c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryIntegration,
+		fmt.Sprintf("✅ Created pull request #%.0f", prResult["number"]), nil)
+
+	return prResult, nil
 }
 
 // getHTTPClientForIntegration creates an HTTP client for integration use

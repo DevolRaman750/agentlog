@@ -7,7 +7,16 @@
   "context_template": "When investigating issues or analyzing code, be thorough but humble. Ask clarifying questions when needed and provide detailed explanations of your findings. Remember that you are in a learning role - focus on understanding and documenting rather than making changes.",
   "enable_function_calling": true,
   "preferred_configuration_id": "system-config-gemini-flash",
-  "function_ids": ["func-github-read-issues","func-github-read-code","func-github-read-commits","func-github-search-code","slack_send_message","00000000-0000-0000-0000-000000000081","00000000-0000-0000-0000-000000000082","00000000-0000-0000-0000-000000000083"],
+  "function_ids": [
+    "github_read_issues",
+    "github_read_code",
+    "github_read_commits",
+    "github_search_code",
+    "slack_send_message",
+    "slack_find_channel",
+    "slack_read_messages",
+    "slack_add_reaction"
+  ],
   "parameter_names": [],
   "settings": {
     "execution_timeout_seconds": 600,

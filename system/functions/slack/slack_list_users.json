@@ -9,28 +9,24 @@
     "method": "GET"
   },
   "parameters": {
-    "required": [],
-    "optional": ["limit", "presence", "include_locale"],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "limit": {
-          "type": "integer",
-          "default": 1000,
-          "maximum": 1000,
-          "minimum": 1,
-          "description": "Maximum number of users to return (1-1000, default 1000)"
-        },
-        "presence": {
-          "type": "boolean",
-          "default": false,
-          "description": "Include presence information (active/away)"
-        },
-        "include_locale": {
-          "type": "boolean",
-          "default": false,
-          "description": "Include locale information for users"
-        }
+    "type": "object",
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "default": 1000,
+        "maximum": 1000,
+        "minimum": 1,
+        "description": "Maximum number of users to return (1-1000, default 1000)"
+      },
+      "presence": {
+        "type": "boolean",
+        "default": false,
+        "description": "Include presence information (active/away)"
+      },
+      "include_locale": {
+        "type": "boolean",
+        "default": false,
+        "description": "Include locale information for users"
       }
     }
   },

@@ -9,28 +9,29 @@
     "method": "GET"
   },
   "parameters": {
-    "required": ["fileId"],
-    "optional": ["alt", "fields"],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "fileId": {
-          "type": "string",
-          "description": "The ID of the file to retrieve content from"
-        },
-        "alt": {
-          "type": "string",
-          "enum": ["media", "json"],
-          "default": "media",
-          "description": "Specifies the format of the response. Use 'media' to get file content, 'json' for metadata only"
-        },
-        "fields": {
-          "type": "string",
-          "description": "Fields to include in the response (only used when alt=json)"
-        }
+    "type": "object",
+    "properties": {
+      "fileId": {
+        "type": "string",
+        "description": "The ID of the file to retrieve content from"
       },
-      "required": ["fileId"]
-    }
+      "alt": {
+        "type": "string",
+        "enum": [
+          "media",
+          "json"
+        ],
+        "default": "media",
+        "description": "Specifies the format of the response. Use 'media' to get file content, 'json' for metadata only"
+      },
+      "fields": {
+        "type": "string",
+        "description": "Fields to include in the response (only used when alt=json)"
+      }
+    },
+    "required": [
+      "fileId"
+    ]
   },
   "response_transformer": {
     "type": "googledrive_content",

@@ -10,9 +10,32 @@
     "method": "POST"
   },
   "parameters": {
-    "required": ["owner", "repo", "issue_number", "body"],
-    "optional": [],
-    "schema": {"type": "object", "required": ["owner", "repo", "issue_number", "body"], "properties": {"body": {"type": "string", "description": "The comment content. Supports full GitHub Markdown formatting"}, "repo": {"type": "string", "description": "Repository name"}, "owner": {"type": "string", "description": "GitHub username or organization name"}, "issue_number": {"type": "integer", "minimum": 1, "description": "The issue or pull request number to comment on"}}}
+    "type": "object",
+    "required": [
+      "owner",
+      "repo",
+      "issue_number",
+      "body"
+    ],
+    "properties": {
+      "body": {
+        "type": "string",
+        "description": "The comment content. Supports full GitHub Markdown formatting"
+      },
+      "repo": {
+        "type": "string",
+        "description": "Repository name"
+      },
+      "owner": {
+        "type": "string",
+        "description": "GitHub username or organization name"
+      },
+      "issue_number": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "The issue or pull request number to comment on"
+      }
+    }
   },
   "examples": [
     {

@@ -1,0 +1,48 @@
+{
+  "id": "func-github-close-pull-request",
+  "name": "github_close_pull_request",
+  "provider": "github",
+  "function_group": "github",
+  "display_name": "GitHub: Close Pull Request",
+  "description": "Close an open pull request without merging it. This marks the PR as closed and prevents it from being merged. Use this to reject or cancel pull requests that should not be merged.",
+  "endpoint": {
+    "path": "/repos/{owner}/{repo}/pulls/{pull_number}",
+    "method": "PATCH"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "owner": {
+        "type": "string",
+        "description": "Repository owner (username or organization)"
+      },
+      "repo": {
+        "type": "string",
+        "description": "Repository name"
+      },
+      "pull_number": {
+        "type": "integer",
+        "description": "Pull request number (e.g., 123 for PR #123)"
+      }
+    },
+    "required": ["owner", "repo", "pull_number"]
+  },
+  "examples": [
+    {
+      "name": "Close a specific pull request",
+      "parameters": {
+        "owner": "microsoft",
+        "repo": "vscode",
+        "pull_number": 123
+      }
+    },
+    {
+      "name": "Close another pull request",
+      "parameters": {
+        "owner": "facebook",
+        "repo": "react",
+        "pull_number": 456
+      }
+    }
+  ]
+}

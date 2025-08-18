@@ -10,30 +10,29 @@
     "method": "GET"
   },
   "parameters": {
-    "required": ["owner", "repo"],
-    "optional": ["path", "ref"],
-    "schema": {
-      "type": "object",
-      "required": ["owner", "repo"],
-      "properties": {
-        "ref": {
-          "type": "string",
-          "default": "",
-          "description": "Branch, tag, or commit SHA. Examples: 'main', 'develop', 'v1.0.0'. Default is the default branch."
-        },
-        "path": {
-          "type": "string",
-          "default": "",
-          "description": "File or directory path within the repo. Use empty string '' to explore the repository root first and see what directories exist. Then navigate to specific paths based on what you discover. Examples: '' (root directory), 'src/' (if it exists), 'README.md'"
-        },
-        "repo": {
-          "type": "string",
-          "description": "Repository name (e.g., 'vscode', 'react', 'tensorflow')"
-        },
-        "owner": {
-          "type": "string",
-          "description": "GitHub username or organization name (e.g., 'microsoft', 'facebook', 'google')"
-        }
+    "type": "object",
+    "required": [
+      "owner",
+      "repo"
+    ],
+    "properties": {
+      "ref": {
+        "type": "string",
+        "default": "",
+        "description": "Branch, tag, or commit SHA. Examples: 'main', 'develop', 'v1.0.0'. Default is the default branch."
+      },
+      "path": {
+        "type": "string",
+        "default": "",
+        "description": "File or directory path within the repo. Use empty string '' to explore the repository root first and see what directories exist. Then navigate to specific paths based on what you discover. Examples: '' (root directory), 'src/' (if it exists), 'README.md'"
+      },
+      "repo": {
+        "type": "string",
+        "description": "Repository name (e.g., 'vscode', 'react', 'tensorflow')"
+      },
+      "owner": {
+        "type": "string",
+        "description": "GitHub username or organization name (e.g., 'microsoft', 'facebook', 'google')"
       }
     }
   },

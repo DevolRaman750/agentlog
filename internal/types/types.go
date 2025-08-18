@@ -42,6 +42,7 @@ const (
 	LogCategoryExecution    LogCategory = "EXECUTION"
 	LogCategoryFunctionCall LogCategory = "FUNCTION_CALL"
 	LogCategoryAPICall      LogCategory = "API_CALL"
+	LogCategoryIntegration  LogCategory = "INTEGRATION"
 	LogCategoryCompletion   LogCategory = "COMPLETION"
 	LogCategoryError        LogCategory = "ERROR"
 )

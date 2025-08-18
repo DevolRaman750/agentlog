@@ -135,6 +135,11 @@ func (c *HTTPClient) prepareRequestBody(integration APIIntegration, funcDef *db.
 				}
 			}
 		}
+
+		// Special handling for github_close_pull_request - automatically add state: closed
+		if funcDef.Name == "github_close_pull_request" {
+			bodyData["state"] = "closed"
+		}
 	default:
 		// For other integrations, include all non-nil parameters
 		for key, value := range args {

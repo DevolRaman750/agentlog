@@ -9,37 +9,41 @@
     "method": "GET"
   },
   "parameters": {
-    "required": ["query"],
-    "optional": ["sort", "count", "sort_dir"],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "query": {
-          "type": "string",
-          "description": "Search query terms"
-        },
-        "sort": {
-          "enum": ["timestamp", "score"],
-          "type": "string",
-          "default": "score",
-          "description": "Sort results by timestamp or score"
-        },
-        "count": {
-          "type": "integer",
-          "default": 20,
-          "maximum": 1000,
-          "minimum": 1,
-          "description": "Number of items to return (1-1000, default 20)"
-        },
-        "sort_dir": {
-          "enum": ["asc", "desc"],
-          "type": "string",
-          "default": "desc",
-          "description": "Sort direction"
-        }
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "Search query terms"
       },
-      "required": ["query"]
-    }
+      "sort": {
+        "enum": [
+          "timestamp",
+          "score"
+        ],
+        "type": "string",
+        "default": "score",
+        "description": "Sort results by timestamp or score"
+      },
+      "count": {
+        "type": "integer",
+        "default": 20,
+        "maximum": 1000,
+        "minimum": 1,
+        "description": "Number of items to return (1-1000, default 20)"
+      },
+      "sort_dir": {
+        "enum": [
+          "asc",
+          "desc"
+        ],
+        "type": "string",
+        "default": "desc",
+        "description": "Sort direction"
+      }
+    },
+    "required": [
+      "query"
+    ]
   },
   "examples": [
     {

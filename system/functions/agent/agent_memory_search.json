@@ -6,62 +6,81 @@
   "description": "Search through the agent's memory using semantic queries, patterns, or filters. This helps find relevant information when you don't know the exact location, or need to discover patterns across different memory contexts.",
   "endpoint": {
     "path": "/internal/agent/memory/search",
-    "method": "POST" 
+    "method": "POST"
   },
   "parameters": {
-    "required": ["query"],
-    "optional": ["agent_id", "contexts", "search_type", "limit", "time_range"],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "agent_id": {
-          "type": "string",
-          "description": "Agent ID to search memory for. If not provided, will use the current execution context's agent ID."
-        },
-        "query": {
-          "type": "string",
-          "description": "Search query - can be keywords, phrases, or semantic descriptions of what you're looking for"
-        },
-        "contexts": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "enum": ["workflow", "session", "persistent"]
-          },
-          "default": ["workflow", "session", "persistent"],
-          "description": "Which memory contexts to search in"
-        },
-        "search_type": {
-          "type": "string",
-          "enum": ["semantic", "exact", "pattern", "fuzzy"],
-          "default": "semantic",
-          "description": "Type of search - semantic for meaning-based, exact for literal matches, pattern for regex, fuzzy for approximate"
-        },
-        "limit": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 100,
-          "default": 20,
-          "description": "Maximum number of results to return"
-        },
-        "time_range": {
-          "type": "object",
-          "properties": {
-            "start": {"type": "string", "format": "date-time"},
-            "end": {"type": "string", "format": "date-time"}
-          },
-          "description": "Filter results by when they were stored"
-        }
+    "type": "object",
+    "properties": {
+      "agent_id": {
+        "type": "string",
+        "description": "Agent ID to search memory for. If not provided, will use the current execution context's agent ID."
       },
-      "required": ["query"]
-    }
+      "query": {
+        "type": "string",
+        "description": "Search query - can be keywords, phrases, or semantic descriptions of what you're looking for"
+      },
+      "contexts": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "workflow",
+            "session",
+            "persistent"
+          ]
+        },
+        "default": [
+          "workflow",
+          "session",
+          "persistent"
+        ],
+        "description": "Which memory contexts to search in"
+      },
+      "search_type": {
+        "type": "string",
+        "enum": [
+          "semantic",
+          "exact",
+          "pattern",
+          "fuzzy"
+        ],
+        "default": "semantic",
+        "description": "Type of search - semantic for meaning-based, exact for literal matches, pattern for regex, fuzzy for approximate"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 20,
+        "description": "Maximum number of results to return"
+      },
+      "time_range": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "Filter results by when they were stored"
+      }
+    },
+    "required": [
+      "query"
+    ]
   },
   "examples": [
     {
       "name": "Find workflow steps",
       "parameters": {
         "query": "data collection analysis steps",
-        "contexts": ["workflow"],
+        "contexts": [
+          "workflow"
+        ],
         "search_type": "semantic",
         "limit": 10
       }
@@ -70,7 +89,9 @@
       "name": "Search for error patterns",
       "parameters": {
         "query": "timeout error failure",
-        "contexts": ["persistent"],
+        "contexts": [
+          "persistent"
+        ],
         "search_type": "fuzzy"
       }
     },
@@ -78,7 +99,9 @@
       "name": "Find recent user interactions",
       "parameters": {
         "query": "user preferences settings",
-        "contexts": ["session"],
+        "contexts": [
+          "session"
+        ],
         "time_range": {
           "start": "2024-01-15T00:00:00Z"
         }

@@ -10,9 +10,32 @@
     "method": "GET"
   },
   "parameters": {
-    "required": ["owner", "repo"],
-    "optional": ["per_page", "protected"],
-    "schema": {"type": "object", "required": ["owner", "repo"], "properties": {"repo": {"type": "string", "description": "Repository name"}, "owner": {"type": "string", "description": "GitHub username or organization"}, "per_page": {"type": "integer", "default": 30, "maximum": 100, "minimum": 1}, "protected": {"type": "boolean", "default": false, "description": "Filter to protected branches only"}}}
+    "type": "object",
+    "required": [
+      "owner",
+      "repo"
+    ],
+    "properties": {
+      "repo": {
+        "type": "string",
+        "description": "Repository name"
+      },
+      "owner": {
+        "type": "string",
+        "description": "GitHub username or organization"
+      },
+      "per_page": {
+        "type": "integer",
+        "default": 30,
+        "maximum": 100,
+        "minimum": 1
+      },
+      "protected": {
+        "type": "boolean",
+        "default": false,
+        "description": "Filter to protected branches only"
+      }
+    }
   },
   "examples": [
     {

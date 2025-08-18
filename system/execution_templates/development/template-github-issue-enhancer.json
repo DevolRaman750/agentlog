@@ -8,16 +8,16 @@
   "enable_function_calling": true,
   "preferred_configuration_id": "system-config-gemini-pro",
   "function_ids": [
-    "func-github-read-issues",
-    "func-github-read-code", 
-    "func-github-read-commits",
-    "func-github-search-code",
-    "func-github-add-comment",
-    "func-github-update-issue",
-    "func-agent_memory_clear-1754951707",
-    "func-agent_memory_read-1754754882",
-    "func-agent_memory_search-1754754882",
-    "func-agent_memory_write-1754754882"
+    "github_read_issues",
+    "github_read_code", 
+    "github_read_commits",
+    "github_search_code",
+    "github_add_comment",
+    "github_update_issue",
+    "agent_memory_clear",
+    "agent_memory_read",
+    "agent_memory_search",
+    "agent_memory_write"
   ],
   "parameter_names": [],
   "settings": {

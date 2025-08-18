@@ -10,28 +10,29 @@
     "method": "POST"
   },
   "parameters": {
-    "required": ["owner", "repo", "ref", "sha"],
-    "optional": [],
-    "schema": {
-      "type": "object",
-      "required": ["owner", "repo", "ref", "sha"],
-      "properties": {
-        "owner": {
-          "type": "string",
-          "description": "GitHub username or organization name"
-        },
-        "repo": {
-          "type": "string",
-          "description": "Repository name"
-        },
-        "ref": {
-          "type": "string",
-          "description": "The full reference name for the new branch. MUST be in format 'refs/heads/BRANCH_NAME'. Example: if you want to create branch 'feature/my-feature', use 'refs/heads/feature/my-feature'."
-        },
-        "sha": {
-          "type": "string",
-          "description": "The SHA1 commit hash that the new branch will point to. REQUIRED: First call github_list_branches to get the SHA of your source branch (like 'main'), then use that SHA here."
-        }
+    "type": "object",
+    "required": [
+      "owner",
+      "repo",
+      "ref",
+      "sha"
+    ],
+    "properties": {
+      "owner": {
+        "type": "string",
+        "description": "GitHub username or organization name"
+      },
+      "repo": {
+        "type": "string",
+        "description": "Repository name"
+      },
+      "ref": {
+        "type": "string",
+        "description": "The full reference name for the new branch. MUST be in format 'refs/heads/BRANCH_NAME'. Example: if you want to create branch 'feature/my-feature', use 'refs/heads/feature/my-feature'."
+      },
+      "sha": {
+        "type": "string",
+        "description": "The SHA1 commit hash that the new branch will point to. REQUIRED: First call github_list_branches to get the SHA of your source branch (like 'main'), then use that SHA here."
       }
     }
   },

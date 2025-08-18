@@ -1,6 +1,7 @@
 package github
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -74,6 +75,29 @@ func (g *Integration) BuildURL(funcDef *db.FunctionDefinition, args map[string]i
 
 		if httpMethod == "GET" {
 			var queryParams []string
+
+			// Special handling for GitHub search endpoints
+			if strings.Contains(finalURL, "/search/code") {
+				// GitHub search requires a single 'q' parameter with combined search terms
+				owner, hasOwner := args["owner"].(string)
+				repo, hasRepo := args["repo"].(string)
+				searchQuery, hasQuery := args["query"].(string)
+
+				if hasOwner && hasRepo {
+					combinedQuery := fmt.Sprintf("repo:%s/%s", owner, repo)
+					if hasQuery && searchQuery != "" {
+						combinedQuery += " " + searchQuery
+					}
+					queryParams = append(queryParams, fmt.Sprintf("q=%s", url.QueryEscape(combinedQuery)))
+
+					// Mark these parameters as used so they don't get added again
+					usedParams["owner"] = true
+					usedParams["repo"] = true
+					usedParams["query"] = true
+				}
+			}
+
+			// Add remaining parameters as normal query parameters
 			for key, value := range args {
 				if !usedParams[key] && value != nil {
 					queryParams = append(queryParams, fmt.Sprintf("%s=%s",
@@ -205,9 +229,8 @@ func (g *Integration) PrepareRequest(ctx context.Context, req *http.Request, fun
 		return g.handleUpdateFileOnBranch(ctx, req, funcDef, args)
 	}
 
-	if funcDef.Name == "github_branch_update_pr_workflow" {
-		return g.handleBranchUpdatePRWorkflow(ctx, req, funcDef, args)
-	}
+	// Note: github_branch_update_pr_workflow is handled as a special composite function
+	// and should not reach this PrepareRequest method
 
 	// Handle content encoding for file operations before authentication
 	if funcDef.Name == "github_create_update_file" && req.Method == "PUT" {
@@ -491,9 +514,78 @@ func (g *Integration) handleUpdateFileOnBranch(ctx context.Context, req *http.Re
 
 // handleBranchUpdatePRWorkflow handles the complete branch creation, file update, and PR creation workflow
 func (g *Integration) handleBranchUpdatePRWorkflow(ctx context.Context, req *http.Request, funcDef *db.FunctionDefinition, args map[string]interface{}) error {
-	// This is a complex multi-step workflow that needs to be handled differently
-	// For now, return an error indicating this needs special handling
-	return fmt.Errorf("github_branch_update_pr_workflow requires special multi-step handling - not yet implemented")
+	// Extract required parameters
+	owner, _ := args["owner"].(string)
+	repo, _ := args["repo"].(string)
+	branchName, _ := args["branch_name"].(string)
+	filePath, _ := args["file_path"].(string)
+	fileContent, _ := args["file_content"].(string)
+	commitMessage, _ := args["commit_message"].(string)
+	prTitle, _ := args["pr_title"].(string)
+	prBody, _ := args["pr_body"].(string)
+	baseBranch, _ := args["base_branch"].(string)
+	draft, _ := args["draft"].(bool)
+
+	// Set default base branch
+	if baseBranch == "" {
+		baseBranch = "main"
+	}
+
+	if owner == "" || repo == "" || branchName == "" || filePath == "" || fileContent == "" || commitMessage == "" || prTitle == "" {
+		return fmt.Errorf("missing required parameters for github_branch_update_pr_workflow")
+	}
+
+	log.Printf("🔧 [GITHUB_WORKFLOW] Starting complete branch-update-PR workflow")
+	log.Printf("🔧 [GITHUB_WORKFLOW] Branch: %s, File: %s, Base: %s", branchName, filePath, baseBranch)
+
+	// Step 1: Get base branch SHA
+	baseSHA, err := g.GetBranchSHA(ctx, owner, repo, baseBranch)
+	if err != nil {
+		return fmt.Errorf("failed to get base branch %s SHA: %w", baseBranch, err)
+	}
+	log.Printf("✅ [GITHUB_WORKFLOW] Got base branch %s SHA: %s", baseBranch, baseSHA)
+
+	// Step 2: Create new branch
+	err = g.CreateBranch(ctx, owner, repo, branchName, baseSHA)
+	if err != nil {
+		return fmt.Errorf("failed to create branch %s: %w", branchName, err)
+	}
+	log.Printf("✅ [GITHUB_WORKFLOW] Created branch: %s", branchName)
+
+	// Step 3: Update file on new branch
+	err = g.UpdateFileOnBranch(ctx, owner, repo, filePath, fileContent, commitMessage, branchName)
+	if err != nil {
+		return fmt.Errorf("failed to update file %s on branch %s: %w", filePath, branchName, err)
+	}
+	log.Printf("✅ [GITHUB_WORKFLOW] Updated file %s on branch %s", filePath, branchName)
+
+	// Step 4: Create pull request
+	prData := map[string]interface{}{
+		"title": prTitle,
+		"head":  branchName,
+		"base":  baseBranch,
+		"draft": draft,
+	}
+	if prBody != "" {
+		prData["body"] = prBody
+	}
+
+	prResult, err := g.CreatePullRequest(ctx, owner, repo, prData)
+	if err != nil {
+		return fmt.Errorf("failed to create pull request: %w", err)
+	}
+	log.Printf("✅ [GITHUB_WORKFLOW] Created pull request: %v", prResult)
+
+	// Modify the original request to return the PR creation result
+	prJSON, _ := json.Marshal(prData)
+	req.Body = io.NopCloser(strings.NewReader(string(prJSON)))
+	req.ContentLength = int64(len(prJSON))
+
+	// Update the URL to the PR endpoint
+	req.URL, _ = url.Parse(fmt.Sprintf("%s/repos/%s/%s/pulls", g.baseURL, owner, repo))
+
+	log.Printf("✅ [GITHUB_WORKFLOW] Complete workflow finished successfully")
+	return nil
 }
 
 // getFileSHAFromBranch retrieves the SHA of a file from a specific branch
@@ -549,4 +641,220 @@ func (g *Integration) getFileSHAFromBranch(ctx context.Context, owner, repo, pat
 	}
 
 	return fileInfo.SHA, nil
+}
+
+// GetBranchSHA retrieves the SHA of a branch (public method for workflow use)
+func (g *Integration) GetBranchSHA(ctx context.Context, owner, repo, branch string) (string, error) {
+	url := fmt.Sprintf("%s/repos/%s/%s/git/refs/heads/%s", g.baseURL, owner, repo, branch)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Apply authentication
+	if err := g.applyAuth(ctx, req); err != nil {
+		return "", fmt.Errorf("failed to apply auth: %w", err)
+	}
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("GitHub API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var refInfo struct {
+		Object struct {
+			SHA string `json:"sha"`
+		} `json:"object"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&refInfo); err != nil {
+		return "", fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	return refInfo.Object.SHA, nil
+}
+
+// CreateBranch creates a new branch from a base SHA (public method for workflow use)
+func (g *Integration) CreateBranch(ctx context.Context, owner, repo, branchName, baseSHA string) error {
+	url := fmt.Sprintf("%s/repos/%s/%s/git/refs", g.baseURL, owner, repo)
+
+	data := map[string]interface{}{
+		"ref": fmt.Sprintf("refs/heads/%s", branchName),
+		"sha": baseSHA,
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("failed to marshal branch data: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(jsonData))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	// Apply authentication
+	if err := g.applyAuth(ctx, req); err != nil {
+		return fmt.Errorf("failed to apply auth: %w", err)
+	}
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 201 {
+		body, _ := io.ReadAll(resp.Body)
+
+		// Enhanced error handling for branch creation
+		errorMsg := fmt.Sprintf("GitHub API returned status %d: %s", resp.StatusCode, string(body))
+
+		// Add specific guidance for common branch creation errors
+		if resp.StatusCode == 422 && strings.Contains(string(body), "Reference update failed") {
+			errorMsg += " - Common causes: branch already exists, invalid SHA, or insufficient permissions. Try using a different branch name or verify the source SHA is valid."
+		} else if resp.StatusCode == 422 && strings.Contains(string(body), "Reference already exists") {
+			errorMsg += " - The branch already exists. Use a different branch name or delete the existing branch first."
+		}
+
+		return fmt.Errorf("%s", errorMsg)
+	}
+
+	return nil
+}
+
+// UpdateFileOnBranch updates a file on a specific branch (public method for workflow use)
+func (g *Integration) UpdateFileOnBranch(ctx context.Context, owner, repo, filePath, content, message, branch string) error {
+	// First get the current file SHA from the branch
+	fileSHA, err := g.getFileSHAFromBranch(ctx, owner, repo, filePath, branch)
+	if err != nil {
+		// File might not exist, that's ok for new files
+		log.Printf("⚠️ [GITHUB_WORKFLOW] File %s not found on branch %s, creating new file", filePath, branch)
+		fileSHA = ""
+	}
+
+	url := fmt.Sprintf("%s/repos/%s/%s/contents/%s", g.baseURL, owner, repo, filePath)
+
+	data := map[string]interface{}{
+		"message": message,
+		"content": base64.StdEncoding.EncodeToString([]byte(content)),
+		"branch":  branch,
+	}
+
+	// Add SHA if file exists
+	if fileSHA != "" {
+		data["sha"] = fileSHA
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("failed to marshal file data: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "PUT", url, bytes.NewReader(jsonData))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	// Apply authentication
+	if err := g.applyAuth(ctx, req); err != nil {
+		return fmt.Errorf("failed to apply auth: %w", err)
+	}
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 && resp.StatusCode != 201 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("GitHub API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+// CreatePullRequest creates a pull request (public method for workflow use)
+func (g *Integration) CreatePullRequest(ctx context.Context, owner, repo string, prData map[string]interface{}) (map[string]interface{}, error) {
+	url := fmt.Sprintf("%s/repos/%s/%s/pulls", g.baseURL, owner, repo)
+
+	jsonData, err := json.Marshal(prData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal PR data: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	// Apply authentication
+	if err := g.applyAuth(ctx, req); err != nil {
+		return nil, fmt.Errorf("failed to apply auth: %w", err)
+	}
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != 201 {
+		return nil, fmt.Errorf("GitHub API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	return result, nil
+}
+
+// applyAuth applies authentication to a request
+func (g *Integration) applyAuth(ctx context.Context, req *http.Request) error {
+	// Try new auth system first
+	if g.authService != nil && g.userID != "" {
+		credentials, err := g.authService.GetAuthCredentialsForService(ctx, g.userID, "github")
+		if err == nil {
+			for key, value := range credentials.Headers {
+				req.Header.Set(key, value)
+			}
+			return nil
+		}
+	}
+
+	// Legacy authentication fallback
+	if g.apiKeys != nil && g.apiKeys.GithubApiKey != "" {
+		req.Header.Set("Authorization", "token "+g.apiKeys.GithubApiKey)
+		req.Header.Set("Accept", "application/vnd.github+json")
+		req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+		req.Header.Set("User-Agent", "GoGent/1.0")
+		return nil
+	}
+
+	return fmt.Errorf("no GitHub authentication available")
 }

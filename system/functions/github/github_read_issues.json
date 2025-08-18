@@ -10,45 +10,52 @@
     "method": "GET"
   },
   "parameters": {
-    "required": ["owner", "repo"],
-    "optional": ["state", "labels", "sort", "direction", "since", "per_page"],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "owner": {
-          "type": "string",
-          "description": "Repository owner (username or organization)"
-        },
-        "repo": {
-          "type": "string", 
-          "description": "Repository name"
-        },
-        "state": {
-          "type": "string",
-          "enum": ["open", "closed", "all"],
-          "default": "open",
-          "description": "Issue state filter"
-        },
-        "labels": {
-          "type": "string",
-          "description": "Comma-separated list of label names"
-        },
-        "sort": {
-          "type": "string",
-          "enum": ["created", "updated", "comments"],
-          "default": "created",
-          "description": "Sort field"
-        },
-        "per_page": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 100,
-          "default": 30,
-          "description": "Number of results per page"
-        }
+    "type": "object",
+    "properties": {
+      "owner": {
+        "type": "string",
+        "description": "Repository owner (username or organization)"
       },
-      "required": ["owner", "repo"]
-    }
+      "repo": {
+        "type": "string",
+        "description": "Repository name"
+      },
+      "state": {
+        "type": "string",
+        "enum": [
+          "open",
+          "closed",
+          "all"
+        ],
+        "default": "open",
+        "description": "Issue state filter"
+      },
+      "labels": {
+        "type": "string",
+        "description": "Comma-separated list of label names"
+      },
+      "sort": {
+        "type": "string",
+        "enum": [
+          "created",
+          "updated",
+          "comments"
+        ],
+        "default": "created",
+        "description": "Sort field"
+      },
+      "per_page": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 30,
+        "description": "Number of results per page"
+      }
+    },
+    "required": [
+      "owner",
+      "repo"
+    ]
   },
   "response_transformer": {
     "type": "github_issues",
@@ -67,7 +74,7 @@
     {
       "name": "Get issues with specific labels",
       "parameters": {
-        "owner": "facebook", 
+        "owner": "facebook",
         "repo": "react",
         "labels": "bug,priority-high"
       }

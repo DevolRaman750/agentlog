@@ -23,6 +23,7 @@ import ApiKeyModal from '../components/ApiKeyModal';
 import { useToast } from '../context/ToastContext';
 import { GitHubAuthSetup } from '../components/GitHubAuthSetup';
 import { AuthModeComparison } from '../components/AuthModeComparison';
+import { ApiKeyOnboarding } from '../components/ApiKeyOnboarding';
 
 type ApiKeysScreenRouteProp = RouteProp<RootStackParamList, 'API Keys'>;
 
@@ -156,8 +157,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F2F2F7',
   },
+  scrollView: {
+    flex: 1,
+    backgroundColor: '#F2F2F7',
+  },
   content: {
-    paddingBottom: 120,
+    paddingBottom: 20,
+    minHeight: '100%',
   },
   loadingContainer: {
     flex: 1,
@@ -189,6 +195,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#8E8E93',
     marginTop: 4,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  onboardingButton: {
+    backgroundColor: '#F0F8FF',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#007AFF',
+  },
+  onboardingButtonText: {
+    color: '#007AFF',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 4,
   },
   addButton: {
     backgroundColor: '#007AFF',
@@ -393,7 +420,9 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     textAlign: 'center',
     lineHeight: 22,
+    marginBottom: 32,
   },
+
 });
 
 const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) => {
@@ -416,6 +445,7 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
   const [showAuthComparison, setShowAuthComparison] = useState(false);
   const [isGitHubAuthLoading, setIsGitHubAuthLoading] = useState(false);
   const [gitHubEditingKey, setGitHubEditingKey] = useState<UserApiKey | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const loadApiKeys = useCallback(async () => {
     try {
@@ -633,6 +663,12 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
   const handleGitHubAuthCancel = () => {
     setShowGitHubAuthSetup(false);
     setGitHubEditingKey(null);
+  };
+
+  const handleOnboardingComplete = () => {
+    // Navigate to marketplace or agents screen after onboarding
+    // For now, just refresh the API keys to show the new setup
+    loadApiKeys();
   };
 
   const handleTestKey = async (keyId: string) => {
@@ -871,21 +907,32 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
         <View>
           <Text style={styles.headerTitle}>API Keys</Text>
           <Text style={styles.headerSubtitle}>
-            {apiKeys.length} kthiseys configured across {SERVICE_GROUPS.length} categories
+            {apiKeys.length} keys configured across {SERVICE_GROUPS.length} categories
           </Text>
         </View>
         
-        <TouchableOpacity 
-          style={styles.addButton}
-          onPress={() => handleAddKey('gemini')} // Default to Gemini as it's most common
-        >
-          <Ionicons name="add" size={20} color="#FFFFFF" />
-          <Text style={styles.addButtonText}>Add Key</Text>
-        </TouchableOpacity>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity 
+            style={styles.onboardingButton}
+            onPress={() => setShowOnboarding(true)}
+          >
+            <Ionicons name="refresh" size={16} color="#007AFF" />
+            <Text style={styles.onboardingButtonText}>Setup Guide</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.addButton}
+            onPress={() => handleAddKey('gemini')} // Default to Gemini as it's most common
+          >
+            <Ionicons name="add" size={20} color="#FFFFFF" />
+            <Text style={styles.addButtonText}>Add Key</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
-        style={styles.content}
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -904,9 +951,15 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
             />
             <Text style={styles.emptyStateTitle}>No API Keys Yet</Text>
             <Text style={styles.emptyStateText}>
-              Add your first API key to start using external services with your functions. 
-              API keys are stored securely and encrypted.
+              Get started by setting up your core API keys to enable agent creation on the AgentLog platform.
             </Text>
+            <TouchableOpacity 
+              style={styles.onboardingButton}
+              onPress={() => setShowOnboarding(true)}
+            >
+              <Ionicons name="rocket" size={20} color="#FFFFFF" />
+              <Text style={styles.onboardingButtonText}>Get Started with API Keys</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           SERVICE_GROUPS.map(renderGroup)
@@ -953,6 +1006,14 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
           />
         </Modal>
       )}
+
+      {/* API Key Onboarding Modal */}
+      <ApiKeyOnboarding
+        visible={showOnboarding}
+        onClose={() => setShowOnboarding(false)}
+        onComplete={handleOnboardingComplete}
+        existingKeys={apiKeys}
+      />
     </View>
   );
 };

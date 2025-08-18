@@ -691,6 +691,164 @@ class GoGentAPI {
     }
   }
 
+  // Get available API key services from functions
+  async getAvailableServices(): Promise<ApiResponse<any[]>> {
+    try {
+      const functionsResponse = await this.getFunctions();
+      if (!functionsResponse.success || !functionsResponse.data) {
+        return {
+          success: false,
+          error: 'Failed to get functions data',
+          data: []
+        };
+      }
+
+      // Extract unique providers from functions
+      const providersMap = new Map();
+      
+      functionsResponse.data.forEach((func: FunctionDefinition) => {
+        const provider = func.functionGroup || 'general';
+        if (!providersMap.has(provider)) {
+          // Get service metadata based on provider
+          const serviceInfo = this.getServiceMetadata(provider, functionsResponse.data || []);
+          if (serviceInfo) {
+            providersMap.set(provider, serviceInfo);
+          }
+        }
+      });
+
+      const services = Array.from(providersMap.values());
+      
+      return {
+        success: true,
+        data: services,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to get available services',
+        data: []
+      };
+    }
+  }
+
+  private getServiceMetadata(provider: string, functions: FunctionDefinition[]): any | null {
+    const providerFunctions = functions.filter(f => f.functionGroup === provider);
+    if (providerFunctions.length === 0) return null;
+
+    // Define service metadata based on provider
+    const serviceMetadata: Record<string, any> = {
+      github: {
+        id: 'github',
+        name: 'GitHub',
+        displayName: 'GitHub',
+        description: 'Create issues, PRs, manage repositories, read/write code',
+        icon: 'logo-github',
+        color: '#24292e',
+        popular: true,
+        keyType: 'access_token',
+        authModes: ['personal_access_token', 'github_app'],
+        placeholder: 'ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+        defaultAccessLevel: 'read_write',
+        defaultScopes: ['repo', 'read:user'],
+        setupInstructions: {
+          description: 'GitHub integration allows your agents to interact with repositories, create issues, manage PRs, and read/write code.',
+          scopes: ['repo', 'read:user'],
+          links: [
+            { text: 'Create Personal Access Token', url: 'https://github.com/settings/tokens' },
+            { text: 'Create GitHub App', url: 'https://github.com/settings/apps' }
+          ]
+        }
+      },
+      slack: {
+        id: 'slack',
+        name: 'Slack',
+        displayName: 'Slack',
+        description: 'Send messages, create channels, manage workspace',
+        icon: 'chatbubbles',
+        color: '#4A154B',
+        popular: true,
+        keyType: 'bearer_token',
+        authModes: ['bot_token'],
+        placeholder: 'xoxb-xxxxxxxxxxxx-xxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxx',
+        defaultAccessLevel: 'write',
+        defaultScopes: ['chat:write', 'channels:read'],
+        setupInstructions: {
+          description: 'Slack integration allows your agents to send messages, create channels, and manage your Slack workspace.',
+          scopes: ['chat:write', 'channels:read', 'users:read'],
+          links: [
+            { text: 'Create Slack App', url: 'https://api.slack.com/apps' },
+            { text: 'Bot Token Scopes', url: 'https://api.slack.com/scopes' }
+          ]
+        }
+      },
+      googledrive: {
+        id: 'googledrive',
+        name: 'Google Drive',
+        displayName: 'Google Drive',
+        description: 'Access files, folders, and documents in Google Drive',
+        icon: 'folder',
+        color: '#4285F4',
+        popular: false,
+        keyType: 'oauth_token',
+        authModes: ['service_account', 'oauth'],
+        placeholder: 'Enter Google Drive credentials',
+        defaultAccessLevel: 'read_write',
+        defaultScopes: ['https://www.googleapis.com/auth/drive'],
+        setupInstructions: {
+          description: 'Google Drive integration allows your agents to read, write, and manage files in your Google Drive.',
+          scopes: ['https://www.googleapis.com/auth/drive'],
+          links: [
+            { text: 'Google Cloud Console', url: 'https://console.cloud.google.com/' },
+            { text: 'Drive API Guide', url: 'https://developers.google.com/drive/api/guides/about-sdk' }
+          ]
+        }
+      },
+      weather: {
+        id: 'openweather',
+        name: 'OpenWeather',
+        displayName: 'Weather',
+        description: 'Get weather data and forecasts',
+        icon: 'partly-sunny',
+        color: '#FF9500',
+        popular: false,
+        keyType: 'api_key',
+        authModes: ['api_key'],
+        placeholder: 'Enter your OpenWeather API key',
+        defaultAccessLevel: 'read',
+        defaultScopes: ['current_weather', 'forecasts'],
+        setupInstructions: {
+          description: 'OpenWeather integration provides current weather data and forecasts for any location.',
+          scopes: ['current', 'forecast', 'historical'],
+          links: [
+            { text: 'Get API Key', url: 'https://openweathermap.org/api' },
+            { text: 'API Documentation', url: 'https://openweathermap.org/api/one-call-3' }
+          ]
+        }
+      }
+    };
+
+    return serviceMetadata[provider] || {
+      id: provider,
+      name: provider,
+      displayName: provider.charAt(0).toUpperCase() + provider.slice(1),
+      description: `Integration with ${provider}`,
+      icon: 'extension-puzzle',
+      color: '#8E8E93',
+      popular: false,
+      keyType: 'api_key',
+      authModes: ['api_key'],
+      placeholder: `Enter your ${provider} API key`,
+      defaultAccessLevel: 'read_write',
+      defaultScopes: [],
+      setupInstructions: {
+        description: `Configure your ${provider} integration to enable agent functionality.`,
+        scopes: [],
+        links: []
+      }
+    };
+  }
+
   // Function CRUD operations
   async getFunctions(): Promise<ApiResponse<FunctionDefinition[]>> {
     try {

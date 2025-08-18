@@ -7,7 +7,7 @@
   "context_template": "Focus on being informative and practical with weather information. Consider the context of requests - morning briefings, event planning, travel considerations, etc. Use clear, friendly language and always include the timestamp of weather data to ensure accuracy.",
   "enable_function_calling": true,
   "preferred_configuration_id": "system-config-gemini-flash",
-  "function_ids": ["func-openweather-current","slack_send_message","00000000-0000-0000-0000-000000000081","00000000-0000-0000-0000-000000000082","00000000-0000-0000-0000-000000000083"],
+  "function_ids": ["get_current_weather","slack_send_message"],
   "parameter_names": [],
   "settings": {
     "execution_timeout_seconds": 300,

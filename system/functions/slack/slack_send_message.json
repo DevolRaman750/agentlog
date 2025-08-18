@@ -9,48 +9,62 @@
     "method": "POST"
   },
   "parameters": {
-    "required": ["channel", "text"],
-    "optional": ["username", "thread_ts", "icon_emoji", "attachments"],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "channel": {
-          "type": "string",
-          "description": "Channel ID (e.g., C1234567890) from slack_find_channel, or channel name (e.g., general), or user ID (@username). Channel IDs are most reliable."
-        },
-        "text": {
-          "type": "string",
-          "description": "Message text content. Supports Slack markdown formatting"
-        },
-        "username": {
-          "type": "string",
-          "description": "Bot username to display (optional)"
-        },
-        "thread_ts": {
-          "type": "string",
-          "description": "Timestamp of parent message to reply in thread"
-        },
-        "icon_emoji": {
-          "type": "string",
-          "description": "Emoji to use as bot icon (e.g. :robot_face:)"
-        },
-        "attachments": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "text": {"type": "string", "description": "Attachment text"},
-              "color": {"type": "string", "description": "Attachment color bar"},
-              "title": {"type": "string", "description": "Attachment title"},
-              "footer": {"type": "string", "description": "Footer text"},
-              "image_url": {"type": "string", "description": "Image URL to display"}
-            }
-          },
-          "description": "Rich message attachments (optional)"
-        }
+    "type": "object",
+    "properties": {
+      "channel": {
+        "type": "string",
+        "description": "Channel ID (e.g., C1234567890) from slack_find_channel, or channel name (e.g., general), or user ID (@username). Channel IDs are most reliable."
       },
-      "required": ["channel", "text"]
-    }
+      "text": {
+        "type": "string",
+        "description": "Message text content. Supports Slack markdown formatting"
+      },
+      "username": {
+        "type": "string",
+        "description": "Bot username to display (optional)"
+      },
+      "thread_ts": {
+        "type": "string",
+        "description": "Timestamp of parent message to reply in thread"
+      },
+      "icon_emoji": {
+        "type": "string",
+        "description": "Emoji to use as bot icon (e.g. :robot_face:)"
+      },
+      "attachments": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "description": "Attachment text"
+            },
+            "color": {
+              "type": "string",
+              "description": "Attachment color bar"
+            },
+            "title": {
+              "type": "string",
+              "description": "Attachment title"
+            },
+            "footer": {
+              "type": "string",
+              "description": "Footer text"
+            },
+            "image_url": {
+              "type": "string",
+              "description": "Image URL to display"
+            }
+          }
+        },
+        "description": "Rich message attachments (optional)"
+      }
+    },
+    "required": [
+      "channel",
+      "text"
+    ]
   },
   "parameter_dependencies": {
     "channel": {

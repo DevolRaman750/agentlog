@@ -9,40 +9,39 @@
     "method": "POST"
   },
   "parameters": {
-    "required": ["channel", "ts"],
-    "optional": ["text", "blocks", "attachments"],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "channel": {
-          "type": "string",
-          "description": "Channel containing the message"
-        },
-        "ts": {
-          "type": "string",
-          "description": "Timestamp of the message to update"
-        },
-        "text": {
-          "type": "string",
-          "description": "New text for the message"
-        },
-        "blocks": {
-          "type": "array",
-          "items": {
-            "type": "object"
-          },
-          "description": "Structured blocks to replace the message content"
-        },
-        "attachments": {
-          "type": "array",
-          "items": {
-            "type": "object"
-          },
-          "description": "Secondary attachments for the message"
-        }
+    "type": "object",
+    "properties": {
+      "channel": {
+        "type": "string",
+        "description": "Channel containing the message"
       },
-      "required": ["channel", "ts"]
-    }
+      "ts": {
+        "type": "string",
+        "description": "Timestamp of the message to update"
+      },
+      "text": {
+        "type": "string",
+        "description": "New text for the message"
+      },
+      "blocks": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        },
+        "description": "Structured blocks to replace the message content"
+      },
+      "attachments": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        },
+        "description": "Secondary attachments for the message"
+      }
+    },
+    "required": [
+      "channel",
+      "ts"
+    ]
   },
   "examples": [
     {

@@ -9,33 +9,31 @@
     "method": "GET"
   },
   "parameters": {
-    "required": ["fileId"],
-    "optional": ["fields", "supportsAllDrives", "includeItemsFromAllDrives"],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "fileId": {
-          "type": "string",
-          "description": "The ID of the file to retrieve"
-        },
-        "fields": {
-          "type": "string",
-          "default": "id, name, mimeType, size, createdTime, modifiedTime, parents, webViewLink, permissions, owners, shared, trashed",
-          "description": "Fields to include in the response"
-        },
-        "supportsAllDrives": {
-          "type": "boolean",
-          "default": true,
-          "description": "Whether the requesting application supports both My Drives and shared drives"
-        },
-        "includeItemsFromAllDrives": {
-          "type": "boolean",
-          "default": true,
-          "description": "Whether both My Drive and shared drive items should be included in results"
-        }
+    "type": "object",
+    "properties": {
+      "fileId": {
+        "type": "string",
+        "description": "The ID of the file to retrieve"
       },
-      "required": ["fileId"]
-    }
+      "fields": {
+        "type": "string",
+        "default": "id, name, mimeType, size, createdTime, modifiedTime, parents, webViewLink, permissions, owners, shared, trashed",
+        "description": "Fields to include in the response"
+      },
+      "supportsAllDrives": {
+        "type": "boolean",
+        "default": true,
+        "description": "Whether the requesting application supports both My Drives and shared drives"
+      },
+      "includeItemsFromAllDrives": {
+        "type": "boolean",
+        "default": true,
+        "description": "Whether both My Drive and shared drive items should be included in results"
+      }
+    },
+    "required": [
+      "fileId"
+    ]
   },
   "response_transformer": {
     "type": "googledrive_file",

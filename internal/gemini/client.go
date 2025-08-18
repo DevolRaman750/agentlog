@@ -226,11 +226,11 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 	// ENHANCED DEBUG: Log the full response structure for empty response investigation
 	log.Printf("🔍 [SYNTHESIS_DEBUG] Full Gemini response structure:")
 	log.Printf("🔍 [SYNTHESIS_DEBUG] - Candidates count: %d", len(geminiResp.Candidates))
-	
+
 	if len(geminiResp.Candidates) > 0 {
 		candidate := geminiResp.Candidates[0]
 		finishReason = candidate.FinishReason
-		
+
 		log.Printf("🔍 [SYNTHESIS_DEBUG] - Finish reason: %s", finishReason)
 		log.Printf("🔍 [SYNTHESIS_DEBUG] - Parts count: %d", len(candidate.Content.Parts))
 
@@ -360,6 +360,14 @@ func (c *GeminiClient) sanitizePropertySchema(propSchema map[string]interface{})
 		"items":       true,
 		"properties":  true,
 		"required":    true,
+		"default":     true,
+		"minimum":     true,
+		"maximum":     true,
+		"minItems":    true,
+		"maxItems":    true,
+		"minLength":   true,
+		"maxLength":   true,
+		"pattern":     true,
 	}
 
 	for key, value := range propSchema {

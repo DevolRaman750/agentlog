@@ -10,9 +10,46 @@
     "method": "PUT"
   },
   "parameters": {
-    "required": ["owner", "repo", "path", "content", "message", "sha"],
-    "optional": ["branch"],
-    "schema": {"type": "object", "required": ["owner", "repo", "path", "content", "message", "sha"], "properties": {"sha": {"type": "string", "description": "SHA of the current file (REQUIRED). Get this first using github_read_code or github_get_file_sha. Use empty string '' for new files only."}, "path": {"type": "string", "description": "Path to the file in the repository"}, "repo": {"type": "string", "description": "Repository name"}, "owner": {"type": "string", "description": "GitHub username or organization"}, "branch": {"type": "string", "default": "main", "description": "Branch to commit to"}, "content": {"type": "string", "description": "File content (will be base64 encoded automatically)"}, "message": {"type": "string", "description": "Commit message for the file change"}}}
+    "type": "object",
+    "required": [
+      "owner",
+      "repo",
+      "path",
+      "content",
+      "message",
+      "sha"
+    ],
+    "properties": {
+      "sha": {
+        "type": "string",
+        "description": "SHA of the current file (REQUIRED). Get this first using github_read_code or github_get_file_sha. Use empty string '' for new files only."
+      },
+      "path": {
+        "type": "string",
+        "description": "Path to the file in the repository"
+      },
+      "repo": {
+        "type": "string",
+        "description": "Repository name"
+      },
+      "owner": {
+        "type": "string",
+        "description": "GitHub username or organization"
+      },
+      "branch": {
+        "type": "string",
+        "default": "main",
+        "description": "Branch to commit to"
+      },
+      "content": {
+        "type": "string",
+        "description": "File content (will be base64 encoded automatically)"
+      },
+      "message": {
+        "type": "string",
+        "description": "Commit message for the file change"
+      }
+    }
   },
   "workflow": "FOR UPDATING EXISTING FILES: STEP 1: Call github_get_file_sha or github_read_code with owner, repo, path, AND the SAME branch/ref you plan to update. STEP 2: Call github_create_update_file with that SHA, content, and SAME branch. CRITICAL: The SHA must be from the exact same branch you're updating! FOR NEW FILES: Call github_create_update_file with sha='' (empty string).",
   "examples": [

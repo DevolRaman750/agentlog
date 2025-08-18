@@ -9,9 +9,25 @@
     "method": "GET"
   },
   "parameters": {
-    "required": ["location"],
-    "optional": ["units"],
-    "schema": {"type": "object", "required": ["location"], "properties": {"units": {"enum": ["metric", "imperial", "kelvin"], "type": "string", "description": "Units of measurement"}, "location": {"type": "string", "description": "City name, state code (US only), and country code (ISO 3166) separated by comma"}}}
+    "type": "object",
+    "required": [
+      "location"
+    ],
+    "properties": {
+      "units": {
+        "enum": [
+          "metric",
+          "imperial",
+          "kelvin"
+        ],
+        "type": "string",
+        "description": "Units of measurement"
+      },
+      "location": {
+        "type": "string",
+        "description": "City name, state code (US only), and country code (ISO 3166) separated by comma"
+      }
+    }
   },
   "examples": [
     {

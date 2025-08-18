@@ -1214,6 +1214,11 @@ func getMapKeys(m map[string]interface{}) []string {
 	return keys
 }
 
+// getMapKeys is a method version for the Client
+func (c *Client) getMapKeys(m map[string]interface{}) []string {
+	return getMapKeys(m)
+}
+
 // callGeminiRestAPIForSynthesis is like callGeminiRestAPI but doesn't process function calls
 // This prevents infinite recursion during synthesis
 func (c *Client) callGeminiRestAPIForSynthesis(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest) (*types.APIResponse, error) {
@@ -1514,11 +1519,15 @@ func convertFunctionCallsToResponseParts(functionCalls []providers.FunctionCall)
 
 // executeFunctionCall executes a function call and returns the result
 func (c *Client) executeFunctionCall(ctx context.Context, functionName string, args map[string]interface{}) (map[string]interface{}, error) {
+	// Enhanced logging with detailed function call information
 	c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryFunctionCall,
-		fmt.Sprintf("Executing function: %s", functionName),
+		fmt.Sprintf("🔧 Executing function: %s", functionName),
 		map[string]interface{}{
-			"functionName": functionName,
-			"args":         args,
+			"functionName":   functionName,
+			"arguments":      args,
+			"argumentCount":  len(args),
+			"argumentKeys":   c.getMapKeys(args),
+			"executionStart": time.Now().Format("15:04:05.000"),
 		})
 
 	startTime := time.Now()
@@ -1873,13 +1882,19 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 			}
 			errorCount++
 		} else {
+			// Enhanced success logging with detailed result information
+			resultSummary := c.createDetailedResultSummary(funcCall.FunctionCall.Name, result)
 			c.logExecutionEvent(types.LogLevelSuccess, types.LogCategoryExecution,
-				fmt.Sprintf("Function executed successfully: %s", funcCall.FunctionCall.Name),
+				fmt.Sprintf("✅ Function executed successfully: %s - %s", funcCall.FunctionCall.Name, resultSummary),
 				map[string]interface{}{
-					"functionName": funcCall.FunctionCall.Name,
-					"duration":     executionTimeMs,
-					"resultSize":   len(fmt.Sprintf("%v", result)),
-					"hasData":      result != nil,
+					"functionName":  funcCall.FunctionCall.Name,
+					"duration":      executionTimeMs,
+					"resultSize":    len(fmt.Sprintf("%v", result)),
+					"hasData":       result != nil,
+					"resultSummary": resultSummary,
+					"resultKeys":    c.getMapKeys(result),
+					"executionEnd":  time.Now().Format("15:04:05.000"),
+					"resultPreview": c.truncateString(fmt.Sprintf("%v", result), 500),
 				})
 
 			// Log success in flow
@@ -2437,6 +2452,463 @@ func (c *Client) argumentsSimilar(args1, args2 map[string]interface{}) bool {
 	return false
 }
 
+// createDetailedResultSummary creates a detailed summary for logging purposes (more verbose than synthesis summary)
+func (c *Client) createDetailedResultSummary(functionName string, result map[string]interface{}) string {
+	if result == nil {
+		return "No data returned"
+	}
+
+	// Check for errors first
+	if status, ok := result["status"].(string); ok && (status == "failed" || status == "validation_failed") {
+		if errorMsg, ok := result["error"].(string); ok {
+			return fmt.Sprintf("FAILED: %s", errorMsg)
+		}
+		return "FAILED: Unknown error"
+	}
+
+	switch functionName {
+	case "github_read_issues":
+		return c.createDetailedGitHubIssuesSummary(result)
+	case "github_read_commits":
+		return c.createDetailedGitHubCommitsSummary(result)
+	case "github_read_code":
+		return c.createDetailedGitHubCodeSummary(result)
+	case "github_search_code":
+		return c.createDetailedGitHubSearchSummary(result)
+	case "github_read_pull_requests":
+		return c.createDetailedGitHubPullRequestsSummary(result)
+	case "github_close_pull_request":
+		return c.createDetailedGitHubClosePRSummary(result)
+	case "slack_find_channel":
+		return c.createDetailedSlackChannelSummary(result)
+	case "slack_read_messages":
+		return c.createDetailedSlackMessagesSummary(result)
+	case "slack_send_message":
+		return c.createDetailedSlackSendSummary(result)
+	default:
+		// For other functions, provide a detailed generic summary
+		return c.createDetailedGenericSummary(result)
+	}
+}
+
+// Enhanced detailed summary functions for logging
+
+// createDetailedGitHubIssuesSummary creates a detailed summary of GitHub issues for logging
+func (c *Client) createDetailedGitHubIssuesSummary(result map[string]interface{}) string {
+	var issues []interface{}
+
+	// Handle GitHub integration response structure
+	if data, ok := result["data"].([]interface{}); ok {
+		issues = data
+	} else if issuesField, ok := result["issues"].([]interface{}); ok {
+		issues = issuesField
+	}
+
+	if len(issues) == 0 {
+		return "No issues found in repository"
+	}
+
+	var summary strings.Builder
+	summary.WriteString(fmt.Sprintf("Found %d issues: ", len(issues)))
+
+	for i, issue := range issues {
+		if i >= 3 { // Limit to first 3 for logging
+			summary.WriteString(fmt.Sprintf("... and %d more", len(issues)-3))
+			break
+		}
+
+		if issueMap, ok := issue.(map[string]interface{}); ok {
+			number := "unknown"
+			title := "No title"
+			state := "unknown"
+
+			if num, ok := issueMap["number"].(float64); ok {
+				number = fmt.Sprintf("#%.0f", num)
+			}
+			if t, ok := issueMap["title"].(string); ok {
+				title = t
+				if len(title) > 60 {
+					title = title[:60] + "..."
+				}
+			}
+			if s, ok := issueMap["state"].(string); ok {
+				state = s
+			}
+
+			if i > 0 {
+				summary.WriteString(", ")
+			}
+			summary.WriteString(fmt.Sprintf("%s (%s): %s", number, state, title))
+		}
+	}
+
+	return summary.String()
+}
+
+// createDetailedGitHubCommitsSummary creates a detailed summary of GitHub commits for logging
+func (c *Client) createDetailedGitHubCommitsSummary(result map[string]interface{}) string {
+	var commits []interface{}
+
+	// Handle GitHub integration response structure
+	if data, ok := result["data"].([]interface{}); ok {
+		commits = data
+	} else if commitsField, ok := result["commits"].([]interface{}); ok {
+		commits = commitsField
+	}
+
+	if len(commits) == 0 {
+		return "No commits found in repository"
+	}
+
+	var summary strings.Builder
+	summary.WriteString(fmt.Sprintf("Retrieved %d commits: ", len(commits)))
+
+	for i, commit := range commits {
+		if i >= 2 { // Limit to first 2 for logging
+			summary.WriteString(fmt.Sprintf("... and %d more", len(commits)-2))
+			break
+		}
+
+		if commitMap, ok := commit.(map[string]interface{}); ok {
+			sha := "unknown"
+			message := "No message"
+			author := "unknown"
+
+			if shaVal, ok := commitMap["sha"].(string); ok && len(shaVal) >= 7 {
+				sha = shaVal[:7]
+			}
+
+			if commitData, ok := commitMap["commit"].(map[string]interface{}); ok {
+				if msgVal, ok := commitData["message"].(string); ok {
+					message = msgVal
+					if len(message) > 50 {
+						message = message[:50] + "..."
+					}
+				}
+
+				if authorData, ok := commitData["author"].(map[string]interface{}); ok {
+					if nameVal, ok := authorData["name"].(string); ok {
+						author = nameVal
+					}
+				}
+			}
+
+			if i > 0 {
+				summary.WriteString(", ")
+			}
+			summary.WriteString(fmt.Sprintf("%s by %s: %s", sha, author, message))
+		}
+	}
+
+	return summary.String()
+}
+
+// createDetailedGitHubCodeSummary creates a detailed summary of GitHub code for logging
+func (c *Client) createDetailedGitHubCodeSummary(result map[string]interface{}) string {
+	var data map[string]interface{}
+
+	if d, ok := result["data"].(map[string]interface{}); ok {
+		data = d
+	} else {
+		data = result
+	}
+
+	if fileType, ok := data["type"].(string); ok {
+		if fileType == "file" {
+			name, _ := data["name"].(string)
+			size, _ := data["size"].(float64)
+			encoding, _ := data["encoding"].(string)
+
+			// Check if content was decoded
+			if content, ok := data["content"].(string); ok {
+				contentPreview := content
+				if len(content) > 100 {
+					contentPreview = content[:100] + "..."
+				}
+				return fmt.Sprintf("File '%s' (%.0f bytes, %s): %s", name, size, encoding, contentPreview)
+			}
+
+			return fmt.Sprintf("File '%s' (%.0f bytes, %s encoding)", name, size, encoding)
+		} else if fileType == "dir" {
+			if items, ok := data["items"].([]interface{}); ok {
+				var itemNames []string
+				for i, item := range items {
+					if i >= 5 { // Limit to first 5 items
+						itemNames = append(itemNames, fmt.Sprintf("... and %d more", len(items)-5))
+						break
+					}
+					if itemMap, ok := item.(map[string]interface{}); ok {
+						if name, ok := itemMap["name"].(string); ok {
+							itemNames = append(itemNames, name)
+						}
+					}
+				}
+				return fmt.Sprintf("Directory with %d items: %s", len(items), strings.Join(itemNames, ", "))
+			}
+		}
+	}
+	return "Retrieved code data"
+}
+
+// createDetailedGitHubSearchSummary creates a detailed summary of GitHub search results for logging
+func (c *Client) createDetailedGitHubSearchSummary(result map[string]interface{}) string {
+	var data map[string]interface{}
+
+	if d, ok := result["data"].(map[string]interface{}); ok {
+		data = d
+	} else {
+		data = result
+	}
+
+	if items, ok := data["items"].([]interface{}); ok {
+		if len(items) == 0 {
+			return "No code matches found"
+		}
+
+		var summary strings.Builder
+		summary.WriteString(fmt.Sprintf("Found %d code matches: ", len(items)))
+
+		for i, item := range items {
+			if i >= 3 { // Limit to first 3 for logging
+				summary.WriteString(fmt.Sprintf("... and %d more", len(items)-3))
+				break
+			}
+
+			if itemMap, ok := item.(map[string]interface{}); ok {
+				name := "unknown"
+				path := "unknown"
+
+				if n, ok := itemMap["name"].(string); ok {
+					name = n
+				}
+				if p, ok := itemMap["path"].(string); ok {
+					path = p
+				}
+
+				if i > 0 {
+					summary.WriteString(", ")
+				}
+				summary.WriteString(fmt.Sprintf("%s (%s)", name, path))
+			}
+		}
+
+		return summary.String()
+	}
+
+	return "Retrieved search results"
+}
+
+// createDetailedGitHubPullRequestsSummary creates a detailed summary of GitHub pull requests for logging
+func (c *Client) createDetailedGitHubPullRequestsSummary(result map[string]interface{}) string {
+	var prs []interface{}
+
+	// Handle GitHub integration response structure
+	if data, ok := result["data"].([]interface{}); ok {
+		prs = data
+	} else if prField, ok := result["pull_requests"].([]interface{}); ok {
+		prs = prField
+	}
+
+	if len(prs) == 0 {
+		return "No pull requests found"
+	}
+
+	var summary strings.Builder
+	summary.WriteString(fmt.Sprintf("Found %d pull requests: ", len(prs)))
+
+	for i, pr := range prs {
+		if i >= 3 { // Limit to first 3 for logging
+			summary.WriteString(fmt.Sprintf("... and %d more", len(prs)-3))
+			break
+		}
+
+		if prMap, ok := pr.(map[string]interface{}); ok {
+			number := "unknown"
+			title := "No title"
+			state := "unknown"
+			author := "unknown"
+
+			if num, ok := prMap["number"].(float64); ok {
+				number = fmt.Sprintf("#%.0f", num)
+			}
+			if t, ok := prMap["title"].(string); ok {
+				title = t
+				if len(title) > 50 {
+					title = title[:50] + "..."
+				}
+			}
+			if s, ok := prMap["state"].(string); ok {
+				state = s
+			}
+			if user, ok := prMap["user"].(map[string]interface{}); ok {
+				if login, ok := user["login"].(string); ok {
+					author = login
+				}
+			}
+
+			if i > 0 {
+				summary.WriteString(", ")
+			}
+			summary.WriteString(fmt.Sprintf("%s (%s) by %s: %s", number, state, author, title))
+		}
+	}
+
+	return summary.String()
+}
+
+// createDetailedGitHubClosePRSummary creates a detailed summary of GitHub PR closure for logging
+func (c *Client) createDetailedGitHubClosePRSummary(result map[string]interface{}) string {
+	var data map[string]interface{}
+
+	if d, ok := result["data"].(map[string]interface{}); ok {
+		data = d
+	} else {
+		data = result
+	}
+
+	if state, ok := data["state"].(string); ok && state == "closed" {
+		number := "unknown"
+		title := "No title"
+
+		if num, ok := data["number"].(float64); ok {
+			number = fmt.Sprintf("#%.0f", num)
+		}
+		if t, ok := data["title"].(string); ok {
+			title = t
+			if len(title) > 60 {
+				title = title[:60] + "..."
+			}
+		}
+
+		return fmt.Sprintf("Closed pull request %s: %s", number, title)
+	}
+
+	return "Pull request operation completed"
+}
+
+// createDetailedSlackChannelSummary creates a detailed summary of Slack channel data for logging
+func (c *Client) createDetailedSlackChannelSummary(result map[string]interface{}) string {
+	var channels []interface{}
+
+	if data, ok := result["data"].(map[string]interface{}); ok {
+		if ch, ok := data["channels"].([]interface{}); ok {
+			channels = ch
+		}
+	} else if ch, ok := result["channels"].([]interface{}); ok {
+		channels = ch
+	}
+
+	if len(channels) == 0 {
+		return "No channels found"
+	}
+
+	if channel, ok := channels[0].(map[string]interface{}); ok {
+		channelID, _ := channel["id"].(string)
+		channelName, _ := channel["name"].(string)
+		memberCount := 0
+		if members, ok := channel["num_members"].(float64); ok {
+			memberCount = int(members)
+		}
+
+		return fmt.Sprintf("Found channel '%s' (ID: %s, %d members)", channelName, channelID, memberCount)
+	}
+
+	return fmt.Sprintf("Found %d channels", len(channels))
+}
+
+// createDetailedSlackMessagesSummary creates a detailed summary of Slack messages for logging
+func (c *Client) createDetailedSlackMessagesSummary(result map[string]interface{}) string {
+	var messages []interface{}
+
+	if data, ok := result["data"].(map[string]interface{}); ok {
+		if msgs, ok := data["messages"].([]interface{}); ok {
+			messages = msgs
+		}
+	} else if msgs, ok := result["messages"].([]interface{}); ok {
+		messages = msgs
+	}
+
+	if len(messages) == 0 {
+		return "No messages found"
+	}
+
+	var summary strings.Builder
+	summary.WriteString(fmt.Sprintf("Retrieved %d messages: ", len(messages)))
+
+	for i, message := range messages {
+		if i >= 2 { // Limit to first 2 for logging
+			summary.WriteString(fmt.Sprintf("... and %d more", len(messages)-2))
+			break
+		}
+
+		if msgMap, ok := message.(map[string]interface{}); ok {
+			user := "unknown"
+			text := "No text"
+			timestamp := "unknown"
+
+			if u, ok := msgMap["user"].(string); ok {
+				user = u
+			}
+			if t, ok := msgMap["text"].(string); ok {
+				text = t
+				if len(text) > 50 {
+					text = text[:50] + "..."
+				}
+			}
+			if ts, ok := msgMap["ts"].(string); ok {
+				timestamp = ts
+			}
+
+			if i > 0 {
+				summary.WriteString(", ")
+			}
+			summary.WriteString(fmt.Sprintf("%s at %s: %s", user, timestamp, text))
+		}
+	}
+
+	return summary.String()
+}
+
+// createDetailedSlackSendSummary creates a detailed summary of Slack send results for logging
+func (c *Client) createDetailedSlackSendSummary(result map[string]interface{}) string {
+	if data, ok := result["data"].(map[string]interface{}); ok {
+		if ok, okVal := data["ok"].(bool); okVal && ok {
+			channel := "unknown"
+			timestamp := "unknown"
+
+			if ch, ok := data["channel"].(string); ok {
+				channel = ch
+			}
+			if ts, ok := data["ts"].(string); ok {
+				timestamp = ts
+			}
+
+			return fmt.Sprintf("Message sent to channel %s at %s", channel, timestamp)
+		}
+	}
+
+	return "Message sent successfully"
+}
+
+// createDetailedGenericSummary creates a detailed summary for other functions
+func (c *Client) createDetailedGenericSummary(result map[string]interface{}) string {
+	if len(result) == 0 {
+		return "Empty result"
+	}
+
+	var summary strings.Builder
+	summary.WriteString(fmt.Sprintf("Result with %d fields: ", len(result)))
+
+	keys := c.getMapKeys(result)
+	if len(keys) > 5 {
+		summary.WriteString(fmt.Sprintf("%s ... and %d more", strings.Join(keys[:5], ", "), len(keys)-5))
+	} else {
+		summary.WriteString(strings.Join(keys, ", "))
+	}
+
+	return summary.String()
+}
+
 // createIntelligentResultSummary extracts only essential information from function results
 // This prevents context overflow by avoiding large JSON blobs in synthesis prompts
 func (c *Client) createIntelligentResultSummary(functionName string, result map[string]interface{}) string {
@@ -2461,6 +2933,10 @@ func (c *Client) createIntelligentResultSummary(functionName string, result map[
 		return c.summarizeGitHubReadIssues(result)
 	case "github_read_commits":
 		return c.summarizeGitHubReadCommits(result)
+	case "github_read_pull_requests":
+		return c.summarizeGitHubReadPullRequests(result)
+	case "github_close_pull_request":
+		return c.summarizeGitHubClosePullRequest(result)
 	case "github_list_branches":
 		// Return full raw data for github_list_branches - no summarization
 		return c.createFullDataSummary(result)
@@ -2631,13 +3107,153 @@ func (c *Client) summarizeGitHubReadCommits(result map[string]interface{}) strin
 	} else if response, ok := result["response"].([]interface{}); ok {
 		// Fallback for other structures
 		commits = response
+	} else if commitsField, ok := result["commits"].([]interface{}); ok {
+		// Handle direct commits field
+		commits = commitsField
 	}
 
 	if len(commits) == 0 {
 		return "No commits found"
 	}
 
-	return fmt.Sprintf("Retrieved %d recent commits", len(commits))
+	// Provide detailed information about recent commits (up to 5)
+	var summary strings.Builder
+	summary.WriteString(fmt.Sprintf("Retrieved %d recent commits:\n", len(commits)))
+
+	maxCommits := len(commits)
+	if maxCommits > 5 {
+		maxCommits = 5
+	}
+
+	for i := 0; i < maxCommits; i++ {
+		if commit, ok := commits[i].(map[string]interface{}); ok {
+			sha := "unknown"
+			message := "No message"
+			author := "unknown"
+			date := "unknown"
+
+			if shaVal, ok := commit["sha"].(string); ok && len(shaVal) >= 7 {
+				sha = shaVal[:7]
+			}
+
+			if commitData, ok := commit["commit"].(map[string]interface{}); ok {
+				if msgVal, ok := commitData["message"].(string); ok {
+					message = msgVal
+					// Truncate long messages
+					if len(message) > 100 {
+						message = message[:100] + "..."
+					}
+				}
+
+				if authorData, ok := commitData["author"].(map[string]interface{}); ok {
+					if nameVal, ok := authorData["name"].(string); ok {
+						author = nameVal
+					}
+					if dateVal, ok := authorData["date"].(string); ok {
+						date = dateVal
+					}
+				}
+			}
+
+			summary.WriteString(fmt.Sprintf("  • %s by %s (%s): %s\n", sha, author, date, message))
+		}
+	}
+
+	if len(commits) > 5 {
+		summary.WriteString(fmt.Sprintf("  ... and %d more commits", len(commits)-5))
+	}
+
+	return summary.String()
+}
+
+// summarizeGitHubReadPullRequests extracts essential pull request information
+func (c *Client) summarizeGitHubReadPullRequests(result map[string]interface{}) string {
+	var prs []interface{}
+
+	// Handle GitHub integration response structure
+	if data, ok := result["data"].([]interface{}); ok {
+		prs = data
+	} else if prField, ok := result["pull_requests"].([]interface{}); ok {
+		prs = prField
+	}
+
+	if len(prs) == 0 {
+		return "No pull requests found"
+	}
+
+	// Provide summary with key details
+	var summary strings.Builder
+	summary.WriteString(fmt.Sprintf("Retrieved %d pull requests:\n", len(prs)))
+
+	maxPRs := len(prs)
+	if maxPRs > 3 {
+		maxPRs = 3
+	}
+
+	for i := 0; i < maxPRs; i++ {
+		if prMap, ok := prs[i].(map[string]interface{}); ok {
+			number := "unknown"
+			title := "No title"
+			state := "unknown"
+			author := "unknown"
+
+			if num, ok := prMap["number"].(float64); ok {
+				number = fmt.Sprintf("#%.0f", num)
+			}
+			if t, ok := prMap["title"].(string); ok {
+				title = t
+				if len(title) > 80 {
+					title = title[:80] + "..."
+				}
+			}
+			if s, ok := prMap["state"].(string); ok {
+				state = s
+			}
+			if user, ok := prMap["user"].(map[string]interface{}); ok {
+				if login, ok := user["login"].(string); ok {
+					author = login
+				}
+			}
+
+			summary.WriteString(fmt.Sprintf("  • %s (%s) by %s: %s\n", number, state, author, title))
+		}
+	}
+
+	if len(prs) > 3 {
+		summary.WriteString(fmt.Sprintf("  ... and %d more pull requests", len(prs)-3))
+	}
+
+	return summary.String()
+}
+
+// summarizeGitHubClosePullRequest extracts essential information about PR closure
+func (c *Client) summarizeGitHubClosePullRequest(result map[string]interface{}) string {
+	var data map[string]interface{}
+
+	if d, ok := result["data"].(map[string]interface{}); ok {
+		data = d
+	} else {
+		data = result
+	}
+
+	if state, ok := data["state"].(string); ok && state == "closed" {
+		number := "unknown"
+		title := "No title"
+
+		if num, ok := data["number"].(float64); ok {
+			number = fmt.Sprintf("#%.0f", num)
+		}
+		if t, ok := data["title"].(string); ok {
+			title = t
+			if len(title) > 60 {
+				title = title[:60] + "..."
+			}
+		}
+
+		return fmt.Sprintf("Successfully closed pull request %s: %s", number, title)
+	}
+
+	return "Pull request closure completed"
 }
 
 // summarizeGitHubListBranches extracts essential branch information including SHAs

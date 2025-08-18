@@ -24,7 +24,10 @@
       "bundleIdentifier": "com.agentlog.app",
       "buildNumber": "1",
       "infoPlist": {
-        "LSApplicationQueriesSchemes": ["mailto", "tel"],
+        "LSApplicationQueriesSchemes": [
+          "mailto",
+          "tel"
+        ],
         "NSCameraUsageDescription": "This app uses camera to scan QR codes for configuration",
         "NSMicrophoneUsageDescription": "This app uses microphone for voice commands",
         "NSLocationWhenInUseUsageDescription": "This app uses location to provide location-based services"
@@ -56,7 +59,9 @@
       "output": "single",
       "lang": "en"
     },
-    "plugins": [],
+    "plugins": [
+      "expo-router"
+    ],
     "extra": {
       "eas": {
         "projectId": "YOUR_EAS_PROJECT_ID_HERE"

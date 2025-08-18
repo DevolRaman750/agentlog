@@ -9,61 +9,75 @@
     "method": "GET"
   },
   "parameters": {
-    "required": ["q"],
-    "optional": ["pageSize", "pageToken", "orderBy", "fields", "spaces", "corpora", "includeItemsFromAllDrives", "supportsAllDrives"],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "q": {
-          "type": "string",
-          "description": "Query string for searching files. Examples: 'name contains \"report\"', 'fullText contains \"budget\"', 'mimeType contains \"application/pdf\"', 'modifiedTime > \"2023-01-01\"'"
-        },
-        "pageSize": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 1000,
-          "default": 100,
-          "description": "Maximum number of files to return"
-        },
-        "pageToken": {
-          "type": "string",
-          "description": "Token for pagination to get next page of results"
-        },
-        "orderBy": {
-          "type": "string",
-          "enum": ["createdTime", "modifiedTime", "modifiedByMeTime", "viewedByMeTime", "name", "quotaBytesUsed"],
-          "default": "relevance",
-          "description": "Sort order for results"
-        },
-        "fields": {
-          "type": "string",
-          "default": "nextPageToken, files(id, name, mimeType, size, createdTime, modifiedTime, parents, webViewLink)",
-          "description": "Fields to include in the response"
-        },
-        "spaces": {
-          "type": "string",
-          "enum": ["drive", "appDataFolder", "photos"],
-          "default": "drive",
-          "description": "Space to search in"
-        },
-        "corpora": {
-          "type": "string",
-          "enum": ["user", "domain", "allDrives", "sharedDrive"],
-          "description": "Corpus of files to search"
-        },
-        "includeItemsFromAllDrives": {
-          "type": "boolean",
-          "default": true,
-          "description": "Whether both My Drive and shared drive items should be included in results"
-        },
-        "supportsAllDrives": {
-          "type": "boolean",
-          "default": true,
-          "description": "Whether the requesting application supports both My Drives and shared drives"
-        }
+    "type": "object",
+    "properties": {
+      "q": {
+        "type": "string",
+        "description": "Query string for searching files. Examples: 'name contains \"report\"', 'fullText contains \"budget\"', 'mimeType contains \"application/pdf\"', 'modifiedTime > \"2023-01-01\"'"
       },
-      "required": ["q"]
-    }
+      "pageSize": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 100,
+        "description": "Maximum number of files to return"
+      },
+      "pageToken": {
+        "type": "string",
+        "description": "Token for pagination to get next page of results"
+      },
+      "orderBy": {
+        "type": "string",
+        "enum": [
+          "createdTime",
+          "modifiedTime",
+          "modifiedByMeTime",
+          "viewedByMeTime",
+          "name",
+          "quotaBytesUsed"
+        ],
+        "default": "relevance",
+        "description": "Sort order for results"
+      },
+      "fields": {
+        "type": "string",
+        "default": "nextPageToken, files(id, name, mimeType, size, createdTime, modifiedTime, parents, webViewLink)",
+        "description": "Fields to include in the response"
+      },
+      "spaces": {
+        "type": "string",
+        "enum": [
+          "drive",
+          "appDataFolder",
+          "photos"
+        ],
+        "default": "drive",
+        "description": "Space to search in"
+      },
+      "corpora": {
+        "type": "string",
+        "enum": [
+          "user",
+          "domain",
+          "allDrives",
+          "sharedDrive"
+        ],
+        "description": "Corpus of files to search"
+      },
+      "includeItemsFromAllDrives": {
+        "type": "boolean",
+        "default": true,
+        "description": "Whether both My Drive and shared drive items should be included in results"
+      },
+      "supportsAllDrives": {
+        "type": "boolean",
+        "default": true,
+        "description": "Whether the requesting application supports both My Drives and shared drives"
+      }
+    },
+    "required": [
+      "q"
+    ]
   },
   "response_transformer": {
     "type": "googledrive_search",

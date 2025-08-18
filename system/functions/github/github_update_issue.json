@@ -10,9 +10,43 @@
     "method": "PATCH"
   },
   "parameters": {
-    "required": ["owner", "repo", "issue_number"],
-    "optional": ["body", "state", "title"],
-    "schema": {"type": "object", "required": ["owner", "repo", "issue_number"], "properties": {"body": {"type": "string", "description": "Updated issue description/body content (optional)"}, "repo": {"type": "string", "description": "Repository name"}, "owner": {"type": "string", "description": "GitHub username or organization name"}, "state": {"enum": ["open", "closed"], "type": "string", "description": "Issue state (optional)"}, "title": {"type": "string", "description": "New title for the issue (optional)"}, "issue_number": {"type": "integer", "minimum": 1, "description": "The issue number to update"}}}
+    "type": "object",
+    "required": [
+      "owner",
+      "repo",
+      "issue_number"
+    ],
+    "properties": {
+      "body": {
+        "type": "string",
+        "description": "Updated issue description/body content (optional)"
+      },
+      "repo": {
+        "type": "string",
+        "description": "Repository name"
+      },
+      "owner": {
+        "type": "string",
+        "description": "GitHub username or organization name"
+      },
+      "state": {
+        "enum": [
+          "open",
+          "closed"
+        ],
+        "type": "string",
+        "description": "Issue state (optional)"
+      },
+      "title": {
+        "type": "string",
+        "description": "New title for the issue (optional)"
+      },
+      "issue_number": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "The issue number to update"
+      }
+    }
   },
   "examples": [
     {

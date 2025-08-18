@@ -10,9 +10,32 @@
     "method": "GET"
   },
   "parameters": {
-    "required": ["owner", "repo", "query"],
-    "optional": ["per_page"],
-    "schema": {"type": "object", "required": ["owner", "repo", "query"], "properties": {"repo": {"type": "string", "description": "Repository name"}, "owner": {"type": "string", "description": "GitHub username or organization"}, "query": {"type": "string", "description": "Search query (code pattern, function name, etc.)"}, "per_page": {"type": "integer", "default": 30, "maximum": 100, "minimum": 1}}}
+    "type": "object",
+    "required": [
+      "owner",
+      "repo",
+      "query"
+    ],
+    "properties": {
+      "repo": {
+        "type": "string",
+        "description": "Repository name"
+      },
+      "owner": {
+        "type": "string",
+        "description": "GitHub username or organization"
+      },
+      "query": {
+        "type": "string",
+        "description": "Search query (code pattern, function name, etc.)"
+      },
+      "per_page": {
+        "type": "integer",
+        "default": 30,
+        "maximum": 100,
+        "minimum": 1
+      }
+    }
   },
   "examples": [
     {

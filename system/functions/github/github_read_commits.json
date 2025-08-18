@@ -10,47 +10,46 @@
     "method": "GET"
   },
   "parameters": {
-    "required": ["owner", "repo"],
-    "optional": ["sha", "path", "since", "until", "per_page"],
-    "schema": {
-      "type": "object",
-      "required": ["owner", "repo"],
-      "properties": {
-        "owner": {
-          "type": "string",
-          "description": "GitHub username or organization name (e.g., \"microsoft\", \"facebook\", \"google\")"
-        },
-        "repo": {
-          "type": "string",
-          "description": "Repository name (e.g., \"vscode\", \"react\", \"tensorflow\")"
-        },
-        "sha": {
-          "type": "string",
-          "default": "",
-          "description": "SHA or branch to start listing commits from. Use branch names such as main, or specific commit SHAs."
-        },
-        "path": {
-          "type": "string",
-          "default": "",
-          "description": "Only commits containing this file path will be returned. Leave empty for all commits."
-        },
-        "since": {
-          "type": "string",
-          "default": "",
-          "description": "ISO 8601 date string. Only commits after this date will be returned."
-        },
-        "until": {
-          "type": "string",
-          "default": "",
-          "description": "ISO 8601 date string. Only commits before this date will be returned."
-        },
-        "per_page": {
-          "type": "integer",
-          "default": 30,
-          "minimum": 1,
-          "maximum": 100,
-          "description": "Number of commits to return (1-100). Default is 30."
-        }
+    "type": "object",
+    "required": [
+      "owner",
+      "repo"
+    ],
+    "properties": {
+      "owner": {
+        "type": "string",
+        "description": "GitHub username or organization name (e.g., \"microsoft\", \"facebook\", \"google\")"
+      },
+      "repo": {
+        "type": "string",
+        "description": "Repository name (e.g., \"vscode\", \"react\", \"tensorflow\")"
+      },
+      "sha": {
+        "type": "string",
+        "default": "",
+        "description": "SHA or branch to start listing commits from. Use branch names such as main, or specific commit SHAs."
+      },
+      "path": {
+        "type": "string",
+        "default": "",
+        "description": "Only commits containing this file path will be returned. Leave empty for all commits."
+      },
+      "since": {
+        "type": "string",
+        "default": "",
+        "description": "ISO 8601 date string. Only commits after this date will be returned."
+      },
+      "until": {
+        "type": "string",
+        "default": "",
+        "description": "ISO 8601 date string. Only commits before this date will be returned."
+      },
+      "per_page": {
+        "type": "integer",
+        "default": 30,
+        "minimum": 1,
+        "maximum": 100,
+        "description": "Number of commits to return (1-100). Default is 30."
       }
     }
   },

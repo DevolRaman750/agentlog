@@ -9,41 +9,51 @@
     "method": "POST"
   },
   "parameters": {
-    "required": ["team_id", "agent_id", "context", "data"],
-    "optional": ["path", "merge_strategy"],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "team_id": {
-          "type": "string",
-          "description": "Team ID to write memory for. The requesting agent must be a member of this team."
-        },
-        "agent_id": {
-          "type": "string",
-          "description": "Agent ID making the request. Must be a member of the specified team."
-        },
-        "context": {
-          "type": "string",
-          "enum": ["workflow", "session", "persistent", "shared"],
-          "description": "Memory context to write to - workflow for current task state, session for temporary data, persistent for long-term patterns, shared for team-shared data"
-        },
-        "path": {
-          "type": "string",
-          "description": "Specific JSON path to write to (e.g., 'current_step', 'team_preferences.format'). If not provided, data will be merged into the context root"
-        },
-        "data": {
-          "type": "object",
-          "description": "The data to store in team memory. Can be any valid JSON object or primitive value"
-        },
-        "merge_strategy": {
-          "type": "string",
-          "enum": ["merge", "replace", "append"],
-          "default": "merge",
-          "description": "How to handle existing data - merge objects together, replace completely, or append to arrays"
-        }
+    "type": "object",
+    "properties": {
+      "team_id": {
+        "type": "string",
+        "description": "Team ID to write memory for. The requesting agent must be a member of this team."
       },
-      "required": ["team_id", "agent_id", "context", "data"]
-    }
+      "agent_id": {
+        "type": "string",
+        "description": "Agent ID making the request. Must be a member of the specified team."
+      },
+      "context": {
+        "type": "string",
+        "enum": [
+          "workflow",
+          "session",
+          "persistent",
+          "shared"
+        ],
+        "description": "Memory context to write to - workflow for current task state, session for temporary data, persistent for long-term patterns, shared for team-shared data"
+      },
+      "path": {
+        "type": "string",
+        "description": "Specific JSON path to write to (e.g., 'current_step', 'team_preferences.format'). If not provided, data will be merged into the context root"
+      },
+      "data": {
+        "type": "object",
+        "description": "The data to store in team memory. Can be any valid JSON object or primitive value"
+      },
+      "merge_strategy": {
+        "type": "string",
+        "enum": [
+          "merge",
+          "replace",
+          "append"
+        ],
+        "default": "merge",
+        "description": "How to handle existing data - merge objects together, replace completely, or append to arrays"
+      }
+    },
+    "required": [
+      "team_id",
+      "agent_id",
+      "context",
+      "data"
+    ]
   },
   "examples": [
     {

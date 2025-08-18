@@ -10,9 +10,48 @@
     "method": "POST"
   },
   "parameters": {
-    "required": ["owner", "repo", "title"],
-    "optional": ["body", "labels", "assignees", "milestone"],
-    "schema": {"type": "object", "required": ["owner", "repo", "title"], "properties": {"body": {"type": "string", "description": "Issue description/body content. Supports full GitHub Markdown formatting"}, "repo": {"type": "string", "description": "Repository name"}, "owner": {"type": "string", "description": "GitHub username or organization name"}, "title": {"type": "string", "description": "Issue title"}, "labels": {"type": "array", "items": {"type": "string"}, "description": "Array of label names to assign to the issue"}, "assignees": {"type": "array", "items": {"type": "string"}, "description": "Array of usernames to assign to the issue"}, "milestone": {"type": "integer", "description": "Milestone number to associate with the issue"}}}
+    "type": "object",
+    "required": [
+      "owner",
+      "repo",
+      "title"
+    ],
+    "properties": {
+      "body": {
+        "type": "string",
+        "description": "Issue description/body content. Supports full GitHub Markdown formatting"
+      },
+      "repo": {
+        "type": "string",
+        "description": "Repository name"
+      },
+      "owner": {
+        "type": "string",
+        "description": "GitHub username or organization name"
+      },
+      "title": {
+        "type": "string",
+        "description": "Issue title"
+      },
+      "labels": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of label names to assign to the issue"
+      },
+      "assignees": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of usernames to assign to the issue"
+      },
+      "milestone": {
+        "type": "integer",
+        "description": "Milestone number to associate with the issue"
+      }
+    }
   },
   "examples": [
     {
@@ -22,7 +61,10 @@
         "repo": "vscode",
         "title": "Bug: Extension crashes on startup",
         "body": "The extension crashes when VS Code starts up. Steps to reproduce:\n1. Install the extension\n2. Restart VS Code\n3. Extension crashes",
-        "labels": ["bug", "high-priority"]
+        "labels": [
+          "bug",
+          "high-priority"
+        ]
       }
     },
     {
@@ -32,7 +74,10 @@
         "repo": "react",
         "title": "Feature: Add dark mode support",
         "body": "It would be great to have dark mode support for better user experience.",
-        "labels": ["enhancement", "ui"]
+        "labels": [
+          "enhancement",
+          "ui"
+        ]
       }
     }
   ]

@@ -9,41 +9,56 @@
     "method": "POST"
   },
   "parameters": {
-    "required": ["action"],
-    "optional": ["agent_id", "context", "path", "filter"],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "agent_id": {
-          "type": "string",
-          "description": "Agent ID to clear memory for. If not provided, will use the current execution context's agent ID."
-        },
-        "action": {
-          "type": "string",
-          "enum": ["clear_context", "clear_path", "clear_filter", "clear_all", "compact"],
-          "description": "Type of clear operation - clear_context removes entire context, clear_path removes specific path, clear_filter removes matching entries, clear_all removes everything, compact optimizes storage"
-        },
-        "context": {
-          "type": "string",
-          "enum": ["workflow", "session", "persistent"],
-          "description": "Memory context to clear (required for clear_context)"
-        },
-        "path": {
-          "type": "string",
-          "description": "Specific JSON path to clear (required for clear_path, e.g., 'contexts.workflow.completed_steps')"
-        },
-        "filter": {
-          "type": "object",
-          "properties": {
-            "query": {"type": "string"},
-            "older_than": {"type": "string", "format": "date-time"},
-            "size_limit": {"type": "integer"}
-          },
-          "description": "Filter criteria for selective clearing (required for clear_filter)"
-        }
+    "type": "object",
+    "properties": {
+      "agent_id": {
+        "type": "string",
+        "description": "Agent ID to clear memory for. If not provided, will use the current execution context's agent ID."
       },
-      "required": ["action"]
-    }
+      "action": {
+        "type": "string",
+        "enum": [
+          "clear_context",
+          "clear_path",
+          "clear_filter",
+          "clear_all",
+          "compact"
+        ],
+        "description": "Type of clear operation - clear_context removes entire context, clear_path removes specific path, clear_filter removes matching entries, clear_all removes everything, compact optimizes storage"
+      },
+      "context": {
+        "type": "string",
+        "enum": [
+          "workflow",
+          "session",
+          "persistent"
+        ],
+        "description": "Memory context to clear (required for clear_context)"
+      },
+      "path": {
+        "type": "string",
+        "description": "Specific JSON path to clear (required for clear_path, e.g., 'contexts.workflow.completed_steps')"
+      },
+      "filter": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "older_than": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "size_limit": {
+            "type": "integer"
+          }
+        },
+        "description": "Filter criteria for selective clearing (required for clear_filter)"
+      }
+    },
+    "required": [
+      "action"
+    ]
   },
   "examples": [
     {

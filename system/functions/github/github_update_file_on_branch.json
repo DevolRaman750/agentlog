@@ -10,44 +10,47 @@
     "method": "PUT"
   },
   "parameters": {
-    "required": ["owner", "repo", "path", "content", "message", "branch"],
-    "optional": ["committer_name", "committer_email"],
-    "schema": {
-      "type": "object",
-      "required": ["owner", "repo", "path", "content", "message", "branch"],
-      "properties": {
-        "owner": {
-          "type": "string",
-          "description": "GitHub username or organization name"
-        },
-        "repo": {
-          "type": "string",
-          "description": "Repository name"
-        },
-        "path": {
-          "type": "string",
-          "description": "Path to the file in the repository"
-        },
-        "content": {
-          "type": "string",
-          "description": "New file content (will be base64 encoded automatically)"
-        },
-        "message": {
-          "type": "string",
-          "description": "Commit message for the file change"
-        },
-        "branch": {
-          "type": "string",
-          "description": "Branch to update the file on. Function will automatically get the current SHA from this branch."
-        },
-        "committer_name": {
-          "type": "string",
-          "description": "Name of the committer (optional)"
-        },
-        "committer_email": {
-          "type": "string",
-          "description": "Email of the committer (optional)"
-        }
+    "type": "object",
+    "required": [
+      "owner",
+      "repo",
+      "path",
+      "content",
+      "message",
+      "branch"
+    ],
+    "properties": {
+      "owner": {
+        "type": "string",
+        "description": "GitHub username or organization name"
+      },
+      "repo": {
+        "type": "string",
+        "description": "Repository name"
+      },
+      "path": {
+        "type": "string",
+        "description": "Path to the file in the repository"
+      },
+      "content": {
+        "type": "string",
+        "description": "New file content (will be base64 encoded automatically)"
+      },
+      "message": {
+        "type": "string",
+        "description": "Commit message for the file change"
+      },
+      "branch": {
+        "type": "string",
+        "description": "Branch to update the file on. Function will automatically get the current SHA from this branch."
+      },
+      "committer_name": {
+        "type": "string",
+        "description": "Name of the committer (optional)"
+      },
+      "committer_email": {
+        "type": "string",
+        "description": "Email of the committer (optional)"
       }
     }
   },

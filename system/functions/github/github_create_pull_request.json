@@ -10,9 +10,51 @@
     "method": "POST"
   },
   "parameters": {
-    "required": ["owner", "repo", "title", "head", "base"],
-    "optional": ["body", "draft", "maintainer_can_modify"],
-    "schema": {"type": "object", "required": ["owner", "repo", "title", "head", "base"], "properties": {"base": {"type": "string", "default": "main", "description": "The branch to merge into (target branch)"}, "body": {"type": "string", "description": "Pull request description/body content"}, "head": {"type": "string", "description": "The branch with changes (source branch)"}, "repo": {"type": "string", "description": "Repository name"}, "draft": {"type": "boolean", "default": false, "description": "Create as draft PR"}, "owner": {"type": "string", "description": "GitHub username or organization name"}, "title": {"type": "string", "description": "Pull request title"}, "maintainer_can_modify": {"type": "boolean", "default": true, "description": "Allow maintainers to modify the PR"}}}
+    "type": "object",
+    "required": [
+      "owner",
+      "repo",
+      "title",
+      "head",
+      "base"
+    ],
+    "properties": {
+      "base": {
+        "type": "string",
+        "default": "main",
+        "description": "The branch to merge into (target branch)"
+      },
+      "body": {
+        "type": "string",
+        "description": "Pull request description/body content"
+      },
+      "head": {
+        "type": "string",
+        "description": "The branch with changes (source branch)"
+      },
+      "repo": {
+        "type": "string",
+        "description": "Repository name"
+      },
+      "draft": {
+        "type": "boolean",
+        "default": false,
+        "description": "Create as draft PR"
+      },
+      "owner": {
+        "type": "string",
+        "description": "GitHub username or organization name"
+      },
+      "title": {
+        "type": "string",
+        "description": "Pull request title"
+      },
+      "maintainer_can_modify": {
+        "type": "boolean",
+        "default": true,
+        "description": "Allow maintainers to modify the PR"
+      }
+    }
   },
   "examples": [
     {

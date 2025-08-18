@@ -9,25 +9,23 @@
     "method": "GET"
   },
   "parameters": {
-    "required": ["channel"],
-    "optional": ["limit"],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "channel": {
-          "type": "string",
-          "description": "Channel ID to get members from"
-        },
-        "limit": {
-          "type": "integer",
-          "default": 1000,
-          "maximum": 1000,
-          "minimum": 1,
-          "description": "Maximum number of users to return (1-1000, default 1000)"
-        }
+    "type": "object",
+    "properties": {
+      "channel": {
+        "type": "string",
+        "description": "Channel ID to get members from"
       },
-      "required": ["channel"]
-    }
+      "limit": {
+        "type": "integer",
+        "default": 1000,
+        "maximum": 1000,
+        "minimum": 1,
+        "description": "Maximum number of users to return (1-1000, default 1000)"
+      }
+    },
+    "required": [
+      "channel"
+    ]
   },
   "examples": [
     {

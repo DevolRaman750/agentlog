@@ -2,44 +2,51 @@
   "id": "func-agent_memory_write-1754754882",
   "name": "agent_memory_write",
   "provider": "internal",
-  "display_name": "Agent Memory: Write", 
+  "display_name": "Agent Memory: Write",
   "description": "Store or update data in the agent's memory. Use this to save workflow progress, temporary session data, learned patterns, or any information you need to remember for future executions. Memory is automatically structured and can be retrieved later.",
   "endpoint": {
     "path": "/internal/agent/memory/write",
     "method": "POST"
   },
   "parameters": {
-    "required": ["context", "data"],
-    "optional": ["agent_id", "path", "merge_strategy"],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "agent_id": {
-          "type": "string",
-          "description": "Agent ID to write memory for. If not provided, will use the current execution context's agent ID."
-        },
-        "context": {
-          "type": "string",
-          "enum": ["workflow", "session", "persistent"],
-          "description": "Memory context to write to - workflow for current task state, session for temporary data, persistent for long-term patterns"
-        },
-        "path": {
-          "type": "string",
-          "description": "Specific JSON path to write to (e.g., 'current_step', 'user_preferences.format'). If not provided, data will be merged into the context root"
-        },
-        "data": {
-          "type": "object",
-          "description": "The data to store in memory. Can be any valid JSON object or primitive value"
-        },
-        "merge_strategy": {
-          "type": "string",
-          "enum": ["merge", "replace", "append"],
-          "default": "merge",
-          "description": "How to handle existing data - merge objects together, replace completely, or append to arrays"
-        }
+    "type": "object",
+    "properties": {
+      "agent_id": {
+        "type": "string",
+        "description": "Agent ID to write memory for. If not provided, will use the current execution context's agent ID."
       },
-      "required": ["context", "data"]
-    }
+      "context": {
+        "type": "string",
+        "enum": [
+          "workflow",
+          "session",
+          "persistent"
+        ],
+        "description": "Memory context to write to - workflow for current task state, session for temporary data, persistent for long-term patterns"
+      },
+      "path": {
+        "type": "string",
+        "description": "Specific JSON path to write to (e.g., 'current_step', 'user_preferences.format'). If not provided, data will be merged into the context root"
+      },
+      "data": {
+        "type": "object",
+        "description": "The data to store in memory. Can be any valid JSON object or primitive value"
+      },
+      "merge_strategy": {
+        "type": "string",
+        "enum": [
+          "merge",
+          "replace",
+          "append"
+        ],
+        "default": "merge",
+        "description": "How to handle existing data - merge objects together, replace completely, or append to arrays"
+      }
+    },
+    "required": [
+      "context",
+      "data"
+    ]
   },
   "examples": [
     {
