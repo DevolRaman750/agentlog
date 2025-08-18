@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Platform, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Platform, Pressable, Dimensions } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useApp } from '../context/AppContext';
 import { goGentAPI } from '../api/client';
+// import ExecutionFlowGraphVisualization from './ExecutionFlowGraphVisualization';
 
 // Type definitions for the execution flow
 interface ExecutionFlowEvent {
@@ -78,6 +79,8 @@ const ExecutionFlowGraph: React.FC<ExecutionFlowGraphProps> = ({
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
   const [selectedTimelineEvent, setSelectedTimelineEvent] = useState<ExecutionFlowEvent | null>(null);
   const [showEventModal, setShowEventModal] = useState(false);
+  const [viewMode, setViewMode] = useState<'timeline' | 'graph'>('timeline');
+  const [showGraphVisualization, setShowGraphVisualization] = useState(false);
   const { state } = useApp();
   const backendUrl = state.config.backendUrl;
 
@@ -244,22 +247,207 @@ const ExecutionFlowGraph: React.FC<ExecutionFlowGraphProps> = ({
     setSelectedTimelineEvent(null);
   };
 
+  const toggleViewMode = () => {
+    if (viewMode === 'timeline') {
+      setViewMode('graph');
+      setShowGraphVisualization(true);
+    } else {
+      setViewMode('timeline');
+      setShowGraphVisualization(false);
+    }
+  };
+
+  const handleGraphNodeClick = (event: ExecutionFlowEvent) => {
+    setSelectedTimelineEvent(event);
+    setShowEventModal(true);
+  };
+
+  // Flame Graph Rendering Function
+  const renderFlameGraph = (events: ExecutionFlowEvent[]) => {
+    if (!events || events.length === 0) {
+      return (
+        <View style={styles.emptyFlameGraph}>
+          <Text style={styles.emptyFlameGraphText}>No execution events to display</Text>
+        </View>
+      );
+    }
+
+    // Calculate timing and hierarchy
+    const sortedEvents = [...events].sort((a, b) => a.sequenceNumber - b.sequenceNumber);
+    const maxWidth = Math.max(screenWidth * 2, 800); // Ensure minimum width for readability
+    
+    // Group events by depth/level for flame graph
+    const levels: ExecutionFlowEvent[][] = [];
+    const eventDepths = new Map<string, number>();
+    
+    // Calculate depths based on sequence order for better visualization
+    sortedEvents.forEach((event, index) => {
+      let depth = 0;
+      
+      // Simple depth calculation based on event type and sequence
+      if (event.eventType === 'prompt_start') {
+        depth = 0; // Always at top
+      } else if (event.eventType === 'ai_model_call') {
+        depth = 1; // AI calls at level 1
+      } else if (event.eventType === 'function_call_start') {
+        depth = 2; // Function calls at level 2
+      } else if (event.eventType === 'function_call_end') {
+        depth = 2; // Function ends at same level as starts
+      } else if (event.eventType === 'ai_response') {
+        depth = 1; // AI responses back to level 1
+      } else if (event.eventType === 'execution_complete') {
+        depth = 0; // Complete back at top level
+      } else {
+        depth = Math.min(index % 3, 2); // Distribute other events across levels
+      }
+      
+      eventDepths.set(event.id, depth);
+      
+      // Ensure we have enough levels
+      while (levels.length <= depth) {
+        levels.push([]);
+      }
+      
+      levels[depth].push(event);
+    });
+
+    // Calculate positions and widths
+    const minStartTime = Math.min(...sortedEvents.map(e => new Date(e.createdAt).getTime()));
+    const maxEndTime = Math.max(...sortedEvents.map(e => {
+      const start = new Date(e.createdAt).getTime();
+      return start + (e.durationMs || 100);
+    }));
+    const totalTimespan = maxEndTime - minStartTime || 1000;
+
+    const getEventColor = (eventType: string) => {
+      switch (eventType) {
+        case 'prompt_start': return '#28A745'; // Vibrant green
+        case 'ai_model_call': return '#0066CC'; // Rich blue
+        case 'function_call_start': return '#FD7E14'; // Bright orange
+        case 'function_call_end': return '#20C997'; // Teal green
+        case 'ai_response': return '#6F42C1'; // Purple
+        case 'error_occurred': return '#DC3545'; // Red
+        case 'execution_complete': return '#17A2B8'; // Cyan
+        default: return '#6C757D'; // Gray
+      }
+    };
+
+    const getEventIcon = (eventType: string) => {
+      switch (eventType) {
+        case 'prompt_start': return '🚀';
+        case 'ai_model_call': return '🤖';
+        case 'function_call_start': return '🔧';
+        case 'function_call_end': return '✅';
+        case 'ai_response': return '💬';
+        case 'error_occurred': return '❌';
+        case 'execution_complete': return '🎯';
+        default: return '📝';
+      }
+    };
+
+    const barHeight = 28;
+    const barMargin = 2;
+    const levelHeight = barHeight + barMargin;
+
+    return (
+      <View style={[styles.flameGraphSvg, { height: levels.length * levelHeight + 40, width: maxWidth + 20 }]}>
+        {levels.map((levelEvents, levelIndex) => (
+          <View key={levelIndex} style={[styles.flameGraphLevel, { top: levelIndex * levelHeight }]}>
+            {levelEvents.map((event) => {
+              const startTime = new Date(event.createdAt).getTime();
+              const duration = event.durationMs || 100;
+              const leftPercent = ((startTime - minStartTime) / totalTimespan) * 100;
+              const widthPercent = Math.max((duration / totalTimespan) * 100, 2); // Minimum 2% width
+              
+              const left = 10 + (leftPercent / 100) * maxWidth; // Add 10px left padding
+              const width = Math.max((widthPercent / 100) * maxWidth, 120); // Minimum 120px width for readability
+
+              return (
+                <TouchableOpacity
+                  key={event.id}
+                  style={[
+                    styles.flameGraphBar,
+                    {
+                      left,
+                      width,
+                      backgroundColor: getEventColor(event.eventType),
+                    }
+                  ]}
+                  onPress={() => handleGraphNodeClick(event)}
+                >
+                  <View style={styles.flameGraphBarContent}>
+                    <Text style={styles.flameGraphBarIcon}>
+                      {getEventIcon(event.eventType)}
+                    </Text>
+                    <Text style={styles.flameGraphBarText} numberOfLines={1}>
+                      {(() => {
+                        const functionName = event.eventData?.function_name || event.eventData?.functionName;
+                        if (functionName) {
+                          return functionName.length > 15 ? functionName.substring(0, 15) + '...' : functionName;
+                        }
+                        const eventTypeLabel = event.eventType.replace('_', ' ').toUpperCase();
+                        return eventTypeLabel.length > 15 ? eventTypeLabel.substring(0, 15) + '...' : eventTypeLabel;
+                      })()}
+                    </Text>
+                    <Text style={styles.flameGraphBarDuration}>
+                      {formatDuration(event.durationMs)}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ))}
+        
+        {/* Time axis */}
+        <View style={[styles.flameGraphTimeAxis, { 
+          top: levels.length * levelHeight + 10, 
+          left: 10, 
+          width: maxWidth 
+        }]}>
+          <Text style={styles.flameGraphTimeLabel}>0ms</Text>
+          <Text style={styles.flameGraphTimeLabel}>
+            {formatDuration(totalTimespan)}
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
   if (!visible) {
     return null;
   }
+
+
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Execution Flow Graph</Text>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <Ionicons name="close" size={24} color="#1D1D1F" />
-        </TouchableOpacity>
+        <View style={styles.headerLeft}>
+          <Text style={styles.title}>Execution Flow</Text>
+          <Text style={styles.subtitle}>{viewMode === 'timeline' ? 'Timeline View' : 'Graph View'}</Text>
+        </View>
+        <View style={styles.headerRight}>
+          <TouchableOpacity onPress={toggleViewMode} style={styles.viewToggleButton}>
+            <Ionicons 
+              name={viewMode === 'timeline' ? 'git-network-outline' : 'list-outline'} 
+              size={20} 
+              color="#007AFF" 
+            />
+            <Text style={styles.viewToggleText}>
+              {viewMode === 'timeline' ? 'Graph' : 'Timeline'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <Ionicons name="close" size={24} color="#1D1D1F" />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Filter Controls */}
-      <View style={styles.filtersContainer}>
+      {/* Filter Controls - Only show for timeline view */}
+      {viewMode === 'timeline' && (
+        <View style={styles.filtersContainer}>
         <TouchableOpacity
           style={[
             styles.filterButton,
@@ -289,10 +477,11 @@ const ExecutionFlowGraph: React.FC<ExecutionFlowGraphProps> = ({
             Function Calls Only ({functionCallEventsCount})
           </Text>
         </TouchableOpacity>
-      </View>
+        </View>
+      )}
 
-      {/* Stats Summary */}
-      {flowData?.stats && (
+      {/* Stats Summary - Only show for timeline view */}
+      {viewMode === 'timeline' && flowData?.stats && (
         <View style={styles.statsContainer}>
           <Text style={styles.statsTitle}>Execution Statistics</Text>
           <View style={styles.statsGrid}>
@@ -316,8 +505,8 @@ const ExecutionFlowGraph: React.FC<ExecutionFlowGraphProps> = ({
         </View>
       )}
 
-      {/* Timeline Overview */}
-      {flowData && flowData.events && flowData.events.length > 0 && (
+      {/* Timeline Overview - Only show for timeline view */}
+      {viewMode === 'timeline' && flowData && flowData.events && flowData.events.length > 0 && (
         <View style={styles.timelineOverview}>
           <View style={styles.timelineHeader}>
             <Text style={styles.timelineTitle}>📊 Execution Timeline</Text>
@@ -354,8 +543,9 @@ const ExecutionFlowGraph: React.FC<ExecutionFlowGraphProps> = ({
         </View>
       )}
 
-      {/* Content */}
-      <ScrollView style={styles.content}>
+      {/* Content - Timeline View */}
+      {viewMode === 'timeline' && (
+        <ScrollView style={styles.content}>
         {loading && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#007AFF" />
@@ -519,7 +709,73 @@ const ExecutionFlowGraph: React.FC<ExecutionFlowGraphProps> = ({
             ))}
           </View>
         )}
-      </ScrollView>
+        </ScrollView>
+      )}
+
+      {/* Graph Visualization */}
+      {showGraphVisualization && flowData && flowData.events && (
+        <View style={styles.graphContainer}>
+          <View style={styles.graphHeader}>
+            <Text style={styles.graphTitle}>🎨 Execution Flow Graph</Text>
+            <TouchableOpacity 
+              onPress={() => {
+                setShowGraphVisualization(false);
+                setViewMode('timeline');
+              }}
+              style={styles.graphCloseButton}
+            >
+              <Ionicons name="close" size={24} color="#1D1D1F" />
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView 
+            style={styles.graphContent} 
+            contentContainerStyle={styles.flameGraphScrollContent}
+            horizontal={true}
+            showsHorizontalScrollIndicator={false}
+          >
+            <View style={styles.flameGraphContainer}>
+              {renderFlameGraph(flowData.events || [])}
+            </View>
+            
+            {/* Flame Graph Legend */}
+            <View style={styles.flameGraphLegend}>
+              <Text style={styles.flameGraphLegendTitle}>🔥 Flame Graph Legend</Text>
+              <Text style={styles.flameGraphLegendText}>
+                • Horizontal bars show execution duration{'\n'}
+                • Vertical stacking shows call hierarchy{'\n'}
+                • Colors indicate event types{'\n'}
+                • Tap bars for detailed information{'\n'}
+                • Scroll horizontally to see full timeline
+              </Text>
+            </View>
+            
+            <View style={styles.graphStats}>
+              <Text style={styles.graphStatsTitle}>📊 Execution Statistics</Text>
+              <View style={styles.graphStatsGrid}>
+                <View style={styles.graphStatItem}>
+                  <Text style={styles.graphStatValue}>{flowData.events?.length || 0}</Text>
+                  <Text style={styles.graphStatLabel}>Events</Text>
+                </View>
+                <View style={styles.graphStatItem}>
+                  <Text style={styles.graphStatValue}>{flowData.functionCalls?.length || 0}</Text>
+                  <Text style={styles.graphStatLabel}>Functions</Text>
+                </View>
+                <View style={styles.graphStatItem}>
+                  <Text style={styles.graphStatValue}>
+                    {formatDuration(flowData.stats?.totalExecutionTimeMs) || '0ms'}
+                  </Text>
+                  <Text style={styles.graphStatLabel}>Duration</Text>
+                </View>
+                <View style={styles.graphStatItem}>
+                  <Text style={styles.graphStatValue}>{flowData.stats?.totalErrors || 0}</Text>
+                  <Text style={styles.graphStatLabel}>Errors</Text>
+                </View>
+              </View>
+            </View>
+          </ScrollView>
+        </View>
+      )}
 
       {/* Event Detail Modal */}
       <Modal
@@ -626,6 +882,8 @@ const ExecutionFlowGraph: React.FC<ExecutionFlowGraphProps> = ({
   );
 };
 
+const { width: screenWidth } = Dimensions.get('window');
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -640,6 +898,33 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5EA',
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  subtitle: {
+    fontSize: 12,
+    color: '#8E8E93',
+    marginTop: 2,
+  },
+  viewToggleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 6,
+  },
+  viewToggleText: {
+    fontSize: 13,
+    color: '#007AFF',
+    fontWeight: '600',
   },
   title: {
     fontSize: 18,
@@ -1087,6 +1372,249 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#FF3B30',
     lineHeight: 20,
+  },
+  // Graph Visualization Styles
+  graphContainer: {
+    flex: 1,
+    backgroundColor: '#F2F2F7',
+  },
+  graphHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+  },
+  graphTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1D1D1F',
+  },
+  graphCloseButton: {
+    padding: 4,
+  },
+  graphContent: {
+    flex: 1,
+  },
+  graphScrollContent: {
+    padding: 16,
+  },
+  flameGraphScrollContent: {
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+  },
+  flameGraphContainer: {
+    position: 'relative',
+    minHeight: 200,
+    paddingHorizontal: 8,
+  },
+  flameGraphSvg: {
+    position: 'relative',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    paddingVertical: 12,
+    overflow: 'visible',
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+  flameGraphLevel: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+  },
+  flameGraphBar: {
+    position: 'absolute',
+    height: 28,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  flameGraphBarContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  flameGraphBarIcon: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  flameGraphBarText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  flameGraphBarDuration: {
+    fontSize: 9,
+    color: '#FFFFFF',
+    fontFamily: 'monospace',
+    marginLeft: 4,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
+  },
+  flameGraphTimeAxis: {
+    position: 'absolute',
+    height: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#D1D5DB',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  flameGraphTimeLabel: {
+    fontSize: 10,
+    color: '#6B7280',
+    fontFamily: 'monospace',
+    fontWeight: '500',
+  },
+  emptyFlameGraph: {
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+  emptyFlameGraphText: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  flameGraphLegend: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginVertical: 16,
+    marginHorizontal: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  flameGraphLegendTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1D1D1F',
+    marginBottom: 8,
+  },
+  flameGraphLegendText: {
+    fontSize: 13,
+    color: '#6B7280',
+    lineHeight: 18,
+  },
+  graphNodes: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 24,
+  },
+  graphNode: {
+    width: (screenWidth - 48) / 2, // 2 columns with padding
+    minHeight: 120,
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  graphNodeIcon: {
+    fontSize: 24,
+    marginBottom: 8,
+  },
+  graphNodeTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  graphNodeSubtitle: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.8)',
+    marginBottom: 4,
+  },
+  graphNodeDuration: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.7)',
+    fontFamily: 'monospace',
+  },
+  graphStats: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  graphStatsTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1D1D1F',
+    marginBottom: 16,
+  },
+  graphStatsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  graphStatItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  graphStatValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#007AFF',
+    marginBottom: 4,
+  },
+  graphStatLabel: {
+    fontSize: 11,
+    color: '#8E8E93',
+    textAlign: 'center',
   },
 });
 

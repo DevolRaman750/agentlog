@@ -272,33 +272,35 @@ func (s *Integration) filterChannelsByName(slackResponse map[string]interface{},
 
 	// Clean the channel name (remove # prefix if present)
 	targetName := strings.TrimPrefix(channelName, "#")
+	log.Printf("🔍 [SLACK_DEBUG] Looking for exact match with target name: '%s'", targetName)
 
 	// Look for exact match first
+	var matchedChannel map[string]interface{}
 	for i, channelInterface := range channels {
 		if channel, ok := channelInterface.(map[string]interface{}); ok {
-			if name, ok := channel["name"].(string); ok && name == targetName {
-				log.Printf("✅ [SLACK_DEBUG] Found exact match for channel '%s' at index %d, moving to front", name, i)
-				// Move this channel to the front
-				filteredChannels := make([]interface{}, len(channels))
-				filteredChannels[0] = channel
-				copyIndex := 1
-				for j, ch := range channels {
-					if j != i {
-						filteredChannels[copyIndex] = ch
-						copyIndex++
-					}
+			if name, ok := channel["name"].(string); ok {
+				log.Printf("🔍 [SLACK_DEBUG] Checking channel '%s' against target '%s'", name, targetName)
+				if name == targetName {
+					log.Printf("✅ [SLACK_DEBUG] Found exact match for channel '%s' at index %d", name, i)
+					matchedChannel = channel
+					break
 				}
-
-				// Return modified response with target channel first
-				result := make(map[string]interface{})
-				for k, v := range slackResponse {
-					result[k] = v
-				}
-				result["channels"] = filteredChannels
-				log.Printf("🔍 [SLACK_DEBUG] Returning filtered response with target channel first")
-				return result, nil
 			}
 		}
+	}
+
+	if matchedChannel != nil {
+		// Return ONLY the matched channel
+		filteredChannels := []interface{}{matchedChannel}
+
+		// Return modified response with only the target channel
+		result := make(map[string]interface{})
+		for k, v := range slackResponse {
+			result[k] = v
+		}
+		result["channels"] = filteredChannels
+		log.Printf("✅ [SLACK_DEBUG] Returning filtered response with ONLY target channel '%s'", targetName)
+		return result, nil
 	}
 
 	log.Printf("❌ [SLACK_DEBUG] No channel found with name '%s', returning original response", targetName)
