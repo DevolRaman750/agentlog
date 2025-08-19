@@ -1,0 +1,117 @@
+{
+  "id": "00000000-0000-0000-0000-000000000109",
+  "name": "whatsapp_get_messages",
+  "provider": "whatsapp",
+  "display_name": "Get WhatsApp Messages",
+  "description": "Retrieve messages from a specific WhatsApp conversation. Use this to get the full message history for automated responses.",
+  "endpoint": {
+    "path": "/{conversation_id}/messages",
+    "method": "GET"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "conversation_id": {
+        "type": "string",
+        "description": "Conversation ID from whatsapp_get_conversations"
+      },
+      "limit": {
+        "type": "integer",
+        "default": 50,
+        "minimum": 1,
+        "maximum": 100,
+        "description": "Number of messages to retrieve"
+      },
+      "after": {
+        "type": "string",
+        "description": "Cursor for pagination (from previous response)"
+      },
+      "before": {
+        "type": "string",
+        "description": "Cursor for pagination (from previous response)"
+      }
+    },
+    "required": [
+      "conversation_id"
+    ]
+  },
+  "parameter_dependencies": {
+    "conversation_id": {
+      "source_function": "whatsapp_get_conversations",
+      "extraction_path": "data[0].id",
+      "description": "Auto-extract conversation ID from whatsapp_get_conversations results"
+    }
+  },
+  "examples": [
+    {
+      "name": "Get recent messages",
+      "parameters": {
+        "conversation_id": "conversation_id_123",
+        "limit": 25
+      }
+    },
+    {
+      "name": "Get messages with pagination",
+      "parameters": {
+        "conversation_id": "conversation_id_123",
+        "limit": 50,
+        "after": "MAZDZD"
+      }
+    }
+  ],
+  "response_format": {
+    "success": {
+      "data": [
+        {
+          "id": "wamid.HBgLMTQxNTU1NTI2NzEVAgARGBI5QjQ5QjY5QjY5QjY5QjY5",
+          "from": "14155552671",
+          "timestamp": "1640995200",
+          "type": "text",
+          "text": {
+            "body": "Hello, I need help with my order"
+          },
+          "context": {
+            "from": "15551234567",
+            "id": "wamid.HBgLMTQxNTU1NTI2NzEVAgARGBI5QjQ5QjY5QjY5QjY5QjY5"
+          }
+        },
+        {
+          "id": "wamid.HBgLMTQxNTU1NTI2NzEVAgARGBI5QjQ5QjY5QjY5QjY5QjY6",
+          "from": "15551234567",
+          "timestamp": "1640995260",
+          "type": "text",
+          "text": {
+            "body": "Hi! I'd be happy to help. What's your order number?"
+          }
+        }
+      ],
+      "paging": {
+        "cursors": {
+          "before": "MAZDZD",
+          "after": "MAZDZD"
+        },
+        "next": "https://graph.facebook.com/v18.0/conversation_id_123/messages?limit=50&after=MAZDZD"
+      }
+    }
+  },
+  "message_types": {
+    "text": "Text messages with body content",
+    "image": "Image messages with media ID and caption",
+    "document": "Document messages with filename and caption",
+    "audio": "Audio messages with duration",
+    "video": "Video messages with caption",
+    "sticker": "Sticker messages",
+    "location": "Location messages with coordinates",
+    "contacts": "Contact sharing messages",
+    "interactive": "Interactive messages (buttons, lists)",
+    "template": "Template messages",
+    "system": "System messages (conversation updates)"
+  },
+  "notes": [
+    "Messages are returned in chronological order (oldest first)",
+    "Use pagination for long conversation histories",
+    "Message types determine available content fields",
+    "Context field indicates replies to previous messages",
+    "System messages provide conversation metadata"
+  ]
+}

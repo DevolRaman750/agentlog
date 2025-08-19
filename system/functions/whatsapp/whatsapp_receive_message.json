@@ -1,0 +1,279 @@
+{
+  "id": "00000000-0000-0000-0000-000000000106",
+  "name": "whatsapp_receive_message",
+  "provider": "whatsapp",
+  "display_name": "Receive WhatsApp Message",
+  "description": "Handle incoming WhatsApp messages via webhook. This function processes messages, media, and status updates from customers.",
+  "endpoint": {
+    "path": "/webhook",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "object": {
+        "type": "string",
+        "description": "Object type (should be 'whatsapp_business_account')"
+      },
+      "entry": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "WhatsApp Business Account ID"
+            },
+            "changes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "object",
+                    "properties": {
+                      "messaging_product": {
+                        "type": "string",
+                        "description": "Product type (whatsapp)"
+                      },
+                      "metadata": {
+                        "type": "object",
+                        "properties": {
+                          "display_phone_number": {
+                            "type": "string",
+                            "description": "Business phone number"
+                          },
+                          "phone_number_id": {
+                            "type": "string",
+                            "description": "Phone number ID"
+                          }
+                        }
+                      },
+                      "contacts": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "profile": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string",
+                                  "description": "Contact name"
+                                }
+                              }
+                            },
+                            "wa_id": {
+                              "type": "string",
+                              "description": "WhatsApp ID (phone number)"
+                            }
+                          }
+                        }
+                      },
+                      "messages": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "from": {
+                              "type": "string",
+                              "description": "Sender phone number"
+                            },
+                            "id": {
+                              "type": "string",
+                              "description": "Message ID"
+                            },
+                            "timestamp": {
+                              "type": "string",
+                              "description": "Message timestamp"
+                            },
+                            "type": {
+                              "type": "string",
+                              "enum": ["text", "image", "document", "audio", "video", "sticker", "location", "contacts", "interactive"],
+                              "description": "Message type"
+                            },
+                            "text": {
+                              "type": "object",
+                              "properties": {
+                                "body": {
+                                  "type": "string",
+                                  "description": "Text message content"
+                                }
+                              }
+                            },
+                            "image": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "description": "Media ID"
+                                },
+                                "mime_type": {
+                                  "type": "string",
+                                  "description": "MIME type"
+                                },
+                                "sha256": {
+                                  "type": "string",
+                                  "description": "File hash"
+                                }
+                              }
+                            },
+                            "context": {
+                              "type": "object",
+                              "properties": {
+                                "from": {
+                                  "type": "string",
+                                  "description": "Original message sender"
+                                },
+                                "id": {
+                                  "type": "string",
+                                  "description": "Original message ID"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "statuses": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "description": "Message ID"
+                            },
+                            "status": {
+                              "type": "string",
+                              "enum": ["sent", "delivered", "read", "failed"],
+                              "description": "Message status"
+                            },
+                            "timestamp": {
+                              "type": "string",
+                              "description": "Status timestamp"
+                            },
+                            "recipient_id": {
+                              "type": "string",
+                              "description": "Recipient phone number"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "field": {
+                    "type": "string",
+                    "description": "Field that changed (messages)"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "required": ["object", "entry"]
+  },
+  "examples": [
+    {
+      "name": "Text message received",
+      "parameters": {
+        "object": "whatsapp_business_account",
+        "entry": [
+          {
+            "id": "123456789012345",
+            "changes": [
+              {
+                "value": {
+                  "messaging_product": "whatsapp",
+                  "metadata": {
+                    "display_phone_number": "15551234567",
+                    "phone_number_id": "123456789012345"
+                  },
+                  "contacts": [
+                    {
+                      "profile": {
+                        "name": "John Doe"
+                      },
+                      "wa_id": "14155552671"
+                    }
+                  ],
+                  "messages": [
+                    {
+                      "from": "14155552671",
+                      "id": "wamid.HBgLMTQxNTU1NTI2NzEVAgARGBI5QjQ5QjY5QjY5QjY5QjY5",
+                      "timestamp": "1640995200",
+                      "type": "text",
+                      "text": {
+                        "body": "Hello, I need help with my order"
+                      }
+                    }
+                  ]
+                },
+                "field": "messages"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "Message status update",
+      "parameters": {
+        "object": "whatsapp_business_account",
+        "entry": [
+          {
+            "id": "123456789012345",
+            "changes": [
+              {
+                "value": {
+                  "messaging_product": "whatsapp",
+                  "metadata": {
+                    "display_phone_number": "15551234567",
+                    "phone_number_id": "123456789012345"
+                  },
+                  "statuses": [
+                    {
+                      "id": "wamid.HBgLMTQxNTU1NTI2NzEVAgARGBI5QjQ5QjY5QjY5QjY5QjY5",
+                      "status": "delivered",
+                      "timestamp": "1640995200",
+                      "recipient_id": "14155552671"
+                    }
+                  ]
+                },
+                "field": "messages"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "response_format": {
+    "success": {
+      "status": "ok"
+    }
+  },
+  "automation_triggers": [
+    "New message received from customer",
+    "Message status changed (delivered, read, failed)",
+    "Media message received",
+    "Interactive message response received"
+  ],
+  "agent_actions": [
+    "Extract message content and sender information",
+    "Determine message type and handle accordingly",
+    "Process media files if present",
+    "Update conversation context",
+    "Trigger appropriate response workflow",
+    "Log message for analytics and history"
+  ],
+  "notes": [
+    "This function should be implemented as a webhook endpoint",
+    "Always return 200 OK to acknowledge receipt",
+    "Process messages asynchronously to avoid timeouts",
+    "Validate webhook signature for security",
+    "Handle different message types appropriately",
+    "Store conversation context for agent continuity"
+  ]
+}

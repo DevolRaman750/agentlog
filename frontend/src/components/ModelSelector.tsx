@@ -61,7 +61,7 @@ const isNewModel = (modelName: string): boolean => {
 
 // Transform API configuration to ModelInfo
 const transformConfigurationToModel = (config: APIConfiguration): ModelInfo => ({
-  id: config.id,
+  id: config.id || `config-${config.modelName}`,
   name: config.modelName,
   displayName: config.variationName,
   description: `System configuration: ${config.variationName}`,
@@ -95,10 +95,10 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
       try {
         // Filter system configurations and transform to models
         const systemConfigs = state.configurations.filter(config => 
-          config.id.startsWith('system-config-') || 
+          (config.id && config.id.startsWith('system-config-')) || 
           config.variationName.includes('System configuration:') ||
           // Also include configs that look like system configs based on naming patterns
-          ['gemini-1-5-pro', 'kimi-k2', 'claude-3-5-sonnet', 'gpt-4o', 'qwen-2-5-coder', 'deepseek-v3', 'llama-3-1-405b'].includes(config.id)
+          (config.id && ['gemini-1-5-pro', 'kimi-k2', 'claude-3-5-sonnet', 'gpt-4o', 'qwen-2-5-coder', 'deepseek-v3', 'llama-3-1-405b'].includes(config.id))
         );
         
         const models = systemConfigs.map(transformConfigurationToModel);

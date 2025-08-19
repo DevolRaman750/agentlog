@@ -331,8 +331,8 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
           // Inline code
           const newText = `${before}\`${selected || 'code'}\`${after}`;
           onChangeText(newText);
+          addToHistory(newText);
         }
-        addToHistory(newText);
       },
     },
     {
@@ -710,8 +710,7 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
             accessible={true}
             accessibilityLabel={label || 'Text editor'}
             accessibilityHint={helperText || 'Enter your text here'}
-            accessibilityRole="textbox"
-            accessibilityMultiline={true}
+            accessibilityRole="text"
           />
         </View>
       </View>
@@ -805,8 +804,7 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
                 accessible={true}
                 accessibilityLabel={`${label || 'Text editor'} - Full screen mode`}
                 accessibilityHint="Use the toolbar below for formatting options"
-                accessibilityRole="textbox"
-                accessibilityMultiline={true}
+                accessibilityRole="text"
               />
             </View>
           </View>

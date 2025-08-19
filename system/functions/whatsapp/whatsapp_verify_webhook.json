@@ -1,0 +1,57 @@
+{
+  "id": "00000000-0000-0000-0000-000000000105",
+  "name": "whatsapp_verify_webhook",
+  "provider": "whatsapp",
+  "display_name": "Verify WhatsApp Webhook",
+  "description": "Verify webhook endpoint for WhatsApp Business API. This is required for Meta to validate your webhook URL and enable message receiving.",
+  "endpoint": {
+    "path": "/webhook",
+    "method": "GET"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "hub.mode": {
+        "type": "string",
+        "description": "Verification mode (should be 'subscribe')"
+      },
+      "hub.challenge": {
+        "type": "string",
+        "description": "Challenge string from Meta to echo back"
+      },
+      "hub.verify_token": {
+        "type": "string",
+        "description": "Verification token that matches your configured token"
+      }
+    },
+    "required": [
+      "hub.mode",
+      "hub.challenge",
+      "hub.verify_token"
+    ]
+  },
+  "examples": [
+    {
+      "name": "Webhook verification",
+      "parameters": {
+        "hub.mode": "subscribe",
+        "hub.challenge": "1234567890",
+        "hub.verify_token": "your_verify_token"
+      }
+    }
+  ],
+  "response_format": {
+    "success": "1234567890",
+    "error": {
+      "error": "Verification failed",
+      "code": 403
+    }
+  },
+  "implementation_notes": [
+    "This function should be implemented in your webhook endpoint",
+    "Return the hub.challenge value if verification succeeds",
+    "Return 403 error if verification fails",
+    "Verify that hub.verify_token matches your configured token",
+    "This is called by Meta during webhook setup"
+  ]
+}

@@ -1,0 +1,259 @@
+{
+  "id": "00000000-0000-0000-0000-000000000101",
+  "name": "whatsapp_send_template_message",
+  "provider": "whatsapp",
+  "display_name": "Send WhatsApp Template Message",
+  "description": "Send pre-approved WhatsApp Business template messages. Templates must be approved by Meta and can include dynamic parameters. Use this for business communications, notifications, and marketing messages.",
+  "endpoint": {
+    "path": "/{phone_number_id}/messages",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "phone_number_id": {
+        "type": "string",
+        "description": "Your WhatsApp Business Phone Number ID (required for API calls)"
+      },
+      "to": {
+        "type": "string",
+        "description": "Recipient phone number in international format without '+' (e.g., '14155552671')"
+      },
+      "type": {
+        "type": "string",
+        "default": "template",
+        "description": "Message type (must be 'template' for this function)"
+      },
+      "template": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Template name (e.g., 'hello_world', 'order_confirmation')"
+          },
+          "language": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "description": "Language code (e.g., 'en_US', 'es_ES', 'fr_FR')"
+              }
+            },
+            "required": ["code"]
+          },
+          "components": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["header", "body", "button", "footer"],
+                  "description": "Component type"
+                },
+                "parameters": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": ["text", "image", "document", "video"],
+                        "description": "Parameter type"
+                      },
+                      "text": {
+                        "type": "string",
+                        "description": "Text value for text parameters"
+                      },
+                      "image": {
+                        "type": "object",
+                        "properties": {
+                          "link": {
+                            "type": "string",
+                            "description": "Image URL"
+                          }
+                        }
+                      },
+                      "document": {
+                        "type": "object",
+                        "properties": {
+                          "link": {
+                            "type": "string",
+                            "description": "Document URL"
+                          },
+                          "filename": {
+                            "type": "string",
+                            "description": "Document filename"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "description": "Dynamic parameters for template components"
+                }
+              }
+            },
+            "description": "Template components with dynamic parameters"
+          }
+        },
+        "required": ["name", "language"]
+      },
+      "messaging_product": {
+        "type": "string",
+        "default": "whatsapp",
+        "description": "Messaging product identifier"
+      }
+    },
+    "required": [
+      "phone_number_id",
+      "to",
+      "template"
+    ]
+  },
+  "parameter_dependencies": {
+    "phone_number_id": {
+      "source_function": "whatsapp_get_phone_numbers",
+      "extraction_path": "data[0].id",
+      "description": "Auto-extract phone number ID from whatsapp_get_phone_numbers results"
+    },
+    "template.name": {
+      "source_function": "whatsapp_get_message_templates",
+      "extraction_path": "data[0].name",
+      "description": "Auto-extract template name from whatsapp_get_message_templates results"
+    }
+  },
+  "examples": [
+    {
+      "name": "Simple hello world template",
+      "parameters": {
+        "phone_number_id": "123456789012345",
+        "to": "14155552671",
+        "template": {
+          "name": "hello_world",
+          "language": {
+            "code": "en_US"
+          }
+        }
+      }
+    },
+    {
+      "name": "Template with dynamic parameters",
+      "parameters": {
+        "phone_number_id": "123456789012345",
+        "to": "14155552671",
+        "template": {
+          "name": "order_confirmation",
+          "language": {
+            "code": "en_US"
+          },
+          "components": [
+            {
+              "type": "header",
+              "parameters": [
+                {
+                  "type": "text",
+                  "text": "John Doe"
+                }
+              ]
+            },
+            {
+              "type": "body",
+              "parameters": [
+                {
+                  "type": "text",
+                  "text": "ORD-12345"
+                },
+                {
+                  "type": "text",
+                  "text": "$99.99"
+                },
+                {
+                  "type": "text",
+                  "text": "2-3 business days"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Template with image header",
+      "parameters": {
+        "phone_number_id": "123456789012345",
+        "to": "14155552671",
+        "template": {
+          "name": "product_catalog",
+          "language": {
+            "code": "en_US"
+          },
+          "components": [
+            {
+              "type": "header",
+              "parameters": [
+                {
+                  "type": "image",
+                  "image": {
+                    "link": "https://example.com/product-image.jpg"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "body",
+              "parameters": [
+                {
+                  "type": "text",
+                  "text": "New Product"
+                },
+                {
+                  "type": "text",
+                  "text": "$29.99"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "response_format": {
+    "success": {
+      "messaging_product": "whatsapp",
+      "contacts": [
+        {
+          "input": "14155552671",
+          "wa_id": "14155552671"
+        }
+      ],
+      "messages": [
+        {
+          "id": "wamid.HBgLMTQxNTU1NTI2NzEVAgARGBI5QjQ5QjY5QjY5QjY5QjY5"
+        }
+      ]
+    },
+    "error": {
+      "error": {
+        "message": "Template not found or not approved",
+        "type": "OAuthException",
+        "code": 100,
+        "error_subcode": 33,
+        "fbtrace_id": "Aq_1234567890"
+      }
+    }
+  },
+  "rate_limits": {
+    "messages_per_second": 5,
+    "messages_per_minute": 250,
+    "messages_per_day": 1000
+  },
+  "notes": [
+    "Templates must be pre-approved by Meta before use",
+    "Template names are case-sensitive",
+    "Language codes must match the template's approved languages",
+    "Parameters must match the template's defined structure",
+    "Templates can be used outside business hours",
+    "Use whatsapp_get_message_templates to see available templates",
+    "Template messages have different rate limits than free-form messages"
+  ]
+}

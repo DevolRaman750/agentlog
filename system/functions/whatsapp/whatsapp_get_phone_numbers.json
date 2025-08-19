@@ -1,0 +1,85 @@
+{
+  "id": "00000000-0000-0000-0000-000000000102",
+  "name": "whatsapp_get_phone_numbers",
+  "provider": "whatsapp",
+  "display_name": "Get WhatsApp Phone Numbers",
+  "description": "Retrieve all WhatsApp Business phone numbers associated with your account. This is essential for getting the phone_number_id required for sending messages.",
+  "endpoint": {
+    "path": "/{business_account_id}/phone_numbers",
+    "method": "GET"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "business_account_id": {
+        "type": "string",
+        "description": "Your WhatsApp Business Account ID (found in Meta Business Manager)"
+      },
+      "fields": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": ["id", "phone_number", "display_phone_number", "quality_rating", "verified_name", "code_verification_status", "eligible_for_whatsapp_business_api", "is_eligible_for_whatsapp_business_api", "is_eligible_for_whatsapp_business_number", "is_verified", "is_whatsapp_business_number", "messaging_product", "name_status", "new_name_status", "status", "throughput", "type"]
+        },
+        "default": ["id", "phone_number", "display_phone_number", "verified_name", "quality_rating", "status"],
+        "description": "Fields to include in the response"
+      }
+    },
+    "required": [
+      "business_account_id"
+    ]
+  },
+  "examples": [
+    {
+      "name": "Get all phone numbers",
+      "parameters": {
+        "business_account_id": "123456789012345"
+      }
+    },
+    {
+      "name": "Get specific fields",
+      "parameters": {
+        "business_account_id": "123456789012345",
+        "fields": ["id", "phone_number", "verified_name", "status"]
+      }
+    }
+  ],
+  "response_format": {
+    "success": {
+      "data": [
+        {
+          "id": "123456789012345",
+          "phone_number": "14155552671",
+          "display_phone_number": "+1 (415) 555-2671",
+          "verified_name": "My Business",
+          "quality_rating": "GREEN",
+          "status": "ACTIVE",
+          "messaging_product": "whatsapp",
+          "type": "MOBILE"
+        }
+      ],
+      "paging": {
+        "cursors": {
+          "before": "MAZDZD",
+          "after": "MAZDZD"
+        }
+      }
+    },
+    "error": {
+      "error": {
+        "message": "Invalid business account ID",
+        "type": "OAuthException",
+        "code": 100,
+        "error_subcode": 33,
+        "fbtrace_id": "Aq_1234567890"
+      }
+    }
+  },
+  "notes": [
+    "Business account ID can be found in Meta Business Manager",
+    "Phone number ID is required for sending messages",
+    "Only active phone numbers can be used for messaging",
+    "Quality rating affects message delivery and limits",
+    "Verified name appears to recipients in WhatsApp"
+  ]
+}

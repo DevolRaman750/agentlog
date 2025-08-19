@@ -1,0 +1,100 @@
+{
+  "name": "whatsapp",
+  "display_name": "WhatsApp Business API",
+  "description": "WhatsApp Business API integration for messaging, contact management, and business communication",
+  "base_url": "https://graph.facebook.com/v18.0",
+  "auth_methods": ["bearer", "whatsapp_business"],
+  "auth_config": {
+    "bearer": {
+      "header": "Authorization",
+      "format": "Bearer {api_key}",
+      "description": "WhatsApp Business API Access Token (EAA...)"
+    },
+    "whatsapp_business": {
+      "header": "Authorization",
+      "format": "Bearer {api_key}",
+      "description": "WhatsApp Business API Access Token with phone number ID",
+      "additional_config": {
+        "phone_number_id": "Required: Your WhatsApp Business Phone Number ID",
+        "business_account_id": "Required: Your WhatsApp Business Account ID for management functions",
+        "webhook_verify_token": "Optional: Custom webhook verification token for future webhook support"
+      }
+    }
+  },
+  "rate_limits": {
+    "requests_per_minute": 1000,
+    "messages_per_second": 5,
+    "messages_per_minute": 250,
+    "messages_per_day": 1000
+  },
+  "common_headers": {
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+    "User-Agent": "GoGent/1.0"
+  },
+  "error_handling": {
+    "error_field": "error",
+    "success_field": "success",
+    "retry_errors": ["rate_limited", "internal_error", "service_unavailable"],
+    "max_retries": 3,
+    "backoff_strategy": "exponential"
+  },
+  "webhook_config": {
+    "supported_events": [
+      "message",
+      "message_status",
+      "message_template_status",
+      "business_account_update",
+      "phone_number_update"
+    ],
+    "verification_method": "GET",
+    "verification_field": "hub.challenge"
+  },
+  "supported_functions": [
+    "whatsapp_send_message",
+    "whatsapp_send_template_message",
+    "whatsapp_send_media_message",
+    "whatsapp_send_location_message",
+    "whatsapp_send_contact_message",
+    "whatsapp_send_interactive_message",
+    "whatsapp_get_message_status",
+    "whatsapp_get_contact_info",
+    "whatsapp_get_business_profile",
+    "whatsapp_update_business_profile",
+    "whatsapp_get_media",
+    "whatsapp_upload_media",
+    "whatsapp_get_phone_numbers",
+    "whatsapp_get_message_templates",
+    "whatsapp_create_message_template",
+    "whatsapp_delete_message_template",
+    "whatsapp_get_webhook_config",
+    "whatsapp_setup_webhook",
+    "whatsapp_verify_webhook"
+  ],
+  "setup_instructions": {
+    "prerequisites": [
+      "Meta Developer Account",
+      "WhatsApp Business API access",
+      "Verified business phone number",
+      "Facebook App with WhatsApp Business API enabled"
+    ],
+    "steps": [
+      "Create a Meta Developer account at developers.facebook.com",
+      "Create a new app or use existing app",
+      "Add WhatsApp Business API product to your app",
+      "Configure your business phone number",
+      "Generate a permanent access token",
+      "Set up webhook endpoints for real-time updates",
+      "Test your integration with sandbox environment"
+    ],
+    "documentation_url": "https://developers.facebook.com/docs/whatsapp/cloud-api/get-started",
+    "api_reference_url": "https://developers.facebook.com/docs/whatsapp/cloud-api/reference"
+  },
+  "security_notes": [
+    "Access tokens should be kept secure and not exposed in client-side code",
+    "Webhook endpoints should be HTTPS and properly secured",
+    "Rate limits should be respected to avoid API restrictions",
+    "Message templates must be pre-approved by Meta for business use",
+    "Personal phone numbers cannot be used for business messaging"
+  ]
+}

@@ -1,0 +1,104 @@
+{
+  "id": "00000000-0000-0000-0000-000000000108",
+  "name": "whatsapp_get_conversations",
+  "provider": "whatsapp",
+  "display_name": "Get WhatsApp Conversations",
+  "description": "Retrieve recent conversations and messages from WhatsApp Business API. Use this for pull-based message handling when webhooks are not available.",
+  "endpoint": {
+    "path": "/{phone_number_id}/conversations",
+    "method": "GET"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "phone_number_id": {
+        "type": "string",
+        "description": "Your WhatsApp Business Phone Number ID"
+      },
+      "limit": {
+        "type": "integer",
+        "default": 50,
+        "minimum": 1,
+        "maximum": 100,
+        "description": "Number of conversations to retrieve"
+      },
+      "after": {
+        "type": "string",
+        "description": "Cursor for pagination (from previous response)"
+      },
+      "before": {
+        "type": "string",
+        "description": "Cursor for pagination (from previous response)"
+      }
+    },
+    "required": [
+      "phone_number_id"
+    ]
+  },
+  "parameter_dependencies": {
+    "phone_number_id": {
+      "source_function": "whatsapp_get_phone_numbers",
+      "extraction_path": "data[0].id",
+      "description": "Auto-extract phone number ID from whatsapp_get_phone_numbers results"
+    }
+  },
+  "examples": [
+    {
+      "name": "Get recent conversations",
+      "parameters": {
+        "phone_number_id": "123456789012345",
+        "limit": 25
+      }
+    },
+    {
+      "name": "Get conversations with pagination",
+      "parameters": {
+        "phone_number_id": "123456789012345",
+        "limit": 50,
+        "after": "MAZDZD"
+      }
+    }
+  ],
+  "response_format": {
+    "success": {
+      "data": [
+        {
+          "id": "conversation_id_123",
+          "origin": {
+            "type": "business_initiated"
+          },
+          "participants": [
+            {
+              "id": "14155552671"
+            }
+          ],
+          "updated_time": "2023-12-01T12:00:00Z",
+          "message_count": 5,
+          "last_message": {
+            "id": "wamid.HBgLMTQxNTU1NTI2NzEVAgARGBI5QjQ5QjY5QjY5QjY5QjY5",
+            "from": "14155552671",
+            "timestamp": "1640995200",
+            "type": "text",
+            "text": {
+              "body": "Hello, I need help"
+            }
+          }
+        }
+      ],
+      "paging": {
+        "cursors": {
+          "before": "MAZDZD",
+          "after": "MAZDZD"
+        },
+        "next": "https://graph.facebook.com/v18.0/123456789012345/conversations?limit=50&after=MAZDZD"
+      }
+    }
+  },
+  "notes": [
+    "Use this for pull-based message monitoring",
+    "Conversations are sorted by most recent activity",
+    "Use pagination cursors for large datasets",
+    "Message content is included in conversation summary",
+    "This is more efficient than polling individual messages"
+  ]
+}

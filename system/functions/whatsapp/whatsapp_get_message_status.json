@@ -1,0 +1,97 @@
+{
+  "id": "00000000-0000-0000-0000-000000000104",
+  "name": "whatsapp_get_message_status",
+  "provider": "whatsapp",
+  "display_name": "Get WhatsApp Message Status",
+  "description": "Check the delivery status of WhatsApp messages. Track whether messages have been sent, delivered, read, or failed.",
+  "endpoint": {
+    "path": "/{message_id}",
+    "method": "GET"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "message_id": {
+        "type": "string",
+        "description": "Message ID returned from send message functions (e.g., 'wamid.HBgLMTQxNTU1NTI2NzEVAgARGBI5QjQ5QjY5QjY5QjY5QjY5')"
+      },
+      "fields": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": ["id", "status", "timestamp", "recipient_id", "conversation", "pricing", "errors"]
+        },
+        "default": ["id", "status", "timestamp", "recipient_id"],
+        "description": "Fields to include in the response"
+      }
+    },
+    "required": [
+      "message_id"
+    ]
+  },
+  "parameter_dependencies": {
+    "message_id": {
+      "source_function": "whatsapp_send_message",
+      "extraction_path": "messages[0].id",
+      "description": "Auto-extract message ID from whatsapp_send_message results"
+    }
+  },
+  "examples": [
+    {
+      "name": "Check message status",
+      "parameters": {
+        "message_id": "wamid.HBgLMTQxNTU1NTI2NzEVAgARGBI5QjQ5QjY5QjY5QjY5QjY5"
+      }
+    },
+    {
+      "name": "Get detailed status",
+      "parameters": {
+        "message_id": "wamid.HBgLMTQxNTU1NTI2NzEVAgARGBI5QjQ5QjY5QjY5QjY5QjY5",
+        "fields": ["id", "status", "timestamp", "recipient_id", "pricing"]
+      }
+    }
+  ],
+  "response_format": {
+    "success": {
+      "id": "wamid.HBgLMTQxNTU1NTI2NzEVAgARGBI5QjQ5QjY5QjY5QjY5QjY5",
+      "status": "delivered",
+      "timestamp": "2023-12-01T12:00:00Z",
+      "recipient_id": "14155552671",
+      "conversation": {
+        "id": "conversation_id_123",
+        "origin": {
+          "type": "business_initiated"
+        }
+      },
+      "pricing": {
+        "billable": true,
+        "pricing_model": "CBP",
+        "category": "business_initiated"
+      }
+    },
+    "error": {
+      "error": {
+        "message": "Message not found",
+        "type": "OAuthException",
+        "code": 100,
+        "error_subcode": 33,
+        "fbtrace_id": "Aq_1234567890"
+      }
+    }
+  },
+  "status_codes": {
+    "sent": "Message has been sent to WhatsApp servers",
+    "delivered": "Message has been delivered to the recipient's device",
+    "read": "Message has been read by the recipient",
+    "failed": "Message failed to send",
+    "deleted": "Message was deleted",
+    "pending": "Message is pending delivery"
+  },
+  "notes": [
+    "Message IDs are returned when sending messages",
+    "Status updates may take time to propagate",
+    "Read receipts are only available for business-initiated messages",
+    "Failed messages may have error details in the response",
+    "Message status is available for 30 days after sending"
+  ]
+}

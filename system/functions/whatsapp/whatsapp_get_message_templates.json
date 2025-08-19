@@ -1,0 +1,112 @@
+{
+  "id": "00000000-0000-0000-0000-000000000103",
+  "name": "whatsapp_get_message_templates",
+  "provider": "whatsapp",
+  "display_name": "Get WhatsApp Message Templates",
+  "description": "Retrieve all available WhatsApp Business message templates for your account. Templates must be pre-approved by Meta and can be used for business communications.",
+  "endpoint": {
+    "path": "/{business_account_id}/message_templates",
+    "method": "GET"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "business_account_id": {
+        "type": "string",
+        "description": "Your WhatsApp Business Account ID (found in Meta Business Manager)"
+      },
+      "fields": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": ["id", "name", "status", "category", "language", "components", "quality_rating"]
+        },
+        "default": ["id", "name", "status", "category", "language"],
+        "description": "Fields to include in the response"
+      },
+      "status": {
+        "type": "string",
+        "enum": ["APPROVED", "PENDING", "REJECTED", "DISABLED"],
+        "description": "Filter templates by approval status"
+      },
+      "category": {
+        "type": "string",
+        "enum": ["ACCOUNT_UPDATE", "ALERT_UPDATE", "APPOINTMENT_UPDATE", "AUTO_REPLY", "ISSUE_RESOLUTION", "MESSAGE_TAG", "MARKETING", "PAYMENT_UPDATE", "PERSONAL_FINANCE_UPDATE", "RESERVATION_UPDATE", "SHIPPING_UPDATE", "TICKET_UPDATE", "TRANSPORTATION_UPDATE", "UTILITY_UPDATE"],
+        "description": "Filter templates by category"
+      }
+    },
+    "required": [
+      "business_account_id"
+    ]
+  },
+  "examples": [
+    {
+      "name": "Get all templates",
+      "parameters": {
+        "business_account_id": "123456789012345"
+      }
+    },
+    {
+      "name": "Get approved templates only",
+      "parameters": {
+        "business_account_id": "123456789012345",
+        "status": "APPROVED"
+      }
+    },
+    {
+      "name": "Get marketing templates",
+      "parameters": {
+        "business_account_id": "123456789012345",
+        "category": "MARKETING",
+        "status": "APPROVED"
+      }
+    }
+  ],
+  "response_format": {
+    "success": {
+      "data": [
+        {
+          "id": "123456789012345",
+          "name": "hello_world",
+          "status": "APPROVED",
+          "category": "UTILITY_UPDATE",
+          "language": "en_US",
+          "components": [
+            {
+              "type": "HEADER",
+              "format": "TEXT",
+              "text": "Hello World!"
+            },
+            {
+              "type": "BODY",
+              "text": "This is a sample template message."
+            }
+          ]
+        }
+      ],
+      "paging": {
+        "cursors": {
+          "before": "MAZDZD",
+          "after": "MAZDZD"
+        }
+      }
+    },
+    "error": {
+      "error": {
+        "message": "Invalid business account ID",
+        "type": "OAuthException",
+        "code": 100,
+        "error_subcode": 33,
+        "fbtrace_id": "Aq_1234567890"
+      }
+    }
+  },
+  "notes": [
+    "Only APPROVED templates can be used for messaging",
+    "Templates are categorized by business use case",
+    "Language codes must match the template's approved languages",
+    "Template names are case-sensitive",
+    "New templates require Meta approval before use",
+    "Templates can include dynamic parameters for personalization"
+  ]
+}

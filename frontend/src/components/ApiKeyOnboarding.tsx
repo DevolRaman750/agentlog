@@ -17,6 +17,7 @@ import { goGentAPI } from '../api/client';
 import { CreateApiKeyRequest } from '../types';
 import { GitHubOnboardingSetup } from './GitHubOnboardingSetup';
 import { GenericApiKeySetup } from './GenericApiKeySetup';
+import { WhatsAppOnboardingSetup } from './WhatsAppOnboardingSetup';
 
 interface ApiKeyOnboardingProps {
   visible: boolean;
@@ -193,7 +194,7 @@ export const ApiKeyOnboarding: React.FC<ApiKeyOnboardingProps> = ({
           <View style={styles.requirementItem}>
             <Ionicons name="checkmark-circle-outline" size={20} color="#8E8E93" />
             <Text style={styles.requirementText}>
-              <Text style={styles.requirementBold}>Function APIs</Text> - GitHub, Slack, Weather, etc. (optional)
+              <Text style={styles.requirementBold}>Function APIs</Text> - GitHub, Slack, WhatsApp, Weather, etc. (optional)
             </Text>
           </View>
         </View>
@@ -212,7 +213,7 @@ export const ApiKeyOnboarding: React.FC<ApiKeyOnboardingProps> = ({
         <View style={styles.benefitsCard}>
           <Text style={styles.benefitsTitle}>What you'll get</Text>
           <View style={styles.benefitItem}>
-            <Ionicons name="robot" size={16} color="#007AFF" />
+            <Ionicons name="hardware-chip" size={16} color="#007AFF" />
             <Text style={styles.benefitText}>Create intelligent AI agents</Text>
           </View>
           <View style={styles.benefitItem}>
@@ -627,6 +628,7 @@ const FunctionsSetupStep: React.FC<FunctionsSetupStepProps> = ({
 }) => {
   const [completedSetups, setCompletedSetups] = useState<string[]>([]);
   const [showGitHubSetup, setShowGitHubSetup] = useState(false);
+  const [showWhatsAppSetup, setShowWhatsAppSetup] = useState(false);
   const [showGenericSetup, setShowGenericSetup] = useState<any>(null);
   const [availableServices, setAvailableServices] = useState<any[]>([]);
   const [servicesLoading, setServicesLoading] = useState(true);
@@ -663,6 +665,15 @@ const FunctionsSetupStep: React.FC<FunctionsSetupStepProps> = ({
             description: 'Send messages, create channels',
             icon: 'chatbubbles',
             color: '#4A154B',
+            popular: true,
+          },
+          {
+            id: 'whatsapp',
+            name: 'WhatsApp Business',
+            displayName: 'WhatsApp Business',
+            description: 'Send messages, manage conversations',
+            icon: 'chatbubble-ellipses',
+            color: '#25D366',
             popular: true,
           },
           {
@@ -727,6 +738,8 @@ const FunctionsSetupStep: React.FC<FunctionsSetupStepProps> = ({
                 onPress={() => {
                   if (service.id === 'github') {
                     setShowGitHubSetup(true);
+                  } else if (service.id === 'whatsapp') {
+                    setShowWhatsAppSetup(true);
                   } else {
                     // For other services, use the generic setup
                     setShowGenericSetup(service);
@@ -771,6 +784,27 @@ const FunctionsSetupStep: React.FC<FunctionsSetupStepProps> = ({
                   setCompletedSetups(prev => [...prev, 'github']);
                 }
                 setShowGitHubSetup(false);
+              }}
+              isLoading={isLoading}
+              setIsLoading={setIsLoading}
+            />
+          </Modal>
+        )}
+
+        {/* WhatsApp Setup Modal */}
+        {showWhatsAppSetup && (
+          <Modal
+            visible={showWhatsAppSetup}
+            animationType="slide"
+            presentationStyle="pageSheet"
+            onRequestClose={() => setShowWhatsAppSetup(false)}
+          >
+            <WhatsAppOnboardingSetup
+              onComplete={(success) => {
+                if (success) {
+                  setCompletedSetups(prev => [...prev, 'whatsapp']);
+                }
+                setShowWhatsAppSetup(false);
               }}
               isLoading={isLoading}
               setIsLoading={setIsLoading}

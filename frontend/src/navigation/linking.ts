@@ -55,8 +55,6 @@ export const linking: LinkingOptions<TabParamList> = {
     },
     initialRouteName: 'Account', // Default fallback, will be overridden by getInitialRouteName
   },
-  // Add better fallback handling
-  fallback: 'Account',
   // Handle initial URL
   getInitialURL: async () => {
     // Check if running on web

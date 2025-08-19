@@ -1,0 +1,216 @@
+{
+  "id": "00000000-0000-0000-0000-000000000107",
+  "name": "whatsapp_send_media_message",
+  "provider": "whatsapp",
+  "display_name": "Send WhatsApp Media Message",
+  "description": "Send media messages (images, documents, audio, video) via WhatsApp Business API. Supports both uploaded media IDs and direct URLs.",
+  "endpoint": {
+    "path": "/{phone_number_id}/messages",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "phone_number_id": {
+        "type": "string",
+        "description": "Your WhatsApp Business Phone Number ID"
+      },
+      "to": {
+        "type": "string",
+        "description": "Recipient phone number in international format without '+'"
+      },
+      "type": {
+        "type": "string",
+        "enum": ["image", "document", "audio", "video", "sticker"],
+        "description": "Media type to send"
+      },
+      "image": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Media ID from whatsapp_upload_media"
+          },
+          "link": {
+            "type": "string",
+            "description": "Direct HTTPS URL to image (alternative to ID)"
+          },
+          "caption": {
+            "type": "string",
+            "description": "Optional image caption"
+          }
+        }
+      },
+      "document": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Media ID from whatsapp_upload_media"
+          },
+          "link": {
+            "type": "string",
+            "description": "Direct HTTPS URL to document"
+          },
+          "caption": {
+            "type": "string",
+            "description": "Optional document caption"
+          },
+          "filename": {
+            "type": "string",
+            "description": "Document filename with extension"
+          }
+        }
+      },
+      "audio": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Media ID from whatsapp_upload_media"
+          },
+          "link": {
+            "type": "string",
+            "description": "Direct HTTPS URL to audio file"
+          }
+        }
+      },
+      "video": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Media ID from whatsapp_upload_media"
+          },
+          "link": {
+            "type": "string",
+            "description": "Direct HTTPS URL to video file"
+          },
+          "caption": {
+            "type": "string",
+            "description": "Optional video caption"
+          }
+        }
+      },
+      "sticker": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Media ID from whatsapp_upload_media"
+          },
+          "link": {
+            "type": "string",
+            "description": "Direct HTTPS URL to sticker"
+          }
+        }
+      },
+      "messaging_product": {
+        "type": "string",
+        "default": "whatsapp",
+        "description": "Messaging product identifier"
+      }
+    },
+    "required": [
+      "phone_number_id",
+      "to",
+      "type"
+    ]
+  },
+  "parameter_dependencies": {
+    "phone_number_id": {
+      "source_function": "whatsapp_get_phone_numbers",
+      "extraction_path": "data[0].id",
+      "description": "Auto-extract phone number ID from whatsapp_get_phone_numbers results"
+    }
+  },
+  "examples": [
+    {
+      "name": "Send image with caption",
+      "parameters": {
+        "phone_number_id": "123456789012345",
+        "to": "14155552671",
+        "type": "image",
+        "image": {
+          "link": "https://example.com/image.jpg",
+          "caption": "Check out this product!"
+        }
+      }
+    },
+    {
+      "name": "Send document with filename",
+      "parameters": {
+        "phone_number_id": "123456789012345",
+        "to": "14155552671",
+        "type": "document",
+        "document": {
+          "link": "https://example.com/invoice.pdf",
+          "filename": "invoice_12345.pdf",
+          "caption": "Your invoice is ready"
+        }
+      }
+    },
+    {
+      "name": "Send uploaded media by ID",
+      "parameters": {
+        "phone_number_id": "123456789012345",
+        "to": "14155552671",
+        "type": "image",
+        "image": {
+          "id": "1234567890123456",
+          "caption": "Product catalog"
+        }
+      }
+    }
+  ],
+  "response_format": {
+    "success": {
+      "messaging_product": "whatsapp",
+      "contacts": [
+        {
+          "input": "14155552671",
+          "wa_id": "14155552671"
+        }
+      ],
+      "messages": [
+        {
+          "id": "wamid.HBgLMTQxNTU1NTI2NzEVAgARGBI5QjQ5QjY5QjY5QjY5QjY5"
+        }
+      ]
+    }
+  },
+  "media_requirements": {
+    "image": {
+      "formats": ["JPEG", "PNG"],
+      "max_size": "5MB",
+      "max_dimensions": "4096x4096"
+    },
+    "document": {
+      "formats": ["PDF", "DOC", "DOCX", "PPT", "PPTX", "XLS", "XLSX", "TXT"],
+      "max_size": "100MB"
+    },
+    "audio": {
+      "formats": ["AAC", "M4A", "AMR", "MP3", "OGG"],
+      "max_size": "16MB",
+      "max_duration": "30 minutes"
+    },
+    "video": {
+      "formats": ["MP4", "3GPP"],
+      "max_size": "16MB",
+      "max_duration": "30 minutes"
+    },
+    "sticker": {
+      "formats": ["WebP"],
+      "max_size": "500KB",
+      "dimensions": "512x512"
+    }
+  },
+  "notes": [
+    "Media can be sent via direct HTTPS URL or uploaded media ID",
+    "URLs must be publicly accessible and use HTTPS",
+    "Media files have specific format and size requirements",
+    "Captions are optional for most media types",
+    "Use whatsapp_upload_media for better performance with large files",
+    "Media URLs should be accessible for at least 5 minutes"
+  ]
+}

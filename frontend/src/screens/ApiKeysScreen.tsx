@@ -97,6 +97,15 @@ const SERVICE_GROUPS: ServiceGroup[] = [
         defaultScopes: ['chat:write', 'channels:read'],
       },
       {
+        name: 'whatsapp',
+        displayName: 'WhatsApp Business',
+        description: 'Access token for WhatsApp Business API messaging',
+        placeholder: 'EAA...',
+        keyType: 'bearer_token',
+        defaultAccessLevel: 'write',
+        defaultScopes: ['messages', 'business_management'],
+      },
+      {
         name: 'discord',
         displayName: 'Discord',
         description: 'Webhook URL for sending messages to Discord channels',

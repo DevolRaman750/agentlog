@@ -1,0 +1,163 @@
+{
+  "id": "00000000-0000-0000-0000-000000000100",
+  "name": "whatsapp_send_message",
+  "provider": "whatsapp",
+  "display_name": "Send WhatsApp Message",
+  "description": "Send text messages to WhatsApp contacts using the WhatsApp Business API. Supports text formatting, emojis, and basic message types. IMPORTANT: Phone numbers must be in international format without '+' (e.g., '14155552671' for US number).",
+  "endpoint": {
+    "path": "/{phone_number_id}/messages",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "phone_number_id": {
+        "type": "string",
+        "description": "Your WhatsApp Business Phone Number ID (required for API calls)"
+      },
+      "to": {
+        "type": "string",
+        "description": "Recipient phone number in international format without '+' (e.g., '14155552671')"
+      },
+      "type": {
+        "type": "string",
+        "enum": ["text", "template"],
+        "default": "text",
+        "description": "Message type: 'text' for free-form messages, 'template' for pre-approved templates"
+      },
+      "text": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string",
+            "description": "Message text content. Supports basic formatting and emojis"
+          },
+          "preview_url": {
+            "type": "boolean",
+            "default": false,
+            "description": "Generate preview for URLs in the message"
+          }
+        },
+        "required": ["body"]
+      },
+      "messaging_product": {
+        "type": "string",
+        "default": "whatsapp",
+        "description": "Messaging product identifier"
+      },
+      "recipient_type": {
+        "type": "string",
+        "enum": ["individual", "group"],
+        "default": "individual",
+        "description": "Type of recipient: individual contact or group"
+      },
+      "context": {
+        "type": "object",
+        "properties": {
+          "message_id": {
+            "type": "string",
+            "description": "Message ID to reply to (for threaded conversations)"
+          }
+        },
+        "description": "Context for replies and threading"
+      }
+    },
+    "required": [
+      "phone_number_id",
+      "to",
+      "text"
+    ]
+  },
+  "parameter_dependencies": {
+    "phone_number_id": {
+      "source_function": "whatsapp_get_phone_numbers",
+      "extraction_path": "data[0].id",
+      "description": "Auto-extract phone number ID from whatsapp_get_phone_numbers results"
+    }
+  },
+  "examples": [
+    {
+      "name": "Simple text message",
+      "parameters": {
+        "phone_number_id": "123456789012345",
+        "to": "14155552671",
+        "text": {
+          "body": "Hello! This is a test message from your AI assistant."
+        }
+      }
+    },
+    {
+      "name": "Message with URL preview",
+      "parameters": {
+        "phone_number_id": "123456789012345",
+        "to": "14155552671",
+        "text": {
+          "body": "Check out our latest update: https://example.com/news",
+          "preview_url": true
+        }
+      }
+    },
+    {
+      "name": "Reply to existing message",
+      "parameters": {
+        "phone_number_id": "123456789012345",
+        "to": "14155552671",
+        "text": {
+          "body": "Thanks for your message! I'll get back to you soon."
+        },
+        "context": {
+          "message_id": "wamid.HBgLMTQxNTU1NTI2NzEVAgARGBI5QjQ5QjY5QjY5QjY5QjY5"
+        }
+      }
+    },
+    {
+      "name": "Group message",
+      "parameters": {
+        "phone_number_id": "123456789012345",
+        "to": "120363025502502978",
+        "recipient_type": "group",
+        "text": {
+          "body": "Hello everyone! This is a group message."
+        }
+      }
+    }
+  ],
+  "response_format": {
+    "success": {
+      "messaging_product": "whatsapp",
+      "contacts": [
+        {
+          "input": "14155552671",
+          "wa_id": "14155552671"
+        }
+      ],
+      "messages": [
+        {
+          "id": "wamid.HBgLMTQxNTU1NTI2NzEVAgARGBI5QjQ5QjY5QjY5QjY5QjY5"
+        }
+      ]
+    },
+    "error": {
+      "error": {
+        "message": "Invalid phone number format",
+        "type": "OAuthException",
+        "code": 100,
+        "error_subcode": 33,
+        "fbtrace_id": "Aq_1234567890"
+      }
+    }
+  },
+  "rate_limits": {
+    "messages_per_second": 5,
+    "messages_per_minute": 250,
+    "messages_per_day": 1000
+  },
+  "notes": [
+    "Phone numbers must be in international format without '+' prefix",
+    "Text messages support basic formatting and emojis",
+    "URLs in messages can generate previews when preview_url is true",
+    "Message delivery status can be tracked using whatsapp_get_message_status",
+    "Business hours and template messages have different rate limits",
+    "Group messages require the group ID, not individual phone numbers"
+  ]
+}
