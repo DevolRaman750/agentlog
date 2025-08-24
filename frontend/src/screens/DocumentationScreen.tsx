@@ -17,6 +17,14 @@ import { useToast } from '../context/ToastContext';
 
 // Import documentation data
 import documentationIndex from '../data/documentation/index.json';
+import overviewData from '../data/documentation/overview.json';
+import teamsData from '../data/documentation/teams.json';
+import agentsData from '../data/documentation/agents.json';
+import templatesData from '../data/documentation/templates.json';
+import executionsData from '../data/documentation/executions.json';
+import functionsData from '../data/documentation/functions.json';
+import apiKeysData from '../data/documentation/api-keys.json';
+import gettingStartedData from '../data/documentation/getting-started.json';
 
 interface DocumentationSection {
   id: string;
@@ -58,40 +66,26 @@ const DocumentationScreen: React.FC = () => {
     section.description.toLowerCase().includes(searchQuery.toLowerCase())
   ).sort((a, b) => a.order - b.order);
 
-  const loadSectionContent = async (section: DocumentationSection) => {
+  // Create a content map for easy lookup
+  const contentMap = {
+    'overview': overviewData,
+    'teams': teamsData,
+    'agents': agentsData,
+    'templates': templatesData,
+    'executions': executionsData,
+    'functions': functionsData,
+    'api-keys': apiKeysData,
+    'getting-started': gettingStartedData,
+  };
+
+  const loadSectionContent = (section: DocumentationSection) => {
     setIsLoading(true);
     try {
-      // Dynamically import the section content
-      let content;
-      switch (section.id) {
-        case 'overview':
-          content = await import('../data/documentation/overview.json');
-          break;
-        case 'teams':
-          content = await import('../data/documentation/teams.json');
-          break;
-        case 'agents':
-          content = await import('../data/documentation/agents.json');
-          break;
-        case 'templates':
-          content = await import('../data/documentation/templates.json');
-          break;
-        case 'executions':
-          content = await import('../data/documentation/executions.json');
-          break;
-        case 'functions':
-          content = await import('../data/documentation/functions.json');
-          break;
-        case 'api-keys':
-          content = await import('../data/documentation/api-keys.json');
-          break;
-        case 'getting-started':
-          content = await import('../data/documentation/getting-started.json');
-          break;
-        default:
-          throw new Error(`Content not found for section: ${section.id}`);
+      const content = contentMap[section.id as keyof typeof contentMap];
+      if (!content) {
+        throw new Error(`Content not found for section: ${section.id}`);
       }
-      setSectionContent(content.default || content);
+      setSectionContent(content);
       setSelectedSection(section);
       showSuccess('Documentation Loaded', `${section.title} documentation loaded successfully`);
     } catch (error) {
