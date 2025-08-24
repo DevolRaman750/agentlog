@@ -1,0 +1,343 @@
+{
+  "id": "overview",
+  "title": "Platform Overview",
+  "subtitle": "Agent Orchestration Made Simple",
+  "lastUpdated": "2024-08-24",
+  "sections": [
+    {
+      "id": "welcome",
+      "type": "hero",
+      "title": "Welcome to AgentLog",
+      "subtitle": "The No-Code AI Agent Platform",
+      "content": "AgentLog is a powerful agent orchestration platform that empowers anyone to create, manage, and deploy AI agents without coding knowledge. Our pre-built skills and intuitive interface make it easy to automate complex workflows and integrate with external services.",
+      "highlights": [
+        {
+          "icon": "code-slash-outline",
+          "title": "No Coding Required",
+          "description": "Build powerful AI agents using our visual interface and pre-built components"
+        },
+        {
+          "icon": "extension-puzzle-outline", 
+          "title": "Pre-Built Skills",
+          "description": "Leverage hundreds of ready-to-use functions for common tasks and integrations"
+        },
+        {
+          "icon": "trending-up-outline",
+          "title": "Enterprise Scale",
+          "description": "Deploy and manage thousands of agents with robust monitoring and analytics"
+        }
+      ]
+    },
+    {
+      "id": "topology",
+      "type": "topology",
+      "title": "Platform Architecture",
+      "subtitle": "Understanding the Building Blocks",
+      "content": "AgentLog is built around six core concepts that work together to create a comprehensive agent orchestration platform:",
+      "concepts": [
+        {
+          "id": "teams",
+          "title": "Teams",
+          "icon": "people-outline",
+          "color": "#34C759",
+          "description": "Groups of agents working together on related tasks",
+          "details": "Organize agents into teams for better management, shared resources, and collaborative workflows. Teams can have shared memory, token limits, and access permissions.",
+          "examples": [
+            "Marketing Team: Content creation, social media, analytics",
+            "Support Team: Ticket handling, knowledge base, escalation",
+            "Development Team: Code review, testing, deployment"
+          ],
+          "actions": [
+            {
+              "title": "Create Team",
+              "description": "Set up a new team",
+              "link": "/teams",
+              "type": "navigate"
+            },
+            {
+              "title": "View Teams",
+              "description": "Manage existing teams",
+              "link": "/teams",
+              "type": "navigate"
+            }
+          ]
+        },
+        {
+          "id": "agents",
+          "title": "Agents",
+          "icon": "person-outline", 
+          "color": "#FF9500",
+          "description": "AI-powered workers that execute tasks autonomously",
+          "details": "Intelligent agents that can understand instructions, make decisions, and perform complex tasks using available functions. Each agent has its own personality, memory, and skill set.",
+          "examples": [
+            "Social Media Manager: Schedules posts, responds to comments, analyzes engagement",
+            "Data Analyst: Processes data, generates reports, identifies trends",
+            "Customer Service Rep: Handles inquiries, provides support, escalates issues"
+          ],
+          "actions": [
+            {
+              "title": "Create Agent",
+              "description": "Build a new AI agent",
+              "link": "/agents",
+              "type": "navigate"
+            },
+            {
+              "title": "Agent Marketplace",
+              "description": "Browse pre-built agents",
+              "link": "/agent-marketplace", 
+              "type": "navigate"
+            }
+          ]
+        },
+        {
+          "id": "templates",
+          "title": "Templates",
+          "icon": "document-text-outline",
+          "color": "#AF52DE", 
+          "description": "Pre-configured blueprints for common agent types",
+          "details": "Ready-to-use agent configurations with optimized prompts, function selections, and settings for specific use cases. Templates provide a quick starting point for common scenarios.",
+          "examples": [
+            "GitHub Issue Manager: Triages and manages repository issues",
+            "Slack Community Moderator: Manages channels and user interactions", 
+            "Weather Reporter: Provides daily weather updates and alerts"
+          ],
+          "actions": [
+            {
+              "title": "Browse Templates",
+              "description": "Explore available templates",
+              "link": "/templates",
+              "type": "navigate"
+            },
+            {
+              "title": "Template Library",
+              "description": "Community templates",
+              "link": "/template-library",
+              "type": "navigate"
+            }
+          ]
+        },
+        {
+          "id": "executions", 
+          "title": "Executions",
+          "icon": "play-outline",
+          "color": "#FF3B30",
+          "description": "Individual task runs performed by agents",
+          "details": "Every time an agent performs a task, it creates an execution record. These provide detailed logs, results, token usage, and performance metrics for monitoring and optimization.",
+          "examples": [
+            "Scheduled Report Generation: Daily analytics report creation",
+            "Event-Triggered Response: Automatic response to GitHub issues",
+            "Manual Task Execution: On-demand agent task performance"
+          ],
+          "actions": [
+            {
+              "title": "View History", 
+              "description": "See past executions",
+              "link": "/history",
+              "type": "navigate"
+            },
+            {
+              "title": "Execute Task",
+              "description": "Run an agent task",
+              "link": "/execute",
+              "type": "navigate"
+            }
+          ]
+        },
+        {
+          "id": "functions",
+          "title": "Functions & Skills",
+          "icon": "code-outline",
+          "color": "#5AC8FA",
+          "description": "Pre-built capabilities that agents can use",
+          "details": "A comprehensive library of functions that enable agents to interact with external services, process data, and perform complex operations without custom code.",
+          "examples": [
+            "GitHub Integration: Create issues, manage PRs, analyze repositories", 
+            "Slack Operations: Send messages, manage channels, read conversations",
+            "Weather Services: Get forecasts, track conditions, send alerts"
+          ],
+          "actions": [
+            {
+              "title": "Browse Functions",
+              "description": "Explore available skills",
+              "link": "/functions", 
+              "type": "navigate"
+            },
+            {
+              "title": "Configure Functions",
+              "description": "Set up integrations",
+              "link": "/configure",
+              "type": "navigate"
+            }
+          ]
+        },
+        {
+          "id": "models",
+          "title": "AI Models",
+          "icon": "brain-outline", 
+          "color": "#8E8E93",
+          "description": "The AI engines that power agent intelligence",
+          "details": "Choose from various AI models like GPT-4, Claude, Gemini, and others. Each model has different capabilities, costs, and performance characteristics suitable for different use cases.",
+          "examples": [
+            "GPT-4: Advanced reasoning and complex task handling",
+            "Claude: Strong analytical and creative capabilities", 
+            "Gemini: Multimodal processing and fast responses"
+          ],
+          "actions": [
+            {
+              "title": "API Keys",
+              "description": "Configure model access",
+              "link": "/api-keys",
+              "type": "navigate"
+            },
+            {
+              "title": "Model Settings",
+              "description": "Adjust model parameters",
+              "link": "/configure",
+              "type": "navigate"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "workflow",
+      "type": "workflow",
+      "title": "How It Works",
+      "subtitle": "From Idea to Automation",
+      "content": "Creating and deploying AI agents is a simple 4-step process:",
+      "steps": [
+        {
+          "number": 1,
+          "title": "Choose a Template",
+          "description": "Start with a pre-built template or create from scratch",
+          "icon": "document-text-outline",
+          "color": "#AF52DE",
+          "details": "Browse our template library to find configurations that match your needs, or start with a blank template for full customization.",
+          "action": {
+            "title": "Browse Templates",
+            "link": "/templates",
+            "type": "navigate"
+          }
+        },
+        {
+          "number": 2,
+          "title": "Configure Your Agent", 
+          "description": "Customize personality, skills, and behavior",
+          "icon": "settings-outline",
+          "color": "#FF9500",
+          "details": "Define your agent's role, personality, and capabilities. Select functions it can use and configure its decision-making parameters.",
+          "action": {
+            "title": "Create Agent",
+            "link": "/agents",
+            "type": "navigate"
+          }
+        },
+        {
+          "number": 3,
+          "title": "Set Up Integrations",
+          "description": "Connect to external services and APIs",
+          "icon": "link-outline", 
+          "color": "#5AC8FA",
+          "details": "Configure API keys and permissions for services your agent will interact with, such as GitHub, Slack, or weather APIs.",
+          "action": {
+            "title": "Manage API Keys",
+            "link": "/api-keys",
+            "type": "navigate"
+          }
+        },
+        {
+          "number": 4,
+          "title": "Deploy & Monitor",
+          "description": "Launch your agent and track its performance",
+          "icon": "rocket-outline",
+          "color": "#30D158", 
+          "details": "Activate your agent to start working autonomously. Monitor executions, track performance, and optimize based on results.",
+          "action": {
+            "title": "View History",
+            "link": "/history", 
+            "type": "navigate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "benefits",
+      "type": "benefits",
+      "title": "Why Choose AgentLog?",
+      "subtitle": "Built for Everyone",
+      "content": "AgentLog makes AI agent development accessible to everyone, from business users to technical teams:",
+      "benefits": [
+        {
+          "category": "For Business Users",
+          "icon": "business-outline",
+          "color": "#34C759",
+          "items": [
+            "No coding knowledge required",
+            "Visual workflow builder",  
+            "Pre-built business templates",
+            "Enterprise-grade security",
+            "Comprehensive analytics"
+          ]
+        },
+        {
+          "category": "For Developers", 
+          "icon": "code-outline",
+          "color": "#007AFF",
+          "items": [
+            "Extensible function library",
+            "API access and integrations", 
+            "Custom template creation",
+            "Advanced configuration options",
+            "Performance monitoring tools"
+          ]
+        },
+        {
+          "category": "For Teams",
+          "icon": "people-outline",
+          "color": "#FF9500", 
+          "items": [
+            "Collaborative agent development",
+            "Shared resources and templates",
+            "Role-based access control",
+            "Team performance dashboards",
+            "Centralized management"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "next-steps",
+      "type": "cta",
+      "title": "Ready to Get Started?",
+      "subtitle": "Your AI agent journey begins here",
+      "content": "Follow our quick start guide to create your first agent in minutes, or dive deep into specific concepts:",
+      "actions": [
+        {
+          "title": "Quick Start Guide",
+          "description": "Create your first agent in 5 minutes", 
+          "icon": "rocket-outline",
+          "color": "#30D158",
+          "link": "/documentation/getting-started",
+          "type": "navigate",
+          "primary": true
+        },
+        {
+          "title": "Browse Templates",
+          "description": "Start with a pre-built solution",
+          "icon": "document-text-outline", 
+          "color": "#AF52DE",
+          "link": "/templates",
+          "type": "navigate"
+        },
+        {
+          "title": "Create Team",
+          "description": "Organize your agents", 
+          "icon": "people-outline",
+          "color": "#34C759", 
+          "link": "/teams",
+          "type": "navigate"
+        }
+      ]
+    }
+  ]
+}

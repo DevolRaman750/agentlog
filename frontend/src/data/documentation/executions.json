@@ -1,0 +1,227 @@
+{
+  "id": "executions",
+  "title": "Executions & History", 
+  "description": "Monitor, analyze, and optimize your agent execution performance",
+  "icon": "time-outline",
+  "color": "#FF3B30",
+  "sections": [
+    {
+      "type": "hero",
+      "title": "Execution Management", 
+      "subtitle": "Track and optimize agent performance",
+      "description": "Monitor all agent executions in real-time, analyze performance metrics, and optimize your automation workflows for maximum efficiency.",
+      "highlights": [
+        "📊 Real-time monitoring",
+        "📈 Performance analytics",
+        "🔍 Detailed execution logs",
+        "⚡ Quick troubleshooting"
+      ]
+    },
+    {
+      "type": "overview",
+      "title": "Understanding Executions",
+      "content": "Every time an agent runs, it creates an execution record that includes:\n\n• **Execution Details**: Start time, duration, status, and results\n• **Input & Output**: What data was processed and what was produced\n• **Step-by-Step Logs**: Detailed trace of agent actions and decisions\n• **Performance Metrics**: Response times, token usage, and resource consumption\n• **Error Information**: Any issues encountered during execution"
+    },
+    {
+      "type": "features",
+      "title": "Key Capabilities", 
+      "items": [
+        {
+          "title": "Real-time Monitoring",
+          "description": "Watch executions as they happen with live status updates and progress tracking",
+          "icon": "pulse"
+        },
+        {
+          "title": "Detailed Logging",
+          "description": "Access comprehensive logs showing every step, decision, and action taken by your agents",
+          "icon": "document-text"
+        },
+        {
+          "title": "Performance Analytics",
+          "description": "Analyze execution patterns, success rates, and resource usage to optimize performance",
+          "icon": "analytics"
+        },
+        {
+          "title": "Quick Actions",
+          "description": "Re-run executions, clone configurations, and debug issues directly from the history view",
+          "icon": "flash"
+        }
+      ]
+    },
+    {
+      "type": "walkthrough",
+      "title": "Running & Monitoring Executions",
+      "steps": [
+        {
+          "title": "Start New Execution",
+          "description": "Go to the Experiment page to run a new agent execution",
+          "action": {
+            "type": "navigate",
+            "path": "/experiment",
+            "label": "Start Execution"
+          }
+        },
+        {
+          "title": "Configure Parameters",
+          "description": "Select your agent, provide input data, and configure execution settings",
+          "details": "Choose the agent, set input parameters, and optionally select an execution template"
+        },
+        {
+          "title": "Monitor Progress",
+          "description": "Watch real-time progress as your agent processes the request",
+          "details": "See live status updates, current step information, and partial results"
+        },
+        {
+          "title": "Review Results",
+          "description": "Analyze the execution output, performance metrics, and detailed logs",
+          "details": "Check success status, review generated content, and examine execution timeline"
+        },
+        {
+          "title": "Access History",
+          "description": "View all past executions in the History section for analysis and debugging",
+          "action": {
+            "type": "navigate", 
+            "path": "/history",
+            "label": "View History"
+          }
+        }
+      ]
+    },
+    {
+      "type": "execution_states",
+      "title": "Execution States",
+      "states": [
+        {
+          "state": "Pending",
+          "description": "Execution is queued and waiting to start",
+          "color": "#FF9500",
+          "icon": "time-outline"
+        },
+        {
+          "state": "Running",
+          "description": "Agent is actively processing the request",
+          "color": "#007AFF", 
+          "icon": "play-circle"
+        },
+        {
+          "state": "Completed",
+          "description": "Execution finished successfully with results",
+          "color": "#34C759",
+          "icon": "checkmark-circle"
+        },
+        {
+          "state": "Failed",
+          "description": "Execution encountered an error and stopped",
+          "color": "#FF3B30",
+          "icon": "close-circle"
+        },
+        {
+          "state": "Cancelled",
+          "description": "Execution was manually stopped before completion",
+          "color": "#8E8E93",
+          "icon": "stop-circle"
+        }
+      ]
+    },
+    {
+      "type": "metrics",
+      "title": "Performance Metrics",
+      "sections": [
+        {
+          "title": "Execution Metrics",
+          "items": [
+            "**Duration**: Total time from start to completion",
+            "**Token Usage**: Input/output tokens consumed by AI models", 
+            "**Function Calls**: Number of custom functions executed",
+            "**API Requests**: External API calls made during execution"
+          ]
+        },
+        {
+          "title": "Success Metrics",
+          "items": [
+            "**Success Rate**: Percentage of successful executions",
+            "**Average Duration**: Mean execution time across runs",
+            "**Error Frequency**: Common failure patterns and causes",
+            "**Resource Efficiency**: Cost per successful execution"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "analysis",
+      "title": "Execution Analysis",
+      "content": "Use execution data to optimize your agents:\n\n**Performance Optimization**\n• Identify slow-running steps and bottlenecks\n• Optimize function implementations\n• Adjust model parameters for better efficiency\n\n**Quality Improvement**\n• Analyze successful vs failed executions\n• Identify common error patterns\n• Refine agent instructions and templates\n\n**Cost Management**\n• Monitor token usage and API costs\n• Optimize for cost-effective operations\n• Set execution limits and budgets"
+    },
+    {
+      "type": "debugging",
+      "title": "Debugging Failed Executions",
+      "steps": [
+        {
+          "title": "Check Execution Status",
+          "description": "Look at the error message and failure point in the execution timeline"
+        },
+        {
+          "title": "Review Input Data", 
+          "description": "Verify that input data is properly formatted and contains required fields"
+        },
+        {
+          "title": "Examine Function Logs",
+          "description": "Check logs for custom function executions that may have failed"
+        },
+        {
+          "title": "Validate API Keys",
+          "description": "Ensure agent has proper API keys configured for external services"
+        },
+        {
+          "title": "Test Simplified Version",
+          "description": "Run a simpler version of the execution to isolate the issue"
+        }
+      ]
+    },
+    {
+      "type": "bestpractices",
+      "title": "Best Practices",
+      "tips": [
+        "📊 **Regular Monitoring**: Check execution metrics regularly to identify issues early",
+        "🔍 **Log Analysis**: Review detailed logs to understand agent behavior patterns",
+        "⚡ **Performance Tracking**: Monitor duration and resource usage trends over time",
+        "🔄 **Iterative Testing**: Run multiple test executions when making agent changes",
+        "📋 **Documentation**: Keep notes on execution patterns and optimization decisions",
+        "🚨 **Alert Setup**: Configure notifications for failed executions or performance issues"
+      ]
+    },
+    {
+      "type": "troubleshooting",
+      "title": "Common Execution Issues",
+      "problems": [
+        {
+          "issue": "Executions timing out",
+          "solutions": [
+            "Increase timeout settings in agent configuration",
+            "Break complex tasks into smaller steps", 
+            "Optimize function performance and reduce API call latency",
+            "Review model response parameters for efficiency"
+          ]
+        },
+        {
+          "issue": "High token usage costs",
+          "solutions": [
+            "Optimize prompts to be more concise",
+            "Use appropriate model sizes for the task complexity",
+            "Implement result caching where possible",
+            "Set token limits in agent configuration"
+          ]
+        },
+        {
+          "issue": "Inconsistent execution results",
+          "solutions": [
+            "Lower temperature settings for more deterministic outputs",
+            "Add validation steps to check result quality",
+            "Use execution templates for consistent workflows",
+            "Review and refine agent instructions"
+          ]
+        }
+      ]
+    }
+  ]
+}

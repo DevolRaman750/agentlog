@@ -1,0 +1,253 @@
+{
+  "id": "functions",
+  "title": "Custom Functions",
+  "description": "Extend agent capabilities with custom functions and integrations",
+  "icon": "code-slash-outline", 
+  "color": "#5856D6",
+  "sections": [
+    {
+      "type": "hero",
+      "title": "Custom Functions",
+      "subtitle": "Extend your agents with powerful custom capabilities",
+      "description": "Functions are the building blocks that give your agents superpowers. Create custom integrations, data processors, and business logic that agents can use during execution.",
+      "highlights": [
+        "🔧 Custom integrations",
+        "📡 API connections",
+        "🔄 Data processing",
+        "⚡ Reusable logic"
+      ]
+    },
+    {
+      "type": "overview",
+      "title": "What are Functions?",
+      "content": "Functions extend agent capabilities by providing:\n\n• **API Integrations**: Connect to external services and platforms\n• **Data Processing**: Transform, validate, and manipulate data\n• **Business Logic**: Implement custom workflows and decision rules\n• **System Interactions**: File operations, database queries, notifications\n• **Calculations**: Mathematical operations and data analysis"
+    },
+    {
+      "type": "features", 
+      "title": "Function Features",
+      "items": [
+        {
+          "title": "JSON Schema Validation",
+          "description": "Define clear input/output schemas that ensure reliable function execution and data integrity",
+          "icon": "shield-checkmark"
+        },
+        {
+          "title": "Flexible Implementation",
+          "description": "Support for multiple programming languages and execution environments to fit your needs",
+          "icon": "code-working"
+        },
+        {
+          "title": "Error Handling",
+          "description": "Built-in error handling and validation to ensure robust agent execution even when functions fail",
+          "icon": "warning"
+        },
+        {
+          "title": "Performance Monitoring",
+          "description": "Track function performance, execution times, and success rates across all agent runs",
+          "icon": "speedometer"
+        }
+      ]
+    },
+    {
+      "type": "walkthrough",
+      "title": "Creating Your First Function",
+      "steps": [
+        {
+          "title": "Access Functions",
+          "description": "Navigate to the Functions section to view and manage custom functions",
+          "action": {
+            "type": "navigate",
+            "path": "/functions", 
+            "label": "Open Functions"
+          }
+        },
+        {
+          "title": "Create New Function",
+          "description": "Click 'New Function' to start building your custom integration",
+          "details": "You'll need to define the function name, description, and implementation details"
+        },
+        {
+          "title": "Define Schema",
+          "description": "Specify input parameters and expected output format using JSON schema",
+          "details": "Clear schemas help agents understand how to use your function correctly"
+        },
+        {
+          "title": "Implement Logic",
+          "description": "Write the function code that processes inputs and returns results",
+          "details": "Use your preferred programming language and include proper error handling"
+        },
+        {
+          "title": "Test Function",
+          "description": "Test your function with sample inputs to ensure it works correctly",
+          "details": "Validate that inputs are processed correctly and outputs match expected schema"
+        },
+        {
+          "title": "Attach to Agents",
+          "description": "Make your function available to agents by attaching it to their configuration",
+          "action": {
+            "type": "navigate",
+            "path": "/agents",
+            "label": "Configure Agents"
+          }
+        }
+      ]
+    },
+    {
+      "type": "examples",
+      "title": "Function Examples",
+      "items": [
+        {
+          "title": "Email Sender",
+          "description": "Send emails through SMTP or email service APIs",
+          "schema": {
+            "inputs": ["recipient", "subject", "body", "attachments"],
+            "outputs": ["message_id", "status", "timestamp"]
+          },
+          "usecase": "Automated notifications, alerts, and customer communications"
+        },
+        {
+          "title": "Database Query",
+          "description": "Execute SQL queries and return structured results",
+          "schema": {
+            "inputs": ["query", "parameters", "database"],
+            "outputs": ["rows", "count", "execution_time"]
+          },
+          "usecase": "Data analysis, reporting, and dynamic content generation"
+        },
+        {
+          "title": "File Processor", 
+          "description": "Upload, download, and process files from various sources",
+          "schema": {
+            "inputs": ["file_url", "operation", "options"],
+            "outputs": ["processed_data", "file_info", "status"]
+          },
+          "usecase": "Document analysis, image processing, and data extraction"
+        },
+        {
+          "title": "API Webhook",
+          "description": "Send HTTP requests to external APIs with custom payloads",
+          "schema": {
+            "inputs": ["url", "method", "headers", "payload"],
+            "outputs": ["response_data", "status_code", "response_time"]
+          },
+          "usecase": "System integrations, data synchronization, and notifications"
+        }
+      ]
+    },
+    {
+      "type": "schema",
+      "title": "Function Schema Structure",
+      "content": "Functions use JSON schema to define their interface:\n\n```json\n{\n  \"name\": \"send_email\",\n  \"description\": \"Send an email message\",\n  \"parameters\": {\n    \"type\": \"object\",\n    \"properties\": {\n      \"to\": {\n        \"type\": \"string\",\n        \"description\": \"Recipient email address\"\n      },\n      \"subject\": {\n        \"type\": \"string\",\n        \"description\": \"Email subject line\"\n      },\n      \"body\": {\n        \"type\": \"string\",\n        \"description\": \"Email message body\"\n      }\n    },\n    \"required\": [\"to\", \"subject\", \"body\"]\n  }\n}\n```"
+    },
+    {
+      "type": "implementation",
+      "title": "Implementation Guidelines",
+      "sections": [
+        {
+          "title": "Input Validation",
+          "items": [
+            "**Schema Compliance**: Validate all inputs against defined schema",
+            "**Type Checking**: Ensure data types match expectations",
+            "**Required Fields**: Check that all required parameters are provided",
+            "**Value Ranges**: Validate numeric ranges and string lengths"
+          ]
+        },
+        {
+          "title": "Error Handling",
+          "items": [
+            "**Graceful Failures**: Return meaningful error messages",
+            "**Status Codes**: Use appropriate HTTP status codes for web functions",
+            "**Logging**: Log errors for debugging and monitoring",
+            "**Fallback Logic**: Provide default behaviors when possible"
+          ]
+        },
+        {
+          "title": "Performance",
+          "items": [
+            "**Timeout Handling**: Implement reasonable timeout limits",
+            "**Resource Management**: Clean up connections and resources",
+            "**Caching**: Cache results when appropriate",
+            "**Async Operations**: Use asynchronous processing for I/O operations"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "integrations",
+      "title": "Popular Integrations",
+      "categories": [
+        {
+          "title": "Communication",
+          "functions": ["Email (SMTP, SendGrid)", "Slack messaging", "SMS (Twilio)", "Discord webhooks"]
+        },
+        {
+          "title": "Data & Analytics", 
+          "functions": ["Google Sheets", "PostgreSQL/MySQL", "MongoDB", "Elasticsearch"]
+        },
+        {
+          "title": "Cloud Services",
+          "functions": ["AWS S3", "Google Cloud Storage", "Azure Blob", "Dropbox"]
+        },
+        {
+          "title": "Business Tools",
+          "functions": ["CRM systems", "Project management", "Accounting software", "Inventory systems"]
+        }
+      ]
+    },
+    {
+      "type": "bestpractices",
+      "title": "Best Practices",
+      "tips": [
+        "📝 **Clear Documentation**: Provide detailed descriptions for function purpose and usage",
+        "🔒 **Secure Credentials**: Never hardcode API keys or sensitive information in functions",
+        "⚡ **Optimize Performance**: Keep functions fast and efficient for better agent response times", 
+        "🧪 **Thorough Testing**: Test functions with various input scenarios and edge cases",
+        "📊 **Monitor Usage**: Track function performance and error rates across executions",
+        "🔄 **Version Control**: Maintain function versions for rollback and change tracking",
+        "🎯 **Single Responsibility**: Design functions to do one thing well rather than multiple tasks"
+      ]
+    },
+    {
+      "type": "troubleshooting",
+      "title": "Common Function Issues",
+      "problems": [
+        {
+          "issue": "Function execution timeouts",
+          "solutions": [
+            "Optimize function code for better performance",
+            "Increase timeout settings if processing takes longer",
+            "Use asynchronous operations for I/O bound tasks",
+            "Break complex operations into smaller, faster functions"
+          ]
+        },
+        {
+          "issue": "Schema validation errors",
+          "solutions": [
+            "Verify function schema matches actual implementation",
+            "Check that all required parameters are properly defined",
+            "Test with sample inputs to validate schema correctness",
+            "Review parameter types and format requirements"
+          ]
+        },
+        {
+          "issue": "API integration failures",
+          "solutions": [
+            "Verify API credentials and permissions are correct",
+            "Check API endpoint URLs and request formats",
+            "Handle rate limiting and retry failed requests",
+            "Implement proper error handling for API responses"
+          ]
+        },
+        {
+          "issue": "Inconsistent function results",
+          "solutions": [
+            "Add input validation and sanitization",
+            "Implement proper error handling and logging",
+            "Test functions with edge cases and invalid inputs",
+            "Use consistent data formats for inputs and outputs"
+          ]
+        }
+      ]
+    }
+  ]
+}

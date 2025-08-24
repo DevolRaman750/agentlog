@@ -10,6 +10,7 @@ export type TabParamList = {
   'API Keys': undefined;
   History: { executionId?: string; openExecutionDetails?: boolean };
   Database: undefined;
+  Documentation: undefined;
   Account: undefined;
   Agents: { prefilledAgent?: any } | undefined;
   Marketplace: undefined;

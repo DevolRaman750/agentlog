@@ -1,0 +1,83 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2024-08-24",
+  "sections": [
+    {
+      "id": "overview",
+      "title": "Platform Overview",
+      "icon": "information-circle-outline",
+      "color": "#007AFF",
+      "description": "Learn about the agent orchestration platform and its core concepts",
+      "order": 1,
+      "file": "overview.json"
+    },
+    {
+      "id": "teams",
+      "title": "Teams",
+      "icon": "people-outline",
+      "color": "#34C759", 
+      "description": "Organize and manage groups of agents working together",
+      "order": 2,
+      "file": "teams.json"
+    },
+    {
+      "id": "agents",
+      "title": "Agents",
+      "icon": "person-outline",
+      "color": "#FF9500",
+      "description": "Create and manage AI agents that perform automated tasks",
+      "order": 3,
+      "file": "agents.json"
+    },
+    {
+      "id": "templates",
+      "title": "Templates",
+      "icon": "document-text-outline",
+      "color": "#AF52DE",
+      "description": "Pre-built configurations and prompts for common use cases",
+      "order": 4,
+      "file": "templates.json"
+    },
+    {
+      "id": "executions",
+      "title": "Executions",
+      "icon": "play-outline",
+      "color": "#FF3B30",
+      "description": "Monitor and manage agent task executions and results",
+      "order": 5,
+      "file": "executions.json"
+    },
+    {
+      "id": "functions",
+      "title": "Functions & Skills",
+      "icon": "code-outline",
+      "color": "#5AC8FA",
+      "description": "Pre-built skills that agents can use to interact with external services",
+      "order": 6,
+      "file": "functions.json"
+    },
+    {
+      "id": "api-keys",
+      "title": "API Keys",
+      "icon": "key-outline",
+      "color": "#FFCC00",
+      "description": "Manage authentication for external services and integrations",
+      "order": 7,
+      "file": "api-keys.json"
+    },
+    {
+      "id": "getting-started",
+      "title": "Quick Start Guide",
+      "icon": "rocket-outline",
+      "color": "#30D158",
+      "description": "Step-by-step walkthrough to get up and running quickly",
+      "order": 8,
+      "file": "getting-started.json"
+    }
+  ],
+  "metadata": {
+    "appName": "AgentLog",
+    "tagline": "Agent Orchestration Made Simple",
+    "description": "A powerful no-code platform for creating and managing AI agents that can automate complex workflows and interact with external services."
+  }
+}
