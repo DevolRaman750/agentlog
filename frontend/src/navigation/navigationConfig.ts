@@ -12,6 +12,7 @@ import AuthScreen from '../screens/AuthScreen';
 import ApiKeysScreen from '../screens/ApiKeysScreen';
 import AgentsScreen from '../screens/AgentsScreen';
 import AgentMarketplaceScreen from '../screens/AgentMarketplaceScreen';
+import DocumentationScreen from '../screens/DocumentationScreen';
 
 export interface NavigationItem {
   name: string;
@@ -127,6 +128,14 @@ export const navigationItems: NavigationItem[] = [
     iconFocused: 'server', 
     component: DatabaseScreen,
     urlPath: '/database'
+  },
+  { 
+    name: 'Documentation', 
+    title: 'Documentation', 
+    icon: 'book-outline', 
+    iconFocused: 'book', 
+    component: DocumentationScreen,
+    urlPath: '/documentation'
   },
   { 
     name: 'Account', 

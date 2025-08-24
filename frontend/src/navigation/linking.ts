@@ -40,6 +40,10 @@ export const linking: LinkingOptions<TabParamList> = {
         path: '/database',
         exact: true,
       },
+      Documentation: {
+        path: '/documentation',
+        exact: true,
+      },
       Account: {
         path: '/account',
         exact: true,

@@ -1,0 +1,210 @@
+{
+  "id": "templates", 
+  "title": "Execution Templates",
+  "description": "Create reusable workflow templates that standardize agent execution patterns",
+  "icon": "document-text-outline",
+  "color": "#34C759",
+  "sections": [
+    {
+      "type": "hero",
+      "title": "Execution Templates",
+      "subtitle": "Standardize workflows with reusable templates",
+      "description": "Templates define structured workflows that agents can follow consistently. They ensure reproducible results and simplify complex automation scenarios.",
+      "highlights": [
+        "📋 Structured workflows",
+        "🔄 Reusable patterns",
+        "📊 Consistent results", 
+        "⚡ Quick deployment"
+      ]
+    },
+    {
+      "type": "overview",
+      "title": "Why Use Templates?",
+      "content": "Execution templates provide:\n\n• **Consistency**: Ensure agents follow the same process every time\n• **Efficiency**: Reuse proven workflows across multiple agents\n• **Quality Control**: Standardize outputs and reduce errors\n• **Scalability**: Deploy complex workflows quickly and reliably\n• **Collaboration**: Share best practices across teams"
+    },
+    {
+      "type": "features",
+      "title": "Template Features",
+      "items": [
+        {
+          "title": "Step-by-Step Workflows",
+          "description": "Define sequential steps that guide agents through complex processes with clear instructions",
+          "icon": "list"
+        },
+        {
+          "title": "Dynamic Variables",
+          "description": "Use placeholders and variables to customize template execution for different contexts and inputs",
+          "icon": "code"
+        },
+        {
+          "title": "Conditional Logic",
+          "description": "Add branching logic that allows agents to make decisions based on data and conditions",
+          "icon": "git-branch"
+        },
+        {
+          "title": "Function Integration", 
+          "description": "Seamlessly integrate custom functions into template workflows for extended capabilities",
+          "icon": "extension-puzzle"
+        }
+      ]
+    },
+    {
+      "type": "walkthrough",
+      "title": "Creating Your First Template",
+      "steps": [
+        {
+          "title": "Access Templates",
+          "description": "Navigate to the Templates section to view and create execution templates",
+          "action": {
+            "type": "navigate",
+            "path": "/templates",
+            "label": "Open Templates"
+          }
+        },
+        {
+          "title": "Create New Template",
+          "description": "Click 'New Template' to start building your workflow template",
+          "details": "You'll need to provide a name, description, and define the template structure"
+        },
+        {
+          "title": "Define Workflow Steps",
+          "description": "Add sequential steps that define what your agent should do at each stage",
+          "details": "Each step should have clear instructions, expected inputs, and desired outputs"
+        },
+        {
+          "title": "Add Variables & Logic",
+          "description": "Include dynamic variables and conditional logic to make your template flexible",
+          "details": "Use {{variable}} syntax for placeholders and conditional statements for branching"
+        },
+        {
+          "title": "Test Template",
+          "description": "Run test executions to validate your template works as expected",
+          "action": {
+            "type": "navigate",
+            "path": "/experiment",
+            "label": "Test Execution"
+          }
+        },
+        {
+          "title": "Deploy to Agents",
+          "description": "Assign the template to your agents for consistent workflow execution",
+          "action": {
+            "type": "navigate", 
+            "path": "/agents",
+            "label": "Manage Agents"
+          }
+        }
+      ]
+    },
+    {
+      "type": "examples",
+      "title": "Template Examples",
+      "items": [
+        {
+          "title": "Customer Onboarding",
+          "description": "Automated workflow for new customer setup and welcome process",
+          "steps": [
+            "Validate customer information",
+            "Create user account",
+            "Send welcome email",
+            "Schedule follow-up tasks"
+          ]
+        },
+        {
+          "title": "Data Analysis Report",
+          "description": "Generate comprehensive reports from data sources",
+          "steps": [
+            "Extract data from sources", 
+            "Perform statistical analysis",
+            "Generate visualizations",
+            "Compile final report"
+          ]
+        },
+        {
+          "title": "Content Review & Approval",
+          "description": "Streamlined content review and publishing workflow",
+          "steps": [
+            "Analyze content quality",
+            "Check compliance requirements",
+            "Route for approvals",
+            "Publish approved content"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "structure",
+      "title": "Template Structure",
+      "content": "Templates use JSON format with the following key components:\n\n```json\n{\n  \"name\": \"Template Name\",\n  \"description\": \"Template purpose\",\n  \"version\": \"1.0.0\",\n  \"variables\": {\n    \"input_data\": \"Data to process\",\n    \"output_format\": \"Desired output format\"\n  },\n  \"steps\": [\n    {\n      \"id\": \"step1\",\n      \"name\": \"Process Input\",\n      \"instruction\": \"Process {{input_data}}\",\n      \"condition\": \"if input_data exists\"\n    }\n  ]\n}\n```"
+    },
+    {
+      "type": "variables",
+      "title": "Working with Variables",
+      "sections": [
+        {
+          "title": "Variable Types",
+          "items": [
+            "**Text Variables**: {{name}}, {{description}}",
+            "**Numeric Variables**: {{count}}, {{price}}",
+            "**Boolean Variables**: {{is_active}}, {{approved}}",
+            "**List Variables**: {{items}}, {{categories}}"
+          ]
+        },
+        {
+          "title": "Advanced Features",
+          "items": [
+            "**Conditional Logic**: if/else statements",
+            "**Loop Operations**: Process arrays and lists",
+            "**Data Transformation**: Format and manipulate data",
+            "**Function Calls**: Execute custom functions within steps"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "bestpractices",
+      "title": "Best Practices",
+      "tips": [
+        "📝 **Clear Instructions**: Write specific, actionable step instructions",
+        "🎯 **Single Purpose**: Design templates for specific, well-defined tasks",
+        "🔍 **Test Thoroughly**: Validate templates with various input scenarios",
+        "📊 **Version Control**: Maintain version history for template changes",
+        "🏷️ **Descriptive Names**: Use clear, descriptive names for templates and variables",
+        "🔄 **Iterative Improvement**: Regularly refine templates based on execution results"
+      ]
+    },
+    {
+      "type": "troubleshooting", 
+      "title": "Common Issues",
+      "problems": [
+        {
+          "issue": "Template execution fails",
+          "solutions": [
+            "Check all variables are properly defined",
+            "Verify step instructions are clear and actionable",
+            "Ensure required functions are available",
+            "Test with minimal example first"
+          ]
+        },
+        {
+          "issue": "Inconsistent results",
+          "solutions": [
+            "Add more specific instructions to steps",
+            "Include validation steps in workflow",
+            "Use conditional logic to handle edge cases",
+            "Define clear success criteria for each step"
+          ]
+        },
+        {
+          "issue": "Variables not substituting",
+          "solutions": [
+            "Check variable syntax {{variable_name}}",
+            "Verify variables are defined in template",
+            "Ensure variable names match exactly",
+            "Test variable values in execution context"
+          ]
+        }
+      ]
+    }
+  ]
+}
