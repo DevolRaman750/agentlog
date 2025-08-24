@@ -7,20 +7,20 @@
   "sections": [
     {
       "type": "hero",
-      "title": "Custom Functions",
-      "subtitle": "Extend your agents with powerful custom capabilities",
-      "description": "Functions are the building blocks that give your agents superpowers. Create custom integrations, data processors, and business logic that agents can use during execution.",
+      "title": "Functions & Skills",
+      "subtitle": "Pre-built capabilities for agents to interact with external services",
+      "description": "Functions are pre-built capabilities that enable agents to perform specific tasks and integrate with external services. AgentLog includes system functions for core operations and provider functions for service integrations.",
       "highlights": [
-        "🔧 Custom integrations",
-        "📡 API connections",
-        "🔄 Data processing",
-        "⚡ Reusable logic"
+        "🔧 GitHub code operations",
+        "📡 Slack team communication",
+        "🔄 Agent & team memory",
+        "⚡ Weather data integration"
       ]
     },
     {
       "type": "overview",
       "title": "What are Functions?",
-      "content": "Functions extend agent capabilities by providing:\n\n• **API Integrations**: Connect to external services and platforms\n• **Data Processing**: Transform, validate, and manipulate data\n• **Business Logic**: Implement custom workflows and decision rules\n• **System Interactions**: File operations, database queries, notifications\n• **Calculations**: Mathematical operations and data analysis"
+      "content": "Functions extend agent capabilities by providing:\n\n• **GitHub Operations**: Create issues, PRs, read code, search repositories, manage branches\n• **Slack Communication**: Send messages, manage channels, read conversations, add reactions\n• **Memory Management**: Agent and team memory operations for persistent context\n• **Google Drive Integration**: Access files, search documents, manage content\n• **Weather Services**: Get current weather data for any location"
     },
     {
       "type": "features", 
@@ -57,7 +57,7 @@
           "description": "Navigate to the Functions section to view and manage custom functions",
           "action": {
             "type": "navigate",
-            "path": "/functions", 
+            "path": "Functions", 
             "label": "Open Functions"
           }
         },
@@ -86,7 +86,7 @@
           "description": "Make your function available to agents by attaching it to their configuration",
           "action": {
             "type": "navigate",
-            "path": "/agents",
+            "path": "Agents",
             "label": "Configure Agents"
           }
         }
@@ -97,40 +97,40 @@
       "title": "Function Examples",
       "items": [
         {
-          "title": "Email Sender",
-          "description": "Send emails through SMTP or email service APIs",
+          "title": "GitHub Create Issue",
+          "description": "Create new issues in GitHub repositories with labels and assignees",
           "schema": {
-            "inputs": ["recipient", "subject", "body", "attachments"],
-            "outputs": ["message_id", "status", "timestamp"]
+            "inputs": ["owner", "repo", "title", "body", "labels", "assignees"],
+            "outputs": ["issue_number", "issue_url", "created_at"]
           },
-          "usecase": "Automated notifications, alerts, and customer communications"
+          "usecase": "Bug tracking, feature requests, automated issue creation from agent analysis"
         },
         {
-          "title": "Database Query",
-          "description": "Execute SQL queries and return structured results",
+          "title": "Slack Send Message",
+          "description": "Send messages to Slack channels or users with rich formatting",
           "schema": {
-            "inputs": ["query", "parameters", "database"],
-            "outputs": ["rows", "count", "execution_time"]
+            "inputs": ["channel", "text", "username", "thread_ts", "attachments"],
+            "outputs": ["message_ts", "channel", "success"]
           },
-          "usecase": "Data analysis, reporting, and dynamic content generation"
+          "usecase": "Team notifications, status updates, automated reporting to Slack channels"
         },
         {
-          "title": "File Processor", 
-          "description": "Upload, download, and process files from various sources",
+          "title": "Agent Memory Write", 
+          "description": "Store information in agent's persistent memory for future reference",
           "schema": {
-            "inputs": ["file_url", "operation", "options"],
-            "outputs": ["processed_data", "file_info", "status"]
+            "inputs": ["key", "value", "category", "metadata"],
+            "outputs": ["memory_id", "timestamp", "status"]
           },
-          "usecase": "Document analysis, image processing, and data extraction"
+          "usecase": "Remembering user preferences, storing context across conversations, learning from interactions"
         },
         {
-          "title": "API Webhook",
-          "description": "Send HTTP requests to external APIs with custom payloads",
+          "title": "Get Current Weather",
+          "description": "Retrieve current weather conditions for any location",
           "schema": {
-            "inputs": ["url", "method", "headers", "payload"],
-            "outputs": ["response_data", "status_code", "response_time"]
+            "inputs": ["location", "units"],
+            "outputs": ["temperature", "description", "humidity", "wind_speed"]
           },
-          "usecase": "System integrations, data synchronization, and notifications"
+          "usecase": "Weather-based decision making, location-aware responses, environmental context"
         }
       ]
     },
@@ -177,20 +177,20 @@
       "title": "Popular Integrations",
       "categories": [
         {
-          "title": "Communication",
-          "functions": ["Email (SMTP, SendGrid)", "Slack messaging", "SMS (Twilio)", "Discord webhooks"]
+          "title": "Development & Code",
+          "functions": ["GitHub issues and PRs", "GitHub code search", "GitHub branch management", "GitHub repository operations"]
         },
         {
-          "title": "Data & Analytics", 
-          "functions": ["Google Sheets", "PostgreSQL/MySQL", "MongoDB", "Elasticsearch"]
+          "title": "Communication", 
+          "functions": ["Slack messaging", "Slack channel management", "Slack user search", "Slack reactions"]
         },
         {
-          "title": "Cloud Services",
-          "functions": ["AWS S3", "Google Cloud Storage", "Azure Blob", "Dropbox"]
+          "title": "Memory & Context",
+          "functions": ["Agent memory operations", "Team memory management", "Context persistence", "Knowledge storage"]
         },
         {
-          "title": "Business Tools",
-          "functions": ["CRM systems", "Project management", "Accounting software", "Inventory systems"]
+          "title": "Productivity",
+          "functions": ["Google Drive files", "Weather data", "Document search", "File content retrieval"]
         }
       ]
     },

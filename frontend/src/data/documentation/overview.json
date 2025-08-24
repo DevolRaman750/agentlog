@@ -8,23 +8,23 @@
       "id": "welcome",
       "type": "hero",
       "title": "Welcome to AgentLog",
-      "subtitle": "The No-Code AI Agent Platform",
-      "content": "AgentLog is a powerful agent orchestration platform that empowers anyone to create, manage, and deploy AI agents without coding knowledge. Our pre-built skills and intuitive interface make it easy to automate complex workflows and integrate with external services.",
+      "subtitle": "Intelligent AI Agent Orchestration Platform",
+      "content": "AgentLog is a comprehensive platform that enables you to create, deploy, and manage AI agents capable of automating complex workflows. Build sophisticated automation systems using multiple AI models, integrate with GitHub, Slack, and other services, all through an intuitive web interface.",
       "highlights": [
         {
-          "icon": "code-slash-outline",
-          "title": "No Coding Required",
-          "description": "Build powerful AI agents using our visual interface and pre-built components"
+          "icon": "cog-outline",
+          "title": "Multiple AI Models",
+          "description": "Support for GPT-4, Claude, Gemini, and more AI models for diverse capabilities"
         },
         {
-          "icon": "extension-puzzle-outline", 
-          "title": "Pre-Built Skills",
-          "description": "Leverage hundreds of ready-to-use functions for common tasks and integrations"
+          "icon": "git-network-outline", 
+          "title": "GitHub & Slack Integration",
+          "description": "Native integration with GitHub for code operations and Slack for team communication"
         },
         {
-          "icon": "trending-up-outline",
-          "title": "Enterprise Scale",
-          "description": "Deploy and manage thousands of agents with robust monitoring and analytics"
+          "icon": "shield-checkmark-outline",
+          "title": "Secure & Scalable",
+          "description": "Enterprise-ready with secure API key management and team collaboration features"
         }
       ]
     },
@@ -49,15 +49,9 @@
           ],
           "actions": [
             {
-              "title": "Create Team",
-              "description": "Set up a new team",
-              "link": "/teams",
-              "type": "navigate"
-            },
-            {
-              "title": "View Teams",
-              "description": "Manage existing teams",
-              "link": "/teams",
+              "title": "View Agents & Teams",
+              "description": "Manage agents and teams",
+              "link": "Agents",
               "type": "navigate"
             }
           ]
@@ -76,15 +70,15 @@
           ],
           "actions": [
             {
-              "title": "Create Agent",
-              "description": "Build a new AI agent",
-              "link": "/agents",
+              "title": "View Agents",
+              "description": "Manage your agents",
+              "link": "Agents",
               "type": "navigate"
             },
             {
               "title": "Agent Marketplace",
               "description": "Browse pre-built agents",
-              "link": "/agent-marketplace", 
+              "link": "Marketplace", 
               "type": "navigate"
             }
           ]

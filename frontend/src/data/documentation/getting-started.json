@@ -27,10 +27,10 @@
           "description": "Set up your account and configure API keys for AI providers",
           "action": {
             "type": "navigate",
-            "path": "/account",
+            "path": "Account",
             "label": "Setup Account"
           },
-          "details": "Start by creating your account, then add API keys for OpenAI, Anthropic, or other AI providers",
+          "details": "Start by creating your account, then add API keys for AI models like Gemini, OpenAI, or Claude",
           "time": "2 min"
         },
         {
@@ -38,10 +38,10 @@
           "description": "Build an agent with a specific purpose and AI model configuration",
           "action": {
             "type": "navigate", 
-            "path": "/agents",
+            "path": "Agents",
             "label": "Create Agent"
           },
-          "details": "Define your agent's role, select an AI model, and configure basic parameters",
+          "details": "Define your agent's role, select an AI model (Gemini, GPT-4, Claude), and configure system prompts",
           "time": "2 min"
         },
         {
@@ -49,10 +49,10 @@
           "description": "Test your agent with sample input to see it in action",
           "action": {
             "type": "navigate",
-            "path": "/experiment",
+            "path": "Execute",
             "label": "Test Agent"
           },
-          "details": "Provide sample input and watch your agent process it in real-time",
+          "details": "Use the Execute screen to test your agent in Agent Execution mode with sample input",
           "time": "1 min"
         }
       ]
@@ -91,7 +91,7 @@
               "description": "Select from OpenAI, Anthropic, Azure, or Google AI",
               "action": {
                 "type": "navigate",
-                "path": "/api-keys",
+                "path": "API Keys",
                 "label": "Add API Keys"
               }
             },
@@ -113,7 +113,7 @@
               "description": "Go to the Agents section to create your first agent",
               "action": {
                 "type": "navigate",
-                "path": "/agents",
+                "path": "Agents",
                 "label": "Manage Agents"
               }
             },
