@@ -364,13 +364,20 @@ func (he *HeartbeatExecutor) executeAgentTemplate(ctx context.Context, agent *Ov
 		}
 	}
 
-	// Load API keys for the agent's owner before execution
-	log.Printf("🔑 Loading API keys for agent %s (user: %s)", agent.ID, agent.UserID)
-	if err := he.client.LoadDatabaseApiKeys(ctx, agent.UserID); err != nil {
-		log.Printf("⚠️ Failed to load API keys for agent %s (user %s): %v", agent.ID, agent.UserID, err)
-		// Continue anyway - the client will handle missing keys gracefully
+	// Load agent-specific API keys with fallback to user defaults
+	log.Printf("🔑 Loading agent-specific API keys for agent %s (user: %s)", agent.ID, agent.UserID)
+	if err := he.client.LoadAgentApiKeys(ctx, agent.ID); err != nil {
+		log.Printf("⚠️ Failed to load agent-specific API keys for agent %s: %v", agent.ID, err)
+		// Try fallback to user API keys
+		log.Printf("🔄 Falling back to user API keys for agent %s (user: %s)", agent.ID, agent.UserID)
+		if err := he.client.LoadDatabaseApiKeys(ctx, agent.UserID); err != nil {
+			log.Printf("⚠️ Failed to load user API keys for agent %s (user %s): %v", agent.ID, agent.UserID, err)
+			// Continue anyway - the client will handle missing keys gracefully
+		} else {
+			log.Printf("✅ Successfully loaded fallback user API keys for agent %s", agent.ID)
+		}
 	} else {
-		log.Printf("✅ Successfully loaded API keys for agent %s", agent.ID)
+		log.Printf("✅ Successfully loaded agent-specific API keys for agent %s", agent.ID)
 	}
 
 	// Execute using the gogent client

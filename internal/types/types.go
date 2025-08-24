@@ -251,6 +251,7 @@ type SessionApiKeys struct {
 	Neo4jDatabase     string `json:"neo4jDatabase,omitempty"`
 	GithubApiKey      string `json:"githubApiKey,omitempty"`
 	SlackBotToken     string `json:"slackBotToken,omitempty"`     // Slack Bot Token (xoxb-...)
+	WhatsappAccessToken string `json:"whatsappAccessToken,omitempty"` // WhatsApp Business API Access Token (EAA...)
 	GoogleDriveApiKey string `json:"googleDriveApiKey,omitempty"` // Google Drive API OAuth 2.0 Access Token
 }
 
@@ -849,6 +850,55 @@ type MemorySearchResult struct {
 	Data      map[string]interface{} `json:"data"`
 	Relevance float64                `json:"relevance,omitempty"`
 	UpdatedAt time.Time              `json:"updatedAt"`
+}
+
+// AgentApiKey represents a mapping between agents and API keys
+type AgentApiKey struct {
+	ID                string    `json:"id"`
+	AgentID           string    `json:"agentId"`
+	ApiKeyID          string    `json:"apiKeyId"`
+	IsDefault         bool      `json:"isDefault"`
+	UseGlobalDefault  bool      `json:"useGlobalDefault"`
+	Priority          int       `json:"priority"`
+	CreatedAt         time.Time `json:"createdAt"`
+	UpdatedAt         time.Time `json:"updatedAt"`
+	
+	// Populated via JOINs when needed
+	ApiKey            *UserApiKey `json:"apiKey,omitempty"`
+	ServiceName       string      `json:"serviceName,omitempty"`
+	DisplayName       string      `json:"displayName,omitempty"`
+	ValidationStatus  string      `json:"validationStatus,omitempty"`
+	IsActive          bool        `json:"isActive,omitempty"`
+}
+
+// AgentApiKeyCreateRequest represents a request to create an agent API key mapping
+type AgentApiKeyCreateRequest struct {
+	AgentID           string `json:"agentId" validate:"required"`
+	ApiKeyID          string `json:"apiKeyId" validate:"required"`
+	IsDefault         bool   `json:"isDefault"`
+	UseGlobalDefault  bool   `json:"useGlobalDefault"`
+	Priority          int    `json:"priority"`
+}
+
+// AgentApiKeyUpdateRequest represents a request to update an agent API key mapping
+type AgentApiKeyUpdateRequest struct {
+	IsDefault         *bool `json:"isDefault,omitempty"`
+	UseGlobalDefault  *bool `json:"useGlobalDefault,omitempty"`
+	Priority          *int  `json:"priority,omitempty"`
+}
+
+// AgentWithApiKeys represents an agent with its associated API keys
+type AgentWithApiKeys struct {
+	Agent
+	ApiKeys []AgentApiKey `json:"apiKeys,omitempty"`
+}
+
+// AgentApiKeyConfiguration represents the API key configuration for an agent
+type AgentApiKeyConfiguration struct {
+	AgentID           string                 `json:"agentId"`
+	ServiceApiKeys    map[string]UserApiKey  `json:"serviceApiKeys"`    // Service name -> API key
+	FallbackApiKeys   map[string]UserApiKey  `json:"fallbackApiKeys"`   // Service name -> fallback API key
+	UseGlobalDefaults bool                   `json:"useGlobalDefaults"`
 }
 
 // ToJSON converts any struct to JSON string for database storage

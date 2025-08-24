@@ -1,6 +1,7 @@
 package agents
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -62,6 +63,12 @@ func (h *AgentsHandler) HandleAgentByID(w http.ResponseWriter, r *http.Request) 
 	// Check for memory sub-routes /api/agents/{id}/memory/*
 	if len(pathParts) >= 4 && pathParts[3] == "memory" {
 		h.handleAgentMemory(w, r, agentID, pathParts)
+		return
+	}
+
+	// Check for API key sub-routes /api/agents/{id}/api-keys/*
+	if len(pathParts) >= 4 && pathParts[3] == "api-keys" {
+		h.handleAgentApiKeys(w, r, agentID, pathParts)
 		return
 	}
 
@@ -504,4 +511,170 @@ func (h *AgentsHandler) handleAgentMemory(w http.ResponseWriter, r *http.Request
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+
+// handleAgentApiKeys handles API key operations for agents
+func (h *AgentsHandler) handleAgentApiKeys(w http.ResponseWriter, r *http.Request, agentID string, pathParts []string) {
+	user, ok := auth.GetUserFromContext(r.Context())
+	if !ok {
+		http.Error(w, "User not found in context", http.StatusUnauthorized)
+		return
+	}
+
+	// Verify agent ownership
+	_, err := h.getAgentByID(user.ID, agentID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "Agent not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Failed to get agent", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	// Check for specific API key ID in path: /api/agents/{id}/api-keys/{keyId}
+	if len(pathParts) >= 5 {
+		keyMappingID := pathParts[4]
+		h.handleAgentApiKeyByID(w, r, agentID, keyMappingID, user.ID)
+		return
+	}
+
+	// Handle base API key operations
+	switch r.Method {
+	case http.MethodGet:
+		h.listAgentApiKeys(w, r, agentID, user.ID)
+	case http.MethodPost:
+		h.createAgentApiKey(w, r, agentID, user.ID)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+// listAgentApiKeys lists all API keys for an agent
+func (h *AgentsHandler) listAgentApiKeys(w http.ResponseWriter, r *http.Request, agentID, userID string) {
+	agentApiKeys, err := h.getAgentApiKeys(agentID)
+	if err != nil {
+		http.Error(w, "Failed to get agent API keys", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":  true,
+		"apiKeys": agentApiKeys,
+	})
+}
+
+// createAgentApiKey creates a new API key mapping for an agent
+func (h *AgentsHandler) createAgentApiKey(w http.ResponseWriter, r *http.Request, agentID, userID string) {
+	var req types.AgentApiKeyCreateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Validate required fields
+	if req.AgentID == "" || req.ApiKeyID == "" {
+		http.Error(w, "Agent ID and API key ID are required", http.StatusBadRequest)
+		return
+	}
+
+	// Ensure agent ID matches URL
+	if req.AgentID != agentID {
+		http.Error(w, "Agent ID mismatch", http.StatusBadRequest)
+		return
+	}
+
+	// Verify API key access
+	if err := h.verifyApiKeyAccess(agentID, req.ApiKeyID); err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
+
+	// Create the mapping
+	agentApiKey := &types.AgentApiKey{
+		ID:               uuid.New().String(),
+		AgentID:          req.AgentID,
+		ApiKeyID:         req.ApiKeyID,
+		IsDefault:        req.IsDefault,
+		UseGlobalDefault: req.UseGlobalDefault,
+		Priority:         req.Priority,
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
+	}
+
+	if err := h.insertAgentApiKey(agentApiKey); err != nil {
+		if strings.Contains(err.Error(), "Duplicate entry") {
+			http.Error(w, "API key already assigned to this agent", http.StatusConflict)
+		} else {
+			http.Error(w, "Failed to create agent API key mapping", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"apiKey":  agentApiKey,
+	})
+}
+
+// handleAgentApiKeyByID handles operations on specific agent API key mappings
+func (h *AgentsHandler) handleAgentApiKeyByID(w http.ResponseWriter, r *http.Request, agentID, keyMappingID, userID string) {
+	switch r.Method {
+	case http.MethodPut:
+		h.updateAgentApiKey(w, r, agentID, keyMappingID, userID)
+	case http.MethodDelete:
+		h.deleteAgentApiKeyHandler(w, r, agentID, keyMappingID, userID)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+// updateAgentApiKey updates an agent API key mapping
+func (h *AgentsHandler) updateAgentApiKey(w http.ResponseWriter, r *http.Request, agentID, keyMappingID, userID string) {
+	var req types.AgentApiKeyUpdateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.updateAgentApiKeyFields(agentID, keyMappingID, &req); err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "Agent API key mapping not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Failed to update agent API key mapping", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "Agent API key mapping updated successfully",
+	})
+}
+
+// deleteAgentApiKeyHandler removes an agent API key mapping
+func (h *AgentsHandler) deleteAgentApiKeyHandler(w http.ResponseWriter, r *http.Request, agentID, keyMappingID, userID string) {
+	if err := h.deleteAgentApiKey(agentID, keyMappingID); err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "Agent API key mapping not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Failed to delete agent API key mapping", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "Agent API key mapping deleted successfully",
+	})
+}
+
+// GetAgentApiKeyConfiguration gets the complete API key configuration for an agent
+// This is used internally by the execution engine to resolve agent-specific API keys
+func (h *AgentsHandler) GetAgentApiKeyConfiguration(ctx context.Context, agentID string) (*types.AgentApiKeyConfiguration, error) {
+	return h.getAgentApiKeyConfiguration(ctx, agentID)
 }
