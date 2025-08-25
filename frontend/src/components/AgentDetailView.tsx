@@ -16,6 +16,7 @@ import { AlertAPI } from './CustomAlert';
 import AgentAvatar from './AgentAvatar';
 import { Agent, ExecutionRun, LifecycleStatus } from '../types';
 import { AgentMemoryViewer } from './AgentMemoryViewer';
+import AgentApiKeyManager from './AgentApiKeyManager';
 
 interface AgentDetailViewProps {
   agent: Agent;
@@ -48,6 +49,7 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({
     averageExecutionTime: number;
   } | null>(null);
   const [showMemoryViewer, setShowMemoryViewer] = useState(false);
+  const [showApiKeyManager, setShowApiKeyManager] = useState(false);
 
   useEffect(() => {
     loadExecutions();
@@ -291,6 +293,14 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({
             <Ionicons name="library-outline" size={20} color="#34C759" />
           </TouchableOpacity>
           <TouchableOpacity 
+            onPress={() => setShowApiKeyManager(true)} 
+            style={styles.apiKeyButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="key-outline" size={20} color="#FF9500" />
+          </TouchableOpacity>
+          <TouchableOpacity 
             onPress={onEdit} 
             style={styles.editButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -519,6 +529,13 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({
           />
         )}
       </Modal>
+
+      {/* API Key Manager Modal */}
+      <AgentApiKeyManager
+        agent={agent}
+        visible={showApiKeyManager}
+        onClose={() => setShowApiKeyManager(false)}
+      />
     </View>
   );
 };
@@ -572,6 +589,15 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   memoryButton: {
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: 'transparent',
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  apiKeyButton: {
     padding: 12,
     borderRadius: 8,
     backgroundColor: 'transparent',

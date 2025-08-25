@@ -1284,6 +1284,72 @@ class GoGentAPI {
     }
   }
 
+  // Agent API Key Management APIs
+  async getAgentApiKeys(agentId: string): Promise<ApiResponse<any[]>> {
+    try {
+      const response: AxiosResponse = await this.api.get(`/api/agents/${agentId}/api-keys`);
+      return {
+        success: response.data.success,
+        data: response.data.apiKeys || [],
+      };
+    } catch (error: any) {
+      console.error('API Error (getAgentApiKeys):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to fetch agent API keys',
+        data: [],
+      };
+    }
+  }
+
+  async createAgentApiKey(agentId: string, apiKeyData: { agentId: string; apiKeyId: string; isDefault?: boolean; useGlobalDefault?: boolean; priority?: number }): Promise<ApiResponse<any>> {
+    try {
+      const response: AxiosResponse = await this.api.post(`/api/agents/${agentId}/api-keys`, apiKeyData);
+      return {
+        success: response.data.success,
+        data: response.data.apiKey,
+      };
+    } catch (error: any) {
+      console.error('API Error (createAgentApiKey):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to create agent API key',
+      };
+    }
+  }
+
+  async updateAgentApiKey(agentId: string, mappingId: string, updates: { isDefault?: boolean; useGlobalDefault?: boolean; priority?: number }): Promise<ApiResponse<any>> {
+    try {
+      const response: AxiosResponse = await this.api.put(`/api/agents/${agentId}/api-keys/${mappingId}`, updates);
+      return {
+        success: response.data.success,
+        message: response.data.message,
+      };
+    } catch (error: any) {
+      console.error('API Error (updateAgentApiKey):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to update agent API key',
+      };
+    }
+  }
+
+  async deleteAgentApiKey(agentId: string, mappingId: string): Promise<ApiResponse<any>> {
+    try {
+      const response: AxiosResponse = await this.api.delete(`/api/agents/${agentId}/api-keys/${mappingId}`);
+      return {
+        success: response.data.success,
+        message: response.data.message,
+      };
+    } catch (error: any) {
+      console.error('API Error (deleteAgentApiKey):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to delete agent API key',
+      };
+    }
+  }
+
   // Team Management APIs
   async getTeams(): Promise<ApiResponse<Team[]>> {
     try {

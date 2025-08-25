@@ -1,6 +1,7 @@
 package agents
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -474,4 +475,309 @@ func (h *AgentsHandler) removeAgentFromTeam(agentID, userID string) error {
 	}
 
 	return nil
+}
+
+// getAgentApiKeys retrieves all API keys for an agent
+func (h *AgentsHandler) getAgentApiKeys(agentID string) ([]types.AgentApiKey, error) {
+	query := `
+		SELECT aak.id, aak.agent_id, aak.api_key_id, aak.is_default, aak.use_global_default,
+		       aak.priority, aak.created_at, aak.updated_at,
+		       ak.service_name, ak.display_name, ak.validation_status, ak.is_active
+		FROM agent_api_keys aak
+		LEFT JOIN user_api_keys ak ON aak.api_key_id = ak.id
+		WHERE aak.agent_id = ?
+		ORDER BY aak.priority ASC, aak.created_at ASC
+	`
+
+	rows, err := h.db.Query(query, agentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var agentApiKeys []types.AgentApiKey
+	for rows.Next() {
+		var agentApiKey types.AgentApiKey
+		var serviceName, displayName, validationStatus sql.NullString
+		var isActive sql.NullBool
+
+		err := rows.Scan(
+			&agentApiKey.ID, &agentApiKey.AgentID, &agentApiKey.ApiKeyID,
+			&agentApiKey.IsDefault, &agentApiKey.UseGlobalDefault, &agentApiKey.Priority,
+			&agentApiKey.CreatedAt, &agentApiKey.UpdatedAt,
+			&serviceName, &displayName, &validationStatus, &isActive,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		// Populate JOIN fields
+		if serviceName.Valid {
+			agentApiKey.ServiceName = serviceName.String
+		}
+		if displayName.Valid {
+			agentApiKey.DisplayName = displayName.String
+		}
+		if validationStatus.Valid {
+			agentApiKey.ValidationStatus = validationStatus.String
+		}
+		if isActive.Valid {
+			agentApiKey.IsActive = isActive.Bool
+		}
+
+		agentApiKeys = append(agentApiKeys, agentApiKey)
+	}
+
+	return agentApiKeys, rows.Err()
+}
+
+// insertAgentApiKey creates a new agent API key mapping
+func (h *AgentsHandler) insertAgentApiKey(agentApiKey *types.AgentApiKey) error {
+	query := `
+		INSERT INTO agent_api_keys (
+			id, agent_id, api_key_id, is_default, use_global_default,
+			priority, created_at, updated_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	`
+
+	_, err := h.db.Exec(query,
+		agentApiKey.ID, agentApiKey.AgentID, agentApiKey.ApiKeyID,
+		agentApiKey.IsDefault, agentApiKey.UseGlobalDefault, agentApiKey.Priority,
+		agentApiKey.CreatedAt, agentApiKey.UpdatedAt,
+	)
+	return err
+}
+
+// updateAgentApiKeyFields updates specific fields of an agent API key mapping
+func (h *AgentsHandler) updateAgentApiKeyFields(agentID, mappingID string, req *types.AgentApiKeyUpdateRequest) error {
+	var setParts []string
+	var args []interface{}
+
+	if req.IsDefault != nil {
+		setParts = append(setParts, "is_default = ?")
+		args = append(args, *req.IsDefault)
+	}
+	if req.UseGlobalDefault != nil {
+		setParts = append(setParts, "use_global_default = ?")
+		args = append(args, *req.UseGlobalDefault)
+	}
+	if req.Priority != nil {
+		setParts = append(setParts, "priority = ?")
+		args = append(args, *req.Priority)
+	}
+
+	if len(setParts) == 0 {
+		return nil // No fields to update
+	}
+
+	// Always update the updated_at timestamp
+	setParts = append(setParts, "updated_at = ?")
+	args = append(args, time.Now())
+
+	// Add WHERE clause parameters
+	args = append(args, agentID, mappingID)
+
+	query := fmt.Sprintf(`
+		UPDATE agent_api_keys 
+		SET %s
+		WHERE agent_id = ? AND id = ?
+	`, strings.Join(setParts, ", "))
+
+	result, err := h.db.Exec(query, args...)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
+// deleteAgentApiKey removes an agent API key mapping
+func (h *AgentsHandler) deleteAgentApiKey(agentID, mappingID string) error {
+	query := `DELETE FROM agent_api_keys WHERE agent_id = ? AND id = ?`
+
+	result, err := h.db.Exec(query, agentID, mappingID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
+// verifyApiKeyAccess checks if an API key exists and is accessible to the user who owns the agent
+func (h *AgentsHandler) verifyApiKeyAccess(agentID, apiKeyID string) error {
+	query := `
+		SELECT a.user_id, ak.user_id 
+		FROM agents a, user_api_keys ak 
+		WHERE a.id = ? AND ak.id = ?
+	`
+
+	var agentUserID, apiKeyUserID string
+	err := h.db.QueryRow(query, agentID, apiKeyID).Scan(&agentUserID, &apiKeyUserID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("agent or API key not found")
+		}
+		return fmt.Errorf("failed to verify access: %w", err)
+	}
+
+	// Check permissions: agent owner must match API key owner
+	if agentUserID != apiKeyUserID {
+		return fmt.Errorf("access denied: API key not owned by agent owner")
+	}
+
+	return nil
+}
+
+// getAgentApiKeyConfiguration gets the complete API key configuration for an agent
+// Returns agent-specific keys where available, falling back to global user keys
+func (h *AgentsHandler) getAgentApiKeyConfiguration(ctx context.Context, agentID string) (*types.AgentApiKeyConfiguration, error) {
+	// First get the agent to find the user ID
+	var userID string
+	err := h.db.QueryRowContext(ctx, "SELECT user_id FROM agents WHERE id = ?", agentID).Scan(&userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get agent user: %w", err)
+	}
+
+	// Get agent-specific API keys
+	agentApiKeys, err := h.getAgentApiKeys(agentID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get agent API keys: %w", err)
+	}
+
+	// Load the actual API key details for agent-specific keys
+	serviceApiKeys := make(map[string]types.UserApiKey)
+	fallbackApiKeys := make(map[string]types.UserApiKey)
+	
+	for _, agentKey := range agentApiKeys {
+		// Get the full API key details
+		var apiKey types.UserApiKey
+		err := h.db.QueryRowContext(ctx, `
+			SELECT id, user_id, key_name, service_name, key_type, auth_mode, auth_config,
+			       encrypted_key_value, encryption_algorithm, encryption_key_version,
+			       display_name, description, access_level, scopes, permissions,
+			       expires_at, last_validated_at, validation_status, validation_error,
+			       is_active, is_default, total_uses, last_used_at, service_config,
+			       environment, rate_limit_per_hour, rate_limit_per_day, rate_limit_burst,
+			       created_at, updated_at, created_by
+			FROM user_api_keys 
+			WHERE id = ? AND user_id = ? AND is_active = 1
+		`, agentKey.ApiKeyID, userID).Scan(
+			&apiKey.ID, &apiKey.UserID, &apiKey.KeyName, &apiKey.ServiceName,
+			&apiKey.KeyType, &apiKey.AuthMode, &apiKey.AuthConfig,
+			&apiKey.EncryptedKeyValue, &apiKey.EncryptionAlgorithm, &apiKey.EncryptionKeyVersion,
+			&apiKey.DisplayName, &apiKey.Description, &apiKey.AccessLevel,
+			&apiKey.Scopes, &apiKey.Permissions, &apiKey.ExpiresAt,
+			&apiKey.LastValidatedAt, &apiKey.ValidationStatus, &apiKey.ValidationError,
+			&apiKey.IsActive, &apiKey.IsDefault, &apiKey.TotalUses,
+			&apiKey.LastUsedAt, &apiKey.ServiceConfig, &apiKey.Environment,
+			&apiKey.RateLimitPerHour, &apiKey.RateLimitPerDay, &apiKey.RateLimitBurst,
+			&apiKey.CreatedAt, &apiKey.UpdatedAt, &apiKey.CreatedBy)
+		
+		if err != nil {
+			fmt.Printf("⚠️ Failed to load API key %s for agent %s: %v\n", agentKey.ApiKeyID, agentID, err)
+			continue
+		}
+
+		// Add to agent-specific keys
+		serviceApiKeys[apiKey.ServiceName] = apiKey
+		
+		// If useGlobalDefault is enabled, we'll need to get the global fallback later
+		if agentKey.UseGlobalDefault {
+			// Mark that this service should have a fallback
+			fallbackApiKeys[apiKey.ServiceName] = types.UserApiKey{}
+		}
+	}
+
+	// Get global user API keys for services not covered by agent-specific keys
+	// and for fallback keys where useGlobalDefault is true
+	userApiKeys, err := h.getUserGlobalApiKeys(ctx, userID)
+	if err != nil {
+		fmt.Printf("⚠️ Failed to load global user API keys for user %s: %v\n", userID, err)
+		// Continue with just agent-specific keys
+	} else {
+		// Fill in missing services with global keys
+		for serviceName, globalKey := range userApiKeys {
+			if _, hasAgentSpecific := serviceApiKeys[serviceName]; !hasAgentSpecific {
+				serviceApiKeys[serviceName] = globalKey
+			}
+			
+			// Fill in fallback keys where requested
+			if _, needsFallback := fallbackApiKeys[serviceName]; needsFallback {
+				fallbackApiKeys[serviceName] = globalKey
+			}
+		}
+	}
+
+	return &types.AgentApiKeyConfiguration{
+		AgentID:           agentID,
+		ServiceApiKeys:    serviceApiKeys,
+		FallbackApiKeys:   fallbackApiKeys,
+		UseGlobalDefaults: len(agentApiKeys) == 0, // True if no agent-specific keys at all
+	}, nil
+}
+
+// getUserGlobalApiKeys gets all active API keys for a user organized by service
+func (h *AgentsHandler) getUserGlobalApiKeys(ctx context.Context, userID string) (map[string]types.UserApiKey, error) {
+	query := `
+		SELECT id, user_id, key_name, service_name, key_type, auth_mode, auth_config,
+		       encrypted_key_value, encryption_algorithm, encryption_key_version,
+		       display_name, description, access_level, scopes, permissions,
+		       expires_at, last_validated_at, validation_status, validation_error,
+		       is_active, is_default, total_uses, last_used_at, service_config,
+		       environment, rate_limit_per_hour, rate_limit_per_day, rate_limit_burst,
+		       created_at, updated_at, created_by
+		FROM user_api_keys 
+		WHERE user_id = ? AND is_active = 1
+		ORDER BY service_name, is_default DESC, created_at ASC
+	`
+
+	rows, err := h.db.QueryContext(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	serviceKeys := make(map[string]types.UserApiKey)
+	
+	for rows.Next() {
+		var apiKey types.UserApiKey
+		err := rows.Scan(
+			&apiKey.ID, &apiKey.UserID, &apiKey.KeyName, &apiKey.ServiceName,
+			&apiKey.KeyType, &apiKey.AuthMode, &apiKey.AuthConfig,
+			&apiKey.EncryptedKeyValue, &apiKey.EncryptionAlgorithm, &apiKey.EncryptionKeyVersion,
+			&apiKey.DisplayName, &apiKey.Description, &apiKey.AccessLevel,
+			&apiKey.Scopes, &apiKey.Permissions, &apiKey.ExpiresAt,
+			&apiKey.LastValidatedAt, &apiKey.ValidationStatus, &apiKey.ValidationError,
+			&apiKey.IsActive, &apiKey.IsDefault, &apiKey.TotalUses,
+			&apiKey.LastUsedAt, &apiKey.ServiceConfig, &apiKey.Environment,
+			&apiKey.RateLimitPerHour, &apiKey.RateLimitPerDay, &apiKey.RateLimitBurst,
+			&apiKey.CreatedAt, &apiKey.UpdatedAt, &apiKey.CreatedBy)
+		
+		if err != nil {
+			return nil, err
+		}
+
+		// Use the first key per service (ordered by is_default DESC, so defaults come first)
+		if _, exists := serviceKeys[apiKey.ServiceName]; !exists {
+			serviceKeys[apiKey.ServiceName] = apiKey
+		}
+	}
+
+	return serviceKeys, rows.Err()
 }

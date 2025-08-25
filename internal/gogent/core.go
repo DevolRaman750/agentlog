@@ -24,6 +24,7 @@ import (
 	"gogent/internal/gogent/integrations/base"
 	githubIntegration "gogent/internal/gogent/integrations/github"
 	slackIntegration "gogent/internal/gogent/integrations/slack"
+	whatsappIntegration "gogent/internal/gogent/integrations/whatsapp"
 	"gogent/internal/providers"
 	"gogent/internal/teams"
 	"gogent/internal/types"
@@ -321,6 +322,19 @@ func (c *Client) registerIntegrations() error {
 		return fmt.Errorf("failed to register Slack integration: %w", err)
 	}
 
+	// Register WhatsApp integration with new auth system
+	var whatsappInt base.APIIntegration
+	if authService != nil && c.currentUserID != "" {
+		whatsappInt = whatsappIntegration.NewIntegrationWithAuth(authService, c.currentUserID)
+		log.Printf("🔑 Registered WhatsApp integration with new auth system for user %s", c.currentUserID)
+	} else {
+		whatsappInt = whatsappIntegration.NewIntegration(apiKeys)
+		log.Printf("🔑 Registered WhatsApp integration with legacy auth system")
+	}
+	if err := c.integrations.Register(whatsappInt); err != nil {
+		return fmt.Errorf("failed to register WhatsApp integration: %w", err)
+	}
+
 	log.Printf("✅ Registered integrations: %v", c.integrations.List())
 	return nil
 }
@@ -401,6 +415,18 @@ func (c *Client) LoadDatabaseApiKeys(ctx context.Context, userID string) error {
 					return "EMPTY"
 				}())
 			log.Printf("🔍 DEBUG: Slack token stored in sessionKeys.SlackBotToken: %t", sessionKeys.SlackBotToken != "")
+		case "whatsapp":
+			sessionKeys.WhatsappAccessToken = decryptedKey
+			log.Printf("🔑 Loaded WhatsApp Access Token from database - Length: %d, Prefix: %s",
+				len(decryptedKey),
+				func() string {
+					if len(decryptedKey) >= 10 {
+						return decryptedKey[:10] + "..."
+					} else if len(decryptedKey) > 0 {
+						return decryptedKey + "..."
+					}
+					return "EMPTY"
+				}())
 		case "googledrive":
 			sessionKeys.GoogleDriveApiKey = decryptedKey
 			log.Printf("🔑 Loaded Google Drive API key from database - Length: %d, Prefix: %s",
@@ -422,12 +448,13 @@ func (c *Client) LoadDatabaseApiKeys(ctx context.Context, userID string) error {
 	}
 
 	c.databaseApiKeys = sessionKeys
-	log.Printf("🔑 Database API keys loaded: Gemini=%v, OpenWeather=%v, GitHub=%v, OpenRouter=%v, Slack=%v, GoogleDrive=%v",
+	log.Printf("🔑 Database API keys loaded: Gemini=%v, OpenWeather=%v, GitHub=%v, OpenRouter=%v, Slack=%v, WhatsApp=%v, GoogleDrive=%v",
 		sessionKeys.GeminiApiKey != "",
 		sessionKeys.OpenWeatherApiKey != "",
 		sessionKeys.GithubApiKey != "",
 		sessionKeys.OpenRouterApiKey != "",
 		sessionKeys.SlackBotToken != "",
+		sessionKeys.WhatsappAccessToken != "",
 		sessionKeys.GoogleDriveApiKey != "")
 
 	// Re-register integrations with the new user context and auth system
@@ -436,6 +463,132 @@ func (c *Client) LoadDatabaseApiKeys(ctx context.Context, userID string) error {
 		// Don't fail completely - continue with existing integrations
 	}
 
+	return nil
+}
+
+// LoadAgentApiKeys loads API keys for a specific agent with fallback to user defaults
+func (c *Client) LoadAgentApiKeys(ctx context.Context, agentID string) error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	// Create agents service to get agent API key configuration
+	agentHandler := agents.NewAgentsHandler(c.db)
+	agentConfig, err := agentHandler.GetAgentApiKeyConfiguration(ctx, agentID)
+	if err != nil {
+		log.Printf("⚠️ Failed to get agent API key configuration for %s: %v", agentID, err)
+		// Fallback to loading user keys directly
+		if len(agentID) > 0 {
+			// Try to extract user ID from agent and use global keys
+			var userID string
+			err := c.db.QueryRowContext(ctx, "SELECT user_id FROM agents WHERE id = ?", agentID).Scan(&userID)
+			if err == nil {
+				log.Printf("🔄 Falling back to global user API keys for agent %s (user: %s)", agentID, userID)
+				return c.LoadDatabaseApiKeys(ctx, userID)
+			}
+		}
+		return fmt.Errorf("failed to load API keys for agent %s: %w", agentID, err)
+	}
+
+	// Get the user ID for decryption
+	var userID string
+	err = c.db.QueryRowContext(ctx, "SELECT user_id FROM agents WHERE id = ?", agentID).Scan(&userID)
+	if err != nil {
+		return fmt.Errorf("failed to get user ID for agent %s: %w", agentID, err)
+	}
+
+	c.currentUserID = userID
+
+	// Create API key service for decryption
+	apiKeyService, err := apikeys.NewService(c.db)
+	if err != nil {
+		log.Printf("⚠️ Failed to create API key service: %v", err)
+		return fmt.Errorf("failed to create API key service: %w", err)
+	}
+
+	log.Printf("🔑 Loading API keys for agent %s - Found %d service configurations", 
+		agentID, len(agentConfig.ServiceApiKeys))
+
+	// Convert database API keys to session format
+	sessionKeys := &types.SessionApiKeys{}
+
+	for serviceName, apiKey := range agentConfig.ServiceApiKeys {
+		if !apiKey.IsActive || apiKey.ValidationStatus == "invalid" {
+			log.Printf("⚠️ Skipping inactive/invalid API key for service %s", serviceName)
+			continue
+		}
+
+		// Get decrypted key value
+		decryptedKey, err := apiKeyService.GetDecryptedAPIKey(ctx, userID, apiKey.ID)
+		if err != nil {
+			log.Printf("⚠️ Failed to decrypt API key %s for agent %s: %v", apiKey.KeyName, agentID, err)
+			
+			// Try fallback key if available
+			if fallbackKey, hasFallback := agentConfig.FallbackApiKeys[serviceName]; hasFallback && fallbackKey.ID != "" {
+				log.Printf("🔄 Trying fallback API key for service %s", serviceName)
+				decryptedKey, err = apiKeyService.GetDecryptedAPIKey(ctx, userID, fallbackKey.ID)
+				if err != nil {
+					log.Printf("⚠️ Failed to decrypt fallback API key for service %s: %v", serviceName, err)
+					continue
+				}
+			} else {
+				continue
+			}
+		}
+
+		// Map service names to session key fields
+		switch serviceName {
+		case "gemini":
+			sessionKeys.GeminiApiKey = decryptedKey
+			log.Printf("🔑 [Agent %s] Loaded Gemini API key - Source: %s, Length: %d", 
+				agentID, apiKey.KeyName, len(decryptedKey))
+		case "openweather":
+			sessionKeys.OpenWeatherApiKey = decryptedKey
+			log.Printf("🔑 [Agent %s] Loaded OpenWeather API key - Source: %s", 
+				agentID, apiKey.KeyName)
+		case "github":
+			sessionKeys.GithubApiKey = decryptedKey
+			log.Printf("🔑 [Agent %s] Loaded GitHub API key - Source: %s", 
+				agentID, apiKey.KeyName)
+		case "openrouter":
+			sessionKeys.OpenRouterApiKey = decryptedKey
+			log.Printf("🔑 [Agent %s] Loaded OpenRouter API key - Source: %s", 
+				agentID, apiKey.KeyName)
+		case "slack":
+			sessionKeys.SlackBotToken = decryptedKey
+			log.Printf("🔑 [Agent %s] Loaded Slack Bot Token - Source: %s, Length: %d", 
+				agentID, apiKey.KeyName, len(decryptedKey))
+		case "whatsapp":
+			sessionKeys.WhatsappAccessToken = decryptedKey
+			log.Printf("🔑 [Agent %s] Loaded WhatsApp Access Token - Source: %s, Length: %d", 
+				agentID, apiKey.KeyName, len(decryptedKey))
+		case "googledrive":
+			sessionKeys.GoogleDriveApiKey = decryptedKey
+			log.Printf("🔑 [Agent %s] Loaded Google Drive API key - Source: %s", 
+				agentID, apiKey.KeyName)
+		default:
+			log.Printf("⚠️ [Agent %s] Unknown service name: %s", agentID, serviceName)
+		}
+	}
+
+	c.databaseApiKeys = sessionKeys
+	
+	log.Printf("🔑 Agent API keys loaded for %s: Gemini=%v, OpenWeather=%v, GitHub=%v, OpenRouter=%v, Slack=%v, WhatsApp=%v, GoogleDrive=%v",
+		agentID,
+		sessionKeys.GeminiApiKey != "",
+		sessionKeys.OpenWeatherApiKey != "",
+		sessionKeys.GithubApiKey != "",
+		sessionKeys.OpenRouterApiKey != "",
+		sessionKeys.SlackBotToken != "",
+		sessionKeys.WhatsappAccessToken != "",
+		sessionKeys.GoogleDriveApiKey != "")
+
+	// Re-register integrations with the new user context and auth system
+	if err := c.registerIntegrations(); err != nil {
+		log.Printf("⚠️ Failed to register integrations after loading agent API keys: %v", err)
+		// Don't fail completely - continue with existing integrations
+	}
+
+	log.Printf("🔑 Successfully loaded agent-specific API keys for agent %s (user: %s)", agentID, userID)
 	return nil
 }
 
@@ -820,10 +973,12 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 				return nil, fmt.Errorf("team memory function %s failed: %w", functionName, err)
 			}
 
-			// Convert response to map[string]interface{}
-			result := map[string]interface{}{
-				"success": response.Success,
-			}
+
+      // Convert response to map[string]interface{}
+      result := map[string]interface{}{
+        "success":       response.Success,
+        "function_name": functionName,
+      }
 
 			if response.Error != "" {
 				result["error"] = response.Error
@@ -1161,7 +1316,8 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 
 	// Convert response to map[string]interface{}
 	result := map[string]interface{}{
-		"success": response.Success,
+		"success":       response.Success,
+		"function_name": functionName,
 	}
 
 	if response.Error != "" {
@@ -1186,8 +1342,9 @@ func (c *Client) createMockMemoryResponse(functionName string, args map[string]i
 	switch functionName {
 	case "agent_memory_write":
 		return map[string]interface{}{
-			"success": true,
-			"data":    map[string]interface{}{"written": args["data"]},
+			"success":       true,
+			"function_name": functionName,
+			"data":          map[string]interface{}{"written": args["data"]},
 			"metadata": map[string]interface{}{
 				"createdAt":   time.Now(),
 				"updatedAt":   time.Now(),
@@ -1199,8 +1356,9 @@ func (c *Client) createMockMemoryResponse(functionName string, args map[string]i
 		}
 	case "agent_memory_read":
 		return map[string]interface{}{
-			"success": true,
-			"data":    map[string]interface{}{},
+			"success":       true,
+			"function_name": functionName,
+			"data":          map[string]interface{}{},
 			"metadata": map[string]interface{}{
 				"createdAt":   time.Now(),
 				"updatedAt":   time.Now(),
@@ -1212,8 +1370,9 @@ func (c *Client) createMockMemoryResponse(functionName string, args map[string]i
 		}
 	case "agent_memory_search":
 		return map[string]interface{}{
-			"success": true,
-			"results": []interface{}{},
+			"success":       true,
+			"function_name": functionName,
+			"results":       []interface{}{},
 			"metadata": map[string]interface{}{
 				"createdAt":   time.Now(),
 				"updatedAt":   time.Now(),
@@ -1225,8 +1384,9 @@ func (c *Client) createMockMemoryResponse(functionName string, args map[string]i
 		}
 	case "agent_memory_clear":
 		return map[string]interface{}{
-			"success": true,
-			"data":    map[string]interface{}{"message": "Memory cleared successfully"},
+			"success":       true,
+			"function_name": functionName,
+			"data":          map[string]interface{}{"message": "Memory cleared successfully"},
 			"metadata": map[string]interface{}{
 				"createdAt":   time.Now(),
 				"updatedAt":   time.Now(),
@@ -1238,8 +1398,9 @@ func (c *Client) createMockMemoryResponse(functionName string, args map[string]i
 		}
 	case "team_memory_write":
 		return map[string]interface{}{
-			"success": true,
-			"data":    map[string]interface{}{"written": args["data"]},
+			"success":       true,
+			"function_name": functionName,
+			"data":          map[string]interface{}{"written": args["data"]},
 			"metadata": map[string]interface{}{
 				"createdAt":   time.Now(),
 				"updatedAt":   time.Now(),
@@ -1251,8 +1412,9 @@ func (c *Client) createMockMemoryResponse(functionName string, args map[string]i
 		}
 	case "team_memory_read":
 		return map[string]interface{}{
-			"success": true,
-			"data":    map[string]interface{}{},
+			"success":       true,
+			"function_name": functionName,
+			"data":          map[string]interface{}{},
 			"metadata": map[string]interface{}{
 				"createdAt":   time.Now(),
 				"updatedAt":   time.Now(),
@@ -1264,8 +1426,9 @@ func (c *Client) createMockMemoryResponse(functionName string, args map[string]i
 		}
 	case "team_memory_search":
 		return map[string]interface{}{
-			"success": true,
-			"results": []interface{}{},
+			"success":       true,
+			"function_name": functionName,
+			"results":       []interface{}{},
 			"metadata": map[string]interface{}{
 				"createdAt":   time.Now(),
 				"updatedAt":   time.Now(),
@@ -1277,8 +1440,9 @@ func (c *Client) createMockMemoryResponse(functionName string, args map[string]i
 		}
 	case "team_memory_clear":
 		return map[string]interface{}{
-			"success": true,
-			"data":    map[string]interface{}{"message": "Memory cleared successfully"},
+			"success":       true,
+			"function_name": functionName,
+			"data":          map[string]interface{}{"message": "Memory cleared successfully"},
 			"metadata": map[string]interface{}{
 				"createdAt":   time.Now(),
 				"updatedAt":   time.Now(),
@@ -1361,6 +1525,23 @@ func (c *Client) executeIntegrationFunction(ctx context.Context, funcDef *db.Fun
 		}
 	}
 
+	// For WhatsApp functions, create a new integration with current user context if available
+	if funcDef.FunctionGroup == "whatsapp" && c.currentUserID != "" {
+		log.Printf("🔑 [WHATSAPP_DEBUG] Creating WhatsApp integration with current user context: %s", c.currentUserID)
+
+		// Create auth service for current user
+		apiKeyService, err := apikeys.NewService(c.db)
+		if err != nil {
+			log.Printf("❌ [WHATSAPP_DEBUG] Failed to create API key service: %v", err)
+		} else {
+			authService := apiauth.NewService(apiKeyService)
+			// Create new WhatsApp integration with auth service and current user
+			whatsappInt := whatsappIntegration.NewIntegrationWithAuth(authService, c.currentUserID)
+			integration = whatsappInt
+			log.Printf("✅ [WHATSAPP_DEBUG] Created WhatsApp integration with user context: %s", c.currentUserID)
+		}
+	}
+
 	// Validate the function with the integration
 	if err := integration.ValidateFunction(funcDef); err != nil {
 		return nil, fmt.Errorf("function validation failed: %w", err)
@@ -1386,6 +1567,9 @@ func (c *Client) executeIntegrationFunction(ctx context.Context, funcDef *db.Fun
 			})
 		return nil, fmt.Errorf("integration execution failed: %w", err)
 	}
+
+	// Add function name to result for parameter extraction
+	result["function_name"] = functionName
 
 	// Enhanced success logging for integration execution
 	resultSummary := c.createIntegrationResultSummary(functionName, result)
@@ -1875,6 +2059,7 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 	result := map[string]interface{}{
 		"success":           true,
 		"function":          functionName,
+		"function_name":     functionName, // For parameter extraction
 		"execution_time_ms": executionTimeMs,
 		"response":          responseData,
 		"metadata": map[string]interface{}{
@@ -2256,6 +2441,22 @@ func (c *Client) LoadSystemFunctionTools(ctx context.Context, userID string) ([]
 		description := ""
 		if funcDef.Description.Valid {
 			description = funcDef.Description.String
+		}
+
+		// Check if this function has parameter dependencies and enhance the description
+		if deps, ok := parametersSchema["parameter_dependencies"].(map[string]interface{}); ok && len(deps) > 0 {
+			// Add dependency information to the description
+			dependencyInfo := "\n\nPARAMETER DEPENDENCIES:\n"
+			for paramName, depInfo := range deps {
+				if dep, ok := depInfo.(map[string]interface{}); ok {
+					if sourceFunc, ok := dep["source_function"].(string); ok {
+						if desc, ok := dep["description"].(string); ok {
+							dependencyInfo += fmt.Sprintf("- %s: %s (call %s first)\n", paramName, desc, sourceFunc)
+						}
+					}
+				}
+			}
+			description += dependencyInfo
 		}
 
 		// DEBUG: Log Slack function descriptions to see what's actually being loaded
