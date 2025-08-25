@@ -883,8 +883,11 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 		}
 
 		if agentID == "" {
-			// No agent ID available - this is a regular execution, not an agent execution
-			// Return mock success responses instead of failing
+			// For team task functions, this is a critical error - they must have agent context
+			if strings.HasPrefix(functionName, "team_task_") {
+				return nil, fmt.Errorf("TEAM TASK ERROR: %s requires agent_id - either provide it in function arguments or run through agent execution context", functionName)
+			}
+			// For other memory functions, fall back to mock responses  
 			log.Printf("🔍 No agent ID found for %s - providing mock response for non-agent execution", functionName)
 			return c.createMockMemoryResponse(functionName, args), nil
 		}
@@ -906,9 +909,11 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 	if strings.HasPrefix(functionName, "team_memory_") || strings.HasPrefix(functionName, "team_task_") {
 		// Extract team ID from args
 		teamID, ok := args["team_id"].(string)
-		if !ok {
-			return nil, fmt.Errorf("team_id is required for team memory functions")
+		if !ok || teamID == "" {
+			return nil, fmt.Errorf("TEAM FUNCTION ERROR: %s requires a valid team_id parameter", functionName)
 		}
+		
+		log.Printf("🔧 Team function %s - using team_id: %s, agent_id: %s", functionName, teamID, agentID)
 
 		// Convert args to TeamMemoryRequest
 		request := &types.TeamMemoryRequest{
@@ -1443,6 +1448,56 @@ func (c *Client) createMockMemoryResponse(functionName string, args map[string]i
 				"version":     "1.0",
 			},
 			"message": "Team memory function called in non-agent execution - no data to clear",
+		}
+	case "team_task_store":
+		return map[string]interface{}{
+			"success":       true,
+			"function_name": functionName,
+			"data": map[string]interface{}{
+				"message": "Task creation mocked - no real agent context available",
+				"task_id": "mock_task_" + fmt.Sprintf("%d", time.Now().UnixNano()),
+			},
+			"message": "Team task store called in non-agent execution - task not actually stored",
+		}
+	case "team_task_list":
+		// Show clear indication that this is mock data to help with debugging
+		teamID, _ := args["team_id"].(string)
+		agentID, _ := args["agent_id"].(string)
+		if teamID == "" {
+			teamID = "MOCK_TEAM_ID"
+		}
+		if agentID == "" {
+			agentID = "MOCK_AGENT_ID"
+		}
+		return map[string]interface{}{
+			"success":       true,
+			"function_name": functionName,
+			"tasks":         []interface{}{},
+			"data": map[string]interface{}{
+				"total_count": 0,
+				"team_id":     teamID,
+				"agent_id":    agentID,
+				"mock_execution": true,
+			},
+			"message": "Team task list called in non-agent execution - no real tasks available",
+		}
+	case "team_task_claim":
+		return map[string]interface{}{
+			"success":       true,
+			"function_name": functionName,
+			"data": map[string]interface{}{
+				"message": "Task claim mocked - no real agent context available",
+			},
+			"message": "Team task claim called in non-agent execution - no task actually claimed",
+		}
+	case "team_task_complete":
+		return map[string]interface{}{
+			"success":       true,
+			"function_name": functionName,
+			"data": map[string]interface{}{
+				"message": "Task completion mocked - no real agent context available",
+			},
+			"message": "Team task complete called in non-agent execution - no task actually completed",
 		}
 	default:
 		return map[string]interface{}{
