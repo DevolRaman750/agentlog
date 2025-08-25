@@ -57,7 +57,7 @@
           "description": "Navigate to the Templates section to view and create execution templates",
           "action": {
             "type": "navigate",
-            "path": "/templates",
+            "path": "Execution Templates",
             "label": "Open Templates"
           }
         },
@@ -81,7 +81,7 @@
           "description": "Run test executions to validate your template works as expected",
           "action": {
             "type": "navigate",
-            "path": "/experiment",
+            "path": "Execute",
             "label": "Test Execution"
           }
         },
@@ -90,7 +90,7 @@
           "description": "Assign the template to your agents for consistent workflow execution",
           "action": {
             "type": "navigate", 
-            "path": "/agents",
+            "path": "Agents",
             "label": "Manage Agents"
           }
         }

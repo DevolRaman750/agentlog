@@ -99,13 +99,13 @@
             {
               "title": "Browse Templates",
               "description": "Explore available templates",
-              "link": "/templates",
+              "link": "Execution Templates",
               "type": "navigate"
             },
             {
               "title": "Template Library",
               "description": "Community templates",
-              "link": "/template-library",
+              "link": "Functions",
               "type": "navigate"
             }
           ]
@@ -126,13 +126,13 @@
             {
               "title": "View History", 
               "description": "See past executions",
-              "link": "/history",
+              "link": "History",
               "type": "navigate"
             },
             {
               "title": "Execute Task",
               "description": "Run an agent task",
-              "link": "/execute",
+              "link": "Execute",
               "type": "navigate"
             }
           ]
@@ -153,13 +153,13 @@
             {
               "title": "Browse Functions",
               "description": "Explore available skills",
-              "link": "/functions", 
+              "link": "Functions", 
               "type": "navigate"
             },
             {
               "title": "Configure Functions",
               "description": "Set up integrations",
-              "link": "/configure",
+              "link": "Configure",
               "type": "navigate"
             }
           ]
@@ -180,13 +180,13 @@
             {
               "title": "API Keys",
               "description": "Configure model access",
-              "link": "/api-keys",
+              "link": "API Keys",
               "type": "navigate"
             },
             {
               "title": "Model Settings",
               "description": "Adjust model parameters",
-              "link": "/configure",
+              "link": "Configure",
               "type": "navigate"
             }
           ]
@@ -222,7 +222,7 @@
           "details": "Define your agent's role, personality, and capabilities. Select functions it can use and configure its decision-making parameters.",
           "action": {
             "title": "Create Agent",
-            "link": "/agents",
+            "link": "Agents",
             "type": "navigate"
           }
         },
@@ -328,7 +328,7 @@
           "description": "Organize your agents", 
           "icon": "people-outline",
           "color": "#34C759", 
-          "link": "/teams",
+          "link": "Agents",
           "type": "navigate"
         }
       ]

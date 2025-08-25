@@ -69,7 +69,7 @@
               "description": "Sign up with email or social authentication",
               "action": {
                 "type": "navigate",
-                "path": "/account",
+                "path": "Account",
                 "label": "Sign Up"
               }
             },
@@ -139,7 +139,7 @@
               "description": "Test your agent with simple, known inputs",
               "action": {
                 "type": "navigate",
-                "path": "/experiment", 
+                "path": "Execute", 
                 "label": "Test Execution"
               }
             },
@@ -296,7 +296,7 @@
               "description": "Integrate with your existing tools and APIs",
               "action": {
                 "type": "navigate",
-                "path": "/functions",
+                "path": "Functions",
                 "label": "Add Functions"
               }
             },
@@ -305,7 +305,7 @@
               "description": "Standardize workflows for consistent results",
               "action": {
                 "type": "navigate", 
-                "path": "/templates",
+                "path": "Execution Templates",
                 "label": "Create Templates"
               }
             },
@@ -314,7 +314,7 @@
               "description": "Invite team members and organize agents",
               "action": {
                 "type": "navigate",
-                "path": "/account",
+                "path": "Account",
                 "label": "Manage Team"
               }
             }
@@ -328,7 +328,7 @@
               "description": "Track performance and identify optimization opportunities",
               "action": {
                 "type": "navigate",
-                "path": "/history",
+                "path": "History",
                 "label": "View History"
               }
             },
@@ -337,7 +337,7 @@
               "description": "Optimize costs and performance per agent",
               "action": {
                 "type": "navigate",
-                "path": "/api-keys", 
+                "path": "API Keys", 
                 "label": "Manage API Keys"
               }
             },
@@ -358,7 +358,7 @@
           "description": "Comprehensive guides for all platform features",
           "action": {
             "type": "navigate",
-            "path": "/documentation",
+            "path": "Documentation",
             "label": "Browse Docs"
           }
         },

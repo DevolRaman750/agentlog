@@ -57,7 +57,7 @@
           "description": "Go to the Agents section to view and manage your AI agents",
           "action": {
             "type": "navigate",
-            "path": "/agents",
+            "path": "Agents",
             "label": "Open Agents"
           }
         },
@@ -76,7 +76,7 @@
           "description": "Attach custom functions that extend your agent's capabilities",
           "action": {
             "type": "navigate", 
-            "path": "/functions",
+            "path": "Functions",
             "label": "Manage Functions"
           }
         },
@@ -85,7 +85,7 @@
           "description": "Run test executions to validate your agent's behavior before deploying to production",
           "action": {
             "type": "navigate",
-            "path": "/experiment", 
+            "path": "Execute", 
             "label": "Test Agent"
           }
         }

@@ -57,7 +57,7 @@
           "description": "Go to the Experiment page to run a new agent execution",
           "action": {
             "type": "navigate",
-            "path": "/experiment",
+            "path": "Execute",
             "label": "Start Execution"
           }
         },
@@ -81,7 +81,7 @@
           "description": "View all past executions in the History section for analysis and debugging",
           "action": {
             "type": "navigate", 
-            "path": "/history",
+            "path": "History",
             "label": "View History"
           }
         }

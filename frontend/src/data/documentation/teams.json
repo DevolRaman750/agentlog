@@ -41,7 +41,7 @@
           ],
           "action": {
             "title": "Create Marketing Team",
-            "link": "/teams?template=marketing",
+            "link": "Agents?template=marketing",
             "type": "navigate"
           }
         },
@@ -64,7 +64,7 @@
           ],
           "action": {
             "title": "Create Support Team",
-            "link": "/teams?template=support",
+            "link": "Agents?template=support",
             "type": "navigate"
           }
         },
@@ -87,7 +87,7 @@
           ],
           "action": {
             "title": "Create Dev Team", 
-            "link": "/teams?template=development",
+            "link": "Agents?template=development",
             "type": "navigate"
           }
         }
@@ -181,7 +181,7 @@
           ],
           "action": {
             "title": "Create New Team",
-            "link": "/teams",
+            "link": "Agents",
             "type": "navigate"
           }
         },
@@ -206,7 +206,7 @@
           ],
           "action": {
             "title": "Manage Team Agents",
-            "link": "/agents",
+            "link": "Agents",
             "type": "navigate"
           }
         },
@@ -335,7 +335,7 @@
           "description": "Set up your first team",
           "icon": "add-circle-outline",
           "color": "#30D158", 
-          "link": "/teams",
+          "link": "Agents",
           "type": "navigate",
           "primary": true
         },
@@ -344,7 +344,7 @@
           "description": "Start with proven configurations",
           "icon": "document-text-outline",
           "color": "#AF52DE",
-          "link": "/templates?category=teams", 
+          "link": "Execution Templates?category=teams", 
           "type": "navigate"
         },
         {
@@ -352,7 +352,7 @@
           "description": "Understand team members",
           "icon": "person-outline",
           "color": "#FF9500",
-          "link": "/documentation/agents",
+          "link": "Documentation/agents",
           "type": "navigate"
         }
       ]
