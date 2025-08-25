@@ -579,11 +579,16 @@ func (c *Client) LoadAgentApiKeys(ctx context.Context, agentID string) error {
 	return nil
 }
 
-// getEffectiveApiKeys returns the database API keys
+// getEffectiveApiKeys returns the effective API keys, with database keys taking precedence over session keys
 func (c *Client) getEffectiveApiKeys() *types.SessionApiKeys {
-	// Use database keys only - session keys are no longer supported
+	// Prefer database keys when available (new system)
 	if c.databaseApiKeys != nil {
 		return c.databaseApiKeys
+	}
+
+	// Fall back to session keys for backward compatibility (legacy system)
+	if c.sessionApiKeys != nil {
+		return c.sessionApiKeys
 	}
 
 	// Return empty keys if none available
