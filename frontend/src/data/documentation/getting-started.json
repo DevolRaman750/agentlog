@@ -1,0 +1,395 @@
+{
+  "id": "getting-started",
+  "title": "Getting Started",
+  "description": "Your complete guide to setting up and using the agent orchestration platform",
+  "icon": "rocket-outline",
+  "color": "#30D158", 
+  "sections": [
+    {
+      "type": "hero",
+      "title": "Welcome to AgentLog",
+      "subtitle": "Your no-code agent orchestration platform",
+      "description": "Build, deploy, and manage AI agents without writing code. Create powerful automation workflows that integrate with your existing tools and processes.",
+      "highlights": [
+        "🚀 Quick 5-minute setup",
+        "🎯 No coding required",
+        "🔧 Powerful integrations",
+        "📈 Scale with confidence"
+      ]
+    },
+    {
+      "type": "quickstart",
+      "title": "5-Minute Quick Start",
+      "subtitle": "Get your first agent running in minutes",
+      "steps": [
+        {
+          "title": "Create Account & Add API Keys",
+          "description": "Set up your account and configure API keys for AI providers",
+          "action": {
+            "type": "navigate",
+            "path": "Account",
+            "label": "Setup Account"
+          },
+          "details": "Start by creating your account, then add API keys for AI models like Gemini, OpenAI, or Claude",
+          "time": "2 min"
+        },
+        {
+          "title": "Create Your First Agent",
+          "description": "Build an agent with a specific purpose and AI model configuration",
+          "action": {
+            "type": "navigate", 
+            "path": "Agents",
+            "label": "Create Agent"
+          },
+          "details": "Define your agent's role, select an AI model (Gemini, GPT-4, Claude), and configure system prompts",
+          "time": "2 min"
+        },
+        {
+          "title": "Run Test Execution",
+          "description": "Test your agent with sample input to see it in action",
+          "action": {
+            "type": "navigate",
+            "path": "Execute",
+            "label": "Test Agent"
+          },
+          "details": "Use the Execute screen to test your agent in Agent Execution mode with sample input",
+          "time": "1 min"
+        }
+      ]
+    },
+    {
+      "type": "setup_guide",
+      "title": "Complete Setup Guide",
+      "sections": [
+        {
+          "title": "1. Account Setup",
+          "steps": [
+            {
+              "task": "Create your account",
+              "description": "Sign up with email or social authentication",
+              "action": {
+                "type": "navigate",
+                "path": "Account",
+                "label": "Sign Up"
+              }
+            },
+            {
+              "task": "Verify email address", 
+              "description": "Check your email and click the verification link"
+            },
+            {
+              "task": "Complete profile setup",
+              "description": "Add your name, organization, and preferences"
+            }
+          ]
+        },
+        {
+          "title": "2. API Key Configuration",
+          "steps": [
+            {
+              "task": "Choose AI provider",
+              "description": "Select from OpenAI, Anthropic, Azure, or Google AI",
+              "action": {
+                "type": "navigate",
+                "path": "API Keys",
+                "label": "Add API Keys"
+              }
+            },
+            {
+              "task": "Add API keys",
+              "description": "Securely store your provider API keys"
+            },
+            {
+              "task": "Test connectivity",
+              "description": "Verify keys work with a connection test"
+            }
+          ]
+        },
+        {
+          "title": "3. First Agent Creation",
+          "steps": [
+            {
+              "task": "Navigate to Agents",
+              "description": "Go to the Agents section to create your first agent",
+              "action": {
+                "type": "navigate",
+                "path": "Agents",
+                "label": "Manage Agents"
+              }
+            },
+            {
+              "task": "Define agent purpose",
+              "description": "Choose a clear, specific task for your agent to perform"
+            },
+            {
+              "task": "Select AI model",
+              "description": "Pick the best model for your use case (GPT-4 for complex tasks, GPT-3.5 for speed)"
+            },
+            {
+              "task": "Configure parameters",
+              "description": "Set temperature, max tokens, and other behavior settings"
+            }
+          ]
+        },
+        {
+          "title": "4. Testing & Validation",
+          "steps": [
+            {
+              "task": "Run initial test",
+              "description": "Test your agent with simple, known inputs",
+              "action": {
+                "type": "navigate",
+                "path": "Execute", 
+                "label": "Test Execution"
+              }
+            },
+            {
+              "task": "Review execution logs",
+              "description": "Check the detailed logs to understand agent behavior"
+            },
+            {
+              "task": "Refine configuration",
+              "description": "Adjust parameters based on test results"
+            },
+            {
+              "task": "Validate edge cases",
+              "description": "Test with various input types and scenarios"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "common_workflows", 
+      "title": "Common Workflows",
+      "workflows": [
+        {
+          "title": "Customer Support Automation",
+          "description": "Automate responses to customer inquiries and route complex cases",
+          "complexity": "Beginner",
+          "time": "15 minutes",
+          "steps": [
+            "Create customer support agent with helpful, professional tone",
+            "Add knowledge base functions for product information",
+            "Configure email integration for automated responses",
+            "Test with sample customer queries",
+            "Deploy and monitor performance"
+          ],
+          "benefits": [
+            "24/7 customer support availability",
+            "Consistent response quality", 
+            "Reduced response times",
+            "Scalable support operations"
+          ]
+        },
+        {
+          "title": "Data Analysis & Reporting",
+          "description": "Analyze data sets and generate comprehensive reports automatically",
+          "complexity": "Intermediate", 
+          "time": "30 minutes",
+          "steps": [
+            "Create data analysis agent with analytical capabilities",
+            "Add database connection functions",
+            "Configure report generation templates",
+            "Set up automated scheduling",
+            "Test with sample data sets"
+          ],
+          "benefits": [
+            "Automated report generation",
+            "Consistent analysis methodology",
+            "Time savings on routine tasks",
+            "Data-driven insights"
+          ]
+        },
+        {
+          "title": "Content Creation Pipeline",
+          "description": "Generate, review, and publish content across multiple channels",
+          "complexity": "Advanced",
+          "time": "45 minutes", 
+          "steps": [
+            "Create content generation agent with creative parameters",
+            "Add content review and approval workflow",
+            "Configure publishing functions for different platforms",
+            "Set up quality control checkpoints",
+            "Implement feedback and iteration loops"
+          ],
+          "benefits": [
+            "Scalable content production",
+            "Consistent brand voice",
+            "Multi-channel distribution",
+            "Quality assurance built-in"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "core_concepts",
+      "title": "Understanding Key Concepts",
+      "concepts": [
+        {
+          "title": "Agents",
+          "description": "AI-powered automation units that execute tasks independently",
+          "keyPoints": [
+            "Each agent has a specific purpose and configuration",
+            "Agents use AI models to make decisions and process information",
+            "Can be customized with functions and templates"
+          ],
+          "learnMore": {
+            "type": "navigate",
+            "path": "/documentation/agents",
+            "label": "Learn About Agents"
+          }
+        },
+        {
+          "title": "Functions", 
+          "description": "Custom capabilities that extend what your agents can do",
+          "keyPoints": [
+            "Connect to external APIs and services",
+            "Process and transform data",
+            "Implement custom business logic"
+          ],
+          "learnMore": {
+            "type": "navigate",
+            "path": "/documentation/functions",
+            "label": "Explore Functions"
+          }
+        },
+        {
+          "title": "Templates",
+          "description": "Reusable workflows that standardize agent execution patterns",
+          "keyPoints": [
+            "Define step-by-step processes for agents to follow",
+            "Ensure consistent results across executions",
+            "Support variables and conditional logic"
+          ],
+          "learnMore": {
+            "type": "navigate",
+            "path": "/documentation/templates", 
+            "label": "Create Templates"
+          }
+        },
+        {
+          "title": "Executions",
+          "description": "Individual runs of your agents with full tracking and analysis", 
+          "keyPoints": [
+            "Real-time monitoring of agent performance",
+            "Detailed logs and metrics for optimization",
+            "Historical data for trend analysis"
+          ],
+          "learnMore": {
+            "type": "navigate",
+            "path": "/documentation/executions",
+            "label": "Monitor Executions"
+          }
+        }
+      ]
+    },
+    {
+      "type": "next_steps",
+      "title": "What's Next?",
+      "sections": [
+        {
+          "title": "Expand Your Setup",
+          "items": [
+            {
+              "task": "Add custom functions",
+              "description": "Integrate with your existing tools and APIs",
+              "action": {
+                "type": "navigate",
+                "path": "Functions",
+                "label": "Add Functions"
+              }
+            },
+            {
+              "task": "Create execution templates",
+              "description": "Standardize workflows for consistent results",
+              "action": {
+                "type": "navigate", 
+                "path": "Execution Templates",
+                "label": "Create Templates"
+              }
+            },
+            {
+              "task": "Set up team collaboration",
+              "description": "Invite team members and organize agents",
+              "action": {
+                "type": "navigate",
+                "path": "Account",
+                "label": "Manage Team"
+              }
+            }
+          ]
+        },
+        {
+          "title": "Optimize Performance",
+          "items": [
+            {
+              "task": "Monitor execution metrics",
+              "description": "Track performance and identify optimization opportunities",
+              "action": {
+                "type": "navigate",
+                "path": "History",
+                "label": "View History"
+              }
+            },
+            {
+              "task": "Configure agent-specific API keys",
+              "description": "Optimize costs and performance per agent",
+              "action": {
+                "type": "navigate",
+                "path": "API Keys", 
+                "label": "Manage API Keys"
+              }
+            },
+            {
+              "task": "Set up monitoring alerts",
+              "description": "Get notified of issues and performance changes"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "support",
+      "title": "Getting Help",
+      "resources": [
+        {
+          "title": "Documentation", 
+          "description": "Comprehensive guides for all platform features",
+          "action": {
+            "type": "navigate",
+            "path": "Documentation",
+            "label": "Browse Docs"
+          }
+        },
+        {
+          "title": "Community Forum",
+          "description": "Connect with other users and share best practices",
+          "external": true
+        },
+        {
+          "title": "Support Team",
+          "description": "Direct help from our technical support specialists",
+          "external": true
+        },
+        {
+          "title": "Video Tutorials",
+          "description": "Step-by-step video guides for common tasks",
+          "external": true
+        }
+      ]
+    },
+    {
+      "type": "tips",
+      "title": "Success Tips",
+      "tips": [
+        "🎯 **Start Simple**: Begin with basic agents and gradually add complexity",
+        "🧪 **Test Everything**: Always test agents thoroughly before production use",
+        "📊 **Monitor Regularly**: Keep an eye on execution metrics and performance",
+        "🔄 **Iterate Often**: Continuously refine and improve your agents based on results",
+        "👥 **Collaborate**: Share successful agents and templates with your team",
+        "📚 **Stay Updated**: Check documentation regularly for new features and best practices"
+      ]
+    }
+  ]
+}

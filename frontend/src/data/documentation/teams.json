@@ -1,0 +1,361 @@
+{
+  "id": "teams",
+  "title": "Teams",
+  "subtitle": "Organize Agents for Collaborative Success",
+  "lastUpdated": "2024-08-24",
+  "sections": [
+    {
+      "id": "introduction",
+      "type": "intro",
+      "title": "What are Teams?",
+      "content": "Teams are groups of AI agents working together on related tasks with shared resources, memory, and objectives. They enable collaborative workflows and help organize your automation at scale.",
+      "highlights": [
+        "Shared memory and context across team members",
+        "Coordinated task execution and workflows", 
+        "Resource sharing and access management",
+        "Team-level analytics and performance tracking"
+      ]
+    },
+    {
+      "id": "use-cases",
+      "type": "use-cases",
+      "title": "Common Use Cases",
+      "subtitle": "When to Use Teams",
+      "cases": [
+        {
+          "title": "Content Marketing Team",
+          "description": "Coordinated content creation, publishing, and promotion",
+          "icon": "megaphone-outline",
+          "color": "#FF9500",
+          "agents": [
+            "Content Writer: Creates blog posts and articles",
+            "Social Media Manager: Schedules and promotes content",
+            "SEO Specialist: Optimizes content for search engines", 
+            "Analytics Reporter: Tracks performance metrics"
+          ],
+          "workflow": "Writer creates content → SEO optimizes → Social promotes → Analytics tracks results",
+          "benefits": [
+            "Consistent brand voice across channels",
+            "Automated content distribution",
+            "Performance tracking and optimization"
+          ],
+          "action": {
+            "title": "Create Marketing Team",
+            "link": "Agents?template=marketing",
+            "type": "navigate"
+          }
+        },
+        {
+          "title": "Customer Support Team", 
+          "description": "Multi-tiered support with escalation and knowledge sharing",
+          "icon": "headset-outline",
+          "color": "#34C759",
+          "agents": [
+            "First-Line Support: Handles common inquiries",
+            "Technical Specialist: Resolves complex issues",
+            "Escalation Manager: Routes urgent cases",
+            "Knowledge Curator: Updates documentation"
+          ],
+          "workflow": "First-line handles → Specialist resolves complex → Manager escalates urgent → Curator updates knowledge",
+          "benefits": [
+            "24/7 support availability",
+            "Consistent response quality", 
+            "Automatic knowledge base updates"
+          ],
+          "action": {
+            "title": "Create Support Team",
+            "link": "Agents?template=support",
+            "type": "navigate"
+          }
+        },
+        {
+          "title": "Development Team",
+          "description": "Code review, testing, and deployment automation",
+          "icon": "code-outline", 
+          "color": "#5AC8FA",
+          "agents": [
+            "Code Reviewer: Reviews pull requests",
+            "Test Runner: Executes automated tests", 
+            "Security Scanner: Checks for vulnerabilities",
+            "Deploy Manager: Handles deployments"
+          ],
+          "workflow": "Reviewer checks code → Tester runs tests → Scanner checks security → Manager deploys",
+          "benefits": [
+            "Automated code quality assurance",
+            "Consistent security checks",
+            "Streamlined deployment pipeline"
+          ],
+          "action": {
+            "title": "Create Dev Team", 
+            "link": "Agents?template=development",
+            "type": "navigate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "features",
+      "type": "features",
+      "title": "Team Features",
+      "subtitle": "Powerful Collaboration Tools",
+      "features": [
+        {
+          "title": "Shared Memory",
+          "description": "Team members can access and update shared context and knowledge",
+          "icon": "library-outline",
+          "color": "#AF52DE",
+          "details": "All agents in a team can read from and write to shared memory, enabling seamless information flow and coordination.",
+          "examples": [
+            "Customer interaction history shared across support agents",
+            "Project status updates accessible to all team members",
+            "Shared knowledge base that grows with team experience"
+          ]
+        },
+        {
+          "title": "Resource Management",
+          "description": "Shared token limits, API quotas, and access permissions",
+          "icon": "shield-checkmark-outline",
+          "color": "#FF3B30", 
+          "details": "Teams can share resources efficiently with centralized management of costs and access controls.",
+          "examples": [
+            "Shared daily token budget across team members",
+            "Common API key access for external services",
+            "Team-level permission management"
+          ]
+        },
+        {
+          "title": "Workflow Coordination", 
+          "description": "Orchestrated task execution and handoffs between agents",
+          "icon": "git-network-outline",
+          "color": "#30D158",
+          "details": "Agents can trigger each other's actions and coordinate complex multi-step workflows automatically.",
+          "examples": [
+            "Content creation → review → publishing pipeline",
+            "Issue triage → assignment → resolution workflow", 
+            "Data collection → analysis → reporting sequence"
+          ]
+        },
+        {
+          "title": "Team Analytics",
+          "description": "Comprehensive performance tracking and insights",
+          "icon": "analytics-outline", 
+          "color": "#007AFF",
+          "details": "Monitor team performance, resource usage, and collaboration effectiveness with detailed analytics.",
+          "examples": [
+            "Team productivity and task completion rates",
+            "Resource utilization and cost tracking",
+            "Collaboration patterns and bottlenecks"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "configuration",
+      "type": "configuration",
+      "title": "Team Configuration",
+      "subtitle": "Setting Up Your Team",
+      "steps": [
+        {
+          "number": 1,
+          "title": "Create Team",
+          "description": "Set basic team information and goals",
+          "fields": [
+            {
+              "name": "Team Name",
+              "description": "Descriptive name for your team",
+              "example": "Content Marketing Team",
+              "required": true
+            },
+            {
+              "name": "Description",
+              "description": "Team purpose and objectives", 
+              "example": "Creates and promotes engaging content across all marketing channels",
+              "required": false
+            },
+            {
+              "name": "Token Budget",
+              "description": "Daily token limit for the team",
+              "example": "100,000 tokens per day",
+              "required": true
+            }
+          ],
+          "action": {
+            "title": "Create New Team",
+            "link": "Agents",
+            "type": "navigate"
+          }
+        },
+        {
+          "number": 2,
+          "title": "Add Agents", 
+          "description": "Create or assign agents to your team",
+          "options": [
+            {
+              "title": "Create New Agents",
+              "description": "Build agents specifically for this team",
+              "recommended": true
+            },
+            {
+              "title": "Assign Existing Agents",
+              "description": "Move agents from other teams or individual assignments"
+            },
+            {
+              "title": "Use Team Templates",
+              "description": "Start with pre-configured team setups"
+            }
+          ],
+          "action": {
+            "title": "Manage Team Agents",
+            "link": "Agents",
+            "type": "navigate"
+          }
+        },
+        {
+          "number": 3,
+          "title": "Configure Permissions",
+          "description": "Set access levels and resource sharing",
+          "permissions": [
+            {
+              "level": "Admin",
+              "description": "Full team management access",
+              "capabilities": ["Add/remove agents", "Modify team settings", "View all analytics"]
+            },
+            {
+              "level": "Member", 
+              "description": "Standard team participation",
+              "capabilities": ["Execute tasks", "Access shared memory", "View team performance"]
+            },
+            {
+              "level": "Viewer",
+              "description": "Read-only access to team activities",
+              "capabilities": ["View team status", "Read shared memory", "Access reports"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "best-practices",
+      "type": "best-practices",
+      "title": "Team Best Practices",
+      "subtitle": "Maximize Team Effectiveness",
+      "practices": [
+        {
+          "category": "Team Composition",
+          "icon": "people-outline", 
+          "color": "#34C759",
+          "tips": [
+            "Keep teams focused on related tasks and objectives",
+            "Aim for 3-7 agents per team for optimal coordination",
+            "Include complementary skills and specializations",
+            "Define clear roles and responsibilities for each agent"
+          ]
+        },
+        {
+          "category": "Resource Management",
+          "icon": "trending-up-outline",
+          "color": "#FF9500",
+          "tips": [
+            "Set realistic token budgets based on team workload",
+            "Monitor resource usage regularly to avoid overruns", 
+            "Share API keys at team level for cost efficiency",
+            "Use team-specific rate limits for external services"
+          ]
+        },
+        {
+          "category": "Workflow Design",
+          "icon": "git-network-outline",
+          "color": "#5AC8FA", 
+          "tips": [
+            "Design clear handoff points between agents",
+            "Use shared memory for coordination and status updates",
+            "Implement error handling and fallback procedures",
+            "Document team workflows for easy maintenance"
+          ]
+        },
+        {
+          "category": "Performance Optimization",
+          "icon": "speedometer-outline",
+          "color": "#AF52DE",
+          "tips": [
+            "Regularly review team analytics and performance metrics",
+            "Optimize agent prompts based on team collaboration patterns",
+            "Adjust team composition based on workload changes", 
+            "Use A/B testing for workflow improvements"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "troubleshooting",
+      "type": "troubleshooting", 
+      "title": "Common Issues & Solutions",
+      "subtitle": "Quick Fixes for Team Management",
+      "issues": [
+        {
+          "problem": "Agents not coordinating effectively",
+          "symptoms": ["Duplicate work", "Missed handoffs", "Inconsistent outputs"],
+          "solutions": [
+            "Review and clarify agent role definitions",
+            "Improve shared memory structure and usage",
+            "Add explicit coordination points in workflows",
+            "Use team memory to track task assignments"
+          ]
+        },
+        {
+          "problem": "Exceeding token budgets",
+          "symptoms": ["Budget alerts", "Agent throttling", "Incomplete tasks"],
+          "solutions": [
+            "Analyze token usage patterns by agent",
+            "Optimize prompts to reduce token consumption",
+            "Adjust team composition and task distribution", 
+            "Increase budget or implement task prioritization"
+          ]
+        },
+        {
+          "problem": "Team performance declining",
+          "symptoms": ["Slower task completion", "More errors", "Agent conflicts"], 
+          "solutions": [
+            "Review team analytics for bottlenecks",
+            "Check agent health and update configurations",
+            "Validate shared memory isn't getting too large",
+            "Consider team restructuring or agent retraining"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "next-steps",
+      "type": "cta",
+      "title": "Ready to Build Your Team?",
+      "subtitle": "Get started with team-based automation",
+      "actions": [
+        {
+          "title": "Create New Team",
+          "description": "Set up your first team",
+          "icon": "add-circle-outline",
+          "color": "#30D158", 
+          "link": "Agents",
+          "type": "navigate",
+          "primary": true
+        },
+        {
+          "title": "Browse Team Templates", 
+          "description": "Start with proven configurations",
+          "icon": "document-text-outline",
+          "color": "#AF52DE",
+          "link": "Execution Templates?category=teams", 
+          "type": "navigate"
+        },
+        {
+          "title": "Learn About Agents",
+          "description": "Understand team members",
+          "icon": "person-outline",
+          "color": "#FF9500",
+          "link": "Documentation/agents",
+          "type": "navigate"
+        }
+      ]
+    }
+  ]
+}

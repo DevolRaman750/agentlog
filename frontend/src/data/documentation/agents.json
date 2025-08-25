@@ -1,0 +1,191 @@
+{
+  "id": "agents",
+  "title": "Agents",
+  "description": "Create and manage AI agents that can execute complex workflows autonomously",
+  "icon": "construct-outline",
+  "color": "#FF9500",
+  "sections": [
+    {
+      "type": "hero",
+      "title": "AI Agents",
+      "subtitle": "Build autonomous agents that execute complex tasks",
+      "description": "Agents are the core of your automation platform. They can perform sequences of actions, make decisions, and interact with external systems - all without manual intervention.",
+      "highlights": [
+        "🤖 Autonomous execution",
+        "🔧 Custom configurations", 
+        "🔗 API integrations",
+        "📊 Performance tracking"
+      ]
+    },
+    {
+      "type": "overview",
+      "title": "What are Agents?",
+      "content": "Agents are intelligent automation units that can:\n\n• **Execute Tasks**: Run complex workflows automatically\n• **Make Decisions**: Use AI to choose appropriate actions\n• **Connect Systems**: Integrate with external APIs and services\n• **Learn & Adapt**: Improve performance over time\n• **Scale Operations**: Handle multiple tasks simultaneously"
+    },
+    {
+      "type": "features",
+      "title": "Key Features",
+      "items": [
+        {
+          "title": "Smart Execution",
+          "description": "Agents use AI models to understand context and make intelligent decisions during task execution",
+          "icon": "flash"
+        },
+        {
+          "title": "Custom Functions",
+          "description": "Extend agent capabilities with custom functions for specific business logic and integrations", 
+          "icon": "code-slash"
+        },
+        {
+          "title": "Template Integration",
+          "description": "Use execution templates to define repeatable workflows that agents can follow consistently",
+          "icon": "document-text"
+        },
+        {
+          "title": "API Management",
+          "description": "Configure agent-specific API keys for secure access to external services and platforms",
+          "icon": "key"
+        }
+      ]
+    },
+    {
+      "type": "walkthrough",
+      "title": "Creating Your First Agent",
+      "steps": [
+        {
+          "title": "Navigate to Agents",
+          "description": "Go to the Agents section to view and manage your AI agents",
+          "action": {
+            "type": "navigate",
+            "path": "Agents",
+            "label": "Open Agents"
+          }
+        },
+        {
+          "title": "Create New Agent", 
+          "description": "Click the 'Create Agent' button to start building your first automation agent",
+          "details": "You'll need to provide a name, description, and select the AI model your agent will use"
+        },
+        {
+          "title": "Configure Settings",
+          "description": "Set up your agent's behavior, including response parameters and execution preferences",
+          "details": "Configure temperature, max tokens, and other model parameters to control how your agent responds"
+        },
+        {
+          "title": "Add Functions",
+          "description": "Attach custom functions that extend your agent's capabilities",
+          "action": {
+            "type": "navigate", 
+            "path": "Functions",
+            "label": "Manage Functions"
+          }
+        },
+        {
+          "title": "Test & Deploy",
+          "description": "Run test executions to validate your agent's behavior before deploying to production",
+          "action": {
+            "type": "navigate",
+            "path": "Execute", 
+            "label": "Test Agent"
+          }
+        }
+      ]
+    },
+    {
+      "type": "usecases",
+      "title": "Common Use Cases",
+      "cases": [
+        {
+          "title": "Customer Support Automation",
+          "description": "Handle customer inquiries, route tickets, and provide instant responses",
+          "example": "Agent analyzes support requests and automatically assigns them to appropriate teams"
+        },
+        {
+          "title": "Data Processing Workflows", 
+          "description": "Process, analyze, and transform data from multiple sources automatically",
+          "example": "Agent extracts data from APIs, processes it, and updates your database"
+        },
+        {
+          "title": "Content Generation",
+          "description": "Create personalized content, reports, and communications at scale",
+          "example": "Agent generates weekly reports based on performance metrics and KPIs"
+        },
+        {
+          "title": "System Monitoring",
+          "description": "Monitor systems, detect anomalies, and trigger automated responses",
+          "example": "Agent monitors server health and automatically scales resources when needed"
+        }
+      ]
+    },
+    {
+      "type": "configuration",
+      "title": "Agent Configuration",
+      "sections": [
+        {
+          "title": "Basic Settings",
+          "items": [
+            "Agent name and description",
+            "AI model selection (GPT-4, Claude, etc.)",
+            "Response parameters (temperature, max tokens)",
+            "Execution timeout settings"
+          ]
+        },
+        {
+          "title": "Advanced Options",
+          "items": [
+            "Custom system prompts",
+            "Function attachments",
+            "API key configurations", 
+            "Execution templates",
+            "Team assignments"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "bestpractices",
+      "title": "Best Practices",
+      "tips": [
+        "🎯 **Clear Purpose**: Define specific, measurable goals for each agent",
+        "🧪 **Test Thoroughly**: Always test agents in a safe environment before production use",
+        "🔒 **Secure Configuration**: Use agent-specific API keys and limit permissions appropriately",
+        "📊 **Monitor Performance**: Regularly review agent execution logs and performance metrics", 
+        "🔄 **Iterate & Improve**: Continuously refine agent prompts and configurations based on results",
+        "👥 **Team Collaboration**: Use team features to organize and share agents across your organization"
+      ]
+    },
+    {
+      "type": "troubleshooting",
+      "title": "Common Issues",
+      "problems": [
+        {
+          "issue": "Agent not executing as expected",
+          "solutions": [
+            "Check system prompt clarity and specificity",
+            "Verify all required functions are attached", 
+            "Review API key configurations and permissions",
+            "Test with simpler tasks first"
+          ]
+        },
+        {
+          "issue": "Execution timeouts",
+          "solutions": [
+            "Increase timeout settings in agent configuration",
+            "Break complex tasks into smaller steps",
+            "Optimize function performance",
+            "Review model response parameters"
+          ]
+        },
+        {
+          "issue": "Inconsistent results",
+          "solutions": [
+            "Lower temperature setting for more deterministic responses",
+            "Provide more specific instructions in system prompt",
+            "Use execution templates for consistent workflows",
+            "Add validation functions to check outputs"
+          ]
+        }
+      ]
+    }
+  ]
+}

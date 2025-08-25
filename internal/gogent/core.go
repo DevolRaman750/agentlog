@@ -910,8 +910,8 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 	agentsHandler := agents.NewAgentsHandler(c.db)
 	teamsHandler := teams.NewTeamsHandler(c.db)
 
-	// Check if this is a team memory function
-	if strings.HasPrefix(functionName, "team_memory_") {
+	// Check if this is a team memory or team task function
+	if strings.HasPrefix(functionName, "team_memory_") || strings.HasPrefix(functionName, "team_task_") {
 		// Extract team ID from args
 		teamID, ok := args["team_id"].(string)
 		if !ok {
@@ -950,48 +950,316 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 			request.Context = action // For clear operations, action is passed via context field
 		}
 
-		// Route to appropriate team memory function
-		var response *types.TeamMemoryResponse
-		var err error
+		// Route to appropriate team function
+		if strings.HasPrefix(functionName, "team_memory_") {
+			// Handle team memory functions
+			var response *types.TeamMemoryResponse
+			var err error
 
-		switch functionName {
-		case "team_memory_read":
-			response, err = teamsHandler.ReadTeamMemory(ctx, teamID, agentID, userID, request)
-		case "team_memory_write":
-			response, err = teamsHandler.WriteTeamMemory(ctx, teamID, agentID, userID, request)
-		case "team_memory_search":
-			response, err = teamsHandler.SearchTeamMemory(ctx, teamID, agentID, userID, request)
-		case "team_memory_clear":
-			response, err = teamsHandler.ClearTeamMemory(ctx, teamID, agentID, userID, request)
-		default:
-			return nil, fmt.Errorf("unsupported team memory function: %s", functionName)
-		}
+			switch functionName {
+			case "team_memory_read":
+				response, err = teamsHandler.ReadTeamMemory(ctx, teamID, agentID, userID, request)
+			case "team_memory_write":
+				response, err = teamsHandler.WriteTeamMemory(ctx, teamID, agentID, userID, request)
+			case "team_memory_search":
+				response, err = teamsHandler.SearchTeamMemory(ctx, teamID, agentID, userID, request)
+			case "team_memory_clear":
+				response, err = teamsHandler.ClearTeamMemory(ctx, teamID, agentID, userID, request)
+			default:
+				return nil, fmt.Errorf("unsupported team memory function: %s", functionName)
+			}
 
-		if err != nil {
-			return nil, fmt.Errorf("team memory function %s failed: %w", functionName, err)
-		}
+			if err != nil {
+				return nil, fmt.Errorf("team memory function %s failed: %w", functionName, err)
+			}
 
-		// Convert response to map[string]interface{}
-		result := map[string]interface{}{
-			"success":       response.Success,
-			"function_name": functionName,
-		}
 
-		if response.Error != "" {
-			result["error"] = response.Error
-		}
-		if response.Data != nil {
-			result["data"] = response.Data
-		}
-		if response.Results != nil {
-			result["results"] = response.Results
-		}
-		if response.Metadata != (types.MemoryMetadata{}) {
-			result["metadata"] = response.Metadata
-		}
+      // Convert response to map[string]interface{}
+      result := map[string]interface{}{
+        "success":       response.Success,
+        "function_name": functionName,
+      }
 
-		log.Printf("✅ Team memory function %s completed successfully", functionName)
-		return result, nil
+			if response.Error != "" {
+				result["error"] = response.Error
+			}
+			if response.Data != nil {
+				result["data"] = response.Data
+			}
+			if response.Results != nil {
+				result["results"] = response.Results
+			}
+			if response.Metadata != (types.MemoryMetadata{}) {
+				result["metadata"] = response.Metadata
+			}
+
+			log.Printf("✅ Team memory function %s completed successfully", functionName)
+			return result, nil
+
+		} else if strings.HasPrefix(functionName, "team_task_") {
+			// Handle team task functions
+			// Convert args to TeamTaskRequest
+			taskRequest := &types.TeamTaskRequest{
+				TeamID:  teamID,
+				AgentID: agentID,
+			}
+
+			// Map function arguments to task request fields
+			if taskTitle, ok := args["task_title"].(string); ok {
+				taskRequest.TaskTitle = taskTitle
+			}
+			if taskDescription, ok := args["task_description"].(string); ok {
+				taskRequest.TaskDescription = taskDescription
+			}
+			if priority, ok := args["priority"].(string); ok {
+				taskRequest.Priority = priority
+			}
+			if estimatedDuration, ok := args["estimated_duration"].(string); ok {
+				taskRequest.EstimatedDuration = estimatedDuration
+			}
+			if actualDuration, ok := args["actual_duration"].(string); ok {
+				taskRequest.ActualDuration = actualDuration
+			}
+			if requiredCaps, ok := args["required_capabilities"].([]interface{}); ok {
+				for _, cap := range requiredCaps {
+					if capStr, ok := cap.(string); ok {
+						taskRequest.RequiredCapabilities = append(taskRequest.RequiredCapabilities, capStr)
+					}
+				}
+			}
+			if dependencies, ok := args["dependencies"].([]interface{}); ok {
+				for _, dep := range dependencies {
+					if depStr, ok := dep.(string); ok {
+						taskRequest.Dependencies = append(taskRequest.Dependencies, depStr)
+					}
+				}
+			}
+			if deadline, ok := args["deadline"].(string); ok {
+				if parsedTime, err := time.Parse(time.RFC3339, deadline); err == nil {
+					taskRequest.Deadline = &parsedTime
+				}
+			}
+			if metadata, ok := args["metadata"].(map[string]interface{}); ok {
+				taskRequest.Metadata = metadata
+			}
+			if taskID, ok := args["task_id"].(string); ok {
+				taskRequest.TaskID = taskID
+			}
+			if completionStatus, ok := args["completion_status"].(string); ok {
+				taskRequest.CompletionStatus = completionStatus
+			}
+			if results, ok := args["results"].(map[string]interface{}); ok {
+				taskRequest.Results = results
+			}
+			if completionNotes, ok := args["completion_notes"].(string); ok {
+				taskRequest.CompletionNotes = completionNotes
+			}
+			if artifacts, ok := args["artifacts_created"].([]interface{}); ok {
+				for _, artifact := range artifacts {
+					if artifactMap, ok := artifact.(map[string]interface{}); ok {
+						var taskArtifact types.TaskArtifact
+						if artifactType, ok := artifactMap["type"].(string); ok {
+							taskArtifact.Type = artifactType
+						}
+						if identifier, ok := artifactMap["identifier"].(string); ok {
+							taskArtifact.Identifier = identifier
+						}
+						if url, ok := artifactMap["url"].(string); ok {
+							taskArtifact.URL = url
+						}
+						if description, ok := artifactMap["description"].(string); ok {
+							taskArtifact.Description = description
+						}
+						taskRequest.ArtifactsCreated = append(taskRequest.ArtifactsCreated, taskArtifact)
+					}
+				}
+			}
+			if followUpTasks, ok := args["follow_up_tasks"].([]interface{}); ok {
+				for _, followUp := range followUpTasks {
+					if followUpMap, ok := followUp.(map[string]interface{}); ok {
+						var taskFollowUp types.TaskFollowUp
+						if title, ok := followUpMap["title"].(string); ok {
+							taskFollowUp.Title = title
+						}
+						if description, ok := followUpMap["description"].(string); ok {
+							taskFollowUp.Description = description
+						}
+						if priority, ok := followUpMap["priority"].(string); ok {
+							switch priority {
+							case "low":
+								taskFollowUp.Priority = types.TaskPriorityLow
+							case "medium":
+								taskFollowUp.Priority = types.TaskPriorityMedium
+							case "high":
+								taskFollowUp.Priority = types.TaskPriorityHigh
+							case "urgent":
+								taskFollowUp.Priority = types.TaskPriorityUrgent
+							}
+						}
+						taskRequest.FollowUpTasks = append(taskRequest.FollowUpTasks, taskFollowUp)
+					}
+				}
+			}
+			// Add filtering and error reporting fields
+			if statusFilter, ok := args["status_filter"].([]interface{}); ok {
+				for _, status := range statusFilter {
+					if statusStr, ok := status.(string); ok {
+						taskRequest.StatusFilter = append(taskRequest.StatusFilter, statusStr)
+					}
+				}
+			}
+			if priorityFilter, ok := args["priority_filter"].([]interface{}); ok {
+				for _, priority := range priorityFilter {
+					if priorityStr, ok := priority.(string); ok {
+						taskRequest.PriorityFilter = append(taskRequest.PriorityFilter, priorityStr)
+					}
+				}
+			}
+			if assignedAgent, ok := args["assigned_agent_filter"].(string); ok {
+				taskRequest.AssignedAgentFilter = assignedAgent
+			}
+			if capabilityFilter, ok := args["capability_filter"].([]interface{}); ok {
+				for _, cap := range capabilityFilter {
+					if capStr, ok := cap.(string); ok {
+						taskRequest.CapabilityFilter = append(taskRequest.CapabilityFilter, capStr)
+					}
+				}
+			}
+			if createdAfter, ok := args["created_after"].(string); ok {
+				if parsedTime, err := time.Parse(time.RFC3339, createdAfter); err == nil {
+					taskRequest.CreatedAfter = &parsedTime
+				}
+			}
+			if deadlineBefore, ok := args["deadline_before"].(string); ok {
+				if parsedTime, err := time.Parse(time.RFC3339, deadlineBefore); err == nil {
+					taskRequest.DeadlineBefore = &parsedTime
+				}
+			}
+			if sortBy, ok := args["sort_by"].(string); ok {
+				taskRequest.SortBy = sortBy
+			}
+			if sortOrder, ok := args["sort_order"].(string); ok {
+				taskRequest.SortOrder = sortOrder
+			}
+			if limit, ok := args["limit"].(float64); ok {
+				taskRequest.Limit = int(limit)
+			}
+			if includeCompleted, ok := args["include_completed"].(bool); ok {
+				taskRequest.IncludeCompleted = includeCompleted
+			}
+			if estimatedStartTime, ok := args["estimated_start_time"].(string); ok {
+				if parsedTime, err := time.Parse(time.RFC3339, estimatedStartTime); err == nil {
+					taskRequest.EstimatedStartTime = &parsedTime
+				}
+			}
+			if errorType, ok := args["error_type"].(string); ok {
+				taskRequest.ErrorType = errorType
+			}
+			if errorMessage, ok := args["error_message"].(string); ok {
+				taskRequest.ErrorMessage = errorMessage
+			}
+			if errorCode, ok := args["error_code"].(string); ok {
+				taskRequest.ErrorCode = errorCode
+			}
+			if attemptedActions, ok := args["attempted_actions"].([]interface{}); ok {
+				for _, action := range attemptedActions {
+					if actionStr, ok := action.(string); ok {
+						taskRequest.AttemptedActions = append(taskRequest.AttemptedActions, actionStr)
+					}
+				}
+			}
+			if retryCount, ok := args["retry_count"].(float64); ok {
+				taskRequest.RetryCount = int(retryCount)
+			}
+			if isRetryable, ok := args["is_retryable"].(bool); ok {
+				taskRequest.IsRetryable = isRetryable
+			}
+			if suggestedRetryDelay, ok := args["suggested_retry_delay"].(string); ok {
+				taskRequest.SuggestedRetryDelay = suggestedRetryDelay
+			}
+			if workaroundSuggestions, ok := args["workaround_suggestions"].([]interface{}); ok {
+				for _, suggestion := range workaroundSuggestions {
+					if suggestionStr, ok := suggestion.(string); ok {
+						taskRequest.WorkaroundSuggestions = append(taskRequest.WorkaroundSuggestions, suggestionStr)
+					}
+				}
+			}
+			if requiresHuman, ok := args["requires_human_intervention"].(bool); ok {
+				taskRequest.RequiresHumanIntervention = requiresHuman
+			}
+			if contextData, ok := args["context_data"].(map[string]interface{}); ok {
+				taskRequest.ContextData = contextData
+			}
+			if filterCriteria, ok := args["filter_criteria"].(map[string]interface{}); ok {
+				criteria := &types.TaskFilterCriteria{}
+				if priority, ok := filterCriteria["priority"].([]interface{}); ok {
+					for _, p := range priority {
+						if pStr, ok := p.(string); ok {
+							criteria.Priority = append(criteria.Priority, pStr)
+						}
+					}
+				}
+				if capabilities, ok := filterCriteria["required_capabilities"].([]interface{}); ok {
+					for _, c := range capabilities {
+						if cStr, ok := c.(string); ok {
+							criteria.RequiredCapabilities = append(criteria.RequiredCapabilities, cStr)
+						}
+					}
+				}
+				if maxDuration, ok := filterCriteria["max_duration"].(string); ok {
+					criteria.MaxDuration = maxDuration
+				}
+				taskRequest.FilterCriteria = criteria
+			}
+
+			var taskResponse *types.TeamTaskResponse
+			var err error
+
+			switch functionName {
+			case "team_task_store":
+				taskResponse, err = teamsHandler.StoreTeamTask(ctx, teamID, agentID, userID, taskRequest)
+			case "team_task_claim":
+				taskResponse, err = teamsHandler.ClaimTeamTask(ctx, teamID, agentID, userID, taskRequest)
+			case "team_task_complete":
+				taskResponse, err = teamsHandler.CompleteTeamTask(ctx, teamID, agentID, userID, taskRequest)
+			case "team_task_list":
+				taskResponse, err = teamsHandler.ListTeamTasks(ctx, teamID, agentID, userID, taskRequest)
+			case "team_task_error":
+				taskResponse, err = teamsHandler.ErrorTeamTask(ctx, teamID, agentID, userID, taskRequest)
+			default:
+				return nil, fmt.Errorf("unsupported team task function: %s", functionName)
+			}
+
+			if err != nil {
+				return nil, fmt.Errorf("team task function %s failed: %w", functionName, err)
+			}
+
+			// Convert response to map[string]interface{}
+			result := map[string]interface{}{
+				"success": taskResponse.Success,
+			}
+
+			if taskResponse.Error != "" {
+				result["error"] = taskResponse.Error
+			}
+			if taskResponse.Task != nil {
+				result["task"] = taskResponse.Task
+			}
+			if taskResponse.Tasks != nil {
+				result["tasks"] = taskResponse.Tasks
+			}
+			if taskResponse.Data != nil {
+				result["data"] = taskResponse.Data
+			}
+			if taskResponse.Metadata != nil {
+				result["metadata"] = taskResponse.Metadata
+			}
+
+			log.Printf("✅ Team task function %s completed successfully", functionName)
+			return result, nil
+		} else {
+			return nil, fmt.Errorf("unsupported team function: %s", functionName)
+		}
 	}
 
 	// Convert args to AgentMemoryRequest for agent memory functions

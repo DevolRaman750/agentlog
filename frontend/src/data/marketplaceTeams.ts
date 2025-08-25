@@ -107,6 +107,112 @@ export const generateMarketplaceTeams = (): MarketplaceTeam[] => {
         author: 'Sarah Chen, Engineering Manager',
         rating: 5
       }
+    },
+    {
+      id: 'team-autonomous-task-management-alpha',
+      name: 'Autonomous Task Management Team',
+      description: 'A fully autonomous AI team that manages end-to-end task orchestration through shared memory. Converts requests into structured tasks, executes them autonomously, and reports completion. Perfect for teams wanting hands-off automation of GitHub workflows, issue management, and task coordination.',
+      category: 'Task Automation',
+      teamSize: 3,
+      estimatedCost: '$400-600/month equivalent',
+      avatar: {
+        icon: '🤖',
+        backgroundColor: '#FF6B35',
+        textColor: '#FFFFFF',
+      },
+      capabilities: {
+        overview: [
+          'Autonomous task creation from Slack/GitHub requests',
+          'Intelligent task claiming and execution by specialized agents',
+          'Full GitHub workflow automation (branches, PRs, issues, merges)',
+          'Memory-driven state management and coordination',
+          'Real-time progress reporting with Slack notifications'
+        ],
+        coverage: [
+          'Request Processing & Task Creation',
+          'GitHub Operations & Code Management', 
+          'Issue Tracking & Pull Request Workflows',
+          'Autonomous Task Execution & Completion',
+          'Progress Monitoring & Team Communication'
+        ],
+        integrations: [
+          'Slack (Full API Access)',
+          'GitHub (Full Read/Write Access)',
+          'Team Memory System',
+          'Task Orchestration Engine'
+        ]
+      },
+      agents: [
+        {
+          role: 'Task Creator',
+          name: 'TaskCreator-Alpha',
+          templateId: 'template-task-creator',
+          description: 'Monitors communication channels and converts requests into structured, actionable tasks in team memory',
+          capabilities: [
+            'Slack and GitHub request monitoring',
+            'Intelligent task decomposition and structuring',
+            'Priority assignment and capability mapping',
+            'Memory-based duplicate detection and coordination'
+          ],
+          defaultConfig: {
+            maxTokensPerDay: 12000,
+            heartbeatMinutes: 15,
+            lifecycleStatus: 'STANDBY'
+          }
+        },
+        {
+          role: 'Task Executor',
+          name: 'TaskExecutor-Beta',
+          templateId: 'template-task-executor',
+          description: 'Claims and executes tasks autonomously using GitHub and Slack integrations with comprehensive result tracking',
+          capabilities: [
+            'Autonomous task claiming and execution',
+            'Full GitHub workflow operations (branches, files, PRs)',
+            'Slack communication and team coordination',
+            'Comprehensive result tracking and artifact creation'
+          ],
+          defaultConfig: {
+            maxTokensPerDay: 25000,
+            heartbeatMinutes: 10,
+            lifecycleStatus: 'STANDBY'
+          }
+        },
+        {
+          role: 'Task Reporter',
+          name: 'TaskReporter-Gamma',
+          templateId: 'template-task-reporter',
+          description: 'Monitors task status and provides real-time updates, daily summaries, and progress metrics to team channels',
+          capabilities: [
+            'Real-time task status monitoring and reporting',
+            'Daily/weekly team productivity summaries',
+            'Progress tracking with metrics and insights',
+            'Slack notification management and formatting'
+          ],
+          defaultConfig: {
+            maxTokensPerDay: 15000,
+            heartbeatMinutes: 30,
+            lifecycleStatus: 'STANDBY'
+          }
+        }
+      ],
+      highlights: [
+        'AUTONOMOUS: Fully hands-off task management from request to completion',
+        'INTELLIGENT: Memory-driven coordination prevents conflicts and duplicates',
+        'COMPREHENSIVE: End-to-end GitHub workflow automation',
+        'TRANSPARENT: Real-time progress updates and detailed reporting',
+        'SCALABLE: Handles complex multi-step workflows and dependencies',
+        'SAFE: Controlled deployment with standby mode for testing'
+      ],
+      apiRequirements: {
+        requiredKeys: ['githubApiKey', 'SLACK_BOT_TOKEN'],
+        displayNames: ['GitHub API Token', 'Slack Bot Token']
+      },
+      teamConfigId: 'team-config-autonomous-task-management',
+      testimonial: {
+        text: 'This team is like having a senior developer working 24/7. It takes our Slack requests, breaks them into tasks, executes everything autonomously, and keeps us updated. Our GitHub workflows are completely automated now and we never miss follow-ups.',
+        author: 'Michael Rodriguez, CTO',
+        rating: 5
+      }
     }
   ];
 };

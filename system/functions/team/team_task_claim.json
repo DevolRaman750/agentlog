@@ -1,0 +1,95 @@
+{
+  "id": "func-team_task_claim-1754848301",
+  "name": "team_task_claim",
+  "provider": "internal",
+  "display_name": "Team Task: Claim",
+  "description": "Claim a pending task from the team's task memory for execution. Use this to assign yourself to an available task. The task status will be updated to 'claimed' and assigned to the requesting agent.",
+  "endpoint": {
+    "path": "/internal/team/task/claim",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "team_id": {
+        "type": "string",
+        "description": "Team ID to claim task from. The requesting agent must be a member of this team."
+      },
+      "agent_id": {
+        "type": "string",
+        "description": "Agent ID claiming the task. Must be a member of the specified team."
+      },
+      "task_id": {
+        "type": "string",
+        "description": "Specific task ID to claim. Use team_task_list to find available tasks."
+      },
+      "filter_criteria": {
+        "type": "object",
+        "properties": {
+          "priority": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["low", "medium", "high", "urgent"]
+            },
+            "description": "Only claim tasks with these priority levels"
+          },
+          "required_capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Only claim tasks that require these capabilities (agent must have them)"
+          },
+          "max_duration": {
+            "type": "string",
+            "description": "Only claim tasks with estimated duration less than this (e.g., '1 hour', '30 minutes')"
+          }
+        },
+        "description": "Criteria to filter available tasks when not specifying a specific task_id"
+      },
+      "estimated_start_time": {
+        "type": "string",
+        "format": "date-time",
+        "description": "When the agent plans to start working on this task (ISO 8601 format)"
+      }
+    },
+    "required": [
+      "team_id",
+      "agent_id"
+    ]
+  },
+  "examples": [
+    {
+      "name": "Claim specific task",
+      "parameters": {
+        "team_id": "team_123",
+        "agent_id": "agent_456",
+        "task_id": "task_abc123",
+        "estimated_start_time": "2024-01-15T14:00:00Z"
+      }
+    },
+    {
+      "name": "Claim high priority GitHub task",
+      "parameters": {
+        "team_id": "team_123",
+        "agent_id": "agent_456",
+        "filter_criteria": {
+          "priority": ["high", "urgent"],
+          "required_capabilities": ["github"],
+          "max_duration": "2 hours"
+        }
+      }
+    },
+    {
+      "name": "Claim any available task",
+      "parameters": {
+        "team_id": "team_123",
+        "agent_id": "agent_456",
+        "filter_criteria": {
+          "max_duration": "1 hour"
+        }
+      }
+    }
+  ]
+}

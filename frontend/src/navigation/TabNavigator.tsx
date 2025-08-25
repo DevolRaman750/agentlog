@@ -28,6 +28,8 @@ import ApiKeysScreen from '../screens/ApiKeysScreen';
 import AgentsScreen from '../screens/AgentsScreen';
 import AgentMarketplaceScreen from '../screens/AgentMarketplaceScreen';
 import TemplateTokenManagerScreen from '../screens/TemplateTokenManagerScreen';
+import DocumentationScreen from '../screens/DocumentationScreen';
+import DocumentationNavigator from './DocumentationNavigator';
 
 const Tab = createBottomTabNavigator();
 
@@ -267,6 +269,7 @@ const TabNavigator = () => {
       <Tab.Screen name="API Keys" component={withResponsiveLayout(ApiKeysScreen)} />
       <Tab.Screen name="History" component={withResponsiveLayout(HistoryScreen)} />
       <Tab.Screen name="Database" component={withResponsiveLayout(DatabaseScreen)} />
+      <Tab.Screen name="Documentation" component={withResponsiveLayout(DocumentationNavigator)} />
       <Tab.Screen name="Agents" component={withResponsiveLayout(AgentsScreen)} />
       <Tab.Screen name="Marketplace" component={withResponsiveLayout(AgentMarketplaceScreen)} />
       <Tab.Screen name="Account" component={withResponsiveLayout(AuthScreen)} />

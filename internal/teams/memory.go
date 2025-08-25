@@ -561,3 +561,603 @@ func (h *TeamsHandler) compactMemory(memory *types.TeamMemory) error {
 	// This could remove empty contexts, optimize storage, etc.
 	return nil
 }
+
+// StoreTeamTask stores a new task in the team's task memory
+func (h *TeamsHandler) StoreTeamTask(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+	// Validate access
+	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Access denied: %v", err),
+		}, nil
+	}
+
+	// Get team memory
+	team, err := h.getTeamByID(teamID, userID)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Team not found: %v", err),
+		}, nil
+	}
+
+	// Initialize memory if needed
+	var memory *types.TeamMemory
+	if team.Memory != nil {
+		memory = team.Memory
+	} else {
+		memory, err = h.InitializeTeamMemory(teamID)
+		if err != nil {
+			return &types.TeamTaskResponse{
+				Success: false,
+				Error:   fmt.Sprintf("Failed to initialize memory: %v", err),
+			}, nil
+		}
+	}
+
+	// Ensure tasks context exists
+	if memory.Contexts.Shared == nil {
+		memory.Contexts.Shared = make(map[string]interface{})
+	}
+	if memory.Contexts.Shared["tasks"] == nil {
+		memory.Contexts.Shared["tasks"] = make(map[string]interface{})
+	}
+
+	// Create new task
+	now := time.Now()
+	task := &types.TeamTask{
+		ID:                   generateTaskID(),
+		Title:                request.TaskTitle,
+		Description:          request.TaskDescription,
+		Priority:             types.TeamTaskPriority(request.Priority),
+		Status:               types.TaskStatusPending,
+		CreatedBy:            agentID,
+		EstimatedDuration:    request.EstimatedDuration,
+		RequiredCapabilities: request.RequiredCapabilities,
+		Dependencies:         request.Dependencies,
+		Deadline:             request.Deadline,
+		Metadata:             request.Metadata,
+		CreatedAt:            now,
+		UpdatedAt:            now,
+	}
+
+	// Store task in memory
+	tasksMap := memory.Contexts.Shared["tasks"].(map[string]interface{})
+	tasksMap[task.ID] = task
+
+	// Update memory metadata
+	memory.Metadata.UpdatedAt = now
+	memory.Metadata.AccessCount++
+
+	// Save memory
+	err = h.saveTeamMemory(teamID, userID, memory)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Failed to save task: %v", err),
+		}, nil
+	}
+
+	return &types.TeamTaskResponse{
+		Success: true,
+		Task:    task,
+		Data: map[string]interface{}{
+			"message": "Task created successfully",
+			"task_id": task.ID,
+		},
+	}, nil
+}
+
+// ClaimTeamTask allows an agent to claim a pending task
+func (h *TeamsHandler) ClaimTeamTask(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+	// Validate access
+	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Access denied: %v", err),
+		}, nil
+	}
+
+	// Get team memory
+	team, err := h.getTeamByID(teamID, userID)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Team not found: %v", err),
+		}, nil
+	}
+
+	if team.Memory == nil || team.Memory.Contexts.Shared == nil || team.Memory.Contexts.Shared["tasks"] == nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   "No tasks available",
+		}, nil
+	}
+
+	tasksMap := team.Memory.Contexts.Shared["tasks"].(map[string]interface{})
+
+	// If specific task ID provided, claim that task
+	if request.TaskID != "" {
+		taskData, exists := tasksMap[request.TaskID]
+		if !exists {
+			return &types.TeamTaskResponse{
+				Success: false,
+				Error:   fmt.Sprintf("Task %s not found", request.TaskID),
+			}, nil
+		}
+
+		// Convert to TeamTask
+		task := taskData.(*types.TeamTask)
+		if task.Status != types.TaskStatusPending {
+			return &types.TeamTaskResponse{
+				Success: false,
+				Error:   fmt.Sprintf("Task %s is not available for claiming (status: %s)", request.TaskID, task.Status),
+			}, nil
+		}
+
+		// Claim the task
+		now := time.Now()
+		task.Status = types.TaskStatusClaimed
+		task.AssignedTo = agentID
+		task.ClaimedAt = &now
+		task.UpdatedAt = now
+
+		tasksMap[task.ID] = task
+
+		// Save memory
+		team.Memory.Metadata.UpdatedAt = now
+		err = h.saveTeamMemory(teamID, userID, team.Memory)
+		if err != nil {
+			return &types.TeamTaskResponse{
+				Success: false,
+				Error:   fmt.Sprintf("Failed to claim task: %v", err),
+			}, nil
+		}
+
+		return &types.TeamTaskResponse{
+			Success: true,
+			Task:    task,
+			Data: map[string]interface{}{
+				"message":   "Task claimed successfully",
+				"task_id":   task.ID,
+				"claimed_by": agentID,
+			},
+		}, nil
+	}
+
+	// Otherwise, find and claim the best available task based on criteria
+	var bestTask *types.TeamTask
+	var bestTaskID string
+
+	for taskID, taskData := range tasksMap {
+		task := taskData.(*types.TeamTask)
+		if task.Status != types.TaskStatusPending {
+			continue
+		}
+
+		// Apply filter criteria if provided
+		if request.FilterCriteria != nil {
+			// Check priority filter
+			if len(request.FilterCriteria.Priority) > 0 {
+				matched := false
+				for _, allowedPriority := range request.FilterCriteria.Priority {
+					if string(task.Priority) == allowedPriority {
+						matched = true
+						break
+					}
+				}
+				if !matched {
+					continue
+				}
+			}
+
+			// Check capabilities filter
+			if len(request.FilterCriteria.RequiredCapabilities) > 0 {
+				hasAllCaps := true
+				for _, requiredCap := range request.FilterCriteria.RequiredCapabilities {
+					found := false
+					for _, taskCap := range task.RequiredCapabilities {
+						if taskCap == requiredCap {
+							found = true
+							break
+						}
+					}
+					if !found {
+						hasAllCaps = false
+						break
+					}
+				}
+				if !hasAllCaps {
+					continue
+				}
+			}
+		}
+
+		// Select best task (prioritize by priority, then by creation time)
+		if bestTask == nil || 
+		   task.Priority == types.TaskPriorityUrgent && bestTask.Priority != types.TaskPriorityUrgent ||
+		   task.Priority == types.TaskPriorityHigh && bestTask.Priority == types.TaskPriorityMedium ||
+		   task.Priority == types.TaskPriorityHigh && bestTask.Priority == types.TaskPriorityLow ||
+		   (task.Priority == bestTask.Priority && task.CreatedAt.Before(bestTask.CreatedAt)) {
+			bestTask = task
+			bestTaskID = taskID
+		}
+	}
+
+	if bestTask == nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   "No suitable tasks available for claiming",
+		}, nil
+	}
+
+	// Claim the best task
+	now := time.Now()
+	bestTask.Status = types.TaskStatusClaimed
+	bestTask.AssignedTo = agentID
+	bestTask.ClaimedAt = &now
+	bestTask.UpdatedAt = now
+
+	tasksMap[bestTaskID] = bestTask
+
+	// Save memory
+	team.Memory.Metadata.UpdatedAt = now
+	err = h.saveTeamMemory(teamID, userID, team.Memory)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Failed to claim task: %v", err),
+		}, nil
+	}
+
+	return &types.TeamTaskResponse{
+		Success: true,
+		Task:    bestTask,
+		Data: map[string]interface{}{
+			"message":   "Task claimed successfully",
+			"task_id":   bestTask.ID,
+			"claimed_by": agentID,
+		},
+	}, nil
+}
+
+// CompleteTeamTask marks a task as completed
+func (h *TeamsHandler) CompleteTeamTask(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+	// Validate access
+	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Access denied: %v", err),
+		}, nil
+	}
+
+	// Get team memory
+	team, err := h.getTeamByID(teamID, userID)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Team not found: %v", err),
+		}, nil
+	}
+
+	if team.Memory == nil || team.Memory.Contexts.Shared == nil || team.Memory.Contexts.Shared["tasks"] == nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   "Task not found",
+		}, nil
+	}
+
+	tasksMap := team.Memory.Contexts.Shared["tasks"].(map[string]interface{})
+	taskData, exists := tasksMap[request.TaskID]
+	if !exists {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Task %s not found", request.TaskID),
+		}, nil
+	}
+
+	task := taskData.(*types.TeamTask)
+
+	// Verify agent can complete this task
+	if task.AssignedTo != agentID {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Task %s is assigned to %s, cannot be completed by %s", request.TaskID, task.AssignedTo, agentID),
+		}, nil
+	}
+
+	// Update task completion
+	now := time.Now()
+	switch request.CompletionStatus {
+	case "completed":
+		task.Status = types.TaskStatusCompleted
+	case "failed":
+		task.Status = types.TaskStatusFailed
+	case "blocked":
+		task.Status = types.TaskStatusBlocked
+	case "partial":
+		task.Status = types.TaskStatusInProgress // Keep as in progress for partial completion
+	default:
+		task.Status = types.TaskStatusCompleted
+	}
+
+	task.UpdatedAt = now
+	if task.Status == types.TaskStatusCompleted {
+		task.CompletedAt = &now
+	}
+	task.ActualDuration = request.ActualDuration
+	task.Results = request.Results
+	task.CompletionNotes = request.CompletionNotes
+	task.ArtifactsCreated = request.ArtifactsCreated
+
+	tasksMap[task.ID] = task
+
+	// Create follow-up tasks if requested
+	var followUpTaskIDs []string
+	if len(request.FollowUpTasks) > 0 {
+		for _, followUp := range request.FollowUpTasks {
+			followUpTask := &types.TeamTask{
+				ID:          generateTaskID(),
+				Title:       followUp.Title,
+				Description: followUp.Description,
+				Priority:    followUp.Priority,
+				Status:      types.TaskStatusPending,
+				CreatedBy:   agentID,
+				CreatedAt:   now,
+				UpdatedAt:   now,
+			}
+			tasksMap[followUpTask.ID] = followUpTask
+			followUpTaskIDs = append(followUpTaskIDs, followUpTask.ID)
+		}
+	}
+
+	// Save memory
+	team.Memory.Metadata.UpdatedAt = now
+	err = h.saveTeamMemory(teamID, userID, team.Memory)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Failed to complete task: %v", err),
+		}, nil
+	}
+
+	responseData := map[string]interface{}{
+		"message":     "Task completed successfully",
+		"task_id":     task.ID,
+		"status":      string(task.Status),
+		"completed_by": agentID,
+	}
+	if len(followUpTaskIDs) > 0 {
+		responseData["follow_up_tasks_created"] = followUpTaskIDs
+	}
+
+	return &types.TeamTaskResponse{
+		Success: true,
+		Task:    task,
+		Data:    responseData,
+	}, nil
+}
+
+// ListTeamTasks retrieves tasks based on filter criteria
+func (h *TeamsHandler) ListTeamTasks(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+	// Validate access
+	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Access denied: %v", err),
+		}, nil
+	}
+
+	// Get team memory
+	team, err := h.getTeamByID(teamID, userID)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Team not found: %v", err),
+		}, nil
+	}
+
+	var tasks []types.TeamTask
+	if team.Memory != nil && team.Memory.Contexts.Shared != nil && team.Memory.Contexts.Shared["tasks"] != nil {
+		tasksMap := team.Memory.Contexts.Shared["tasks"].(map[string]interface{})
+
+		for _, taskData := range tasksMap {
+			task := taskData.(*types.TeamTask)
+
+			// Apply filters
+			if len(request.StatusFilter) > 0 {
+				matched := false
+				for _, allowedStatus := range request.StatusFilter {
+					if string(task.Status) == allowedStatus {
+						matched = true
+						break
+					}
+				}
+				if !matched {
+					continue
+				}
+			}
+
+			if len(request.PriorityFilter) > 0 {
+				matched := false
+				for _, allowedPriority := range request.PriorityFilter {
+					if string(task.Priority) == allowedPriority {
+						matched = true
+						break
+					}
+				}
+				if !matched {
+					continue
+				}
+			}
+
+			if request.AssignedAgentFilter != "" && task.AssignedTo != request.AssignedAgentFilter {
+				continue
+			}
+
+			if len(request.CapabilityFilter) > 0 {
+				hasAllCaps := true
+				for _, requiredCap := range request.CapabilityFilter {
+					found := false
+					for _, taskCap := range task.RequiredCapabilities {
+						if taskCap == requiredCap {
+							found = true
+							break
+						}
+					}
+					if !found {
+						hasAllCaps = false
+						break
+					}
+				}
+				if !hasAllCaps {
+					continue
+				}
+			}
+
+			if request.CreatedAfter != nil && task.CreatedAt.Before(*request.CreatedAfter) {
+				continue
+			}
+
+			if request.DeadlineBefore != nil && (task.Deadline == nil || task.Deadline.After(*request.DeadlineBefore)) {
+				continue
+			}
+
+			if !request.IncludeCompleted && task.Status == types.TaskStatusCompleted {
+				continue
+			}
+
+			tasks = append(tasks, *task)
+		}
+	}
+
+	// Sort tasks
+	switch request.SortBy {
+	case "priority":
+		// Sort by priority (urgent > high > medium > low)
+		// Implementation would need custom sorting logic
+	case "deadline":
+		// Sort by deadline
+	case "created_date":
+	default:
+		// Default sort by creation date
+	}
+
+	// Limit results
+	if request.Limit > 0 && len(tasks) > request.Limit {
+		tasks = tasks[:request.Limit]
+	}
+
+	return &types.TeamTaskResponse{
+		Success: true,
+		Tasks:   tasks,
+		Data: map[string]interface{}{
+			"total_count": len(tasks),
+			"team_id":     teamID,
+		},
+	}, nil
+}
+
+// ErrorTeamTask marks a task as having an error
+func (h *TeamsHandler) ErrorTeamTask(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+	// Validate access
+	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Access denied: %v", err),
+		}, nil
+	}
+
+	// Get team memory
+	team, err := h.getTeamByID(teamID, userID)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Team not found: %v", err),
+		}, nil
+	}
+
+	if team.Memory == nil || team.Memory.Contexts.Shared == nil || team.Memory.Contexts.Shared["tasks"] == nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   "Task not found",
+		}, nil
+	}
+
+	tasksMap := team.Memory.Contexts.Shared["tasks"].(map[string]interface{})
+	taskData, exists := tasksMap[request.TaskID]
+	if !exists {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Task %s not found", request.TaskID),
+		}, nil
+	}
+
+	task := taskData.(*types.TeamTask)
+
+	// Verify agent can report error for this task
+	if task.AssignedTo != agentID {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Task %s is assigned to %s, cannot report error from %s", request.TaskID, task.AssignedTo, agentID),
+		}, nil
+	}
+
+	// Update task with error information
+	now := time.Now()
+	task.Status = types.TaskStatusFailed
+	task.UpdatedAt = now
+	task.CompletionNotes = request.ErrorMessage
+
+	// Store error details in metadata
+	if task.Metadata == nil {
+		task.Metadata = make(map[string]interface{})
+	}
+	task.Metadata["error"] = map[string]interface{}{
+		"type":                        request.ErrorType,
+		"message":                     request.ErrorMessage,
+		"code":                        request.ErrorCode,
+		"attempted_actions":           request.AttemptedActions,
+		"retry_count":                 request.RetryCount,
+		"is_retryable":                request.IsRetryable,
+		"suggested_retry_delay":       request.SuggestedRetryDelay,
+		"workaround_suggestions":      request.WorkaroundSuggestions,
+		"requires_human_intervention": request.RequiresHumanIntervention,
+		"context_data":                request.ContextData,
+		"reported_at":                 now,
+		"reported_by":                 agentID,
+	}
+
+	tasksMap[task.ID] = task
+
+	// Save memory
+	team.Memory.Metadata.UpdatedAt = now
+	err = h.saveTeamMemory(teamID, userID, team.Memory)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Failed to report task error: %v", err),
+		}, nil
+	}
+
+	return &types.TeamTaskResponse{
+		Success: true,
+		Task:    task,
+		Data: map[string]interface{}{
+			"message":    "Task error reported successfully",
+			"task_id":    task.ID,
+			"error_type": request.ErrorType,
+			"is_retryable": request.IsRetryable,
+		},
+	}, nil
+}
+
+// Helper function to generate unique task IDs
+func generateTaskID() string {
+	return fmt.Sprintf("task_%d", time.Now().UnixNano())
+}

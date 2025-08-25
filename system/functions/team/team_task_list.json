@@ -1,0 +1,141 @@
+{
+  "id": "func-team_task_list-1754848303",
+  "name": "team_task_list",
+  "provider": "internal",
+  "display_name": "Team Task: List",
+  "description": "List and query tasks in the team's task memory. Use this to view available tasks, check task status, find tasks by criteria, or get an overview of team workload. Supports filtering by status, priority, assigned agent, and other criteria.",
+  "endpoint": {
+    "path": "/internal/team/task/list",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "team_id": {
+        "type": "string",
+        "description": "Team ID to list tasks from. The requesting agent must be a member of this team."
+      },
+      "agent_id": {
+        "type": "string",
+        "description": "Agent ID making the request. Must be a member of the specified team."
+      },
+      "status_filter": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": ["pending", "claimed", "in_progress", "completed", "failed", "blocked", "cancelled"]
+        },
+        "description": "Filter tasks by status. If not provided, shows all statuses."
+      },
+      "priority_filter": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "urgent"]
+        },
+        "description": "Filter tasks by priority levels"
+      },
+      "assigned_agent_filter": {
+        "type": "string",
+        "description": "Filter tasks assigned to specific agent ID"
+      },
+      "capability_filter": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Filter tasks that require specific capabilities"
+      },
+      "created_after": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Only show tasks created after this timestamp (ISO 8601 format)"
+      },
+      "deadline_before": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Only show tasks with deadlines before this timestamp (ISO 8601 format)"
+      },
+      "sort_by": {
+        "type": "string",
+        "enum": ["created_date", "priority", "deadline", "estimated_duration"],
+        "default": "created_date",
+        "description": "Sort tasks by this field"
+      },
+      "sort_order": {
+        "type": "string",
+        "enum": ["asc", "desc"],
+        "default": "desc",
+        "description": "Sort order"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 50,
+        "description": "Maximum number of tasks to return"
+      },
+      "include_completed": {
+        "type": "boolean",
+        "default": false,
+        "description": "Whether to include completed tasks in results"
+      }
+    },
+    "required": [
+      "team_id",
+      "agent_id"
+    ]
+  },
+  "examples": [
+    {
+      "name": "List all pending tasks",
+      "parameters": {
+        "team_id": "team_123",
+        "agent_id": "agent_456",
+        "status_filter": ["pending"],
+        "sort_by": "priority",
+        "sort_order": "desc"
+      }
+    },
+    {
+      "name": "List high priority tasks needing GitHub access",
+      "parameters": {
+        "team_id": "team_123",
+        "agent_id": "agent_456",
+        "priority_filter": ["high", "urgent"],
+        "capability_filter": ["github"],
+        "status_filter": ["pending", "claimed"]
+      }
+    },
+    {
+      "name": "List my assigned tasks",
+      "parameters": {
+        "team_id": "team_123",
+        "agent_id": "agent_456",
+        "assigned_agent_filter": "agent_456",
+        "status_filter": ["claimed", "in_progress"]
+      }
+    },
+    {
+      "name": "List tasks with approaching deadlines",
+      "parameters": {
+        "team_id": "team_123",
+        "agent_id": "agent_456",
+        "deadline_before": "2024-01-20T23:59:59Z",
+        "status_filter": ["pending", "claimed", "in_progress"],
+        "sort_by": "deadline",
+        "sort_order": "asc"
+      }
+    },
+    {
+      "name": "Get team workload overview",
+      "parameters": {
+        "team_id": "team_123",
+        "agent_id": "agent_456",
+        "include_completed": true,
+        "created_after": "2024-01-01T00:00:00Z",
+        "limit": 100
+      }
+    }
+  ]
+}
