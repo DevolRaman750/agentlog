@@ -8,7 +8,6 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.17.1
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
-	github.com/neo4j/neo4j-go-driver/v5 v5.28.1
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/crypto v0.39.0
 	google.golang.org/grpc v1.73.0
