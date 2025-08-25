@@ -10,7 +10,10 @@ export type TabParamList = {
   'API Keys': undefined;
   History: { executionId?: string; openExecutionDetails?: boolean };
   Database: undefined;
-  Documentation: undefined;
+  Documentation: {
+    screen?: 'DocumentationHome' | 'DocumentationOverview' | 'DocumentationGettingStarted' | 'DocumentationAgents' | 'DocumentationTeams' | 'DocumentationTemplates' | 'DocumentationExecutions' | 'DocumentationFunctions' | 'DocumentationApiKeys';
+    params?: { section?: string };
+  };
   Account: undefined;
   Agents: { prefilledAgent?: any } | undefined;
   Marketplace: undefined;

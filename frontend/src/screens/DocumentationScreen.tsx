@@ -12,8 +12,9 @@ import {
   Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useToast } from '../context/ToastContext';
+import type { DocumentationStackParamList } from '../navigation/DocumentationNavigator';
 
 // Import documentation data
 import documentationIndex from '../data/documentation/index.json';
@@ -47,6 +48,8 @@ interface DocumentationData {
   };
 }
 
+type DocumentationScreenRouteProp = RouteProp<DocumentationStackParamList, keyof DocumentationStackParamList>;
+
 const DocumentationScreen: React.FC = () => {
   const [selectedSection, setSelectedSection] = useState<DocumentationSection | null>(null);
   const [sectionContent, setSectionContent] = useState<any>(null);
@@ -54,10 +57,22 @@ const DocumentationScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const navigation = useNavigation();
+  const route = useRoute<DocumentationScreenRouteProp>();
   const { showSuccess, showError } = useToast();
   const { width } = Dimensions.get('window');
 
   const documentation = documentationIndex as DocumentationData;
+
+  // Handle initial section loading from route parameters
+  useEffect(() => {
+    const sectionId = (route.params as any)?.section;
+    if (sectionId && sectionId !== selectedSection?.id) {
+      const targetSection = documentation.sections.find(s => s.id === sectionId);
+      if (targetSection) {
+        loadSectionContent(targetSection);
+      }
+    }
+  }, [route.params]);
 
   // Filter sections based on search
   const filteredSections = documentation.sections.filter(section =>
@@ -102,14 +117,30 @@ const DocumentationScreen: React.FC = () => {
     } else if (link.startsWith('/documentation/')) {
       // Handle internal documentation navigation
       const sectionId = link.replace('/documentation/', '');
-      const targetSection = documentation.sections.find(s => s.id === sectionId);
-      if (targetSection) {
-        loadSectionContent(targetSection);
+      const routeNameMap: Record<string, keyof DocumentationStackParamList> = {
+        'overview': 'DocumentationOverview',
+        'getting-started': 'DocumentationGettingStarted',
+        'agents': 'DocumentationAgents',
+        'teams': 'DocumentationTeams',
+        'templates': 'DocumentationTemplates',
+        'executions': 'DocumentationExecutions',
+        'functions': 'DocumentationFunctions',
+        'api-keys': 'DocumentationApiKeys',
+      };
+      
+      const routeName = routeNameMap[sectionId];
+      if (routeName) {
+        (navigation as any).navigate(routeName);
+      } else {
+        const targetSection = documentation.sections.find(s => s.id === sectionId);
+        if (targetSection) {
+          loadSectionContent(targetSection);
+        }
       }
     } else {
       // Handle app navigation
       try {
-        navigation.navigate(link as any);
+        (navigation as any).navigate(link);
       } catch (error) {
         console.warn('Navigation failed:', error);
         showError('Navigation Error', 'Could not navigate to the requested page');
@@ -1144,25 +1175,13 @@ const styles = StyleSheet.create({
     marginRight: 16,
     marginTop: 4,
   },
-  stepNumber: {
+  stepNumberTextAlt: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },
-  stepDetails: {
+  stepDetailsAlt: {
     flex: 1,
-  },
-  stepTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 6,
-  },
-  stepDescription: {
-    fontSize: 16,
-    color: '#000000',
-    lineHeight: 22,
-    marginBottom: 4,
   },
   stepSubtext: {
     fontSize: 14,
@@ -1180,7 +1199,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginTop: 8,
   },
-  stepActionText: {
+  stepActionTextAlt: {
     color: '#007AFF',
     fontSize: 14,
     fontWeight: '500',

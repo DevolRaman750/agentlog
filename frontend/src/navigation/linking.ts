@@ -1,4 +1,4 @@
-import { LinkingOptions } from '@react-navigation/native';
+import { LinkingOptions, PathConfig } from '@react-navigation/native';
 import { TabParamList } from '../types';
 
 export const linking: LinkingOptions<TabParamList> = {
@@ -40,10 +40,7 @@ export const linking: LinkingOptions<TabParamList> = {
         path: '/database',
         exact: true,
       },
-      Documentation: {
-        path: '/documentation',
-        exact: true,
-      },
+      Documentation: '/documentation' as any,
       Account: {
         path: '/account',
         exact: true,
@@ -108,6 +105,15 @@ export const getInitialRouteName = (isAuthenticated: boolean, isLoading: boolean
       '/api-keys': 'API Keys',
       '/history': 'History',
       '/database': 'Database',
+      '/documentation': 'Documentation',
+      '/documentation/overview': 'Documentation',
+      '/documentation/getting-started': 'Documentation',
+      '/documentation/agents': 'Documentation',
+      '/documentation/teams': 'Documentation',
+      '/documentation/templates': 'Documentation',
+      '/documentation/executions': 'Documentation',
+      '/documentation/functions': 'Documentation',
+      '/documentation/api-keys': 'Documentation',
       '/account': 'Account',
       '/agents': 'Agents',
       '/marketplace': 'Marketplace',
@@ -144,6 +150,15 @@ export const getInitialRouteName = (isAuthenticated: boolean, isLoading: boolean
       '/api-keys': 'API Keys',
       '/history': 'History',
       '/database': 'Database',
+      '/documentation': 'Documentation',
+      '/documentation/overview': 'Documentation',
+      '/documentation/getting-started': 'Documentation',
+      '/documentation/agents': 'Documentation',
+      '/documentation/teams': 'Documentation',
+      '/documentation/templates': 'Documentation',
+      '/documentation/executions': 'Documentation',
+      '/documentation/functions': 'Documentation',
+      '/documentation/api-keys': 'Documentation',
       '/account': 'Account',
       '/agents': 'Agents',
       '/marketplace': 'Marketplace',
