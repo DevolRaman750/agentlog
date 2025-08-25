@@ -899,7 +899,8 @@ type AgentApiKeyConfiguration struct {
 	ServiceApiKeys    map[string]UserApiKey  `json:"serviceApiKeys"`    // Service name -> API key
 	FallbackApiKeys   map[string]UserApiKey  `json:"fallbackApiKeys"`   // Service name -> fallback API key
 	UseGlobalDefaults bool                   `json:"useGlobalDefaults"`
-=======
+}
+
 // TeamTaskStatus represents the status of a team task
 type TeamTaskStatus string
 

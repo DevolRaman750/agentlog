@@ -24,7 +24,6 @@ import (
 	"gogent/internal/gogent/integrations/base"
 	githubIntegration "gogent/internal/gogent/integrations/github"
 	slackIntegration "gogent/internal/gogent/integrations/slack"
-	whatsappIntegration "gogent/internal/gogent/integrations/whatsapp"
 	"gogent/internal/providers"
 	"gogent/internal/teams"
 	"gogent/internal/types"
@@ -322,18 +321,6 @@ func (c *Client) registerIntegrations() error {
 		return fmt.Errorf("failed to register Slack integration: %w", err)
 	}
 
-	// Register WhatsApp integration with new auth system
-	var whatsappInt base.APIIntegration
-	if authService != nil && c.currentUserID != "" {
-		whatsappInt = whatsappIntegration.NewIntegrationWithAuth(authService, c.currentUserID)
-		log.Printf("🔑 Registered WhatsApp integration with new auth system for user %s", c.currentUserID)
-	} else {
-		whatsappInt = whatsappIntegration.NewIntegration(apiKeys)
-		log.Printf("🔑 Registered WhatsApp integration with legacy auth system")
-	}
-	if err := c.integrations.Register(whatsappInt); err != nil {
-		return fmt.Errorf("failed to register WhatsApp integration: %w", err)
-	}
 
 	log.Printf("✅ Registered integrations: %v", c.integrations.List())
 	return nil
@@ -1525,22 +1512,6 @@ func (c *Client) executeIntegrationFunction(ctx context.Context, funcDef *db.Fun
 		}
 	}
 
-	// For WhatsApp functions, create a new integration with current user context if available
-	if funcDef.FunctionGroup == "whatsapp" && c.currentUserID != "" {
-		log.Printf("🔑 [WHATSAPP_DEBUG] Creating WhatsApp integration with current user context: %s", c.currentUserID)
-
-		// Create auth service for current user
-		apiKeyService, err := apikeys.NewService(c.db)
-		if err != nil {
-			log.Printf("❌ [WHATSAPP_DEBUG] Failed to create API key service: %v", err)
-		} else {
-			authService := apiauth.NewService(apiKeyService)
-			// Create new WhatsApp integration with auth service and current user
-			whatsappInt := whatsappIntegration.NewIntegrationWithAuth(authService, c.currentUserID)
-			integration = whatsappInt
-			log.Printf("✅ [WHATSAPP_DEBUG] Created WhatsApp integration with user context: %s", c.currentUserID)
-		}
-	}
 
 	// Validate the function with the integration
 	if err := integration.ValidateFunction(funcDef); err != nil {
