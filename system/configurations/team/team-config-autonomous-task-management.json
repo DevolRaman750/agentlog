@@ -1,0 +1,145 @@
+{
+  "id": "team-config-autonomous-task-management",
+  "name": "Autonomous Task Management Team",
+  "description": "A fully autonomous team of AI agents that manages task creation, execution, and reporting through shared memory. Handles end-to-end workflow from request intake to completion notification.",
+  "team_prompt": "You are part of an Autonomous Task Management Team that provides end-to-end task orchestration through shared memory. The team consists of three specialized agents working in coordination:\n\n**🎯 Task Creator Agent** - Monitors input channels (Slack, GitHub) for new requests and creates structured tasks in team memory\n**⚡ Task Executor Agent** - Claims and completes tasks from memory, handling GitHub operations, Slack communication, and automation\n**📊 Task Reporter Agent** - Monitors task status and reports updates, completions, and metrics to designated channels\n\n**Team Memory Strategy**:\n- All agents use shared team memory for coordination and state tracking\n- Task lifecycle is fully managed through memory functions (store, claim, complete, error)\n- Agents learn from past executions and adapt their behavior\n- Progress and results are tracked for continuous improvement\n\n**Coordination Principles**:\n- Avoid duplicate work by checking team memory before taking action\n- Share context and learnings through persistent memory\n- Maintain clear task status and ownership\n- Report progress transparently to the team\n- Handle errors gracefully with proper escalation\n\nWork as a cohesive unit to provide seamless task management with minimal human intervention.",
+  "coordination_strategy": "memory_based_autonomous",
+  "agent_configs": [
+    {
+      "agent_config_id": "agent-config-task-creator",
+      "role": "request_processor",
+      "execution_priority": 1,
+      "schedule": {
+        "type": "interval",
+        "interval_minutes": 15,
+        "active_hours": "00:00-23:59",
+        "timezone": "UTC"
+      }
+    },
+    {
+      "agent_config_id": "agent-config-task-executor", 
+      "role": "task_executor",
+      "execution_priority": 2,
+      "schedule": {
+        "type": "interval",
+        "interval_minutes": 10,
+        "active_hours": "00:00-23:59", 
+        "timezone": "UTC"
+      }
+    },
+    {
+      "agent_config_id": "agent-config-task-reporter",
+      "role": "status_reporter",
+      "execution_priority": 3,
+      "schedule": {
+        "type": "multiple",
+        "schedules": [
+          {
+            "type": "interval",
+            "interval_minutes": 30,
+            "active_hours": "08:00-20:00",
+            "timezone": "UTC"
+          },
+          {
+            "type": "daily",
+            "time": "09:00", 
+            "timezone": "UTC"
+          }
+        ]
+      }
+    }
+  ],
+  "shared_memory_config": {
+    "enable_team_memory": true,
+    "enable_task_memory": true,
+    "memory_retention_days": 180,
+    "max_shared_entries": 10000,
+    "max_task_entries": 5000,
+    "memory_categories": [
+      "task_patterns",
+      "execution_history", 
+      "error_patterns",
+      "performance_metrics",
+      "team_preferences",
+      "workflow_state"
+    ],
+    "auto_cleanup": true,
+    "backup_frequency": "daily"
+  },
+  "task_management_config": {
+    "auto_priority_escalation": true,
+    "escalation_thresholds": {
+      "urgent_unclaimed_minutes": 30,
+      "high_unclaimed_minutes": 120,
+      "medium_unclaimed_hours": 8,
+      "low_unclaimed_days": 2
+    },
+    "retry_policies": {
+      "api_errors": {
+        "max_retries": 3,
+        "backoff_strategy": "exponential"
+      },
+      "rate_limits": {
+        "max_retries": 5,
+        "backoff_strategy": "fixed_delay",
+        "delay_minutes": 60
+      }
+    },
+    "performance_tracking": {
+      "track_completion_rates": true,
+      "track_execution_times": true,
+      "track_error_patterns": true,
+      "generate_weekly_reports": true
+    }
+  },
+  "escalation_rules": [
+    {
+      "condition": "task_failed_multiple_times",
+      "threshold": 3,
+      "action": "mark_requires_human_intervention",
+      "notify_channel": "#ai-alerts"
+    },
+    {
+      "condition": "urgent_task_unclaimed",
+      "threshold_minutes": 30,
+      "action": "send_alert",
+      "notify_channel": "#ai-alerts"
+    },
+    {
+      "condition": "executor_offline",
+      "threshold_minutes": 60,
+      "action": "redistribute_claimed_tasks",
+      "notify_channel": "#ai-alerts"
+    },
+    {
+      "condition": "high_error_rate",
+      "threshold_percentage": 25,
+      "action": "pause_task_claiming",
+      "duration_minutes": 30
+    }
+  ],
+  "communication_config": {
+    "primary_update_channel": "#ai-code-updates",
+    "alert_channel": "#ai-alerts",
+    "debug_channel": "#ai-debug",
+    "report_formatting": "rich_slack_blocks",
+    "notification_preferences": {
+      "task_completions": true,
+      "task_failures": true,
+      "daily_summaries": true,
+      "urgent_alerts": true
+    }
+  },
+  "performance_metrics": {
+    "track_response_times": true,
+    "track_success_rates": true,
+    "track_api_usage": true,
+    "track_memory_efficiency": true,
+    "report_interval_hours": 24,
+    "generate_weekly_insights": true
+  },
+  "is_system": true,
+  "is_active": true,
+  "created_at": "2025-01-11T00:00:00Z",
+  "tags": ["autonomous", "task-management", "memory", "orchestration", "github", "slack", "system"]
+}

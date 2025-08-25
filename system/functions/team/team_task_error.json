@@ -1,0 +1,146 @@
+{
+  "id": "func-team_task_error-1754848304",
+  "name": "team_task_error",
+  "provider": "internal",
+  "display_name": "Team Task: Mark Error",
+  "description": "Mark a task as failed or encountering an error and store error details. Use this when a task cannot be completed due to errors, API failures, missing resources, or other blocking issues. Helps with debugging and task management.",
+  "endpoint": {
+    "path": "/internal/team/task/error",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "team_id": {
+        "type": "string",
+        "description": "Team ID containing the task. The requesting agent must be a member of this team."
+      },
+      "agent_id": {
+        "type": "string",
+        "description": "Agent ID reporting the error. Must be the agent who claimed this task."
+      },
+      "task_id": {
+        "type": "string",
+        "description": "ID of the task that encountered an error"
+      },
+      "error_type": {
+        "type": "string",
+        "enum": ["api_error", "authentication", "rate_limit", "resource_not_found", "permission_denied", "timeout", "internal_error", "dependency_failure", "configuration_error", "other"],
+        "description": "Category of error encountered"
+      },
+      "error_message": {
+        "type": "string",
+        "description": "Detailed error message or description of what went wrong"
+      },
+      "error_code": {
+        "type": "string",
+        "description": "Specific error code if available (e.g., HTTP status code, API error code)"
+      },
+      "attempted_actions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of actions attempted before encountering the error"
+      },
+      "retry_count": {
+        "type": "integer",
+        "minimum": 0,
+        "default": 0,
+        "description": "Number of times this task has been retried"
+      },
+      "is_retryable": {
+        "type": "boolean",
+        "default": true,
+        "description": "Whether this task can/should be retried later"
+      },
+      "suggested_retry_delay": {
+        "type": "string",
+        "description": "Suggested delay before retry (e.g., '15 minutes', '1 hour', '24 hours')"
+      },
+      "workaround_suggestions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Possible workarounds or alternative approaches to complete the task"
+      },
+      "requires_human_intervention": {
+        "type": "boolean",
+        "default": false,
+        "description": "Whether this error requires human intervention to resolve"
+      },
+      "context_data": {
+        "type": "object",
+        "description": "Additional context data that might help with debugging or resolution"
+      }
+    },
+    "required": [
+      "team_id",
+      "agent_id",
+      "task_id",
+      "error_type",
+      "error_message"
+    ]
+  },
+  "examples": [
+    {
+      "name": "Report API rate limit error",
+      "parameters": {
+        "team_id": "team_123",
+        "agent_id": "agent_456",
+        "task_id": "task_abc123",
+        "error_type": "rate_limit",
+        "error_message": "GitHub API rate limit exceeded. Limit: 5000, Used: 5000, Resets at: 2024-01-15T16:00:00Z",
+        "error_code": "403",
+        "attempted_actions": ["github_read_issues", "github_search_code"],
+        "retry_count": 1,
+        "is_retryable": true,
+        "suggested_retry_delay": "1 hour",
+        "context_data": {
+          "api_endpoint": "https://api.github.com/repos/owner/repo/issues",
+          "rate_limit_reset": "2024-01-15T16:00:00Z"
+        }
+      }
+    },
+    {
+      "name": "Report authentication failure",
+      "parameters": {
+        "team_id": "team_123",
+        "agent_id": "agent_456",
+        "task_id": "task_def456",
+        "error_type": "authentication",
+        "error_message": "Slack API token is invalid or expired. Unable to send messages to channel.",
+        "error_code": "invalid_auth",
+        "attempted_actions": ["slack_find_channel", "slack_send_message"],
+        "retry_count": 0,
+        "is_retryable": false,
+        "requires_human_intervention": true,
+        "workaround_suggestions": ["Update Slack API token", "Check token permissions"],
+        "context_data": {
+          "slack_channel": "#ai-code-updates",
+          "token_last_4": "xyz7"
+        }
+      }
+    },
+    {
+      "name": "Report dependency failure",
+      "parameters": {
+        "team_id": "team_123",
+        "agent_id": "agent_456",
+        "task_id": "task_ghi789",
+        "error_type": "dependency_failure",
+        "error_message": "Cannot complete code review task because dependent task 'run_tests' failed",
+        "attempted_actions": ["check_dependencies", "wait_for_dependent_task"],
+        "retry_count": 0,
+        "is_retryable": true,
+        "suggested_retry_delay": "30 minutes",
+        "workaround_suggestions": ["Skip tests and do manual review", "Fix test failures first"],
+        "context_data": {
+          "dependent_task_id": "task_tests_xyz",
+          "dependent_task_status": "failed"
+        }
+      }
+    }
+  ]
+}

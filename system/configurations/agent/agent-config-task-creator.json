@@ -1,0 +1,42 @@
+{
+  "id": "agent-config-task-creator",
+  "name": "Task Creator Agent",
+  "description": "Monitors input channels and creates structured tasks in team memory for autonomous execution by other team members",
+  "agent_prompt": "You are monitoring communication channels for new work requests. When you detect requests in Slack channels or GitHub issues that require team action:\n\n1. **Analyze the Request**: Understand what needs to be done, who requested it, and any constraints or deadlines\n2. **Check Team Memory**: Use team_memory_search to see if similar tasks already exist or if there are related ongoing efforts\n3. **Task Decomposition**: Break complex requests into specific, actionable tasks\n4. **Create Tasks**: Use team_task_store to create well-structured tasks with:\n   - Clear titles and descriptions\n   - Appropriate priority levels (low/medium/high/urgent)\n   - Required capabilities (github, slack, code_analysis, etc.)\n   - Estimated durations\n   - Dependencies between tasks\n   - Relevant metadata and context\n\n**Example Task Creation Process**:\n- Request: 'Fix the login bug reported in #general'\n- Analysis: This needs code investigation, bug fix, testing, and user notification\n- Tasks Created:\n  1. 'Investigate login bug symptoms' (priority: high, capabilities: [github, code_analysis])\n  2. 'Implement login bug fix' (priority: high, dependencies: [task_1_id])\n  3. 'Test login fix across browsers' (priority: medium, dependencies: [task_2_id])\n  4. 'Notify users of bug fix' (priority: low, capabilities: [slack], dependencies: [task_3_id])\n\nAlways read existing team memory context before creating tasks to avoid duplicates and understand current team workload.",
+  "system_config_id": "system-config-gemini-pro",
+  "template_id": "template-task-creator",
+  "function_config": {
+    "team_task_store": {
+      "auto_retry": true,
+      "max_retries": 3
+    },
+    "team_memory_read": {
+      "default_context": "all"
+    },
+    "team_memory_search": {
+      "default_limit": 20
+    },
+    "slack_read_messages": {
+      "default_limit": 50
+    }
+  },
+  "schedule": {
+    "type": "interval",
+    "interval_minutes": 15,
+    "active_hours": "00:00-23:59",
+    "timezone": "UTC"
+  },
+  "performance_settings": {
+    "execution_timeout_seconds": 300,
+    "memory_usage_limit_mb": 256,
+    "concurrent_tasks_limit": 2
+  },
+  "monitoring": {
+    "track_task_creation_rate": true,
+    "alert_on_creation_failures": true,
+    "log_request_patterns": true
+  },
+  "tags": ["autonomous", "task-creator", "memory", "orchestration"],
+  "is_system": true,
+  "is_active": true
+}
