@@ -2,6 +2,7 @@ package teams
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -696,7 +697,13 @@ func (h *TeamsHandler) ClaimTeamTask(ctx context.Context, teamID, agentID, userI
 		}
 
 		// Convert to TeamTask
-		task := taskData.(*types.TeamTask)
+		task, err := convertToTeamTask(taskData)
+		if err != nil {
+			return &types.TeamTaskResponse{
+				Success: false,
+				Error:   fmt.Sprintf("Failed to convert task data for task ID %s: %v", request.TaskID, err),
+			}, nil
+		}
 		if task.Status != types.TaskStatusPending {
 			return &types.TeamTaskResponse{
 				Success: false,
@@ -739,8 +746,8 @@ func (h *TeamsHandler) ClaimTeamTask(ctx context.Context, teamID, agentID, userI
 	var bestTaskID string
 
 	for taskID, taskData := range tasksMap {
-		task := taskData.(*types.TeamTask)
-		if task.Status != types.TaskStatusPending {
+		task, err := convertToTeamTask(taskData)
+		if err != nil || task.Status != types.TaskStatusPending {
 			continue
 		}
 
@@ -807,7 +814,7 @@ func (h *TeamsHandler) ClaimTeamTask(ctx context.Context, teamID, agentID, userI
 	bestTask.ClaimedAt = &now
 	bestTask.UpdatedAt = now
 
-	tasksMap[bestTaskID] = bestTask
+	tasksMap[bestTaskID] = *bestTask
 
 	// Save memory
 	team.Memory.Metadata.UpdatedAt = now
@@ -866,7 +873,13 @@ func (h *TeamsHandler) CompleteTeamTask(ctx context.Context, teamID, agentID, us
 		}, nil
 	}
 
-	task := taskData.(*types.TeamTask)
+	task, err := convertToTeamTask(taskData)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Failed to convert task data for task ID %s: %v", request.TaskID, err),
+		}, nil
+	}
 
 	// Verify agent can complete this task
 	if task.AssignedTo != agentID {
@@ -973,7 +986,10 @@ func (h *TeamsHandler) ListTeamTasks(ctx context.Context, teamID, agentID, userI
 		tasksMap := team.Memory.Contexts.Shared["tasks"].(map[string]interface{})
 
 		for _, taskData := range tasksMap {
-			task := taskData.(*types.TeamTask)
+			task, err := convertToTeamTask(taskData)
+			if err != nil {
+				continue
+			}
 
 			// Apply filters
 			if len(request.StatusFilter) > 0 {
@@ -1105,7 +1121,13 @@ func (h *TeamsHandler) ErrorTeamTask(ctx context.Context, teamID, agentID, userI
 		}, nil
 	}
 
-	task := taskData.(*types.TeamTask)
+	task, err := convertToTeamTask(taskData)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Failed to convert task data for task ID %s: %v", request.TaskID, err),
+		}, nil
+	}
 
 	// Verify agent can report error for this task
 	if task.AssignedTo != agentID {
@@ -1198,10 +1220,15 @@ func (h *TeamsHandler) ClearTeamTasks(ctx context.Context, teamID, agentID, user
 		}
 	}
 
-	// Get current tasks
+	// Get current tasks from memory contexts
 	var tasks []types.TeamTask
-	if memory.Tasks != nil {
-		tasks = memory.Tasks
+	if memory.Contexts.Shared != nil && memory.Contexts.Shared["tasks"] != nil {
+		tasksMap := memory.Contexts.Shared["tasks"].(map[string]interface{})
+		for _, taskData := range tasksMap {
+			if task, err := convertToTeamTask(taskData); err == nil {
+				tasks = append(tasks, *task)
+			}
+		}
 	}
 
 	action := request.Action
@@ -1228,7 +1255,7 @@ func (h *TeamsHandler) ClearTeamTasks(ctx context.Context, teamID, agentID, user
 
 	case "clear_completed":
 		for _, task := range tasks {
-			if task.Status == "completed" {
+			if string(task.Status) == "completed" {
 				tasksRemoved = append(tasksRemoved, task)
 			} else {
 				tasksKept = append(tasksKept, task)
@@ -1237,7 +1264,7 @@ func (h *TeamsHandler) ClearTeamTasks(ctx context.Context, teamID, agentID, user
 
 	case "clear_failed":
 		for _, task := range tasks {
-			if task.Status == "failed" {
+			if string(task.Status) == "failed" {
 				tasksRemoved = append(tasksRemoved, task)
 			} else {
 				tasksKept = append(tasksKept, task)
@@ -1246,7 +1273,7 @@ func (h *TeamsHandler) ClearTeamTasks(ctx context.Context, teamID, agentID, user
 
 	case "clear_cancelled":
 		for _, task := range tasks {
-			if task.Status == "cancelled" {
+			if string(task.Status) == "cancelled" {
 				tasksRemoved = append(tasksRemoved, task)
 			} else {
 				tasksKept = append(tasksKept, task)
@@ -1280,7 +1307,7 @@ func (h *TeamsHandler) ClearTeamTasks(ctx context.Context, teamID, agentID, user
 			statusMap[status] = true
 		}
 		for _, task := range tasks {
-			if statusMap[task.Status] {
+			if statusMap[string(task.Status)] {
 				tasksRemoved = append(tasksRemoved, task)
 			} else {
 				tasksKept = append(tasksKept, task)
@@ -1299,7 +1326,7 @@ func (h *TeamsHandler) ClearTeamTasks(ctx context.Context, teamID, agentID, user
 			priorityMap[priority] = true
 		}
 		for _, task := range tasks {
-			if priorityMap[task.Priority] {
+			if priorityMap[string(task.Priority)] {
 				// Apply age filter if specified
 				if request.OlderThanDays > 0 {
 					daysDiff := int(time.Since(task.CreatedAt).Hours() / 24)
@@ -1352,7 +1379,7 @@ func (h *TeamsHandler) ClearTeamTasks(ctx context.Context, teamID, agentID, user
 			case "title_and_description":
 				key = strings.ToLower(strings.TrimSpace(task.Title + "|" + task.Description))
 			case "exact_match":
-				key = strings.ToLower(strings.TrimSpace(task.Title + "|" + task.Description + "|" + task.Priority))
+				key = strings.ToLower(strings.TrimSpace(task.Title + "|" + task.Description + "|" + string(task.Priority)))
 			default:
 				key = strings.ToLower(strings.TrimSpace(task.Title))
 			}
@@ -1402,11 +1429,28 @@ func (h *TeamsHandler) ClearTeamTasks(ctx context.Context, teamID, agentID, user
 	}
 
 	// Update memory with remaining tasks
-	memory.Tasks = tasksKept
+	if memory.Contexts.Shared == nil {
+		memory.Contexts.Shared = make(map[string]interface{})
+	}
+	
+	// Clear the tasks map and rebuild with remaining tasks
+	tasksMap := make(map[string]interface{})
+	for _, task := range tasksKept {
+		tasksMap[task.ID] = task
+	}
+	memory.Contexts.Shared["tasks"] = tasksMap
 	memory.Metadata.UpdatedAt = time.Now()
 
-	// Update team in database
-	err = h.updateTeamMemory(teamID, memory)
+	// Update team in database (using the same method as other functions)
+	query := `UPDATE teams SET memory = ? WHERE id = ? AND user_id = ?`
+	memoryJSON, err := json.Marshal(memory)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Failed to serialize team memory: %v", err),
+		}, nil
+	}
+	_, err = h.db.Exec(query, string(memoryJSON), teamID, userID)
 	if err != nil {
 		return &types.TeamTaskResponse{
 			Success: false,
@@ -1424,8 +1468,8 @@ func (h *TeamsHandler) ClearTeamTasks(ctx context.Context, teamID, agentID, user
 
 	return &types.TeamTaskResponse{
 		Success: true,
-		Message: fmt.Sprintf("Successfully completed %s action. Removed %d tasks, kept %d tasks.", action, len(tasksRemoved), len(tasksKept)),
 		Data: map[string]interface{}{
+			"message":       fmt.Sprintf("Successfully completed %s action. Removed %d tasks, kept %d tasks.", action, len(tasksRemoved), len(tasksKept)),
 			"action":        action,
 			"tasks_removed": len(tasksRemoved),
 			"tasks_kept":    len(tasksKept),
@@ -1433,6 +1477,38 @@ func (h *TeamsHandler) ClearTeamTasks(ctx context.Context, teamID, agentID, user
 			"reason":        reason,
 		},
 	}, nil
+}
+
+// Helper function to convert task data from map[string]interface{} to TeamTask
+func convertToTeamTask(taskData interface{}) (*types.TeamTask, error) {
+	// If it's already a pointer to TeamTask, return it
+	if task, ok := taskData.(*types.TeamTask); ok {
+		return task, nil
+	}
+	
+	// If it's a TeamTask struct, return pointer to it
+	if task, ok := taskData.(types.TeamTask); ok {
+		return &task, nil
+	}
+	
+	// If it's a map (from JSON unmarshaling), convert it
+	if taskMap, ok := taskData.(map[string]interface{}); ok {
+		// Marshal back to JSON and unmarshal to TeamTask
+		taskJSON, err := json.Marshal(taskMap)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal task data: %w", err)
+		}
+		
+		var task types.TeamTask
+		err = json.Unmarshal(taskJSON, &task)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal task data: %w", err)
+		}
+		
+		return &task, nil
+	}
+	
+	return nil, fmt.Errorf("invalid task data type: %T", taskData)
 }
 
 // Helper function to generate unique task IDs

@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: registry.digitalocean.com/resourceloop/agentlog/backend:0ffdb9e-20250825-200456
+          image: registry.digitalocean.com/resourceloop/agentlog/backend:846ff14-20250825-203011
           imagePullPolicy: Always
           ports:
             - containerPort: 8080

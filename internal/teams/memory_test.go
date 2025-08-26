@@ -574,3 +574,140 @@ func (h *TeamsHandler) insertAgent(agent *types.Agent) error {
 	// For now, return nil to skip tests
 	return nil
 }
+
+// Test the convertToTeamTask function to prevent nil pointer issues
+func TestConvertToTeamTask(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     interface{}
+		expectErr bool
+	}{
+		{
+			name: "Valid TeamTask pointer",
+			input: &types.TeamTask{
+				ID:          "task-123",
+				Title:       "Test Task",
+				Description: "Test Description",
+				Status:      types.TaskStatusPending,
+				Priority:    types.TaskPriorityMedium,
+				CreatedAt:   time.Now(),
+				UpdatedAt:   time.Now(),
+			},
+			expectErr: false,
+		},
+		{
+			name: "Valid TeamTask struct",
+			input: types.TeamTask{
+				ID:          "task-456",
+				Title:       "Another Task",
+				Description: "Another Description",
+				Status:      types.TaskStatusCompleted,
+				Priority:    types.TaskPriorityHigh,
+				CreatedAt:   time.Now(),
+				UpdatedAt:   time.Now(),
+			},
+			expectErr: false,
+		},
+		{
+			name: "Map from JSON unmarshaling",
+			input: map[string]interface{}{
+				"id":          "task-789",
+				"title":       "Map Task",
+				"description": "From Map",
+				"status":      "pending",
+				"priority":    "low",
+				"created_at":  "2024-01-01T00:00:00Z",
+				"updated_at":  "2024-01-01T00:00:00Z",
+			},
+			expectErr: false,
+		},
+		{
+			name:      "Invalid type - string",
+			input:     "invalid",
+			expectErr: true,
+		},
+		{
+			name:      "Invalid type - nil",
+			input:     nil,
+			expectErr: true,
+		},
+		{
+			name:      "Invalid type - integer",
+			input:     123,
+			expectErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := convertToTeamTask(tt.input)
+			
+			if tt.expectErr {
+				assert.Error(t, err, "Expected error for input: %v", tt.input)
+				assert.Nil(t, result, "Expected nil result for invalid input")
+			} else {
+				assert.NoError(t, err, "Expected no error for valid input: %v", tt.input)
+				assert.NotNil(t, result, "Expected non-nil result for valid input")
+				assert.NotEmpty(t, result.ID, "Expected task to have ID")
+			}
+		})
+	}
+}
+
+// Test that task storage and retrieval works correctly with marshaling
+func TestTaskMarshalingUnmarshaling(t *testing.T) {
+	// Create a test task
+	originalTask := types.TeamTask{
+		ID:          "test-marshaling-123",
+		Title:       "Marshaling Test Task",
+		Description: "Test marshaling and unmarshaling",
+		Status:      types.TaskStatusPending,
+		Priority:    types.TaskPriorityMedium,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+
+	// Create a memory structure like the one used in the system
+	memory := &types.TeamMemory{
+		Version: "1.0",
+		Contexts: types.TeamMemoryContexts{
+			Shared: map[string]interface{}{
+				"tasks": map[string]interface{}{
+					originalTask.ID: originalTask, // Store as struct (like we do)
+				},
+			},
+		},
+		Metadata: types.MemoryMetadata{
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		},
+	}
+
+	// Marshal to JSON (simulating database storage)
+	memoryJSON, err := json.Marshal(memory)
+	assert.NoError(t, err, "Failed to marshal memory to JSON")
+
+	// Unmarshal from JSON (simulating database retrieval)
+	var retrievedMemory types.TeamMemory
+	err = json.Unmarshal(memoryJSON, &retrievedMemory)
+	assert.NoError(t, err, "Failed to unmarshal memory from JSON")
+
+	// Now test that we can convert the task data correctly
+	tasksMap, ok := retrievedMemory.Contexts.Shared["tasks"].(map[string]interface{})
+	assert.True(t, ok, "Tasks map should exist")
+
+	taskData, exists := tasksMap[originalTask.ID]
+	assert.True(t, exists, "Task should exist in map")
+
+	// This is the critical test - convert the taskData using our helper function
+	convertedTask, err := convertToTeamTask(taskData)
+	assert.NoError(t, err, "convertToTeamTask should handle JSON-unmarshaled data")
+	assert.NotNil(t, convertedTask, "Converted task should not be nil")
+
+	// Verify the task data is correct
+	assert.Equal(t, originalTask.ID, convertedTask.ID)
+	assert.Equal(t, originalTask.Title, convertedTask.Title)
+	assert.Equal(t, originalTask.Description, convertedTask.Description)
+	assert.Equal(t, string(originalTask.Status), string(convertedTask.Status))
+	assert.Equal(t, string(originalTask.Priority), string(convertedTask.Priority))
+}
