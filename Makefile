@@ -247,17 +247,21 @@ deploy-quick: k8s-force-update-images k8s-wait ## Quick deployment with forced i
 
 # Build and deploy backend only - with forced update
 deploy-backend: docker-build-backend docker-push-backend ## Build and deploy backend only with forced update
-	@echo "🔧 Updating backend deployment with new image..."
-	kubectl set image deployment/agentlog-backend backend=$(BACKEND_IMAGE):$(IMAGE_TAG) -n agentlog
+	@echo "🔧 Updating backend deployment YAML with new image..."
+	sed -i.bak 's|registry.digitalocean.com/resourceloop/agentlog/backend:[^[:space:]]*|$(BACKEND_IMAGE):$(IMAGE_TAG)|g' k8s/backend-deployment.yaml
+	@echo "🔧 Applying updated backend deployment..."
+	kubectl apply -f k8s/backend-deployment.yaml
 	kubectl rollout status deployment/agentlog-backend -n agentlog --timeout=300s
-	@echo "🔧 Backend deployment complete!"
+	@echo "✅ Backend deployment complete with image: $(BACKEND_IMAGE):$(IMAGE_TAG)"
 
 # Build and deploy frontend only - with forced update
 deploy-frontend: docker-build-frontend docker-push-frontend ## Build and deploy frontend only with forced update
-	@echo "🎨 Updating frontend deployment with new image..."
-	kubectl set image deployment/agentlog-frontend frontend=$(FRONTEND_IMAGE):$(IMAGE_TAG) -n agentlog
+	@echo "🎨 Updating frontend deployment YAML with new image..."
+	sed -i.bak 's|registry.digitalocean.com/resourceloop/agentlog/frontend:[^[:space:]]*|$(FRONTEND_IMAGE):$(IMAGE_TAG)|g' k8s/frontend-deployment.yaml
+	@echo "🎨 Applying updated frontend deployment..."
+	kubectl apply -f k8s/frontend-deployment.yaml
 	kubectl rollout status deployment/agentlog-frontend -n agentlog --timeout=300s
-	@echo "🎨 Frontend deployment complete!"
+	@echo "✅ Frontend deployment complete with image: $(FRONTEND_IMAGE):$(IMAGE_TAG)"
 
 # Backend Testing Commands
 # ========================
