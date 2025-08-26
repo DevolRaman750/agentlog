@@ -95,23 +95,23 @@ docker-build-all: docker-build-backend docker-build-frontend ## Build both backe
 # Push backend Docker image
 docker-push-backend: ## Push backend Docker image to registry
 	@echo "📤 Pushing backend image to registry..."
-	docker buildx build --platform linux/amd64 --no-cache --push -f Dockerfile.backend -t $(BACKEND_IMAGE):$(IMAGE_TAG) .
+	docker push $(BACKEND_IMAGE):$(IMAGE_TAG)
 	docker push $(BACKEND_IMAGE):latest
 	@echo "✅ Backend image pushed: $(BACKEND_IMAGE):$(IMAGE_TAG)"
 
 # Push frontend Docker image
 docker-push-frontend: ## Push frontend Docker image to registry
 	@echo "📤 Pushing frontend image to registry..."
-	docker buildx build --platform linux/amd64 --no-cache --push -t $(FRONTEND_IMAGE):$(IMAGE_TAG) frontend/
+	docker push $(FRONTEND_IMAGE):$(IMAGE_TAG)
 	docker push $(FRONTEND_IMAGE):latest
 	@echo "✅ Frontend image pushed: $(FRONTEND_IMAGE):$(IMAGE_TAG)"
 
 # Push both Docker images
-docker-push-all: docker-push-backend docker-push-frontend ## Push both Docker images to registry
+docker-push-all: docker-build-all docker-push-backend docker-push-frontend ## Push both Docker images to registry
 	@echo "✅ All Docker images pushed successfully!"
 
 # Build and push all images
-docker-deploy: docker-build-all docker-push-all ## Build and push all Docker images
+docker-deploy: docker-push-all ## Build and push all Docker images
 	@echo "🚀 Docker deployment complete!"
 	@echo "📝 Images deployed:"
 	@echo "   Backend: $(BACKEND_IMAGE):$(IMAGE_TAG)"
