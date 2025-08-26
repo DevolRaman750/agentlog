@@ -3,9 +3,9 @@
 -- name: CreateFunctionDefinition :exec
 INSERT INTO function_definitions (
     id, user_id, name, display_name, function_group, function_type, description, parameters_schema, 
-    mock_response, endpoint_url, http_method, headers, auth_config, is_active,
+    mock_response, endpoint_url, http_method, headers, auth_config, is_active, is_system_resource,
     required_api_keys, api_key_validation, query_template, result_transformer, fallback_data
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- name: GetFunctionDefinition :one
 SELECT * FROM function_definitions WHERE id = ? AND (user_id = ? OR user_id = 'system');
@@ -32,7 +32,7 @@ ORDER BY function_group ASC, function_type ASC, display_name ASC;
 UPDATE function_definitions 
 SET display_name = ?, function_group = ?, function_type = ?, description = ?, parameters_schema = ?, 
     mock_response = ?, endpoint_url = ?, http_method = ?, 
-    headers = ?, auth_config = ?, is_active = ?, 
+    headers = ?, auth_config = ?, is_active = ?, is_system_resource = ?,
     required_api_keys = ?, api_key_validation = ?, query_template = ?, result_transformer = ?, fallback_data = ?,
     updated_at = CURRENT_TIMESTAMP
 WHERE id = ? AND user_id = ?;

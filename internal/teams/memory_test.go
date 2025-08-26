@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -14,6 +15,10 @@ import (
 	"gogent/internal/auth"
 	"gogent/internal/types"
 
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/mysql"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -563,16 +568,109 @@ func BenchmarkTeamMemoryOperations(b *testing.B) {
 
 // Helper function to set up test database
 func setupTestDB(t *testing.T) *sql.DB {
-	// This would need to be implemented based on your test database setup
-	// For now, return nil to skip tests if database is not available
+	// Get database URL from environment or use default test database
+	testDatabaseURL := os.Getenv("TEST_DATABASE_URL")
+	if testDatabaseURL == "" {
+		// Default test database - you can override with TEST_DATABASE_URL env var
+		testDatabaseURL = "root:@tcp(localhost:3306)/gogent_test?parseTime=true"
+	}
+
+	db, err := sql.Open("mysql", testDatabaseURL)
+	if err != nil {
+		t.Skipf("Skipping test: Could not connect to MySQL test database. Set TEST_DATABASE_URL or ensure MySQL is running. Error: %v", err)
+		return nil
+	}
+
+	// Test the connection
+	if err := db.Ping(); err != nil {
+		t.Skipf("Skipping test: Could not ping MySQL test database: %v", err)
+		return nil
+	}
+
+	// Drop and recreate all tables to ensure clean state
+	_, err = db.Exec("SET FOREIGN_KEY_CHECKS = 0")
+	require.NoError(t, err)
+
+	// Get list of tables and drop them
+	rows, err := db.Query("SHOW TABLES")
+	if err == nil {
+		var tables []string
+		for rows.Next() {
+			var table string
+			if err := rows.Scan(&table); err == nil {
+				tables = append(tables, table)
+			}
+		}
+		rows.Close()
+
+		// Drop all tables
+		for _, table := range tables {
+			_, err = db.Exec("DROP TABLE IF EXISTS " + table)
+			require.NoError(t, err)
+		}
+	}
+
+	_, err = db.Exec("SET FOREIGN_KEY_CHECKS = 1")
+	require.NoError(t, err)
+
+	// Run migrations using golang-migrate (same as production)
+	err = runMigrations(db)
+	if err != nil {
+		t.Skipf("Skipping test: Could not run migrations: %v", err)
+		return nil
+	}
+
+	return db
+}
+
+// runMigrations applies database migrations using golang-migrate
+func runMigrations(db *sql.DB) error {
+	driver, err := mysql.WithInstance(db, &mysql.Config{})
+	if err != nil {
+		return fmt.Errorf("could not create mysql driver: %w", err)
+	}
+
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://../../migrations",
+		"mysql",
+		driver,
+	)
+	if err != nil {
+		return fmt.Errorf("could not create migrate instance: %w", err)
+	}
+
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		return fmt.Errorf("could not run migrations: %w", err)
+	}
+
 	return nil
 }
 
 // Helper function to insert test agent
 func (h *TeamsHandler) insertAgent(agent *types.Agent) error {
-	// This would need to be implemented based on your database structure
-	// For now, return nil to skip tests
-	return nil
+	query := `
+		INSERT INTO agents (id, user_id, team_id, first_name, last_name, template_id, max_tokens_per_day, tokens_used_today, tokens_reset_date, total_executions, lifecycle_status, heartbeat_minutes, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`
+	
+	_, err := h.db.Exec(query,
+		agent.ID,
+		agent.UserID,
+		agent.TeamID,
+		agent.FirstName,
+		agent.LastName,
+		agent.TemplateID,
+		agent.MaxTokensPerDay,
+		agent.TokensUsedToday,
+		agent.TokensResetDate,
+		agent.TotalExecutions,
+		agent.LifecycleStatus,
+		agent.HeartbeatMinutes,
+		agent.CreatedAt,
+		agent.UpdatedAt,
+	)
+	
+	return err
 }
 
 // Test the convertToTeamTask function to prevent nil pointer issues

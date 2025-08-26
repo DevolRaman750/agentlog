@@ -108,9 +108,11 @@ func TestGitHubWorkflowFunctions(t *testing.T) {
 
 		err := integration.handleBranchUpdatePRWorkflow(context.Background(), req, funcDef, args)
 
-		// Should return "not yet implemented" error for now
-		if err == nil || !strings.Contains(err.Error(), "not yet implemented") {
-			t.Errorf("Expected 'not yet implemented' error, got: %v", err)
+		// Should fail with authentication error since we're using a test token
+		if err == nil {
+			t.Error("Expected error with invalid authentication, got nil")
+		} else if !strings.Contains(err.Error(), "Bad credentials") && !strings.Contains(err.Error(), "401") && !strings.Contains(err.Error(), "authentication") {
+			t.Errorf("Expected authentication error, got: %v", err)
 		}
 	})
 }

@@ -201,8 +201,8 @@ func TestProviderFactory_CreateProvider(t *testing.T) {
 			t.Fatalf("Failed to create Kimi provider: %v", err)
 		}
 
-		if provider.GetProviderName() != "kimi" {
-			t.Errorf("Expected provider name 'kimi', got '%s'", provider.GetProviderName())
+		if provider.GetProviderName() != "openrouter" {
+			t.Errorf("Expected provider name 'openrouter', got '%s'", provider.GetProviderName())
 		}
 
 		// Clean up

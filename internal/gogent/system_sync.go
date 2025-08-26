@@ -279,6 +279,10 @@ func (c *Client) syncFunctionToDatabase(ctx context.Context, spec *FunctionSpec)
 		// Generate unique ID for new function
 		functionID := fmt.Sprintf("func-%s-%d", spec.Name, time.Now().Unix())
 
+		// Determine if this should be a system resource
+		// External service functions (slack, github, etc.) should be system resources
+		isSystemResource := spec.Provider == "slack" || spec.Provider == "github" || spec.Provider == "weather" || spec.Provider == "googledrive"
+
 		// Create new function
 		params := db.CreateFunctionDefinitionParams{
 			ID:                functionID,
@@ -295,6 +299,7 @@ func (c *Client) syncFunctionToDatabase(ctx context.Context, spec *FunctionSpec)
 			Headers:           headersJSON,
 			AuthConfig:        defaultAuthConfig,
 			IsActive:          sql.NullBool{Bool: true, Valid: true},
+			IsSystemResource:  sql.NullBool{Bool: isSystemResource, Valid: true},
 			RequiredApiKeys:   requiredApiKeysJSON,
 			ApiKeyValidation:  defaultApiKeyValidation,
 			QueryTemplate:     sql.NullString{Valid: false}, // Empty for now
@@ -308,6 +313,10 @@ func (c *Client) syncFunctionToDatabase(ctx context.Context, spec *FunctionSpec)
 
 		log.Printf("➕ Created new function: %s", spec.Name)
 	} else {
+		// Determine if this should be a system resource
+		// External service functions (slack, github, etc.) should be system resources
+		isSystemResource := spec.Provider == "slack" || spec.Provider == "github" || spec.Provider == "weather" || spec.Provider == "googledrive"
+
 		// Update existing function
 		params := db.UpdateFunctionDefinitionParams{
 			ID:                existingFunc.ID,
@@ -323,6 +332,7 @@ func (c *Client) syncFunctionToDatabase(ctx context.Context, spec *FunctionSpec)
 			Headers:           headersJSON,
 			AuthConfig:        defaultAuthConfig,
 			IsActive:          sql.NullBool{Bool: true, Valid: true},
+			IsSystemResource:  sql.NullBool{Bool: isSystemResource, Valid: true},
 			RequiredApiKeys:   requiredApiKeysJSON,
 			ApiKeyValidation:  defaultApiKeyValidation,
 			QueryTemplate:     sql.NullString{Valid: false}, // Empty for now
