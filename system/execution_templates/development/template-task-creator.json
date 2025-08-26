@@ -9,15 +9,21 @@
   "preferred_configuration_id": "system-config-gemini-pro",
   "function_ids": [
     "team_task_store",
-    "team_task_list",
+    "team_task_list", 
+    "team_task_update",
     "team_task_delete",
     "team_memory_read",
     "team_memory_write",
     "team_memory_search",
     "slack_read_messages",
     "slack_find_channel",
+    "slack_get_channel_info",
+    "slack_search_messages",
+    "slack_get_thread_replies",
     "github_read_issues",
-    "github_read_pull_requests"
+    "github_read_pull_requests",
+    "github_search_code",
+    "github_read_commits"
   ],
   "parameter_names": [],
   "settings": {

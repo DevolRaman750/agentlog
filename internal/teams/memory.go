@@ -1614,3 +1614,531 @@ func convertToTeamTask(taskData interface{}) (*types.TeamTask, error) {
 func generateTaskID() string {
 	return fmt.Sprintf("task_%d", time.Now().UnixNano())
 }
+
+// UpdateTeamTask updates an existing task in the team's task memory
+func (h *TeamsHandler) UpdateTeamTask(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+	log.Printf("🔍 UpdateTeamTask called with teamID: %s, agentID: %s, userID: %s, taskID: %s", teamID, agentID, userID, request.TaskID)
+	
+	// Validate access
+	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
+	if err != nil {
+		log.Printf("❌ UpdateTeamTask access validation failed: %v", err)
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Access denied: %v", err),
+		}, nil
+	}
+	log.Printf("✅ UpdateTeamTask access validation passed")
+
+	// Validate task ID
+	if request.TaskID == "" {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   "Task ID is required for task update",
+		}, nil
+	}
+
+	// Get team memory
+	team, err := h.getTeamByID(teamID, userID)
+	if err != nil {
+		log.Printf("❌ UpdateTeamTask team lookup failed: %v", err)
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Team not found: %v", err),
+		}, nil
+	}
+	log.Printf("✅ UpdateTeamTask team found: %s", team.Name)
+
+	// Initialize memory if needed
+	var memory *types.TeamMemory
+	if team.Memory != nil {
+		memory = team.Memory
+	} else {
+		memory, err = h.InitializeTeamMemory(teamID)
+		if err != nil {
+			return &types.TeamTaskResponse{
+				Success: false,
+				Error:   fmt.Sprintf("Failed to initialize memory: %v", err),
+			}, nil
+		}
+	}
+
+	// Ensure tasks context exists
+	if memory.Contexts.Shared == nil {
+		memory.Contexts.Shared = make(map[string]interface{})
+	}
+	if memory.Contexts.Shared["tasks"] == nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Task '%s' not found - no tasks exist", request.TaskID),
+		}, nil
+	}
+
+	// Get tasks map
+	tasksInterface := memory.Contexts.Shared["tasks"]
+	tasks, ok := tasksInterface.(map[string]interface{})
+	if !ok {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   "Invalid tasks data format",
+		}, nil
+	}
+
+	// Check if task exists
+	existingTaskData, exists := tasks[request.TaskID]
+	if !exists {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Task '%s' not found", request.TaskID),
+		}, nil
+	}
+
+	// Convert existing task to proper format
+	existingTask, err := convertToTeamTask(existingTaskData)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Failed to parse existing task: %v", err),
+		}, nil
+	}
+
+	// Create updated task by copying existing task and applying updates
+	updatedTask := *existingTask
+	now := time.Now()
+	updatedTask.UpdatedAt = now
+
+	// Apply field updates if provided
+	if request.TaskTitle != "" {
+		updatedTask.Title = request.TaskTitle
+	}
+	if request.TaskDescription != "" {
+		updatedTask.Description = request.TaskDescription
+	}
+	if request.Priority != "" {
+		updatedTask.Priority = types.TeamTaskPriority(request.Priority)
+	}
+	if request.EstimatedDuration != "" {
+		updatedTask.EstimatedDuration = request.EstimatedDuration
+	}
+	if len(request.RequiredCapabilities) > 0 {
+		updatedTask.RequiredCapabilities = request.RequiredCapabilities
+	}
+	if len(request.Dependencies) > 0 {
+		updatedTask.Dependencies = request.Dependencies
+	}
+	if request.Deadline != nil {
+		updatedTask.Deadline = request.Deadline
+	}
+
+	// Handle metadata updates
+	if request.Metadata != nil {
+		mergeMetadata := true
+		if mergeValue, ok := request.Metadata["merge_metadata"]; ok {
+			if mergeBool, ok := mergeValue.(bool); ok {
+				mergeMetadata = mergeBool
+			}
+		}
+
+		if mergeMetadata {
+			// Merge with existing metadata
+			if updatedTask.Metadata == nil {
+				updatedTask.Metadata = make(map[string]interface{})
+			}
+			for key, value := range request.Metadata {
+				if key != "merge_metadata" { // Don't store the merge flag
+					updatedTask.Metadata[key] = value
+				}
+			}
+		} else {
+			// Replace all metadata
+			filteredMetadata := make(map[string]interface{})
+			for key, value := range request.Metadata {
+				if key != "merge_metadata" { // Don't store the merge flag
+					filteredMetadata[key] = value
+				}
+			}
+			updatedTask.Metadata = filteredMetadata
+		}
+	}
+
+	// Store updated task
+	tasks[request.TaskID] = updatedTask
+
+	// Update memory metadata
+	memory.Metadata.UpdatedAt = now
+	memory.Metadata.Version = "1.0"
+
+	// Save the team memory
+	err = h.saveTeamMemory(teamID, userID, memory)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Failed to save updated task: %v", err),
+		}, nil
+	}
+
+	log.Printf("✅ Task updated successfully: %s", request.TaskID)
+
+	return &types.TeamTaskResponse{
+		Success: true,
+		Task:    &updatedTask,
+		Data: map[string]interface{}{
+			"message":      "Task updated successfully",
+			"task_id":      request.TaskID,
+			"updated_task": updatedTask,
+		},
+	}, nil
+}
+
+// StoreAgentTask stores a task record in the agent's task memory
+func (h *TeamsHandler) StoreAgentTask(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+	log.Printf("🔍 StoreAgentTask called with teamID: %s, agentID: %s, userID: %s", teamID, agentID, userID)
+	
+	// Validate access
+	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
+	if err != nil {
+		log.Printf("❌ StoreAgentTask access validation failed: %v", err)
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Access denied: %v", err),
+		}, nil
+	}
+	log.Printf("✅ StoreAgentTask access validation passed")
+
+	// Get team memory to access agent memory
+	team, err := h.getTeamByID(teamID, userID)
+	if err != nil {
+		log.Printf("❌ StoreAgentTask team lookup failed: %v", err)
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Team not found: %v", err),
+		}, nil
+	}
+	log.Printf("✅ StoreAgentTask team found: %s", team.Name)
+
+	// Initialize memory if needed
+	var memory *types.TeamMemory
+	if team.Memory != nil {
+		memory = team.Memory
+	} else {
+		memory, err = h.InitializeTeamMemory(teamID)
+		if err != nil {
+			return &types.TeamTaskResponse{
+				Success: false,
+				Error:   fmt.Sprintf("Failed to initialize memory: %v", err),
+			}, nil
+		}
+	}
+
+	// Ensure shared context exists for agent task storage
+	if memory.Contexts.Shared == nil {
+		memory.Contexts.Shared = make(map[string]interface{})
+	}
+
+	// Get context from metadata or default
+	context := "reported_tasks"
+	if contextValue, ok := request.Metadata["context"]; ok {
+		if contextStr, ok := contextValue.(string); ok && contextStr != "" {
+			context = contextStr
+		}
+	}
+
+	// Create agent-specific task storage path
+	agentTasksKey := fmt.Sprintf("agent_tasks_%s", agentID)
+	if memory.Contexts.Shared[agentTasksKey] == nil {
+		memory.Contexts.Shared[agentTasksKey] = make(map[string]interface{})
+	}
+
+	agentTasks := memory.Contexts.Shared[agentTasksKey].(map[string]interface{})
+	
+	// Ensure context exists in agent tasks
+	contextKey := fmt.Sprintf("context_%s", context)
+	if agentTasks[contextKey] == nil {
+		agentTasks[contextKey] = make(map[string]interface{})
+	}
+
+	// Get task ID from request
+	taskID := request.TaskID
+	if taskID == "" {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   "Task ID is required for agent task storage",
+		}, nil
+	}
+
+	// Store the task data (use metadata as the task data)
+	tasks := agentTasks[contextKey].(map[string]interface{})
+	tasks[taskID] = request.Metadata
+
+	// Update memory metadata
+	now := time.Now()
+	memory.Metadata.UpdatedAt = now
+	memory.Metadata.Version = "1.0"
+
+	// Save the team memory
+	err = h.saveTeamMemory(teamID, userID, memory)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Failed to save agent task: %v", err),
+		}, nil
+	}
+
+	log.Printf("✅ Agent task stored successfully: %s in context %s for agent %s", taskID, context, agentID)
+
+	return &types.TeamTaskResponse{
+		Success: true,
+		Data: map[string]interface{}{
+			"message":   "Agent task stored successfully",
+			"task_id":   taskID,
+			"context":   context,
+			"agent_id":  agentID,
+			"task_data": request.Metadata,
+		},
+	}, nil
+}
+
+// ListAgentTasks retrieves tasks from the agent's task memory
+func (h *TeamsHandler) ListAgentTasks(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+	log.Printf("🔍 ListAgentTasks called with teamID: %s, agentID: %s, userID: %s", teamID, agentID, userID)
+	
+	// Validate access
+	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
+	if err != nil {
+		log.Printf("❌ ListAgentTasks access validation failed: %v", err)
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Access denied: %v", err),
+		}, nil
+	}
+
+	// Get team memory
+	team, err := h.getTeamByID(teamID, userID)
+	if err != nil {
+		log.Printf("❌ ListAgentTasks team lookup failed: %v", err)
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Team not found: %v", err),
+		}, nil
+	}
+
+	// Check if memory exists
+	if team.Memory == nil || team.Memory.Contexts.Shared == nil {
+		log.Printf("✅ No agent tasks found - returning empty list")
+		return &types.TeamTaskResponse{
+			Success: true,
+			Data: map[string]interface{}{
+				"tasks":   []interface{}{},
+				"count":   0,
+				"context": "reported_tasks",
+			},
+		}, nil
+	}
+
+	// Get context from metadata or default
+	context := "reported_tasks"
+	if contextValue, ok := request.Metadata["context"]; ok {
+		if contextStr, ok := contextValue.(string); ok && contextStr != "" {
+			context = contextStr
+		}
+	}
+
+	// Check agent-specific task storage
+	agentTasksKey := fmt.Sprintf("agent_tasks_%s", agentID)
+	agentTasksInterface := team.Memory.Contexts.Shared[agentTasksKey]
+	
+	if agentTasksInterface == nil {
+		log.Printf("✅ No agent tasks found - returning empty list")
+		return &types.TeamTaskResponse{
+			Success: true,
+			Data: map[string]interface{}{
+				"tasks":   []interface{}{},
+				"count":   0,
+				"context": context,
+			},
+		}, nil
+	}
+
+	agentTasks, ok := agentTasksInterface.(map[string]interface{})
+	if !ok {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   "Invalid agent tasks data format",
+		}, nil
+	}
+
+	contextKey := fmt.Sprintf("context_%s", context)
+	tasksInterface := agentTasks[contextKey]
+
+	if tasksInterface == nil {
+		log.Printf("✅ No tasks found in context %s - returning empty list", context)
+		return &types.TeamTaskResponse{
+			Success: true,
+			Data: map[string]interface{}{
+				"tasks":   []interface{}{},
+				"count":   0,
+				"context": context,
+			},
+		}, nil
+	}
+
+	tasks, ok := tasksInterface.(map[string]interface{})
+	if !ok {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   "Invalid agent tasks data format",
+		}, nil
+	}
+
+	// Convert to array format and apply filters
+	var taskList []interface{}
+	for taskID, taskData := range tasks {
+		taskRecord := map[string]interface{}{
+			"task_id":   taskID,
+			"task_data": taskData,
+		}
+		taskList = append(taskList, taskRecord)
+	}
+
+	// Apply limit if specified
+	limit := len(taskList)
+	if request.Limit > 0 && request.Limit < limit {
+		limit = request.Limit
+		taskList = taskList[:limit]
+	}
+
+	log.Printf("✅ Found %d agent tasks in context %s", len(taskList), context)
+
+	return &types.TeamTaskResponse{
+		Success: true,
+		Data: map[string]interface{}{
+			"tasks":   taskList,
+			"count":   len(taskList),
+			"context": context,
+		},
+	}, nil
+}
+
+// DeleteAgentTask removes a task from the agent's task memory
+func (h *TeamsHandler) DeleteAgentTask(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+	log.Printf("🔍 DeleteAgentTask called with teamID: %s, agentID: %s, userID: %s, taskID: %s", teamID, agentID, userID, request.TaskID)
+	
+	// Validate access
+	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
+	if err != nil {
+		log.Printf("❌ DeleteAgentTask access validation failed: %v", err)
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Access denied: %v", err),
+		}, nil
+	}
+
+	// Validate task ID
+	if request.TaskID == "" {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   "Task ID is required for agent task deletion",
+		}, nil
+	}
+
+	// Get team memory
+	team, err := h.getTeamByID(teamID, userID)
+	if err != nil {
+		log.Printf("❌ DeleteAgentTask team lookup failed: %v", err)
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Team not found: %v", err),
+		}, nil
+	}
+
+	// Check if memory exists
+	if team.Memory == nil || team.Memory.Contexts.Shared == nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   "Agent task memory not found",
+		}, nil
+	}
+
+	// Get context from metadata or default
+	context := "reported_tasks"
+	if contextValue, ok := request.Metadata["context"]; ok {
+		if contextStr, ok := contextValue.(string); ok && contextStr != "" {
+			context = contextStr
+		}
+	}
+
+	// Check agent-specific task storage
+	agentTasksKey := fmt.Sprintf("agent_tasks_%s", agentID)
+	agentTasksInterface := team.Memory.Contexts.Shared[agentTasksKey]
+	
+	if agentTasksInterface == nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   "Agent task memory not found",
+		}, nil
+	}
+
+	agentTasks, ok := agentTasksInterface.(map[string]interface{})
+	if !ok {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   "Invalid agent tasks data format",
+		}, nil
+	}
+
+	contextKey := fmt.Sprintf("context_%s", context)
+	tasksInterface := agentTasks[contextKey]
+
+	if tasksInterface == nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Agent task context '%s' not found", context),
+		}, nil
+	}
+
+	tasks, ok := tasksInterface.(map[string]interface{})
+	if !ok {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   "Invalid agent tasks data format",
+		}, nil
+	}
+
+	// Check if task exists
+	deletedTask, exists := tasks[request.TaskID]
+	if !exists {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Agent task '%s' not found in context '%s'", request.TaskID, context),
+		}, nil
+	}
+
+	// Delete the task
+	delete(tasks, request.TaskID)
+
+	// Update memory metadata
+	now := time.Now()
+	team.Memory.Metadata.UpdatedAt = now
+
+	// Save the updated memory
+	err = h.saveTeamMemory(teamID, userID, team.Memory)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Failed to save updated agent memory: %v", err),
+		}, nil
+	}
+
+	log.Printf("✅ Agent task deleted successfully: %s from context %s for agent %s", request.TaskID, context, agentID)
+
+	return &types.TeamTaskResponse{
+		Success: true,
+		Data: map[string]interface{}{
+			"message":      "Agent task deleted successfully",
+			"task_id":      request.TaskID,
+			"context":      context,
+			"agent_id":     agentID,
+			"deleted_task": deletedTask,
+		},
+	}, nil
+}

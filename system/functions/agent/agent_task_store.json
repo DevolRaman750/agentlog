@@ -1,0 +1,90 @@
+{
+  "id": "func-agent-task-store",
+  "name": "agent_task_store",
+  "provider": "internal",
+  "function_group": "internal",
+  "display_name": "Agent Task Store",
+  "description": "Store a task record in the agent's personal task tracking system. Used by agents to track their own task-related activities, reporting history, or personal task queue. Each agent maintains separate task storage.",
+  "endpoint": {
+    "path": "/internal/agent/task/store",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "required": [
+      "task_id",
+      "task_data"
+    ],
+    "properties": {
+      "task_id": {
+        "type": "string",
+        "description": "Unique identifier for the task being stored"
+      },
+      "task_data": {
+        "type": "object",
+        "description": "Task data to store (flexible structure based on agent needs)",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Task title"
+          },
+          "status": {
+            "type": "string",
+            "description": "Task status (e.g., pending, completed, error, reported)"
+          },
+          "timestamp": {
+            "type": "string",
+            "description": "Timestamp of when this record was created/updated"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Additional metadata specific to the agent's use case"
+          }
+        }
+      },
+      "context": {
+        "type": "string",
+        "default": "agent_tasks",
+        "description": "Storage context/category for organizing different types of agent tasks"
+      },
+      "overwrite": {
+        "type": "boolean",
+        "default": true,
+        "description": "Whether to overwrite existing task with same ID"
+      }
+    }
+  },
+  "examples": [
+    {
+      "name": "Store reported task",
+      "parameters": {
+        "task_id": "task-123",
+        "task_data": {
+          "title": "Fix login bug",
+          "status": "reported_completed",
+          "timestamp": "2024-01-15T10:30:00Z",
+          "metadata": {
+            "reported_to": "#ai-code-updates",
+            "message_id": "slack-msg-456"
+          }
+        },
+        "context": "reported_tasks"
+      }
+    },
+    {
+      "name": "Store personal task",
+      "parameters": {
+        "task_id": "personal-789",
+        "task_data": {
+          "title": "Review daily reports",
+          "status": "pending", 
+          "timestamp": "2024-01-15T09:00:00Z",
+          "metadata": {
+            "priority": "high",
+            "due_date": "2024-01-15T17:00:00Z"
+          }
+        }
+      }
+    }
+  ]
+}

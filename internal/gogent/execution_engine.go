@@ -2943,7 +2943,7 @@ func (c *Client) createIntelligentResultSummary(functionName string, result map[
 	case "github_read_code":
 		// Return full raw data for github_read_code - no summarization
 		return c.createFullDataSummary(result)
-	case "team_task_list", "team_task_store", "team_task_update", "team_task_delete", "team_task_claim", "team_task_complete", "team_task_error", "team_task_clear", "team_memory_read", "team_memory_search", "team_memory_write", "team_memory_clear":
+	case "team_task_list", "team_task_store", "team_task_update", "team_task_delete", "team_task_claim", "team_task_complete", "team_task_error", "team_task_clear", "team_memory_read", "team_memory_search", "team_memory_write", "team_memory_clear", "agent_task_list", "agent_task_store", "agent_task_delete":
 		// Return full raw data for team functions - no summarization
 		return c.createFullDataSummary(result)
 	default:

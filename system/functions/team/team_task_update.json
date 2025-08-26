@@ -1,0 +1,91 @@
+{
+  "id": "func-team_task_update-1756247400",
+  "name": "team_task_update",
+  "provider": "internal",
+  "display_name": "Team Task: Update",
+  "description": "Update an existing task in the team's shared task memory. Use this to modify task details, change priority, update descriptions, or add metadata without changing the task status. For status changes, use specific functions like team_task_claim, team_task_complete, or team_task_error.",
+  "endpoint": {
+    "path": "/internal/team/task/update",
+    "method": "PUT"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "task_id": {
+        "type": "string",
+        "description": "Unique identifier of the task to update"
+      },
+      "task_title": {
+        "type": "string",
+        "description": "Updated brief, descriptive title for the task"
+      },
+      "task_description": {
+        "type": "string", 
+        "description": "Updated detailed description of what needs to be accomplished"
+      },
+      "priority": {
+        "type": "string",
+        "enum": ["low", "medium", "high", "urgent"],
+        "description": "Updated task priority level"
+      },
+      "estimated_duration": {
+        "type": "string",
+        "description": "Updated estimated time to complete (e.g., '30 minutes', '2 hours', '1 day')"
+      },
+      "required_capabilities": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Updated list of capabilities/functions needed to complete this task"
+      },
+      "dependencies": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Updated list of task IDs that must be completed before this task can start"
+      },
+      "deadline": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Updated deadline for task completion (ISO 8601 format)"
+      },
+      "metadata": {
+        "type": "object",
+        "description": "Additional or updated task-specific data or context"
+      },
+      "merge_metadata": {
+        "type": "boolean",
+        "default": true,
+        "description": "If true, merge new metadata with existing. If false, replace all metadata."
+      }
+    },
+    "required": [
+      "task_id"
+    ]
+  },
+  "examples": [
+    {
+      "name": "Update task priority and deadline",
+      "parameters": {
+        "task_id": "task_abc123",
+        "priority": "urgent",
+        "deadline": "2024-01-20T17:00:00Z",
+        "metadata": {
+          "urgency_reason": "Client request",
+          "updated_by": "Task Creator Agent"
+        }
+      }
+    },
+    {
+      "name": "Update task description and capabilities",
+      "parameters": {
+        "task_id": "task_def456",
+        "task_description": "Updated: Analyze GitHub issues for project XYZ and create summary report with recommendations",
+        "required_capabilities": ["github", "code_analysis", "documentation"],
+        "estimated_duration": "3 hours"
+      }
+    }
+  ]
+}

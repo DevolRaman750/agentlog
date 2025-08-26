@@ -809,3 +809,203 @@ func TestTaskMarshalingUnmarshaling(t *testing.T) {
 	assert.Equal(t, string(originalTask.Status), string(convertedTask.Status))
 	assert.Equal(t, string(originalTask.Priority), string(convertedTask.Priority))
 }
+
+func TestAgentTaskOperations(t *testing.T) {
+	db := setupTestDB(t)
+	if db == nil {
+		t.Skip("Database setup failed")
+	}
+	defer db.Close()
+
+	handler := NewTeamsHandler(db)
+	ctx := context.Background()
+
+	// Create test user
+	testUserEmail := "agent-task@test.com"
+	testUser := &auth.User{
+		ID:       "test-user-agent-task",
+		Username: "agenttaskuser",
+		Email:    &testUserEmail,
+	}
+
+	// Create test team
+	testTeam := &types.Team{
+		ID:               "test-team-agent-task",
+		UserID:           testUser.ID,
+		Name:             "Agent Task Test Team",
+		Description:      nil,
+		MaxTokensPerDay:  50000,
+		TokensUsedToday:  0,
+		TokensResetDate:  time.Now().Format("2006-01-02"),
+		AgentCount:       1,
+		ActiveAgentCount: 1,
+		TotalExecutions:  0,
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
+		MemorySizeBytes:  0,
+	}
+
+	// Create test agent to associate with the team
+	testAgent := &types.Agent{
+		ID:               "test-agent-1",
+		UserID:           testUser.ID,
+		FirstName:        "Agent",
+		LastName:         "TaskAgent",
+		TemplateID:       "test-template",
+		TeamID:           &testTeam.ID,
+		MaxTokensPerDay:  1000,
+		TokensUsedToday:  0,
+		TokensResetDate:  time.Now().Format("2006-01-02"),
+		HeartbeatMinutes: 5,
+		LifecycleStatus:  types.LifecycleStatusActive,
+		TotalExecutions:  0,
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
+		MemorySizeBytes:  0,
+	}
+
+	// Insert test data
+	err := handler.createTeamInDB(*testTeam)
+	require.NoError(t, err)
+
+	err = handler.insertAgent(testAgent)
+	require.NoError(t, err)
+
+	agentID := "test-agent-1"
+	teamID := testTeam.ID
+	userID := testUser.ID
+
+	// Test 1: Store agent task
+	taskID1 := "task-reported-123"
+	storeRequest := &types.TeamTaskRequest{
+		TaskID: taskID1,
+		Metadata: map[string]interface{}{
+			"title":                "Test Task Completion",
+			"last_reported_status": "completed",
+			"reported_at":          time.Now().Format(time.RFC3339),
+			"context":              "reported_tasks",
+			"metadata": map[string]interface{}{
+				"slack_channel": "#ai-code-updates",
+				"artifacts":     []string{"PR#456"},
+			},
+		},
+	}
+
+	storeResponse, err := handler.StoreAgentTask(ctx, teamID, agentID, userID, storeRequest)
+	require.NoError(t, err)
+	assert.True(t, storeResponse.Success)
+	assert.Equal(t, taskID1, storeResponse.Data["task_id"])
+	assert.Equal(t, "reported_tasks", storeResponse.Data["context"])
+
+	// Test 2: List agent tasks
+	listRequest := &types.TeamTaskRequest{
+		Metadata: map[string]interface{}{
+			"context": "reported_tasks",
+		},
+	}
+
+	listResponse, err := handler.ListAgentTasks(ctx, teamID, agentID, userID, listRequest)
+	require.NoError(t, err)
+	assert.True(t, listResponse.Success)
+	
+	tasks := listResponse.Data["tasks"].([]interface{})
+	assert.Equal(t, 1, len(tasks))
+	
+	task := tasks[0].(map[string]interface{})
+	assert.Equal(t, taskID1, task["task_id"])
+	
+	taskData := task["task_data"].(map[string]interface{})
+	assert.Equal(t, "Test Task Completion", taskData["title"])
+
+	// Test 3: Store another task in different context
+	taskID2 := "task-summary-456"
+	storeRequest2 := &types.TeamTaskRequest{
+		TaskID: taskID2,
+		Metadata: map[string]interface{}{
+			"context":             "summary_tracking",
+			"last_summary_time":   time.Now().Format(time.RFC3339),
+			"summary_type":        "daily",
+		},
+	}
+
+	storeResponse2, err := handler.StoreAgentTask(ctx, teamID, agentID, userID, storeRequest2)
+	require.NoError(t, err)
+	assert.True(t, storeResponse2.Success)
+	assert.Equal(t, "summary_tracking", storeResponse2.Data["context"])
+
+	// Test 4: List tasks from different context
+	listRequest2 := &types.TeamTaskRequest{
+		Metadata: map[string]interface{}{
+			"context": "summary_tracking",
+		},
+	}
+
+	listResponse2, err := handler.ListAgentTasks(ctx, teamID, agentID, userID, listRequest2)
+	require.NoError(t, err)
+	assert.True(t, listResponse2.Success)
+	
+	summaryTasks := listResponse2.Data["tasks"].([]interface{})
+	assert.Equal(t, 1, len(summaryTasks))
+
+	// Test 5: Verify contexts are isolated
+	listOriginalContext, err := handler.ListAgentTasks(ctx, teamID, agentID, userID, listRequest)
+	require.NoError(t, err)
+	assert.True(t, listOriginalContext.Success)
+	
+	originalTasks := listOriginalContext.Data["tasks"].([]interface{})
+	assert.Equal(t, 1, len(originalTasks)) // Should still have only 1 task
+
+	// Test 6: Delete agent task
+	deleteRequest := &types.TeamTaskRequest{
+		TaskID: taskID1,
+		Metadata: map[string]interface{}{
+			"context": "reported_tasks",
+		},
+	}
+
+	deleteResponse, err := handler.DeleteAgentTask(ctx, teamID, agentID, userID, deleteRequest)
+	require.NoError(t, err)
+	assert.True(t, deleteResponse.Success)
+	assert.Equal(t, taskID1, deleteResponse.Data["task_id"])
+
+	// Test 7: Verify task was deleted
+	listAfterDelete, err := handler.ListAgentTasks(ctx, teamID, agentID, userID, listRequest)
+	require.NoError(t, err)
+	assert.True(t, listAfterDelete.Success)
+	
+	tasksAfterDelete := listAfterDelete.Data["tasks"].([]interface{})
+	assert.Equal(t, 0, len(tasksAfterDelete))
+
+	// Test 8: Try to delete non-existent task
+	deleteNonExistent := &types.TeamTaskRequest{
+		TaskID: "non-existent-task",
+		Metadata: map[string]interface{}{
+			"context": "reported_tasks",
+		},
+	}
+
+	deleteNonExistentResponse, err := handler.DeleteAgentTask(ctx, teamID, agentID, userID, deleteNonExistent)
+	require.NoError(t, err)
+	assert.False(t, deleteNonExistentResponse.Success)
+	assert.Contains(t, deleteNonExistentResponse.Error, "not found")
+
+	// Test 9: Test with empty context (should use default)
+	taskID3 := "task-default-context"
+	storeDefaultContext := &types.TeamTaskRequest{
+		TaskID:   taskID3,
+		Metadata: map[string]interface{}{
+			"title": "Default Context Task",
+		},
+	}
+
+	storeDefaultResponse, err := handler.StoreAgentTask(ctx, teamID, agentID, userID, storeDefaultContext)
+	require.NoError(t, err)
+	assert.True(t, storeDefaultResponse.Success)
+	assert.Equal(t, "reported_tasks", storeDefaultResponse.Data["context"]) // Should default to reported_tasks
+
+	// Test 10: Test access control (wrong team ID)
+	wrongTeamResponse, err := handler.StoreAgentTask(ctx, "wrong-team-id", agentID, userID, storeRequest)
+	require.NoError(t, err)
+	assert.False(t, wrongTeamResponse.Success)
+	assert.Contains(t, wrongTeamResponse.Error, "Team not found")
+}
