@@ -18,6 +18,7 @@ interface TeamCardProps {
   onTeamUpdate: () => void;
   onTeamPress?: (team: Team) => void;
   onMemoryPress?: (team: Team) => void;
+  onNavigateToTeam?: (teamId: string, teamName: string) => void;
 }
 
 const TeamCard: React.FC<TeamCardProps> = ({ 
@@ -25,7 +26,8 @@ const TeamCard: React.FC<TeamCardProps> = ({
   agents, 
   onTeamUpdate,
   onTeamPress,
-  onMemoryPress
+  onMemoryPress,
+  onNavigateToTeam
 }) => {
   // Early return if team is not provided
   if (!team) {
@@ -172,6 +174,17 @@ const TeamCard: React.FC<TeamCardProps> = ({
         
         {/* Team Controls */}
         <View style={styles.controls}>
+          {/* View Team Button */}
+          {onNavigateToTeam && (
+            <TouchableOpacity
+              style={[styles.controlButton, styles.viewTeamButton]}
+              onPress={() => onNavigateToTeam(team.id, team.name)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="eye" size={16} color="#007AFF" />
+            </TouchableOpacity>
+          )}
+          
           {/* Team Memory Button */}
           <TouchableOpacity
             style={[styles.controlButton, styles.memoryButton]}
@@ -334,6 +347,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginLeft: 8,
     borderWidth: 1,
+  },
+  viewTeamButton: {
+    borderColor: '#007AFF',
+    backgroundColor: '#F0F8FF',
   },
   memoryButton: {
     borderColor: '#FF6B35',

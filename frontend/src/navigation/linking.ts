@@ -53,6 +53,12 @@ export const linking: LinkingOptions<TabParamList> = {
         path: '/marketplace',
         exact: true,
       },
+      TeamDetail: {
+        path: '/team/:teamId',
+        parse: {
+          teamId: (teamId: string) => teamId,
+        },
+      },
     },
     initialRouteName: 'Account', // Default fallback, will be overridden by getInitialRouteName
   },
@@ -119,6 +125,11 @@ export const getInitialRouteName = (isAuthenticated: boolean, isLoading: boolean
       '/marketplace': 'Marketplace',
     };
 
+    // Handle team routes with dynamic IDs
+    if (path.startsWith('/team/')) {
+      return 'TeamDetail' as keyof TabParamList;
+    }
+
     const routeName = pathToRoute[path];
     if (routeName) {
       // Don't redirect yet - just return the current route
@@ -163,6 +174,11 @@ export const getInitialRouteName = (isAuthenticated: boolean, isLoading: boolean
       '/agents': 'Agents',
       '/marketplace': 'Marketplace',
     };
+
+    // Handle team routes with dynamic IDs
+    if (path.startsWith('/team/')) {
+      return 'TeamDetail' as keyof TabParamList;
+    }
 
     const routeName = pathToRoute[path];
     if (routeName) {

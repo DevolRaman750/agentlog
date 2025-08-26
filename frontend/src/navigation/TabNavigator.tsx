@@ -30,6 +30,7 @@ import AgentMarketplaceScreen from '../screens/AgentMarketplaceScreen';
 import TemplateTokenManagerScreen from '../screens/TemplateTokenManagerScreen';
 import DocumentationScreen from '../screens/DocumentationScreen';
 import DocumentationNavigator from './DocumentationNavigator';
+import TeamDetailScreen from '../screens/TeamDetailScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -276,6 +277,13 @@ const TabNavigator = () => {
       <Tab.Screen 
         name="TemplateTokenManager" 
         component={withResponsiveLayout(TemplateTokenManagerScreen)}
+        options={{
+          tabBarStyle: { display: 'none' }
+        }}
+      />
+      <Tab.Screen 
+        name="TeamDetail" 
+        component={withResponsiveLayout(TeamDetailScreen)}
         options={{
           tabBarStyle: { display: 'none' }
         }}

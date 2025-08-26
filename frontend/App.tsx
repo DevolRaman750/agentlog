@@ -26,6 +26,9 @@ export default function App() {
         'History': 'History - GoGent AI Platform',
         'Database': 'Database - GoGent AI Platform',
         'Account': 'Account - GoGent AI Platform',
+        'Agents': 'Agents - GoGent AI Platform',
+        'Marketplace': 'Marketplace - GoGent AI Platform',
+        'TeamDetail': 'Team - GoGent AI Platform',
         'More': 'Navigation - GoGent AI Platform',
       };
       

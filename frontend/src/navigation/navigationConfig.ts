@@ -201,4 +201,5 @@ export const routeToPathMap: Record<string, string> = {
   'Agents': '/agents',
   'Marketplace': '/marketplace',
   'Account': '/account',
+  'TeamDetail': '/team',
 };

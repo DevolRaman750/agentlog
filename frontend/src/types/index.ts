@@ -19,6 +19,7 @@ export type TabParamList = {
   Marketplace: undefined;
   More: undefined;
   TemplateTokenManager: { templateId: string; templateName: string };
+  TeamDetail: { teamId: string; teamName?: string };
 };
 
 export interface GeminiClientConfig {

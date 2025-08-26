@@ -477,6 +477,10 @@ const AgentsScreen: React.FC = () => {
     status: 'STANDBY'
   });
 
+  const handleNavigateToTeam = (teamId: string, teamName: string) => {
+    navigation.navigate('TeamDetail', { teamId, teamName });
+  };
+
   const renderTeamSection = ({ item: teamGroup }: { item: TeamWithAgents }) => (
     <View key={teamGroup.team.id} style={styles.teamSection}>
       <TeamCard
@@ -484,6 +488,7 @@ const AgentsScreen: React.FC = () => {
         agents={teamGroup.agents}
         onTeamUpdate={loadAgents}
         onMemoryPress={handleTeamMemoryPress}
+        onNavigateToTeam={handleNavigateToTeam}
       />
       <View style={styles.teamAgentsContainer}>
         {teamGroup.agents.map(agent => (

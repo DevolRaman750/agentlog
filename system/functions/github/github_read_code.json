@@ -6,7 +6,7 @@
   "display_name": "GitHub Read Code",
   "description": "Read files and directory contents from a GitHub repository. Returns file content AND the SHA hash needed for github_create_update_file. Start by exploring the repository structure with an empty path to see what directories and files actually exist before accessing specific paths. If a path doesn't exist, use github_search_code to find similar files or try common alternatives.",
   "endpoint": {
-    "path": "/repos/{owner}/{repo}/contents/{path}",
+    "path": "/repos/{owner}/{repo}/contents",
     "method": "GET"
   },
   "parameters": {

@@ -131,19 +131,21 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
               />
               <Text style={styles.statusText}>{agent.lifecycleStatus}</Text>
             </View>
-            {agent.memory && (
-              <TouchableOpacity 
-                style={styles.memoryIndicator}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  onViewMemory();
-                }}
-                activeOpacity={0.7}
-                hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-              >
-                <Ionicons name="library" size={12} color="#34C759" />
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity 
+              style={[styles.memoryIndicator, !agent.memory && styles.memoryIndicatorEmpty]}
+              onPress={(e) => {
+                e.stopPropagation();
+                onViewMemory();
+              }}
+              activeOpacity={0.7}
+              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+            >
+              <Ionicons 
+                name="library" 
+                size={12} 
+                color={agent.memory ? "#34C759" : "#999"} 
+              />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -187,19 +189,26 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
               />
             </TouchableOpacity>
 
-            {agent.memory && (
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.memoryAction, styles.actionButtonCompact]}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  onViewMemory();
-                }}
-                activeOpacity={0.7}
-                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-              >
-                <Ionicons name="library" size={14} color="#34C759" />
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity 
+              style={[
+                styles.actionButton, 
+                styles.memoryAction, 
+                styles.actionButtonCompact,
+                !agent.memory && styles.memoryActionEmpty
+              ]}
+              onPress={(e) => {
+                e.stopPropagation();
+                onViewMemory();
+              }}
+              activeOpacity={0.7}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            >
+              <Ionicons 
+                name="library" 
+                size={14} 
+                color={agent.memory ? "#34C759" : "#999"} 
+              />
+            </TouchableOpacity>
             
             <TouchableOpacity 
               style={[styles.actionButton, styles.actionButtonCompact]}
@@ -279,19 +288,26 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
             </TouchableOpacity>
 
             {/* Memory */}
-            {agent.memory && (
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.memoryAction, isMobile && styles.actionButtonMobile]}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  onViewMemory();
-                }}
-                activeOpacity={0.7}
-                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-              >
-                <Ionicons name="library" size={isMobile ? 14 : 16} color="#34C759" />
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity 
+              style={[
+                styles.actionButton, 
+                styles.memoryAction, 
+                isMobile && styles.actionButtonMobile,
+                !agent.memory && styles.memoryActionEmpty
+              ]}
+              onPress={(e) => {
+                e.stopPropagation();
+                onViewMemory();
+              }}
+              activeOpacity={0.7}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            >
+              <Ionicons 
+                name="library" 
+                size={isMobile ? 14 : 16} 
+                color={agent.memory ? "#34C759" : "#999"} 
+              />
+            </TouchableOpacity>
 
             {/* Edit */}
             <TouchableOpacity 
@@ -517,6 +533,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#34C759',
   },
+  memoryIndicatorEmpty: {
+    backgroundColor: '#f5f5f5',
+    borderColor: '#ddd',
+  },
   quickActions: {
     flexDirection: 'row',
     gap: 8,
@@ -571,6 +591,10 @@ const styles = StyleSheet.create({
   memoryAction: {
     backgroundColor: '#f0fff4',
     borderColor: '#c6f6d5',
+  },
+  memoryActionEmpty: {
+    backgroundColor: '#f5f5f5',
+    borderColor: '#e0e0e0',
   },
   disabledAction: {
     backgroundColor: '#f5f5f5',
