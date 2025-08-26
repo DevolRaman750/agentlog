@@ -1266,6 +1266,8 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 				taskResponse, err = teamsHandler.ErrorTeamTask(ctx, teamID, agentID, userID, taskRequest)
 			case "team_task_clear":
 				taskResponse, err = teamsHandler.ClearTeamTasks(ctx, teamID, agentID, userID, taskRequest)
+			case "team_task_delete":
+				taskResponse, err = teamsHandler.DeleteTeamTask(ctx, teamID, agentID, userID, taskRequest)
 			default:
 				return nil, fmt.Errorf("unsupported team task function: %s", functionName)
 			}

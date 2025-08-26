@@ -229,7 +229,19 @@ k8s-delete: ## Delete all Kubernetes resources
 # ==================== COMPLETE DEPLOYMENT WORKFLOW ====================
 
 # Complete deployment: build, push, update K8s, deploy, and wait
-deploy-all: docker-deploy k8s-force-update-images k8s-wait ## Complete deployment workflow with forced image updates
+deploy-all: ## Complete deployment workflow with forced image updates
+	@echo "🚀 Starting complete deployment workflow..."
+	@echo "📝 Will deploy images with tag: $(IMAGE_TAG)"
+	@echo ""
+	@echo "Step 1: Building and pushing Docker images..."
+	@$(MAKE) docker-deploy IMAGE_TAG="$(IMAGE_TAG)"
+	@echo ""
+	@echo "Step 2: Updating Kubernetes deployments..."
+	@$(MAKE) k8s-force-update-images IMAGE_TAG="$(IMAGE_TAG)"
+	@echo ""
+	@echo "Step 3: Waiting for rollout to complete..."
+	@$(MAKE) k8s-wait
+	@echo ""
 	@echo "🎉 Complete deployment finished!"
 	@echo "📝 Deployed:"
 	@echo "   Backend: $(BACKEND_IMAGE):$(IMAGE_TAG)"

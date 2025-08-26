@@ -1479,6 +1479,105 @@ func (h *TeamsHandler) ClearTeamTasks(ctx context.Context, teamID, agentID, user
 	}, nil
 }
 
+// DeleteTeamTask deletes a specific task from the team's task memory by task ID
+func (h *TeamsHandler) DeleteTeamTask(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+	// Validate access
+	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Access denied: %v", err),
+		}, nil
+	}
+
+	if request.TaskID == "" {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   "task_id is required",
+		}, nil
+	}
+
+	// Get team memory
+	team, err := h.getTeamByID(teamID, userID)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Team not found: %v", err),
+		}, nil
+	}
+
+	// Initialize memory if needed
+	var memory *types.TeamMemory
+	if team.Memory != nil {
+		memory = team.Memory
+	} else {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   "Team has no tasks to delete",
+		}, nil
+	}
+
+	// Get current tasks map
+	if memory.Contexts.Shared == nil || memory.Contexts.Shared["tasks"] == nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   "No tasks found to delete",
+		}, nil
+	}
+
+	tasksMap := memory.Contexts.Shared["tasks"].(map[string]interface{})
+
+	// Check if task exists
+	taskData, exists := tasksMap[request.TaskID]
+	if !exists {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Task with ID %s not found", request.TaskID),
+		}, nil
+	}
+
+	// Convert task data to get task info for response
+	deletedTask, err := convertToTeamTask(taskData)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Failed to process task data: %v", err),
+		}, nil
+	}
+
+	// Delete the task
+	delete(tasksMap, request.TaskID)
+	memory.Contexts.Shared["tasks"] = tasksMap
+	memory.Metadata.UpdatedAt = time.Now()
+
+	// Save to database
+	err = h.saveTeamMemory(teamID, userID, memory)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Failed to save team memory: %v", err),
+		}, nil
+	}
+
+	reason := request.Reason
+	if reason == "" {
+		reason = "Task deleted via team_task_delete function"
+	}
+
+	log.Printf("✅ Task deleted successfully: %s from team %s. Reason: %s", request.TaskID, teamID, reason)
+
+	return &types.TeamTaskResponse{
+		Success: true,
+		Task:    deletedTask,
+		Data: map[string]interface{}{
+			"message":      "Task deleted successfully",
+			"task_id":      request.TaskID,
+			"deleted_task": deletedTask,
+			"reason":       reason,
+		},
+	}, nil
+}
+
 // Helper function to convert task data from map[string]interface{} to TeamTask
 func convertToTeamTask(taskData interface{}) (*types.TeamTask, error) {
 	// If it's already a pointer to TeamTask, return it
