@@ -88,8 +88,6 @@
       }
     },
     "required": [
-      "team_id",
-      "agent_id",
       "task_id",
       "completion_status"
     ]

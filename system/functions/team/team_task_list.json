@@ -81,10 +81,7 @@
         "description": "Whether to include completed tasks in results"
       }
     },
-    "required": [
-      "team_id",
-      "agent_id"
-    ]
+    "required": []
   },
   "examples": [
     {

@@ -76,8 +76,6 @@
       }
     },
     "required": [
-      "team_id",
-      "agent_id",
       "task_id",
       "error_type",
       "error_message"

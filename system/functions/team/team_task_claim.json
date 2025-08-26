@@ -54,10 +54,7 @@
         "description": "When the agent plans to start working on this task (ISO 8601 format)"
       }
     },
-    "required": [
-      "team_id",
-      "agent_id"
-    ]
+    "required": []
   },
   "examples": [
     {

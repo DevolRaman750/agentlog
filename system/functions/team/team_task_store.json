@@ -11,14 +11,6 @@
   "parameters": {
     "type": "object",
     "properties": {
-      "team_id": {
-        "type": "string",
-        "description": "Team ID to store task for. The requesting agent must be a member of this team."
-      },
-      "agent_id": {
-        "type": "string",
-        "description": "Agent ID creating the task. Must be a member of the specified team."
-      },
       "task_title": {
         "type": "string",
         "description": "Brief, descriptive title for the task"
@@ -62,8 +54,6 @@
       }
     },
     "required": [
-      "team_id",
-      "agent_id", 
       "task_title",
       "task_description"
     ]
@@ -72,8 +62,6 @@
     {
       "name": "Store GitHub issue analysis task",
       "parameters": {
-        "team_id": "team_123",
-        "agent_id": "agent_456",
         "task_title": "Analyze GitHub issues for project XYZ",
         "task_description": "Review all open issues in project XYZ repository, categorize by priority, and identify patterns",
         "priority": "high",
@@ -88,8 +76,6 @@
     {
       "name": "Store code review task with dependencies",
       "parameters": {
-        "team_id": "team_123",
-        "agent_id": "agent_456",
         "task_title": "Review and merge PR #42",
         "task_description": "Perform code review on pull request #42, test changes, and merge if approved",
         "priority": "medium",

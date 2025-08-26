@@ -17,15 +17,13 @@ spec:
     spec:
       containers:
         - name: backend
-          image: registry.digitalocean.com/resourceloop/agentlog/backend:ac95978-20250730-135812
+          image: registry.digitalocean.com/resourceloop/agentlog/backend:0ffdb9e-20250825-200456
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
           envFrom:
             - configMapRef:
                 name: agentlog-config
-            - secretRef:
-                name: agentlog-backend-secrets
           readinessProbe:
             httpGet:
               path: /health

@@ -62,8 +62,6 @@
       }
     },
     "required": [
-      "team_id",
-      "agent_id",
       "action"
     ]
   },

@@ -1005,6 +1005,13 @@ type TeamTaskRequest struct {
 	WorkaroundSuggestions []string              `json:"workaround_suggestions,omitempty"`
 	RequiresHumanIntervention bool              `json:"requires_human_intervention,omitempty"`
 	ContextData          map[string]interface{} `json:"context_data,omitempty"`
+	// Team Task Clear fields
+	Action               string                 `json:"action,omitempty"`
+	OlderThanDays        int                    `json:"older_than_days,omitempty"`
+	DuplicateCriteria    string                 `json:"duplicate_criteria,omitempty"`
+	KeepNewest           bool                   `json:"keep_newest,omitempty"`
+	Confirmation         bool                   `json:"confirmation,omitempty"`
+	Reason               string                 `json:"reason,omitempty"`
 }
 
 // TaskFilterCriteria represents filtering criteria for task queries

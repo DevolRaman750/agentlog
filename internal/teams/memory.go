@@ -3,6 +3,7 @@ package teams
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -564,23 +565,29 @@ func (h *TeamsHandler) compactMemory(memory *types.TeamMemory) error {
 
 // StoreTeamTask stores a new task in the team's task memory
 func (h *TeamsHandler) StoreTeamTask(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+	log.Printf("🔍 StoreTeamTask called with teamID: %s, agentID: %s, userID: %s", teamID, agentID, userID)
+	
 	// Validate access
 	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
 	if err != nil {
+		log.Printf("❌ StoreTeamTask access validation failed: %v", err)
 		return &types.TeamTaskResponse{
 			Success: false,
 			Error:   fmt.Sprintf("Access denied: %v", err),
 		}, nil
 	}
+	log.Printf("✅ StoreTeamTask access validation passed")
 
 	// Get team memory
 	team, err := h.getTeamByID(teamID, userID)
 	if err != nil {
+		log.Printf("❌ StoreTeamTask team lookup failed: %v", err)
 		return &types.TeamTaskResponse{
 			Success: false,
 			Error:   fmt.Sprintf("Team not found: %v", err),
 		}, nil
 	}
+	log.Printf("✅ StoreTeamTask team found: %s", team.Name)
 
 	// Initialize memory if needed
 	var memory *types.TeamMemory
@@ -1153,6 +1160,277 @@ func (h *TeamsHandler) ErrorTeamTask(ctx context.Context, teamID, agentID, userI
 			"task_id":    task.ID,
 			"error_type": request.ErrorType,
 			"is_retryable": request.IsRetryable,
+		},
+	}, nil
+}
+
+// ClearTeamTasks clears, deletes, or manages team tasks for consolidation
+func (h *TeamsHandler) ClearTeamTasks(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+	// Validate access
+	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Access denied: %v", err),
+		}, nil
+	}
+
+	// Get team memory
+	team, err := h.getTeamByID(teamID, userID)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Team not found: %v", err),
+		}, nil
+	}
+
+	// Initialize memory if needed
+	var memory *types.TeamMemory
+	if team.Memory != nil {
+		memory = team.Memory
+	} else {
+		memory, err = h.InitializeTeamMemory(teamID)
+		if err != nil {
+			return &types.TeamTaskResponse{
+				Success: false,
+				Error:   fmt.Sprintf("Failed to initialize memory: %v", err),
+			}, nil
+		}
+	}
+
+	// Get current tasks
+	var tasks []types.TeamTask
+	if memory.Tasks != nil {
+		tasks = memory.Tasks
+	}
+
+	action := request.Action
+	if action == "" {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   "Action is required",
+		}, nil
+	}
+
+	var tasksRemoved []types.TeamTask
+	var tasksKept []types.TeamTask
+
+	switch action {
+	case "clear_all":
+		if !request.Confirmation {
+			return &types.TeamTaskResponse{
+				Success: false,
+				Error:   "Confirmation required for clear_all action",
+			}, nil
+		}
+		tasksRemoved = tasks
+		tasksKept = []types.TeamTask{}
+
+	case "clear_completed":
+		for _, task := range tasks {
+			if task.Status == "completed" {
+				tasksRemoved = append(tasksRemoved, task)
+			} else {
+				tasksKept = append(tasksKept, task)
+			}
+		}
+
+	case "clear_failed":
+		for _, task := range tasks {
+			if task.Status == "failed" {
+				tasksRemoved = append(tasksRemoved, task)
+			} else {
+				tasksKept = append(tasksKept, task)
+			}
+		}
+
+	case "clear_cancelled":
+		for _, task := range tasks {
+			if task.Status == "cancelled" {
+				tasksRemoved = append(tasksRemoved, task)
+			} else {
+				tasksKept = append(tasksKept, task)
+			}
+		}
+
+	case "delete_task":
+		if request.TaskID == "" {
+			return &types.TeamTaskResponse{
+				Success: false,
+				Error:   "task_id is required for delete_task action",
+			}, nil
+		}
+		for _, task := range tasks {
+			if task.ID == request.TaskID {
+				tasksRemoved = append(tasksRemoved, task)
+			} else {
+				tasksKept = append(tasksKept, task)
+			}
+		}
+
+	case "clear_by_status":
+		if len(request.StatusFilter) == 0 {
+			return &types.TeamTaskResponse{
+				Success: false,
+				Error:   "status_filter is required for clear_by_status action",
+			}, nil
+		}
+		statusMap := make(map[string]bool)
+		for _, status := range request.StatusFilter {
+			statusMap[status] = true
+		}
+		for _, task := range tasks {
+			if statusMap[task.Status] {
+				tasksRemoved = append(tasksRemoved, task)
+			} else {
+				tasksKept = append(tasksKept, task)
+			}
+		}
+
+	case "clear_by_priority":
+		if len(request.PriorityFilter) == 0 {
+			return &types.TeamTaskResponse{
+				Success: false,
+				Error:   "priority_filter is required for clear_by_priority action",
+			}, nil
+		}
+		priorityMap := make(map[string]bool)
+		for _, priority := range request.PriorityFilter {
+			priorityMap[priority] = true
+		}
+		for _, task := range tasks {
+			if priorityMap[task.Priority] {
+				// Apply age filter if specified
+				if request.OlderThanDays > 0 {
+					daysDiff := int(time.Since(task.CreatedAt).Hours() / 24)
+					if daysDiff >= request.OlderThanDays {
+						tasksRemoved = append(tasksRemoved, task)
+					} else {
+						tasksKept = append(tasksKept, task)
+					}
+				} else {
+					tasksRemoved = append(tasksRemoved, task)
+				}
+			} else {
+				tasksKept = append(tasksKept, task)
+			}
+		}
+
+	case "clear_old_tasks":
+		if request.OlderThanDays <= 0 {
+			return &types.TeamTaskResponse{
+				Success: false,
+				Error:   "older_than_days is required for clear_old_tasks action",
+			}, nil
+		}
+		for _, task := range tasks {
+			daysDiff := int(time.Since(task.CreatedAt).Hours() / 24)
+			if daysDiff >= request.OlderThanDays {
+				tasksRemoved = append(tasksRemoved, task)
+			} else {
+				tasksKept = append(tasksKept, task)
+			}
+		}
+
+	case "delete_duplicates":
+		criteria := request.DuplicateCriteria
+		if criteria == "" {
+			criteria = "title"
+		}
+		keepNewest := true
+		if !request.KeepNewest {
+			keepNewest = false
+		}
+
+		// Group tasks by duplicate criteria
+		groups := make(map[string][]types.TeamTask)
+		for _, task := range tasks {
+			var key string
+			switch criteria {
+			case "title":
+				key = strings.ToLower(strings.TrimSpace(task.Title))
+			case "title_and_description":
+				key = strings.ToLower(strings.TrimSpace(task.Title + "|" + task.Description))
+			case "exact_match":
+				key = strings.ToLower(strings.TrimSpace(task.Title + "|" + task.Description + "|" + task.Priority))
+			default:
+				key = strings.ToLower(strings.TrimSpace(task.Title))
+			}
+			groups[key] = append(groups[key], task)
+		}
+
+		// For each group with duplicates, keep one and mark others for removal
+		for _, group := range groups {
+			if len(group) > 1 {
+				// Sort by creation time
+				var keepTask types.TeamTask
+				if keepNewest {
+					// Keep the newest task
+					for i, task := range group {
+						if i == 0 || task.CreatedAt.After(keepTask.CreatedAt) {
+							keepTask = task
+						}
+					}
+				} else {
+					// Keep the oldest task
+					for i, task := range group {
+						if i == 0 || task.CreatedAt.Before(keepTask.CreatedAt) {
+							keepTask = task
+						}
+					}
+				}
+				
+				// Add all others to removal list
+				for _, task := range group {
+					if task.ID != keepTask.ID {
+						tasksRemoved = append(tasksRemoved, task)
+					} else {
+						tasksKept = append(tasksKept, task)
+					}
+				}
+			} else {
+				// Single task, keep it
+				tasksKept = append(tasksKept, group[0])
+			}
+		}
+
+	default:
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Unknown action: %s", action),
+		}, nil
+	}
+
+	// Update memory with remaining tasks
+	memory.Tasks = tasksKept
+	memory.Metadata.UpdatedAt = time.Now()
+
+	// Update team in database
+	err = h.updateTeamMemory(teamID, memory)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Failed to update team memory: %v", err),
+		}, nil
+	}
+
+	// Log the action
+	reason := request.Reason
+	if reason == "" {
+		reason = fmt.Sprintf("Team task %s operation", action)
+	}
+	log.Printf("✅ Team task clear action '%s' completed: removed %d tasks, kept %d tasks. Reason: %s", 
+		action, len(tasksRemoved), len(tasksKept), reason)
+
+	return &types.TeamTaskResponse{
+		Success: true,
+		Message: fmt.Sprintf("Successfully completed %s action. Removed %d tasks, kept %d tasks.", action, len(tasksRemoved), len(tasksKept)),
+		Data: map[string]interface{}{
+			"action":        action,
+			"tasks_removed": len(tasksRemoved),
+			"tasks_kept":    len(tasksKept),
+			"removed_tasks": tasksRemoved,
+			"reason":        reason,
 		},
 	}, nil
 }

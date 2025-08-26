@@ -861,7 +861,13 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 
 	// Extract agent ID from args or current execution context
 	agentID, ok := args["agent_id"].(string)
-	if !ok {
+	// Treat placeholder/dummy values as invalid
+	isDummyAgent := agentID == "unknown" || agentID == "my_agent_id" || strings.HasPrefix(agentID, "dummy_")
+	log.Printf("🔍 DEBUG: agentID='%s', ok=%v, isDummyAgent=%v", agentID, ok, isDummyAgent)
+	if !ok || isDummyAgent {
+		if isDummyAgent {
+			log.Printf("🔍 DEBUG: agent_id has placeholder value '%s', looking up from execution context", agentID)
+		}
 		log.Printf("🔍 DEBUG: agent_id not found in args, checking execution context...")
 		// Try to get agent ID from current execution run
 		if c.currentExecutionRunID != nil && c.currentUserID != "" {
@@ -907,10 +913,22 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 
 	// Check if this is a team memory or team task function
 	if strings.HasPrefix(functionName, "team_memory_") || strings.HasPrefix(functionName, "team_task_") {
-		// Extract team ID from args
-		teamID, ok := args["team_id"].(string)
-		if !ok || teamID == "" {
-			return nil, fmt.Errorf("TEAM FUNCTION ERROR: %s requires a valid team_id parameter", functionName)
+		// For team functions, ALWAYS get team_id from agent's team membership
+		// No longer accept team_id or agent_id as parameters - infer from execution context
+		var teamID string
+		if agentID != "" {
+			log.Printf("🔍 Looking up team_id for agent: %s", agentID)
+			query := `SELECT team_id FROM agents WHERE id = ? AND user_id = ?`
+			var teamIDNullString sql.NullString
+			if queryErr := c.db.QueryRowContext(ctx, query, agentID, c.currentUserID).Scan(&teamIDNullString); queryErr == nil && teamIDNullString.Valid {
+				teamID = teamIDNullString.String
+				log.Printf("🔧 Found team_id from agent lookup: %s", teamID)
+			} else {
+				log.Printf("🔍 Failed to get team_id from agent lookup: %v", queryErr)
+				return nil, fmt.Errorf("TEAM FUNCTION ERROR: %s requires agent to be assigned to a team (agent: %s)", functionName, agentID)
+			}
+		} else {
+			return nil, fmt.Errorf("TEAM FUNCTION ERROR: %s requires valid agent context", functionName)
 		}
 		
 		log.Printf("🔧 Team function %s - using team_id: %s, agent_id: %s", functionName, teamID, agentID)
@@ -995,11 +1013,13 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 
 		} else if strings.HasPrefix(functionName, "team_task_") {
 			// Handle team task functions
+			log.Printf("🔍 Entering team task function path for: %s", functionName)
 			// Convert args to TeamTaskRequest
 			taskRequest := &types.TeamTaskRequest{
 				TeamID:  teamID,
 				AgentID: agentID,
 			}
+			log.Printf("🔍 Created TeamTaskRequest with TeamID=%s, AgentID=%s", teamID, agentID)
 
 			// Map function arguments to task request fields
 			if taskTitle, ok := args["task_title"].(string); ok {
@@ -1208,13 +1228,34 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 				}
 				taskRequest.FilterCriteria = criteria
 			}
+			// Team task clear fields
+			if action, ok := args["action"].(string); ok {
+				taskRequest.Action = action
+			}
+			if olderThanDays, ok := args["older_than_days"].(float64); ok {
+				taskRequest.OlderThanDays = int(olderThanDays)
+			}
+			if duplicateCriteria, ok := args["duplicate_criteria"].(string); ok {
+				taskRequest.DuplicateCriteria = duplicateCriteria
+			}
+			if keepNewest, ok := args["keep_newest"].(bool); ok {
+				taskRequest.KeepNewest = keepNewest
+			}
+			if confirmation, ok := args["confirmation"].(bool); ok {
+				taskRequest.Confirmation = confirmation
+			}
+			if reason, ok := args["reason"].(string); ok {
+				taskRequest.Reason = reason
+			}
 
 			var taskResponse *types.TeamTaskResponse
 			var err error
 
 			switch functionName {
 			case "team_task_store":
+				log.Printf("🔍 About to call StoreTeamTask with teamID=%s, agentID=%s, userID=%s", teamID, agentID, userID)
 				taskResponse, err = teamsHandler.StoreTeamTask(ctx, teamID, agentID, userID, taskRequest)
+				log.Printf("🔍 StoreTeamTask returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
 			case "team_task_claim":
 				taskResponse, err = teamsHandler.ClaimTeamTask(ctx, teamID, agentID, userID, taskRequest)
 			case "team_task_complete":
@@ -1223,6 +1264,8 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 				taskResponse, err = teamsHandler.ListTeamTasks(ctx, teamID, agentID, userID, taskRequest)
 			case "team_task_error":
 				taskResponse, err = teamsHandler.ErrorTeamTask(ctx, teamID, agentID, userID, taskRequest)
+			case "team_task_clear":
+				taskResponse, err = teamsHandler.ClearTeamTasks(ctx, teamID, agentID, userID, taskRequest)
 			default:
 				return nil, fmt.Errorf("unsupported team task function: %s", functionName)
 			}
