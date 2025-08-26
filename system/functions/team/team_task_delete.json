@@ -1,0 +1,41 @@
+{
+  "id": "func-team_task_delete-1754848301",
+  "name": "team_task_delete",
+  "provider": "internal",
+  "display_name": "Team Task: Delete",
+  "description": "Delete a specific task from the team's task memory by task ID. This permanently removes the task from the team's shared task list.",
+  "endpoint": {
+    "path": "/internal/team/task/delete",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "task_id": {
+        "type": "string",
+        "description": "The unique ID of the task to delete"
+      },
+      "reason": {
+        "type": "string",
+        "description": "Optional reason for deleting the task (for logging/audit purposes)"
+      }
+    },
+    "required": ["task_id"]
+  },
+  "examples": [
+    {
+      "name": "Delete completed task",
+      "parameters": {
+        "task_id": "task_abc123",
+        "reason": "Task completed successfully"
+      }
+    },
+    {
+      "name": "Delete obsolete task",
+      "parameters": {
+        "task_id": "task_def456",
+        "reason": "Requirements changed, task no longer needed"
+      }
+    }
+  ]
+}
