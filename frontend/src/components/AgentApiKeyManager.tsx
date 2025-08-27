@@ -10,12 +10,14 @@ import {
   TextInput,
   Switch,
   Alert,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { goGentAPI } from '../api/client';
 import { AlertAPI } from './CustomAlert';
 import { useToast } from '../context/ToastContext';
-import { UserApiKey, Agent } from '../types';
+import { UserApiKey, Agent, CreateApiKeyRequest } from '../types';
+import ApiKeyModal from './ApiKeyModal';
 
 interface AgentApiKey {
   id: string;
@@ -47,6 +49,7 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
   const [availableApiKeys, setAvailableApiKeys] = useState<UserApiKey[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedApiKey, setSelectedApiKey] = useState<string>('');
   const [isDefault, setIsDefault] = useState(false);
   const [useGlobalDefault, setUseGlobalDefault] = useState(true);
@@ -171,6 +174,38 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
     }
   };
 
+  const handleAddButtonPress = () => {
+    const availableKeys = getAvailableKeysForAdd();
+    
+    if (availableKeys.length === 0) {
+      // No existing keys available - offer to create new
+      AlertAPI.alert(
+        'Add API Key',
+        'You don\'t have any available API keys. Would you like to create a new one?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Create New Key', onPress: () => setShowCreateModal(true) },
+        ]
+      );
+    } else {
+      // Show options to use existing or create new
+      AlertAPI.alert(
+        'Add API Key',
+        'Choose how you\'d like to add an API key for this agent:',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Use Existing Key', onPress: () => setShowAddModal(true) },
+          { text: 'Create New Key', onPress: () => setShowCreateModal(true) },
+        ]
+      );
+    }
+  };
+
+  const handleCreateApiKeySave = async () => {
+    // Refresh available keys after creating new one
+    await loadData();
+  };
+
   const resetAddForm = () => {
     setSelectedApiKey('');
     setIsDefault(false);
@@ -245,11 +280,10 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
           </TouchableOpacity>
           <Text style={styles.title}>API Keys</Text>
           <TouchableOpacity
-            onPress={() => setShowAddModal(true)}
+            onPress={handleAddButtonPress}
             style={styles.addButton}
-            disabled={getAvailableKeysForAdd().length === 0}
           >
-            <Ionicons name="add" size={24} color={getAvailableKeysForAdd().length > 0 ? "#007AFF" : "#8E8E93"} />
+            <Ionicons name="add" size={24} color="#007AFF" />
           </TouchableOpacity>
         </View>
 
@@ -271,7 +305,7 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
                 <Text style={styles.emptyTitle}>No API Keys</Text>
                 <Text style={styles.emptyText}>
                   This agent will use global default API keys.{'\n'}
-                  Add specific keys to override defaults for certain services.
+                  Tap the + button to add existing keys or create new ones specifically for this agent.
                 </Text>
               </View>
             ) : (
@@ -286,14 +320,23 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
           </View>
         )}
 
-        {/* Add API Key Modal */}
+        {/* Create New API Key Modal - Using the same modal as main API Keys screen */}
+        <ApiKeyModal
+          visible={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onSave={handleCreateApiKeySave}
+          editingKey={null}
+          initialService=""
+        />
+
+        {/* Add Existing API Key Modal */}
         <Modal visible={showAddModal} animationType="slide" presentationStyle="pageSheet">
           <View style={styles.addModalContainer}>
             <View style={styles.addModalHeader}>
               <TouchableOpacity onPress={() => setShowAddModal(false)}>
                 <Text style={styles.cancelButton}>Cancel</Text>
               </TouchableOpacity>
-              <Text style={styles.addModalTitle}>Add API Key</Text>
+              <Text style={styles.addModalTitle}>Use Existing API Key</Text>
               <TouchableOpacity onPress={handleAddApiKey} disabled={isSubmitting || !selectedApiKey}>
                 {isSubmitting ? (
                   <ActivityIndicator size="small" color="#007AFF" />
@@ -307,7 +350,10 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
 
             <View style={styles.addModalContent}>
               <View style={styles.field}>
-                <Text style={styles.fieldLabel}>API Key</Text>
+                <Text style={styles.fieldLabel}>Select Existing API Key</Text>
+                <Text style={styles.fieldDescription}>
+                  Choose from your existing API keys. If you need a new key, close this and select "Create New Key".
+                </Text>
                 <View style={styles.pickerContainer}>
                   {getAvailableKeysForAdd().map((apiKey) => (
                     <TouchableOpacity
@@ -335,6 +381,22 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
                     </TouchableOpacity>
                   ))}
                 </View>
+                
+                {getAvailableKeysForAdd().length === 0 && (
+                  <View style={styles.noKeysContainer}>
+                    <Text style={styles.noKeysText}>No available API keys found</Text>
+                    <TouchableOpacity 
+                      style={styles.createKeyButton}
+                      onPress={() => {
+                        setShowAddModal(false);
+                        setShowCreateModal(true);
+                      }}
+                    >
+                      <Ionicons name="add" size={16} color="#FFFFFF" />
+                      <Text style={styles.createKeyButtonText}>Create New API Key</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
 
               <View style={styles.field}>
@@ -638,6 +700,34 @@ const styles = StyleSheet.create({
   pickerOptionSubtext: {
     fontSize: 14,
     color: '#8E8E93',
+  },
+  noKeysContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    backgroundColor: '#F8F8F8',
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  noKeysText: {
+    fontSize: 16,
+    color: '#8E8E93',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  createKeyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 6,
+  },
+  createKeyButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 
