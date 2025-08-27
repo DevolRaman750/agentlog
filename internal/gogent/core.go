@@ -2042,7 +2042,7 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 		if req.Header.Get("Accept") == "" {
 			req.Header.Set("Accept", "application/json")
 		}
-	} else if funcDef.FunctionGroup == "communication" && strings.HasPrefix(functionName, "slack_") {
+	} else if funcDef.FunctionGroup == "slack" {
 		// Slack authentication should be handled via headers from database for all Slack functions
 		if req.Header.Get("Authorization") != "" {
 			log.Printf("🔑 Added Slack API authentication via function headers for %s", functionName)
