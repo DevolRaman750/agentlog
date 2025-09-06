@@ -1,28 +1,34 @@
 package tests
 
 import (
-	"database/sql"
-	"encoding/json"
-	"fmt"
-	"testing"
+    "database/sql"
+    "encoding/json"
+    "fmt"
+    "os"
+    "testing"
 
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+    _ "github.com/go-sql-driver/mysql"
+    "github.com/stretchr/testify/assert"
+    "github.com/stretchr/testify/require"
 )
 
 // TestAutomationFunctionsIntegration validates that the automation functions
 // added via migrations 000014 and 000015 are properly stored in the database
 func TestAutomationFunctionsIntegration(t *testing.T) {
-	// Database connection - adjust connection string as needed
-	dsn := "root:Password123!@tcp(localhost:3306)/gogent?parseTime=true"
-	db, err := sql.Open("mysql", dsn)
-	require.NoError(t, err, "Failed to connect to database")
+    dsn := os.Getenv("TEST_MYSQL_DSN")
+    if dsn == "" {
+        t.Skip("TEST_MYSQL_DSN not set; skipping DB integration tests")
+    }
+
+    db, err := sql.Open("mysql", dsn)
+    require.NoError(t, err, "Failed to connect to database")
 	defer db.Close()
 
 	// Test database connection
-	err = db.Ping()
-	require.NoError(t, err, "Failed to ping database")
+    err = db.Ping()
+    if err != nil {
+        t.Skipf("Cannot reach database: %v", err)
+    }
 
 	t.Run("VerifyFunctionGroups", func(t *testing.T) {
 		expectedGroups := []string{

@@ -1,7 +1,8 @@
 package gogent
 
 import (
-	"testing"
+    "context"
+    "testing"
 )
 
 // TestAutoExtractParametersFromContext tests the critical parameter passing logic
@@ -38,8 +39,8 @@ func TestAutoExtractParametersFromContext(t *testing.T) {
 			},
 		}
 
-		// Apply auto-extraction
-		client.autoExtractParametersFromContext(nextCalls, currentResults)
+        // Apply auto-extraction
+        client.autoExtractParametersFromContext(context.Background(), &nextCalls[0], currentResults)
 
 		// Verify channel was extracted
 		extractedChannel, exists := nextCalls[0].FunctionCall.Args["channel"]
@@ -84,7 +85,7 @@ func TestAutoExtractParametersFromContext(t *testing.T) {
 			},
 		}
 
-		client.autoExtractParametersFromContext(nextCalls, currentResults)
+        client.autoExtractParametersFromContext(context.Background(), &nextCalls[0], currentResults)
 
 		// Should NOT overwrite existing channel
 		if nextCalls[0].FunctionCall.Args["channel"] != "C999MANUAL" {
@@ -110,7 +111,7 @@ func TestAutoExtractParametersFromContext(t *testing.T) {
 			},
 		}
 
-		client.autoExtractParametersFromContext(nextCalls, currentResults)
+        client.autoExtractParametersFromContext(context.Background(), &nextCalls[0], currentResults)
 
 		// Should not add channel parameter
 		_, exists := nextCalls[0].FunctionCall.Args["channel"]

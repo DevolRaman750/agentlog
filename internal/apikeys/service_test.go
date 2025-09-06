@@ -1,29 +1,33 @@
 package apikeys
 
 import (
-	"context"
-	"database/sql"
-	"testing"
-	"time"
+    "context"
+    "database/sql"
+    "os"
+    "testing"
+    "time"
 
-	"gogent/internal/types"
+    "gogent/internal/types"
 
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+    _ "github.com/go-sql-driver/mysql"
+    "github.com/stretchr/testify/assert"
+    "github.com/stretchr/testify/require"
 )
 
-// Test database connection details
-const testDSN = "root:Password123!@tcp(localhost:3306)/gogent?parseTime=true"
-
 func setupTestDB(t *testing.T) *sql.DB {
-	db, err := sql.Open("mysql", testDSN)
-	require.NoError(t, err, "Failed to connect to test database")
+    dsn := os.Getenv("TEST_MYSQL_DSN")
+    if dsn == "" {
+        t.Skip("TEST_MYSQL_DSN not set; skipping DB integration tests")
+    }
 
-	err = db.Ping()
-	require.NoError(t, err, "Failed to ping test database")
+    db, err := sql.Open("mysql", dsn)
+    require.NoError(t, err, "Failed to connect to test database")
 
-	return db
+    if err := db.Ping(); err != nil {
+        t.Skipf("Cannot reach test database: %v", err)
+    }
+
+    return db
 }
 
 func cleanupTestData(t *testing.T, db *sql.DB, userID string) {

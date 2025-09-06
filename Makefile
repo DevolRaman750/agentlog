@@ -280,7 +280,29 @@ deploy-frontend: docker-build-frontend docker-push-frontend ## Build and deploy 
 
 # Run backend tests
 run-tests:
-	go test ./...
+	@echo "🧪 Running backend tests (loading env if present)..."
+	@if [ -f .env.local ]; then echo "➡️  Loading .env.local"; set -a; . ./.env.local; set +a; fi; \
+	 if [ -f .env ]; then echo "➡️  Loading .env"; set -a; . ./.env; set +a; fi; \
+	 if [ -z "$$TEST_MYSQL_DSN" ] && [ -n "$$DB_URL" ]; then export TEST_MYSQL_DSN="$$DB_URL"; echo "✅ TEST_MYSQL_DSN set from DB_URL"; fi; \
+	 # Reset and migrate the test database derived from TEST_MYSQL_DSN
+	 DBNAME=$$(echo "$$TEST_MYSQL_DSN" | sed -E 's|.*/([^/?]+).*|\1|'); \
+	 USER=$$(echo "$$TEST_MYSQL_DSN" | sed -E 's|^([^:]+):.*|\1|'); \
+	 PASS=$$(echo "$$TEST_MYSQL_DSN" | sed -E 's|^[^:]+:([^@]+)@.*|\1|'); \
+	 HOSTPORT=$$(echo "$$TEST_MYSQL_DSN" | sed -E 's|.*@tcp\(([^)]+)\)/.*|\1|'); \
+	 HOST=$$(echo "$$HOSTPORT" | cut -d: -f1); \
+	 PORT=$$(echo "$$HOSTPORT" | cut -d: -f2); \
+	 if [ -n "$$DBNAME" ]; then \
+	   if echo "$$DBNAME" | grep -q 'test$$'; then \
+	     echo "🧹 Resetting MySQL test database '$$DBNAME'..."; \
+	     MYSQL_PWD=$${TEST_DB_PASSWORD:-$$PASS} mysql -h $${TEST_DB_HOST:-$$HOST} -P $${TEST_DB_PORT:-$${PORT:-3306}} -u $${TEST_DB_USER:-$$USER} -e "DROP DATABASE IF EXISTS \`$$DBNAME\`; CREATE DATABASE \`$$DBNAME\`;" || true; \
+	     MIGRATE_DSN="mysql://$${TEST_DB_USER:-$$USER}:$${TEST_DB_PASSWORD:-$$PASS}@tcp($${TEST_DB_HOST:-$$HOST}:$${TEST_DB_PORT:-$${PORT:-3306}})/$$DBNAME?multiStatements=true"; \
+	     echo "📦 Running migrations on '$$DBNAME'..."; \
+	     migrate -path migrations -database "$$MIGRATE_DSN" up || true; \
+	   else \
+	     echo "⚠️  Refusing to reset non-test database '$$DBNAME'. Name must end with 'test'."; \
+	   fi; \
+	 fi; \
+	 go test ./...
 
 # Run tests with coverage (legacy - use 'make coverage' for comprehensive analysis)
 test-coverage:
