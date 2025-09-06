@@ -1951,7 +1951,7 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 	}
 
 	// Add task-oriented guidance to help Gemini understand what to do next
-	synthesisPrompt += c.generateTaskGuidance(originalPrompt, currentAllFunctionCalls, currentAllFunctionResults)
+	// Task guidance removed - let LLM handle workflow naturally
 
 	// Detect if we have sufficient data to complete the task (using accumulated results)
 	shouldComplete := c.detectTaskCompletion(currentAllFunctionCalls, currentAllFunctionResults, depth, originalPrompt)
@@ -2134,7 +2134,7 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 				}
 
 				// Auto-extract parameters for the next iteration using current results
-				c.autoExtractParametersFromContext(additionalResponseParts, functionResults)
+				// Auto-extraction removed - let LLM handle parameter selection
 
 				// Recursively process additional function calls with accumulated context
 				return c.processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(ctx, config, request, additionalResponseParts, originalPrompt, depth+1, maxDepth, currentAllFunctionCalls, currentAllFunctionResults)
@@ -2924,403 +2924,8 @@ func (c *Client) createIntelligentResultSummary(functionName string, result map[
 		return "FAILED: Unknown error"
 	}
 
-	switch functionName {
-	case "slack_find_channel":
-		return c.summarizeSlackFindChannel(result)
-	case "slack_read_messages":
-		return c.summarizeSlackReadMessages(result)
-	case "github_read_issues":
-		return c.summarizeGitHubReadIssues(result)
-	case "github_read_commits":
-		return c.summarizeGitHubReadCommits(result)
-	case "github_read_pull_requests":
-		return c.summarizeGitHubReadPullRequests(result)
-	case "github_close_pull_request":
-		return c.summarizeGitHubClosePullRequest(result)
-	case "github_list_branches":
-		// Return full raw data for github_list_branches - no summarization
-		return c.createFullDataSummary(result)
-	case "github_read_code":
-		// Return full raw data for github_read_code - no summarization
-		return c.createFullDataSummary(result)
-	case "team_task_list", "team_task_store", "team_task_update", "team_task_delete", "team_task_claim", "team_task_complete", "team_task_error", "team_task_clear", "team_memory_read", "team_memory_search", "team_memory_write", "team_memory_clear", "agent_task_list", "agent_task_store", "agent_task_delete":
-		// Return full raw data for team functions - no summarization
-		return c.createFullDataSummary(result)
-	default:
-		// For other functions, provide a generic summary
-		return c.createGenericSummary(result)
-	}
-}
-
-// summarizeSlackFindChannel extracts essential channel information
-func (c *Client) summarizeSlackFindChannel(result map[string]interface{}) string {
-	var channels []interface{}
-
-	// Handle Slack integration response structure: {"status": "success", "data": {...}}
-	if data, ok := result["data"].(map[string]interface{}); ok {
-		if ch, ok := data["channels"].([]interface{}); ok {
-			channels = ch
-		}
-	} else if ch, ok := result["channels"].([]interface{}); ok {
-		// Fallback for direct structure
-		channels = ch
-	}
-
-	if len(channels) > 0 {
-		if channel, ok := channels[0].(map[string]interface{}); ok {
-			channelID, _ := channel["id"].(string)
-			channelName, _ := channel["name"].(string)
-			return fmt.Sprintf("Found channel '%s' (ID: %s)", channelName, channelID)
-		}
-	}
-	return "No channels found"
-}
-
-// summarizeSlackReadMessages extracts essential message information
-func (c *Client) summarizeSlackReadMessages(result map[string]interface{}) string {
-	var messages []interface{}
-
-	// Handle Slack integration response structure: {"status": "success", "data": {...}}
-	if data, ok := result["data"].(map[string]interface{}); ok {
-		if msgs, ok := data["messages"].([]interface{}); ok {
-			messages = msgs
-		}
-	} else if msgs, ok := result["messages"].([]interface{}); ok {
-		// Fallback for direct structure
-		messages = msgs
-	} else if response, ok := result["response"].(map[string]interface{}); ok {
-		// Fallback for other nested structures
-		if msgs, ok := response["messages"].([]interface{}); ok {
-			messages = msgs
-		}
-	}
-
-	if len(messages) == 0 {
-		return "No messages found"
-	}
-
-	var summary strings.Builder
-	summary.WriteString(fmt.Sprintf("Found %d messages:", len(messages)))
-
-	// Extract key information from each message (limit to essential data)
-	for i, msg := range messages {
-		if i >= 3 { // Only show first 3 messages to prevent context overflow
-			summary.WriteString(fmt.Sprintf(" [+%d more messages]", len(messages)-3))
-			break
-		}
-
-		if msgMap, ok := msg.(map[string]interface{}); ok {
-			text, _ := msgMap["text"].(string)
-			ts, _ := msgMap["ts"].(string)
-			user, _ := msgMap["user"].(string)
-
-			// Truncate long messages but preserve essential content
-			if len(text) > 100 {
-				text = text[:100] + "..."
-			}
-
-			summary.WriteString(fmt.Sprintf("\n  [%s] %s: %s", ts, user, text))
-		}
-	}
-
-	return summary.String()
-}
-
-// summarizeGitHubReadIssues extracts essential issue information
-func (c *Client) summarizeGitHubReadIssues(result map[string]interface{}) string {
-	var issues []interface{}
-
-	// Handle GitHub integration response structure: {"status": "success", "data": [...]}
-	if data, ok := result["data"].([]interface{}); ok {
-		issues = data
-	} else if iss, ok := result["issues"].([]interface{}); ok {
-		// Fallback for legacy structure
-		issues = iss
-	} else if response, ok := result["response"].([]interface{}); ok {
-		// Fallback for other structures
-		issues = response
-	}
-
-	if len(issues) == 0 {
-		return "No open issues found"
-	}
-
-	var summary strings.Builder
-	summary.WriteString(fmt.Sprintf("Found %d open issues:", len(issues)))
-
-	// Extract key information from each issue (limit to essential data)
-	for i, issue := range issues {
-		if i >= 5 { // Only show first 5 issues to prevent context overflow
-			summary.WriteString(fmt.Sprintf(" [+%d more issues]", len(issues)-5))
-			break
-		}
-
-		if issueMap, ok := issue.(map[string]interface{}); ok {
-			title, _ := issueMap["title"].(string)
-			number, _ := issueMap["number"].(float64)
-			state, _ := issueMap["state"].(string)
-
-			// Truncate long titles
-			if len(title) > 60 {
-				title = title[:60] + "..."
-			}
-
-			summary.WriteString(fmt.Sprintf("\n  #%.0f (%s): %s", number, state, title))
-		}
-	}
-
-	return summary.String()
-}
-
-// summarizeGitHubReadCode extracts essential code information
-func (c *Client) summarizeGitHubReadCode(result map[string]interface{}) string {
-	var data map[string]interface{}
-
-	// Handle GitHub integration response structure: {"status": "success", "data": {...}}
-	if d, ok := result["data"].(map[string]interface{}); ok {
-		data = d
-	} else {
-		// Fallback for direct structure
-		data = result
-	}
-
-	if fileType, ok := data["type"].(string); ok {
-		if fileType == "file" {
-			name, _ := data["name"].(string)
-			size, _ := data["size"].(float64)
-			encoding, _ := data["encoding"].(string)
-
-			return fmt.Sprintf("Retrieved file '%s' (%.0f bytes, %s encoding)", name, size, encoding)
-		} else if fileType == "dir" {
-			if items, ok := data["items"].([]interface{}); ok {
-				return fmt.Sprintf("Retrieved directory with %d items", len(items))
-			}
-		}
-	}
-	return "Retrieved code data"
-}
-
-// summarizeGitHubReadCommits extracts essential commit information
-func (c *Client) summarizeGitHubReadCommits(result map[string]interface{}) string {
-	var commits []interface{}
-
-	// Handle GitHub integration response structure: {"status": "success", "data": [...]}
-	if data, ok := result["data"].([]interface{}); ok {
-		commits = data
-	} else if response, ok := result["response"].([]interface{}); ok {
-		// Fallback for other structures
-		commits = response
-	} else if commitsField, ok := result["commits"].([]interface{}); ok {
-		// Handle direct commits field
-		commits = commitsField
-	}
-
-	if len(commits) == 0 {
-		return "No commits found"
-	}
-
-	// Provide detailed information about recent commits (up to 5)
-	var summary strings.Builder
-	summary.WriteString(fmt.Sprintf("Retrieved %d recent commits:\n", len(commits)))
-
-	maxCommits := len(commits)
-	if maxCommits > 5 {
-		maxCommits = 5
-	}
-
-	for i := 0; i < maxCommits; i++ {
-		if commit, ok := commits[i].(map[string]interface{}); ok {
-			sha := "unknown"
-			message := "No message"
-			author := "unknown"
-			date := "unknown"
-
-			if shaVal, ok := commit["sha"].(string); ok && len(shaVal) >= 7 {
-				sha = shaVal[:7]
-			}
-
-			if commitData, ok := commit["commit"].(map[string]interface{}); ok {
-				if msgVal, ok := commitData["message"].(string); ok {
-					message = msgVal
-					// Truncate long messages
-					if len(message) > 100 {
-						message = message[:100] + "..."
-					}
-				}
-
-				if authorData, ok := commitData["author"].(map[string]interface{}); ok {
-					if nameVal, ok := authorData["name"].(string); ok {
-						author = nameVal
-					}
-					if dateVal, ok := authorData["date"].(string); ok {
-						date = dateVal
-					}
-				}
-			}
-
-			summary.WriteString(fmt.Sprintf("  • %s by %s (%s): %s\n", sha, author, date, message))
-		}
-	}
-
-	if len(commits) > 5 {
-		summary.WriteString(fmt.Sprintf("  ... and %d more commits", len(commits)-5))
-	}
-
-	return summary.String()
-}
-
-// summarizeGitHubReadPullRequests extracts essential pull request information
-func (c *Client) summarizeGitHubReadPullRequests(result map[string]interface{}) string {
-	var prs []interface{}
-
-	// Handle GitHub integration response structure
-	if data, ok := result["data"].([]interface{}); ok {
-		prs = data
-	} else if prField, ok := result["pull_requests"].([]interface{}); ok {
-		prs = prField
-	}
-
-	if len(prs) == 0 {
-		return "No pull requests found"
-	}
-
-	// Provide summary with key details
-	var summary strings.Builder
-	summary.WriteString(fmt.Sprintf("Retrieved %d pull requests:\n", len(prs)))
-
-	maxPRs := len(prs)
-	if maxPRs > 3 {
-		maxPRs = 3
-	}
-
-	for i := 0; i < maxPRs; i++ {
-		if prMap, ok := prs[i].(map[string]interface{}); ok {
-			number := "unknown"
-			title := "No title"
-			state := "unknown"
-			author := "unknown"
-
-			if num, ok := prMap["number"].(float64); ok {
-				number = fmt.Sprintf("#%.0f", num)
-			}
-			if t, ok := prMap["title"].(string); ok {
-				title = t
-				if len(title) > 80 {
-					title = title[:80] + "..."
-				}
-			}
-			if s, ok := prMap["state"].(string); ok {
-				state = s
-			}
-			if user, ok := prMap["user"].(map[string]interface{}); ok {
-				if login, ok := user["login"].(string); ok {
-					author = login
-				}
-			}
-
-			summary.WriteString(fmt.Sprintf("  • %s (%s) by %s: %s\n", number, state, author, title))
-		}
-	}
-
-	if len(prs) > 3 {
-		summary.WriteString(fmt.Sprintf("  ... and %d more pull requests", len(prs)-3))
-	}
-
-	return summary.String()
-}
-
-// summarizeGitHubClosePullRequest extracts essential information about PR closure
-func (c *Client) summarizeGitHubClosePullRequest(result map[string]interface{}) string {
-	var data map[string]interface{}
-
-	if d, ok := result["data"].(map[string]interface{}); ok {
-		data = d
-	} else {
-		data = result
-	}
-
-	if state, ok := data["state"].(string); ok && state == "closed" {
-		number := "unknown"
-		title := "No title"
-
-		if num, ok := data["number"].(float64); ok {
-			number = fmt.Sprintf("#%.0f", num)
-		}
-		if t, ok := data["title"].(string); ok {
-			title = t
-			if len(title) > 60 {
-				title = title[:60] + "..."
-			}
-		}
-
-		return fmt.Sprintf("Successfully closed pull request %s: %s", number, title)
-	}
-
-	return "Pull request closure completed"
-}
-
-// summarizeGitHubListBranches extracts essential branch information including SHAs
-func (c *Client) summarizeGitHubListBranches(result map[string]interface{}) string {
-	var branches []interface{}
-
-	// Handle GitHub integration response structure: {"status": "success", "data": [...]}
-	if data, ok := result["data"].([]interface{}); ok {
-		branches = data
-	} else if response, ok := result["response"].([]interface{}); ok {
-		// Fallback for other structures
-		branches = response
-	}
-
-	if len(branches) == 0 {
-		return "No branches found"
-	}
-
-	var summary strings.Builder
-	summary.WriteString(fmt.Sprintf("Found %d branches:", len(branches)))
-
-	// Extract key information from each branch (name and SHA for github_create_branch)
-	for i, branch := range branches {
-		if i >= 5 { // Only show first 5 branches to prevent context overflow
-			summary.WriteString(fmt.Sprintf(" [+%d more branches]", len(branches)-5))
-			break
-		}
-
-		if branchMap, ok := branch.(map[string]interface{}); ok {
-			name, _ := branchMap["name"].(string)
-
-			// Extract SHA from commit object
-			var sha string
-			if commit, ok := branchMap["commit"].(map[string]interface{}); ok {
-				sha, _ = commit["sha"].(string)
-			}
-
-			if sha != "" {
-				// Provide full SHA prominently for API calls
-				summary.WriteString(fmt.Sprintf("\n  %s (SHA: %s)", name, sha))
-			} else {
-				summary.WriteString(fmt.Sprintf("\n  %s", name))
-			}
-		}
-	}
-
-	return summary.String()
-}
-
-// createGenericSummary provides a fallback summary for unknown functions
-func (c *Client) createGenericSummary(result map[string]interface{}) string {
-	if len(result) == 0 {
-		return "No data returned"
-	}
-
-	// Count data elements
-	dataCount := 0
-	for key, value := range result {
-		if key != "metadata" && key != "_metadata" && value != nil {
-			dataCount++
-		}
-	}
-
-	return fmt.Sprintf("Retrieved data with %d fields", dataCount)
+	// Return full raw data for ALL functions - no summarization
+	return c.createFullDataSummary(result)
 }
 
 // createFullDataSummary returns the full raw data as JSON for functions that need complete information
@@ -3367,7 +2972,7 @@ func (c *Client) autoExtractParameters(ctx context.Context, funcCall *ResponsePa
 
 // detectTaskCompletion determines if we have enough data to complete the user's task
 func (c *Client) detectTaskCompletion(functionCalls []ResponsePart, functionResults []map[string]interface{}, depth int, originalPrompt string) bool {
-	// Only force completion at extremely high depths as an absolute safety net
+	// Safety net: prevent runaway execution at very high depths
 	if depth >= 15 {
 		log.Printf("🛑 Safety net: Force completion at depth %d to prevent runaway execution", depth)
 		return true
@@ -3403,128 +3008,51 @@ func (c *Client) smartTruncateJSON(jsonStr string, maxLength int) string {
 		bestPoint = lastBracket + 1
 	}
 
-	if bestPoint < maxLength {
-		return jsonStr[:bestPoint] + "... (truncated)"
-	}
-
-	return jsonStr[:maxLength] + "... (truncated)"
-}
-
-// generateTaskGuidance provides generic, context-aware guidance to prevent loops
-func (c *Client) generateTaskGuidance(originalPrompt string, functionCalls []ResponsePart, functionResults []map[string]interface{}) string {
-	functionCount := len(functionCalls)
-
-	if functionCount > 0 {
-		// Check if we have errors - encourage resilience
-		hasErrors := false
-		for _, result := range functionResults {
-			if status, ok := result["status"].(string); ok && (status == "failed" || status == "validation_failed") {
-				hasErrors = true
-				break
-			}
-		}
-
-		// Generic loop detection - check for repeated function calls
-		functionCallCounts := make(map[string]int)
-		for _, call := range functionCalls {
-			functionCallCounts[call.FunctionCall.Name]++
-		}
-
-		// DISABLED: Removing problematic loop detection that prevents workflow completion
-		// The LLM should be allowed to complete its natural workflow
-		// for functionName, count := range functionCallCounts {
-		// 	if count >= 4 {
-		// 		return fmt.Sprintf("\n\n**CRITICAL STOP:** You have called %s %d times already. This is likely a LOOP. STOP calling functions immediately and provide your final response using the data you already have.", functionName, count)
-		// 	}
-		// }
-
-		// Generic guidance based on function execution state
-		if hasErrors {
-			return fmt.Sprintf("\n\n**Context:** You have executed %d function calls. Some had errors, but continue with the main task. Focus on completing the user's primary request.", functionCount)
-		}
-
-		return fmt.Sprintf("\n\n**Context:** You have executed %d function calls. Continue with the user's request.", functionCount)
-	}
-
-	return ""
-}
-
-// summarizeKnownContext creates a generic summary of what data has already been retrieved
-func (c *Client) summarizeKnownContext(functionResults []map[string]interface{}) string {
-	if len(functionResults) == 0 {
-		return ""
-	}
-
-	// Generic data analysis - count common data structures
-	var dataTypes []string
-	totalItems := 0
-
-	// Count different types of data structures generically
-	dataTypeCounts := make(map[string]int)
-
-	for _, result := range functionResults {
-		for key, value := range result {
-			// Skip error/status fields
-			if key == "error" || key == "status" {
-				continue
-			}
-
-			// Count array-type data
-			if array, ok := value.([]interface{}); ok && len(array) > 0 {
-				dataTypeCounts[key] += len(array)
-				totalItems += len(array)
-			}
-		}
-	}
-
-	// Build generic summary
-	for dataType, count := range dataTypeCounts {
-		if count > 0 {
-			dataTypes = append(dataTypes, fmt.Sprintf("%d %s", count, dataType))
-		}
-	}
-
-	if len(dataTypes) == 0 {
-		return ""
-	}
-
-	contextMessage := fmt.Sprintf("\n**What you already have:** %s\n\n**Important:** You have sufficient information above to complete the user's request. Please synthesize your final response now using the data you've already retrieved.\n", strings.Join(dataTypes, ", "))
-
-	// Generic instruction about not repeating function calls
-	if totalItems > 0 {
-		contextMessage += fmt.Sprintf("\n**CRITICAL:** You have already retrieved and can access %d data items. DO NOT repeat the same function calls - you already have the data. Use the information you've gathered to complete the task.\n", totalItems)
-	}
-
-	return contextMessage
+	return jsonStr[:bestPoint] + "... [truncated]"
 }
 
 // autoExtractParametersFromContext extracts parameters for next iteration function calls using current results
-// Simplified version - let LLM handle most parameter selection
-func (c *Client) autoExtractParametersFromContext(nextCalls []ResponsePart, currentResults []map[string]interface{}) {
-	log.Printf("🔍 Auto-extraction: Processing %d next calls with %d current results", len(nextCalls), len(currentResults))
+func (c *Client) autoExtractParametersFromContext(ctx context.Context, funcCall *ResponsePart, previousResults []map[string]interface{}) {
+	// Minimal parameter extraction - only for truly generic cases where the LLM clearly needs help
+	// Most parameter selection should be handled by the LLM itself using the function results
 
-	for i := range nextCalls {
-		funcCall := &nextCalls[i]
-		log.Printf("🔍 Auto-extraction: Checking function %s with current args: %+v", funcCall.FunctionCall.Name, funcCall.FunctionCall.Args)
+	if funcCall.FunctionCall.Args == nil {
+		funcCall.FunctionCall.Args = make(map[string]interface{})
+	}
 
-		// Only extract channel if completely missing - let LLM handle timestamps and other parameters
-		if _, exists := funcCall.FunctionCall.Args["channel"]; !exists {
-			for _, result := range currentResults {
-				if channels, ok := result["channels"].([]interface{}); ok && len(channels) > 0 {
-					if channel, ok := channels[0].(map[string]interface{}); ok {
-						if channelID, ok := channel["id"].(string); ok {
-							if funcCall.FunctionCall.Args == nil {
-								funcCall.FunctionCall.Args = make(map[string]interface{})
-							}
-							funcCall.FunctionCall.Args["channel"] = channelID
-							log.Printf("🔄 Auto-extracted channel=%s for %s (LLM should handle other parameters)", channelID, funcCall.FunctionCall.Name)
-							break
-						}
+	// Only extract channel ID if completely missing and there's an obvious source
+	if _, exists := funcCall.FunctionCall.Args["channel"]; !exists {
+		for _, result := range previousResults {
+			if channels, ok := result["channels"].([]interface{}); ok && len(channels) > 0 {
+				if channel, ok := channels[0].(map[string]interface{}); ok {
+					if channelID, ok := channel["id"].(string); ok && channelID != "" {
+						funcCall.FunctionCall.Args["channel"] = channelID
+						log.Printf("🔄 Auto-extraction: %s now has channel=%s", funcCall.FunctionCall.Name, channelID)
+						return
 					}
 				}
 			}
-		} else {
+		}
+	} else {
+		if channelID, ok := funcCall.FunctionCall.Args["channel"].(string); ok && channelID != "" {
 			log.Printf("✅ Auto-extraction: %s already has channel parameter", funcCall.FunctionCall.Name)
 		}
 	}
+}
+
+// createGenericSummary provides a fallback summary for unknown functions
+func (c *Client) createGenericSummary(result map[string]interface{}) string {
+	if len(result) == 0 {
+		return "No data returned"
+	}
+
+	// Count data elements
+	dataCount := 0
+	for key, value := range result {
+		if key != "metadata" && key != "_metadata" && value != nil {
+			dataCount++
+		}
+	}
+
+	return fmt.Sprintf("Retrieved data with %d fields", dataCount)
 }

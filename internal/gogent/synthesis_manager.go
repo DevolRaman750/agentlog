@@ -103,18 +103,18 @@ func (sm *SynthesisManager) DetermineSynthesisStrategy(config *SynthesisConfig) 
 // detectIdenticalFunctionLoop checks for functional loops (same function, same key parameters)
 // This prevents Gemini from calling slack_read_messages repeatedly with just different limits
 func (sm *SynthesisManager) detectIdenticalFunctionLoop(functionCalls []ResponsePart) bool {
-	if len(functionCalls) < 5 {
+	if len(functionCalls) < 3 {
 		return false
 	}
 
-	// Check the last 5 function calls for slack_find_channel (give more chances)
-	// Check the last 3 function calls for other functions
+	// Check the last 3 function calls for most functions
+	// Check the last 4 function calls for slack_find_channel (give more chances)
 	checkCount := 3
-	if len(functionCalls) >= 5 {
+	if len(functionCalls) >= 3 {
 		// Peek at the last call to see if it's slack_find_channel
 		lastCall := functionCalls[len(functionCalls)-1]
 		if lastCall.FunctionCall.Name == "slack_find_channel" {
-			checkCount = 5
+			checkCount = 4
 		}
 	}
 
@@ -154,6 +154,30 @@ func (sm *SynthesisManager) detectIdenticalFunctionLoop(functionCalls []Response
 			}
 			log.Printf("🔄 [LOOP] Detected slack_find_channel loop: channel_name=%s (called %d+ times)", firstChannelName, checkCount)
 			return true
+		}
+
+		// Special handling for team_task_list - if called repeatedly, it's likely a loop
+		if functionName == "team_task_list" {
+			log.Printf("🔄 [LOOP] Detected team_task_list loop: called %d+ times with same parameters", checkCount)
+			return true
+		}
+
+		// Special handling for other team functions that might cause loops
+		if functionName == "team_memory_read" || functionName == "team_memory_search" {
+			log.Printf("🔄 [LOOP] Detected %s loop: called %d+ times with same parameters", functionName, checkCount)
+			return true
+		}
+
+		// Check for alternating pattern between team_task_list and slack_find_channel
+		if len(functionCalls) >= 4 {
+			last4 := functionCalls[len(functionCalls)-4:]
+			if last4[0].FunctionCall.Name == "team_task_list" &&
+				last4[1].FunctionCall.Name == "slack_find_channel" &&
+				last4[2].FunctionCall.Name == "team_task_list" &&
+				last4[3].FunctionCall.Name == "slack_find_channel" {
+				log.Printf("🔄 [LOOP] Detected alternating team_task_list/slack_find_channel loop")
+				return true
+			}
 		}
 
 		// For other functions, check if parameters are identical
@@ -220,7 +244,6 @@ func (sm *SynthesisManager) GetSynthesisPromptSuffix(decision *SynthesisDecision
 		"- You are an intelligent assistant that can call functions to complete user requests\n" +
 		"- Use the available functions to gather information and take actions as needed\n" +
 		"- If you have already gathered the necessary data, proceed to complete the requested actions\n" +
-		"- Do not repeat the same function calls with identical parameters\n" +
 		"- Focus on completing the user's primary request efficiently\n" +
 		"- If some functions fail, continue with the main task using available data"
 }
