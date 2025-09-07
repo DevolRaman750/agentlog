@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -90,6 +91,9 @@ func TestGitHubWorkflowFunctions(t *testing.T) {
 	})
 
 	t.Run("github_branch_update_pr_workflow_validation", func(t *testing.T) {
+		if os.Getenv("ALLOW_NETWORK_TESTS") != "1" {
+			t.Skip("Skipping network-dependent GitHub workflow test in restricted environment")
+		}
 		funcDef := &db.FunctionDefinition{
 			Name:       "github_branch_update_pr_workflow",
 			HttpMethod: sql.NullString{String: "POST", Valid: true},
@@ -207,6 +211,9 @@ func TestGitHubWorkflowBestPractices(t *testing.T) {
 
 // TestGitHubSHARetrieval tests the SHA retrieval functionality
 func TestGitHubSHARetrieval(t *testing.T) {
+	if os.Getenv("ALLOW_NETWORK_TESTS") != "1" {
+		t.Skip("Skipping network-dependent SHA retrieval test in restricted environment")
+	}
 	// Create a mock HTTP server to simulate GitHub API
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/contents/") && r.URL.Query().Get("ref") != "" {

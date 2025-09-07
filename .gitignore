@@ -60,6 +60,7 @@ temp/
 # Build artifacts
 dist/
 build/
+.gocache/
 
 # Kubernetes secrets (keep out of git)
 k8s/secrets/*.yaml

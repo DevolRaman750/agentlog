@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"strconv"
 	"strings"
 	"time"
 
@@ -15,6 +14,7 @@ import (
 	"gogent/internal/gemini"
 	"gogent/internal/providers"
 	"gogent/internal/types"
+	"gogent/pkg/engine"
 
 	"github.com/google/uuid"
 )
@@ -92,8 +92,9 @@ func (c *Client) executeMultiVariationWithRun(ctx context.Context, userID string
 
 	startTime := time.Now()
 
-	// Execute each configuration with rate limiting
-	for i, config := range request.Configurations {
+    // Execute each configuration with rate limiting (or defer to engine for multi)
+    preparedConfigs := make([]types.APIConfiguration, 0, len(request.Configurations))
+    for i, config := range request.Configurations {
 		config.ID = uuid.New().String()
 
 		// CRITICAL: Add function tools to configuration if function calling is enabled
@@ -169,55 +170,72 @@ func (c *Client) executeMultiVariationWithRun(ctx context.Context, userID string
 				fmt.Sprintf("No function tools added to configuration: enableFunctionCalling=%v, toolCount=%d", request.EnableFunctionCalling, len(request.FunctionTools)), nil)
 		}
 
-		// Execute single variation
-		c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryExecution,
-			fmt.Sprintf("Executing variation: %s", config.VariationName), nil)
+        // Execute single or defer to engine multi
+        c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryExecution,
+            fmt.Sprintf("Executing variation: %s", config.VariationName), nil)
 
-		// Log AI model call start
-		sequenceNum := i + 1
-		c.logExecutionFlowEvent("ai_model_call", sequenceNum, "pending", nil, map[string]interface{}{
-			"configurationName": config.VariationName,
-			"modelName":         config.ModelName,
-		}, nil, nil)
+        // Log AI model call start
+        sequenceNum := i + 1
+        c.logExecutionFlowEvent("ai_model_call", sequenceNum, "pending", nil, map[string]interface{}{
+            "configurationName": config.VariationName,
+            "modelName":         config.ModelName,
+        }, nil, nil)
 
-		startTime := time.Now()
-		variationResult, err := c.executeSingleVariation(ctx, userID, executionRun.ID, &config, request.BasePrompt, request.Context)
-		executionTimeMs := int32(time.Since(startTime).Milliseconds())
+        if c.options.UseNewEngineMulti {
+            // Defer execution to engine multi; collect prepared config
+            preparedConfigs = append(preparedConfigs, config)
+        } else {
+            startTime := time.Now()
+            variationResult, err := c.executeSingleVariation(ctx, userID, executionRun.ID, &config, request.BasePrompt, request.Context)
+            executionTimeMs := int32(time.Since(startTime).Milliseconds())
 
-		if err != nil {
-			c.logExecutionEvent(types.LogLevelError, types.LogCategoryError,
-				fmt.Sprintf("Variation failed: %s - %v", config.VariationName, err), nil)
+            if err != nil {
+                c.logExecutionEvent(types.LogLevelError, types.LogCategoryError,
+                    fmt.Sprintf("Variation failed: %s - %v", config.VariationName, err), nil)
+                errorMsg := err.Error()
+                c.logExecutionFlowEvent("ai_response", sequenceNum, "error", nil, map[string]interface{}{
+                    "configurationName": config.VariationName,
+                }, &executionTimeMs, &errorMsg)
+                result.ErrorCount++
+            } else {
+                c.logExecutionEvent(types.LogLevelSuccess, types.LogCategoryExecution,
+                    fmt.Sprintf("Variation completed: %s", config.VariationName), nil)
+                c.logExecutionFlowEvent("ai_response", sequenceNum, "success", nil, map[string]interface{}{
+                    "configurationName": config.VariationName,
+                    "responseLength":    len(variationResult.Response.ResponseText),
+                }, &executionTimeMs, nil)
+                result.SuccessCount++
+            }
+            result.Results = append(result.Results, *variationResult)
 
-			// Log AI response with error
-			errorMsg := err.Error()
-			c.logExecutionFlowEvent("ai_response", sequenceNum, "error", nil, map[string]interface{}{
-				"configurationName": config.VariationName,
-			}, &executionTimeMs, &errorMsg)
+            // Add rate limiting delay between requests (except for the last one)
+            if i < len(request.Configurations)-1 {
+                delay := time.Duration(100+rand.Intn(101)) * time.Millisecond
+                c.logExecutionEvent(types.LogLevelDebug, types.LogCategoryExecution,
+                    fmt.Sprintf("Rate limiting: waiting %v before next API call", delay), nil)
+                time.Sleep(delay)
+            }
+        }
+    }
 
-			result.ErrorCount++
-		} else {
-			c.logExecutionEvent(types.LogLevelSuccess, types.LogCategoryExecution,
-				fmt.Sprintf("Variation completed: %s", config.VariationName), nil)
-
-			// Log successful AI response
-			c.logExecutionFlowEvent("ai_response", sequenceNum, "success", nil, map[string]interface{}{
-				"configurationName": config.VariationName,
-				"responseLength":    len(variationResult.Response.ResponseText),
-			}, &executionTimeMs, nil)
-
-			result.SuccessCount++
-		}
-
-		result.Results = append(result.Results, *variationResult)
-
-		// Add rate limiting delay between requests (except for the last one)
-		if i < len(request.Configurations)-1 {
-			delay := time.Duration(100+rand.Intn(101)) * time.Millisecond
-			c.logExecutionEvent(types.LogLevelDebug, types.LogCategoryExecution,
-				fmt.Sprintf("Rate limiting: waiting %v before next API call", delay), nil)
-			time.Sleep(delay)
-		}
-	}
+    // If using engine multi, run now and merge results
+    var engineAlreadyCompared bool
+    if c.options.UseNewEngineMulti {
+        engRes, err := c.newEngine().ExecuteMulti(ctx, userID, executionRun.ID, preparedConfigs, request.BasePrompt, request.Context)
+        if err != nil {
+            c.logExecutionEvent(types.LogLevelWarn, types.LogCategoryError, fmt.Sprintf("Engine multi execution encountered error: %v", err), nil)
+        }
+        if engRes != nil {
+            result.Results = engRes.Results
+            result.SuccessCount = engRes.SuccessCount
+            result.ErrorCount = engRes.ErrorCount
+            result.TotalTime = engRes.TotalTime
+            if engRes.Comparison != nil {
+                result.Comparison = engRes.Comparison
+                engineAlreadyCompared = true
+            }
+        }
+    }
 
 	// Store function tools for replay functionality - these are available to ALL configurations
 	if request.EnableFunctionCalling && len(request.FunctionTools) > 0 {
@@ -252,10 +270,22 @@ func (c *Client) executeMultiVariationWithRun(ctx context.Context, userID string
 		"totalTime":    result.TotalTime,
 	}, &totalTimeMs, nil)
 
-	// Always perform comparison for better user experience
-	c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryExecution,
-		"Starting comparison analysis", nil)
-	comparison, err := c.compareResults(ctx, result)
+    // Always perform comparison unless already done by engine multi path
+    var comparison *types.ComparisonResult
+    var err error
+    if engineAlreadyCompared && result.Comparison != nil {
+        comparison = result.Comparison
+    } else {
+        c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryExecution,
+            "Starting comparison analysis", nil)
+        if c.options.UseEngineComparator {
+            // Use engine's BasicComparator for assembly; storage handled below
+            bc := &engine.BasicComparator{}
+            comparison, err = bc.Compare(ctx, result)
+        } else {
+            comparison, err = c.compareResults(ctx, result)
+        }
+    }
 	if err != nil {
 		// Log comparison error but don't fail the whole execution
 		fmt.Printf("❌ Warning: comparison failed: %v\n", err)
@@ -276,7 +306,11 @@ func (c *Client) executeMultiVariationWithRun(ctx context.Context, userID string
 
 // executeSingleVariation executes a single variation and logs everything
 func (c *Client) executeSingleVariation(ctx context.Context, userID string, executionRunID string, config *types.APIConfiguration, prompt, context string) (*types.VariationResult, error) {
-	startTime := time.Now()
+    // Optional staged delegation to new engine implementation
+    if c.options.UseNewEngineSingle {
+        return c.newEngine().ExecuteSingle(ctx, userID, executionRunID, config, prompt, context)
+    }
+    startTime := time.Now()
 
 	// Get the actual configuration ID from the database since config.ID might not be persisted yet
 	// We need to find the configuration that was actually saved to the database
@@ -691,213 +725,48 @@ func (c *Client) compareResults(ctx context.Context, result *types.ExecutionResu
 
 // Helper functions for calculating different metrics
 func (c *Client) calculateResponseTimeScore(responseTimeMs int32) float64 {
-	// Lower response time = higher score (max 1000ms = 100 points)
-	if responseTimeMs <= 0 {
-		return 0.0
-	}
-	score := 1000.0 / float64(responseTimeMs)
-	if score > 1.0 {
-		score = 1.0
-	}
-	return score
+    return engine.ResponseTimeScore(responseTimeMs)
 }
 
 func (c *Client) calculateCreativityScore(config types.APIConfiguration, response types.APIResponse) float64 {
-	// Higher temperature = higher creativity potential
-	baseScore := 0.5
-	if config.Temperature != nil {
-		baseScore = float64(*config.Temperature)
-	}
-
-	// Boost score based on response characteristics
-	text := response.ResponseText
-	creativityIndicators := []string{"imagine", "creative", "artistic", "vivid", "colorful", "metaphor", "poetry", "story", "narrative"}
-	indicatorCount := 0
-	for _, indicator := range creativityIndicators {
-		if strings.Contains(strings.ToLower(text), indicator) {
-			indicatorCount++
-		}
-	}
-
-	// Boost score by up to 0.3 based on creativity indicators
-	boost := float64(indicatorCount) * 0.03
-	if boost > 0.3 {
-		boost = 0.3
-	}
-
-	return baseScore + boost
+    return engine.CreativityScore(config, response)
 }
 
 func (c *Client) calculateCoherenceScore(responseText string) float64 {
-	// Simple coherence scoring based on text structure
-	if len(responseText) < 50 {
-		return 0.3
-	}
-
-	// Check for logical structure indicators
-	coherenceIndicators := []string{"first", "second", "third", "however", "therefore", "because", "although", "furthermore", "in conclusion"}
-	indicatorCount := 0
-	for _, indicator := range coherenceIndicators {
-		if strings.Contains(strings.ToLower(responseText), indicator) {
-			indicatorCount++
-		}
-	}
-
-	baseScore := 0.6
-	boost := float64(indicatorCount) * 0.05
-	if boost > 0.4 {
-		boost = 0.4
-	}
-
-	return baseScore + boost
+    return engine.CoherenceScore(responseText)
 }
 
 func (c *Client) calculateTokenEfficiencyScore(response types.APIResponse) float64 {
-	// Higher token efficiency = higher score
-	if response.UsageMetadata == nil {
-		return 0.5 // Default score if no metadata
-	}
-
-	// Extract token information
-	totalTokens := c.getTokenCount(response.UsageMetadata, "total_tokens")
-	if totalTokens <= 0 {
-		return 0.5
-	}
-
-	// Score based on response length vs tokens used
-	responseLength := len(response.ResponseText)
-	if responseLength == 0 {
-		return 0.0
-	}
-
-	// Higher ratio of characters per token = better efficiency
-	efficiencyRatio := float64(responseLength) / float64(totalTokens)
-
-	// Normalize to 0-1 scale (typical range is 2-8 characters per token)
-	if efficiencyRatio > 8.0 {
-		efficiencyRatio = 8.0
-	}
-
-	return efficiencyRatio / 8.0
+    return engine.TokenEfficiencyScore(response)
 }
 
 func (c *Client) calculateSafetyScore(responseText string) float64 {
-	// Simple safety scoring - avoid potentially problematic content
-	text := strings.ToLower(responseText)
-
-	// Check for potentially unsafe content
-	unsafeIndicators := []string{"harm", "danger", "illegal", "inappropriate", "offensive", "violent"}
-	unsafeCount := 0
-	for _, indicator := range unsafeIndicators {
-		if strings.Contains(text, indicator) {
-			unsafeCount++
-		}
-	}
-
-	// Base score is high, reduce for unsafe indicators
-	baseScore := 0.9
-	penalty := float64(unsafeCount) * 0.1
-	if penalty > 0.9 {
-		penalty = 0.9
-	}
-
-	return baseScore - penalty
+    return engine.SafetyScore(responseText)
 }
 
 func (c *Client) calculateCostEffectivenessScore(response types.APIResponse) float64 {
-	// Lower cost = higher score (based on tokens used)
-	if response.UsageMetadata == nil {
-		return 0.5
-	}
-
-	totalTokens := c.getTokenCount(response.UsageMetadata, "total_tokens")
-	if totalTokens <= 0 {
-		return 0.5
-	}
-
-	// Score based on token usage (fewer tokens = better cost effectiveness)
-	// Assume 1000 tokens as baseline for "good" cost effectiveness
-	if totalTokens <= 100 {
-		return 1.0
-	} else if totalTokens <= 500 {
-		return 0.8
-	} else if totalTokens <= 1000 {
-		return 0.6
-	} else {
-		return 0.3
-	}
+    return engine.CostEffectivenessScore(response)
 }
 
 func (c *Client) calculateEstimatedCost(response types.APIResponse) float64 {
-	if response.UsageMetadata == nil {
-		return 0.0
-	}
-
-	promptTokens := c.getTokenCount(response.UsageMetadata, "prompt_tokens")
-	completionTokens := c.getTokenCount(response.UsageMetadata, "completion_tokens")
-
-	// Gemini 1.5 Pro pricing
-	return (float64(promptTokens) * 3.50 / 1000000) + (float64(completionTokens) * 10.50 / 1000000)
+    return engine.EstimatedCost(response)
 }
 
 // Helper functions
 func (c *Client) getScoreFromMap(scores map[string]interface{}, configName, scoreKey string) float64 {
-	if config, exists := scores[configName]; exists {
-		if configMap, ok := config.(map[string]interface{}); ok {
-			if score, exists := configMap[scoreKey]; exists {
-				if scoreFloat, ok := score.(float64); ok {
-					return scoreFloat
-				}
-			}
-		}
-	}
-	return 0.0
+    return engine.GetScoreFromMap(scores, configName, scoreKey)
 }
 
 func (c *Client) getTokenCount(metadata map[string]interface{}, key string) int {
-	if value, exists := metadata[key]; exists {
-		switch v := value.(type) {
-		case float64:
-			return int(v)
-		case int:
-			return v
-		case string:
-			if parsed, err := strconv.Atoi(v); err == nil {
-				return parsed
-			}
-		}
-	}
-	return 0
+    return engine.GetTokenCount(metadata, key)
 }
 
 func (c *Client) findFastest(results []types.VariationResult) *types.VariationResult {
-	var fastest *types.VariationResult
-	for i := range results {
-		if fastest == nil || results[i].Response.ResponseTimeMs < fastest.Response.ResponseTimeMs {
-			fastest = &results[i]
-		}
-	}
-	return fastest
+    return engine.FindFastest(results)
 }
 
 func (c *Client) findMostCreative(scores map[string]interface{}) string {
-	var mostCreative string
-	var highestScore float64 = -1
-
-	for configName, configData := range scores {
-		if configMap, ok := configData.(map[string]interface{}); ok {
-			if score, exists := configMap["creativity_score"]; exists {
-				if scoreFloat, ok := score.(float64); ok {
-					if scoreFloat > highestScore {
-						highestScore = scoreFloat
-						mostCreative = configName
-					}
-				}
-			}
-		}
-	}
-
-	return mostCreative
+    return engine.FindMostCreative(scores)
 }
 
 // StoreComparisonResult stores a comparison result in the database
@@ -2912,36 +2781,18 @@ func (c *Client) createDetailedGenericSummary(result map[string]interface{}) str
 // createIntelligentResultSummary extracts only essential information from function results
 // This prevents context overflow by avoiding large JSON blobs in synthesis prompts
 func (c *Client) createIntelligentResultSummary(functionName string, result map[string]interface{}) string {
-	if result == nil {
-		return "No data returned"
-	}
-
-	// Check for errors first
-	if status, ok := result["status"].(string); ok && (status == "failed" || status == "validation_failed") {
-		if errorMsg, ok := result["error"].(string); ok {
-			return fmt.Sprintf("FAILED: %s", errorMsg)
-		}
-		return "FAILED: Unknown error"
-	}
-
-	// Return full raw data for ALL functions - no summarization
-	return c.createFullDataSummary(result)
+    // Delegate to engine helper to keep behavior consistent and testable
+    return engine.SummarizeResult(functionName, result)
 }
 
-// createFullDataSummary returns the full raw data as JSON for functions that need complete information
+// createFullDataSummary is kept for compatibility; delegate to engine
 func (c *Client) createFullDataSummary(result map[string]interface{}) string {
-	if len(result) == 0 {
-		return "No data returned"
-	}
-
-	// Convert the result to JSON string for full data access
-	jsonBytes, err := json.Marshal(result)
-	if err != nil {
-		log.Printf("⚠️ Failed to marshal result to JSON: %v", err)
-		return c.createGenericSummary(result)
-	}
-
-	return string(jsonBytes)
+    s := engine.CreateFullDataSummary(result)
+    // When marshaling fails, engine falls back to generic; we log for observability
+    if s == engine.CreateGenericSummary(result) {
+        log.Printf("⚠️ Failed to marshal result to JSON; using generic summary")
+    }
+    return s
 }
 
 // autoExtractParameters automatically extracts missing parameters from previous function results
@@ -2986,58 +2837,23 @@ func (c *Client) detectTaskCompletion(functionCalls []ResponsePart, functionResu
 
 // smartTruncateJSON truncates JSON at logical boundaries to avoid malformed JSON
 func (c *Client) smartTruncateJSON(jsonStr string, maxLength int) string {
-	if len(jsonStr) <= maxLength {
-		return jsonStr
-	}
-
-	// Try to find a good truncation point (end of a complete JSON object/array)
-	truncated := jsonStr[:maxLength]
-
-	// Look for the last complete JSON structure
-	lastComma := strings.LastIndex(truncated, ",")
-	lastBrace := strings.LastIndex(truncated, "}")
-	lastBracket := strings.LastIndex(truncated, "]")
-
-	// Find the best truncation point
-	bestPoint := maxLength
-	if lastComma > 0 && lastComma > maxLength-200 {
-		bestPoint = lastComma
-	} else if lastBrace > 0 && lastBrace > maxLength-200 {
-		bestPoint = lastBrace + 1
-	} else if lastBracket > 0 && lastBracket > maxLength-200 {
-		bestPoint = lastBracket + 1
-	}
-
-	return jsonStr[:bestPoint] + "... [truncated]"
+    return engine.SmartTruncateJSON(jsonStr, maxLength)
 }
 
 // autoExtractParametersFromContext extracts parameters for next iteration function calls using current results
 func (c *Client) autoExtractParametersFromContext(ctx context.Context, funcCall *ResponsePart, previousResults []map[string]interface{}) {
-	// Minimal parameter extraction - only for truly generic cases where the LLM clearly needs help
-	// Most parameter selection should be handled by the LLM itself using the function results
-
-	if funcCall.FunctionCall.Args == nil {
-		funcCall.FunctionCall.Args = make(map[string]interface{})
-	}
-
-	// Only extract channel ID if completely missing and there's an obvious source
-	if _, exists := funcCall.FunctionCall.Args["channel"]; !exists {
-		for _, result := range previousResults {
-			if channels, ok := result["channels"].([]interface{}); ok && len(channels) > 0 {
-				if channel, ok := channels[0].(map[string]interface{}); ok {
-					if channelID, ok := channel["id"].(string); ok && channelID != "" {
-						funcCall.FunctionCall.Args["channel"] = channelID
-						log.Printf("🔄 Auto-extraction: %s now has channel=%s", funcCall.FunctionCall.Name, channelID)
-						return
-					}
-				}
-			}
-		}
-	} else {
-		if channelID, ok := funcCall.FunctionCall.Args["channel"].(string); ok && channelID != "" {
-			log.Printf("✅ Auto-extraction: %s already has channel parameter", funcCall.FunctionCall.Name)
-		}
-	}
+    if funcCall.FunctionCall.Args == nil {
+        funcCall.FunctionCall.Args = make(map[string]interface{})
+    }
+    // Use engine helper; add observability
+    filled := engine.AutoFillMissingArgs(funcCall.FunctionCall.Name, funcCall.FunctionCall.Args, previousResults)
+    if filled {
+        if ch, _ := funcCall.FunctionCall.Args["channel"].(string); ch != "" {
+            log.Printf("🔄 Auto-extraction: %s now has channel=%s", funcCall.FunctionCall.Name, ch)
+        }
+    } else if ch, ok := funcCall.FunctionCall.Args["channel"].(string); ok && ch != "" {
+        log.Printf("✅ Auto-extraction: %s already has channel parameter", funcCall.FunctionCall.Name)
+    }
 }
 
 // createGenericSummary provides a fallback summary for unknown functions

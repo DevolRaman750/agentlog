@@ -302,7 +302,7 @@ run-tests:
 	     echo "⚠️  Refusing to reset non-test database '$$DBNAME'. Name must end with 'test'."; \
 	   fi; \
 	 fi; \
-	 go test ./...
+	 GOCACHE=$$(pwd)/.gocache go test ./...
 
 # Run tests with coverage (legacy - use 'make coverage' for comprehensive analysis)
 test-coverage:

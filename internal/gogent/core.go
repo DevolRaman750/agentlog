@@ -1,17 +1,18 @@
 package gogent
 
 import (
-	"context"
-	"database/sql"
-	"encoding/json"
-	"fmt"
-	"io"
-	"log"
-	"net/http"
-	"net/url"
-	"strings"
-	"sync"
-	"time"
+    "context"
+    "database/sql"
+    "encoding/json"
+    "fmt"
+    "io"
+    "log"
+    "net/http"
+    "net/url"
+    "os"
+    "strings"
+    "sync"
+    "time"
 
 	"gogent/internal/agents"
 	"gogent/internal/apiauth"
@@ -50,8 +51,8 @@ type Client struct {
 	currentConfigID       *string
 	currentRequestID      *string
 
-	// Sequence number counter for flow events
-	sequenceCounter int
+    // Sequence number counter for flow events
+    sequenceCounter int
 
 	// Function call deduplication - prevents duplicate calls within same execution
 	functionCallHistory map[string]*FunctionCallHistory // executionRunID -> history
@@ -61,9 +62,12 @@ type Client struct {
 	codeAnalyzer      *code_analysis.Analyzer
 	directoryAnalyzer *github.DirectoryAnalyzer
 
-	// Integration framework
-	httpClient   *base.HTTPClient
-	integrations *integrations.Registry
+    // Integration framework
+    httpClient   *base.HTTPClient
+    integrations *integrations.Registry
+
+    // Feature flags / options for incremental engine migration
+    options ClientOptions
 }
 
 // FunctionCallHistory tracks function calls within an execution session to prevent duplicates
@@ -256,7 +260,7 @@ func NewClient(dbURL string, config *types.GeminiClientConfig, sessionApiKeys *t
 		TimeoutSeconds: 30,
 		UserAgent:      "GoGent/1.0",
 	})
-	client.integrations = integrations.NewRegistry()
+    client.integrations = integrations.NewRegistry()
 
 	// Register all integrations during client initialization
 	if err := client.registerIntegrations(); err != nil {
@@ -266,10 +270,27 @@ func NewClient(dbURL string, config *types.GeminiClientConfig, sessionApiKeys *t
 
 	// Force REST API usage - no Go SDK client
 	client.geminiClient = nil
-	log.Printf("Go SDK disabled - using REST API for all Gemini calls")
+    log.Printf("Go SDK disabled - using REST API for all Gemini calls")
 
-	return client, nil
+    // Read engine feature flags from env for easier rollout control
+    client.options = ClientOptions{
+        UseNewEngineSingle:  os.Getenv("USE_ENGINE_SINGLE") == "1",
+        UseNewEngineMulti:   os.Getenv("USE_ENGINE_MULTI") == "1",
+        UseEngineComparator: os.Getenv("USE_ENGINE_COMPARATOR") == "1",
+    }
+
+    return client, nil
 }
+
+// ClientOptions controls incremental feature rollout for the engine refactor
+type ClientOptions struct {
+    UseNewEngineSingle bool
+    UseNewEngineMulti  bool
+    UseEngineComparator bool
+}
+
+// SetOptions updates client options (safe for staged rollouts)
+func (c *Client) SetOptions(opts ClientOptions) { c.options = opts }
 
 // Close closes the database connection and Gemini client
 func (c *Client) Close() error {
