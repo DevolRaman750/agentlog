@@ -6,25 +6,16 @@ import (
 )
 
 func TestNewEngine_WiresToolRunnerAndComparator(t *testing.T) {
-    // Ensure env doesn't interfere with comparator selection
-    os.Unsetenv("USE_ENGINE_COMPARATOR")
+    // Ensure env doesn't interfere with ratelimit selection
     os.Unsetenv("ENGINE_RATELIMIT_MS")
 
     c := &Client{}
-    // Default: legacy comparator adapter
     e := c.newEngine()
     if e.Tools == nil {
         t.Fatalf("expected tool runner to be wired")
     }
-    if _, ok := e.Compare.(*engineComparator); !ok {
-        t.Fatalf("expected legacy engine comparator by default")
-    }
-
-    // With flag: basic comparator adapter should be used
-    c.options.UseEngineComparator = true
-    e2 := c.newEngine()
-    if _, ok := e2.Compare.(*engineBasicComparatorAdapter); !ok {
-        t.Fatalf("expected basic comparator adapter when flag is enabled")
+    // Comparator should always be the basic comparator adapter now
+    if _, ok := e.Compare.(*engineBasicComparatorAdapter); !ok {
+        t.Fatalf("expected basic comparator adapter to be wired by default")
     }
 }
-

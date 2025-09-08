@@ -68,21 +68,7 @@ func (c *Client) newEngine() *eng.Engine {
         Tools:    &engineToolRunnerAdapter{c},
         Opts:     eng.Options{ EnableFunctionCalling: false, RateLimitDelayMs: delayMs },
     }
-    if c.options.UseEngineComparator {
-        e.Compare = &engineBasicComparatorAdapter{c}
-    } else {
-        e.Compare = &engineComparator{c}
-    }
+    // Always use the engine's BasicComparator for comparison assembly and client for storage
+    e.Compare = &engineBasicComparatorAdapter{c}
     return e
-}
-
-// engineComparator adapts compare + store calls
-type engineComparator struct{ c *Client }
-
-func (cmp *engineComparator) Compare(ctx context.Context, result *types.ExecutionResult) (*types.ComparisonResult, error) {
-    return cmp.c.compareResults(ctx, result)
-}
-
-func (cmp *engineComparator) Store(ctx context.Context, userID string, comp *types.ComparisonResult) error {
-    return cmp.c.StoreComparisonResult(ctx, userID, comp)
 }

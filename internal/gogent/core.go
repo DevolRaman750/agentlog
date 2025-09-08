@@ -1,19 +1,10 @@
 package gogent
 
 import (
-    "context"
-    "database/sql"
-    "encoding/json"
-    "fmt"
-    "io"
-    "log"
-    "net/http"
-    "net/url"
-    "os"
-    "strings"
-    "sync"
-    "time"
-
+	"context"
+	"database/sql"
+	"encoding/json"
+	"fmt"
 	"gogent/internal/agents"
 	"gogent/internal/apiauth"
 	"gogent/internal/apikeys"
@@ -28,6 +19,13 @@ import (
 	"gogent/internal/providers"
 	"gogent/internal/teams"
 	"gogent/internal/types"
+	"io"
+	"log"
+	"net/http"
+	"net/url"
+	"strings"
+	"sync"
+	"time"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/mysql"
@@ -51,8 +49,8 @@ type Client struct {
 	currentConfigID       *string
 	currentRequestID      *string
 
-    // Sequence number counter for flow events
-    sequenceCounter int
+	// Sequence number counter for flow events
+	sequenceCounter int
 
 	// Function call deduplication - prevents duplicate calls within same execution
 	functionCallHistory map[string]*FunctionCallHistory // executionRunID -> history
@@ -62,12 +60,12 @@ type Client struct {
 	codeAnalyzer      *code_analysis.Analyzer
 	directoryAnalyzer *github.DirectoryAnalyzer
 
-    // Integration framework
-    httpClient   *base.HTTPClient
-    integrations *integrations.Registry
+	// Integration framework
+	httpClient   *base.HTTPClient
+	integrations *integrations.Registry
 
-    // Feature flags / options for incremental engine migration
-    options ClientOptions
+	// Feature flags / options for incremental engine migration
+	options ClientOptions
 }
 
 // FunctionCallHistory tracks function calls within an execution session to prevent duplicates
@@ -260,7 +258,7 @@ func NewClient(dbURL string, config *types.GeminiClientConfig, sessionApiKeys *t
 		TimeoutSeconds: 30,
 		UserAgent:      "GoGent/1.0",
 	})
-    client.integrations = integrations.NewRegistry()
+	client.integrations = integrations.NewRegistry()
 
 	// Register all integrations during client initialization
 	if err := client.registerIntegrations(); err != nil {
@@ -270,23 +268,19 @@ func NewClient(dbURL string, config *types.GeminiClientConfig, sessionApiKeys *t
 
 	// Force REST API usage - no Go SDK client
 	client.geminiClient = nil
-    log.Printf("Go SDK disabled - using REST API for all Gemini calls")
+	log.Printf("Go SDK disabled - using REST API for all Gemini calls")
 
-    // Read engine feature flags from env for easier rollout control
-    client.options = ClientOptions{
-        UseNewEngineSingle:  os.Getenv("USE_ENGINE_SINGLE") == "1",
-        UseNewEngineMulti:   os.Getenv("USE_ENGINE_MULTI") == "1",
-        UseEngineComparator: os.Getenv("USE_ENGINE_COMPARATOR") == "1",
-    }
+	// Engine paths are default; legacy flags are no longer used
+	client.options = ClientOptions{}
 
-    return client, nil
+	return client, nil
 }
 
 // ClientOptions controls incremental feature rollout for the engine refactor
 type ClientOptions struct {
-    UseNewEngineSingle bool
-    UseNewEngineMulti  bool
-    UseEngineComparator bool
+	UseNewEngineSingle  bool
+	UseNewEngineMulti   bool
+	UseEngineComparator bool
 }
 
 // SetOptions updates client options (safe for staged rollouts)
@@ -341,7 +335,6 @@ func (c *Client) registerIntegrations() error {
 	if err := c.integrations.Register(slackInt); err != nil {
 		return fmt.Errorf("failed to register Slack integration: %w", err)
 	}
-
 
 	log.Printf("✅ Registered integrations: %v", c.integrations.List())
 	return nil
@@ -513,7 +506,7 @@ func (c *Client) LoadAgentApiKeys(ctx context.Context, agentID string) error {
 		return fmt.Errorf("failed to create API key service: %w", err)
 	}
 
-	log.Printf("🔑 Loading API keys for agent %s - Found %d service configurations", 
+	log.Printf("🔑 Loading API keys for agent %s - Found %d service configurations",
 		agentID, len(agentConfig.ServiceApiKeys))
 
 	// Convert database API keys to session format
@@ -529,7 +522,7 @@ func (c *Client) LoadAgentApiKeys(ctx context.Context, agentID string) error {
 		decryptedKey, err := apiKeyService.GetDecryptedAPIKey(ctx, userID, apiKey.ID)
 		if err != nil {
 			log.Printf("⚠️ Failed to decrypt API key %s for agent %s: %v", apiKey.KeyName, agentID, err)
-			
+
 			// Try fallback key if available
 			if fallbackKey, hasFallback := agentConfig.FallbackApiKeys[serviceName]; hasFallback && fallbackKey.ID != "" {
 				log.Printf("🔄 Trying fallback API key for service %s", serviceName)
@@ -547,31 +540,31 @@ func (c *Client) LoadAgentApiKeys(ctx context.Context, agentID string) error {
 		switch serviceName {
 		case "gemini":
 			sessionKeys.GeminiApiKey = decryptedKey
-			log.Printf("🔑 [Agent %s] Loaded Gemini API key - Source: %s, Length: %d", 
+			log.Printf("🔑 [Agent %s] Loaded Gemini API key - Source: %s, Length: %d",
 				agentID, apiKey.KeyName, len(decryptedKey))
 		case "openweather":
 			sessionKeys.OpenWeatherApiKey = decryptedKey
-			log.Printf("🔑 [Agent %s] Loaded OpenWeather API key - Source: %s", 
+			log.Printf("🔑 [Agent %s] Loaded OpenWeather API key - Source: %s",
 				agentID, apiKey.KeyName)
 		case "github":
 			sessionKeys.GithubApiKey = decryptedKey
-			log.Printf("🔑 [Agent %s] Loaded GitHub API key - Source: %s", 
+			log.Printf("🔑 [Agent %s] Loaded GitHub API key - Source: %s",
 				agentID, apiKey.KeyName)
 		case "openrouter":
 			sessionKeys.OpenRouterApiKey = decryptedKey
-			log.Printf("🔑 [Agent %s] Loaded OpenRouter API key - Source: %s", 
+			log.Printf("🔑 [Agent %s] Loaded OpenRouter API key - Source: %s",
 				agentID, apiKey.KeyName)
 		case "slack":
 			sessionKeys.SlackBotToken = decryptedKey
-			log.Printf("🔑 [Agent %s] Loaded Slack Bot Token - Source: %s, Length: %d", 
+			log.Printf("🔑 [Agent %s] Loaded Slack Bot Token - Source: %s, Length: %d",
 				agentID, apiKey.KeyName, len(decryptedKey))
 		case "whatsapp":
 			sessionKeys.WhatsappAccessToken = decryptedKey
-			log.Printf("🔑 [Agent %s] Loaded WhatsApp Access Token - Source: %s, Length: %d", 
+			log.Printf("🔑 [Agent %s] Loaded WhatsApp Access Token - Source: %s, Length: %d",
 				agentID, apiKey.KeyName, len(decryptedKey))
 		case "googledrive":
 			sessionKeys.GoogleDriveApiKey = decryptedKey
-			log.Printf("🔑 [Agent %s] Loaded Google Drive API key - Source: %s", 
+			log.Printf("🔑 [Agent %s] Loaded Google Drive API key - Source: %s",
 				agentID, apiKey.KeyName)
 		default:
 			log.Printf("⚠️ [Agent %s] Unknown service name: %s", agentID, serviceName)
@@ -579,7 +572,7 @@ func (c *Client) LoadAgentApiKeys(ctx context.Context, agentID string) error {
 	}
 
 	c.databaseApiKeys = sessionKeys
-	
+
 	log.Printf("🔑 Agent API keys loaded for %s: Gemini=%v, OpenWeather=%v, GitHub=%v, OpenRouter=%v, Slack=%v, WhatsApp=%v, GoogleDrive=%v",
 		agentID,
 		sessionKeys.GeminiApiKey != "",
@@ -914,7 +907,7 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 			if strings.HasPrefix(functionName, "team_task_") {
 				return nil, fmt.Errorf("TEAM TASK ERROR: %s requires agent_id - either provide it in function arguments or run through agent execution context", functionName)
 			}
-			// For other memory functions, fall back to mock responses  
+			// For other memory functions, fall back to mock responses
 			log.Printf("🔍 No agent ID found for %s - providing mock response for non-agent execution", functionName)
 			return c.createMockMemoryResponse(functionName, args), nil
 		}
@@ -951,7 +944,7 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 		} else {
 			return nil, fmt.Errorf("TEAM FUNCTION ERROR: %s requires valid agent context", functionName)
 		}
-		
+
 		log.Printf("🔧 Team function %s - using team_id: %s, agent_id: %s", functionName, teamID, agentID)
 
 		// Convert args to TeamMemoryRequest
@@ -1009,12 +1002,11 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 				return nil, fmt.Errorf("team memory function %s failed: %w", functionName, err)
 			}
 
-
-      // Convert response to map[string]interface{}
-      result := map[string]interface{}{
-        "success":       response.Success,
-        "function_name": functionName,
-      }
+			// Convert response to map[string]interface{}
+			result := map[string]interface{}{
+				"success":       response.Success,
+				"function_name": functionName,
+			}
 
 			if response.Error != "" {
 				result["error"] = response.Error
@@ -1550,9 +1542,9 @@ func (c *Client) createMockMemoryResponse(functionName string, args map[string]i
 			"function_name": functionName,
 			"tasks":         []interface{}{},
 			"data": map[string]interface{}{
-				"total_count": 0,
-				"team_id":     teamID,
-				"agent_id":    agentID,
+				"total_count":    0,
+				"team_id":        teamID,
+				"agent_id":       agentID,
 				"mock_execution": true,
 			},
 			"message": "Team task list called in non-agent execution - no real tasks available",
@@ -1647,7 +1639,6 @@ func (c *Client) executeIntegrationFunction(ctx context.Context, funcDef *db.Fun
 			log.Printf("✅ [GITHUB_DEBUG] Created GitHub integration with user context: %s", c.currentUserID)
 		}
 	}
-
 
 	// Validate the function with the integration
 	if err := integration.ValidateFunction(funcDef); err != nil {

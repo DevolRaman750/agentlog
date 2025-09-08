@@ -33,8 +33,7 @@ func TestEngineMultiEngineComparatorParity(t *testing.T) {
         },
     }
 
-    // Enable both engine multi and engine comparator
-    client.SetOptions(ClientOptions{UseNewEngineMulti: true, UseEngineComparator: true})
+    // Engine multi + engine comparator are default; no flags needed
     res, err := client.ExecuteMultiVariation(ctx, userID, req)
     if err != nil { t.Fatalf("engine multi+comparator failed: %v", err) }
     if len(res.Results) != 2 { t.Fatalf("expected 2 results, got %d", len(res.Results)) }
