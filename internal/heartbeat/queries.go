@@ -33,6 +33,7 @@ type OverdueAgent struct {
 	TokensResetDate  string
 	LastExecutionAt  *time.Time
 	TotalExecutions  int32
+	EffectiveContext *string
 }
 
 // GetOverdueActiveAgents retrieves agents that are overdue for execution
@@ -41,7 +42,8 @@ func (aq *AgentQueries) GetOverdueActiveAgents(ctx context.Context) ([]*OverdueA
 		SELECT 
 			a.id, a.user_id, a.first_name, a.last_name, a.template_id,
 			a.heartbeat_minutes, a.max_tokens_per_day, a.tokens_used_today,
-			a.tokens_reset_date, a.last_execution_at, a.total_executions
+			a.tokens_reset_date, a.last_execution_at, a.total_executions,
+			a.effective_context
 		FROM agents a
 		WHERE a.lifecycle_status = 'ACTIVE'
 		  AND (
@@ -86,6 +88,7 @@ func (aq *AgentQueries) GetOverdueActiveAgents(ctx context.Context) ([]*OverdueA
 			&agent.TokensResetDate,
 			&lastExecutionAt,
 			&agent.TotalExecutions,
+			&agent.EffectiveContext,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan agent row: %w", err)

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Dimensions,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MarketplaceTeam } from '../types/marketplace';
@@ -15,7 +16,7 @@ interface TeamResumeModalProps {
   visible: boolean;
   team: MarketplaceTeam | null;
   onClose: () => void;
-  onHire?: () => void;
+  onHire?: (sharedTeamContext?: string) => void;
 }
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
@@ -26,6 +27,8 @@ const TeamResumeModal: React.FC<TeamResumeModalProps> = ({
   onClose,
   onHire,
 }) => {
+  const [sharedTeamContext, setSharedTeamContext] = useState('');
+  
   if (!team) return null;
 
   return (
@@ -186,12 +189,37 @@ const TeamResumeModal: React.FC<TeamResumeModalProps> = ({
             </View>
           )}
 
+          {/* Shared Team Context */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Shared Team Context (Optional)</Text>
+            <Text style={styles.contextDescription}>
+              Provide additional context, instructions, or knowledge that all agents in this team should share. This will be appended to each agent's individual context.
+            </Text>
+            <TextInput
+              style={styles.contextInput}
+              placeholder="e.g., Project guidelines, company policies, specific requirements, shared knowledge..."
+              placeholderTextColor="#8E8E93"
+              value={sharedTeamContext}
+              onChangeText={setSharedTeamContext}
+              multiline
+              numberOfLines={4}
+              maxLength={2000}
+              textAlignVertical="top"
+            />
+            <Text style={styles.characterCount}>
+              {sharedTeamContext.length}/2000 characters
+            </Text>
+          </View>
+
           <View style={styles.bottomPadding} />
         </ScrollView>
 
         {/* Action Button */}
         <View style={styles.actionContainer}>
-          <TouchableOpacity style={styles.hireButton} onPress={onHire}>
+          <TouchableOpacity 
+            style={styles.hireButton} 
+            onPress={() => onHire?.(sharedTeamContext.trim() || undefined)}
+          >
             <Ionicons name="add-circle" size={20} color="#FFFFFF" />
             <Text style={styles.hireButtonText}>Deploy This Team</Text>
           </TouchableOpacity>
@@ -442,6 +470,30 @@ const styles = StyleSheet.create({
   rating: {
     flexDirection: 'row',
     gap: 2,
+  },
+  contextDescription: {
+    fontSize: 14,
+    color: '#6B6B6B',
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  contextInput: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#1A1A1A',
+    minHeight: 100,
+    maxHeight: 150,
+  },
+  characterCount: {
+    fontSize: 12,
+    color: '#8E8E93',
+    textAlign: 'right',
+    marginTop: 4,
   },
   bottomPadding: {
     height: 100,

@@ -296,7 +296,7 @@ const AgentMarketplaceScreen: React.FC = () => {
     }, 1000);
   };
 
-  const handleHireTeam = async (team: MarketplaceTeam) => {
+  const handleHireTeam = async (team: MarketplaceTeam, sharedTeamContext?: string) => {
     try {
       // Create the team with all agents via API
       const teamCreateRequest = {
@@ -304,6 +304,7 @@ const AgentMarketplaceScreen: React.FC = () => {
         description: team.description,
         maxTokensPerDay: team.agents.reduce((total, agent) => total + agent.defaultConfig.maxTokensPerDay, 0),
         teamConfigId: team.teamConfigId,
+        sharedTeamContext: sharedTeamContext || undefined,
         agents: team.agents.map(agent => ({
           firstName: agent.name.split(' ')[0] || agent.role.split(' ')[0],
           lastName: agent.name.split(' ').slice(1).join(' ') || 'Agent',
@@ -655,7 +656,7 @@ const AgentMarketplaceScreen: React.FC = () => {
         visible={showTeamModal}
         team={selectedTeam}
         onClose={() => setShowTeamModal(false)}
-        onHire={selectedTeam ? () => handleHireTeam(selectedTeam) : undefined}
+        onHire={selectedTeam ? (sharedTeamContext) => handleHireTeam(selectedTeam, sharedTeamContext) : undefined}
       />
 
       {/* Success Tooltip */}

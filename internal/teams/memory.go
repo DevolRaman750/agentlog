@@ -567,7 +567,7 @@ func (h *TeamsHandler) compactMemory(memory *types.TeamMemory) error {
 // StoreTeamTask stores a new task in the team's task memory
 func (h *TeamsHandler) StoreTeamTask(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
 	log.Printf("🔍 StoreTeamTask called with teamID: %s, agentID: %s, userID: %s", teamID, agentID, userID)
-	
+
 	// Validate access
 	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
 	if err != nil {
@@ -734,8 +734,8 @@ func (h *TeamsHandler) ClaimTeamTask(ctx context.Context, teamID, agentID, userI
 			Success: true,
 			Task:    task,
 			Data: map[string]interface{}{
-				"message":   "Task claimed successfully",
-				"task_id":   task.ID,
+				"message":    "Task claimed successfully",
+				"task_id":    task.ID,
 				"claimed_by": agentID,
 			},
 		}, nil
@@ -790,11 +790,11 @@ func (h *TeamsHandler) ClaimTeamTask(ctx context.Context, teamID, agentID, userI
 		}
 
 		// Select best task (prioritize by priority, then by creation time)
-		if bestTask == nil || 
-		   task.Priority == types.TaskPriorityUrgent && bestTask.Priority != types.TaskPriorityUrgent ||
-		   task.Priority == types.TaskPriorityHigh && bestTask.Priority == types.TaskPriorityMedium ||
-		   task.Priority == types.TaskPriorityHigh && bestTask.Priority == types.TaskPriorityLow ||
-		   (task.Priority == bestTask.Priority && task.CreatedAt.Before(bestTask.CreatedAt)) {
+		if bestTask == nil ||
+			task.Priority == types.TaskPriorityUrgent && bestTask.Priority != types.TaskPriorityUrgent ||
+			task.Priority == types.TaskPriorityHigh && bestTask.Priority == types.TaskPriorityMedium ||
+			task.Priority == types.TaskPriorityHigh && bestTask.Priority == types.TaskPriorityLow ||
+			(task.Priority == bestTask.Priority && task.CreatedAt.Before(bestTask.CreatedAt)) {
 			bestTask = task
 			bestTaskID = taskID
 		}
@@ -830,8 +830,8 @@ func (h *TeamsHandler) ClaimTeamTask(ctx context.Context, teamID, agentID, userI
 		Success: true,
 		Task:    bestTask,
 		Data: map[string]interface{}{
-			"message":   "Task claimed successfully",
-			"task_id":   bestTask.ID,
+			"message":    "Task claimed successfully",
+			"task_id":    bestTask.ID,
 			"claimed_by": agentID,
 		},
 	}, nil
@@ -945,9 +945,9 @@ func (h *TeamsHandler) CompleteTeamTask(ctx context.Context, teamID, agentID, us
 	}
 
 	responseData := map[string]interface{}{
-		"message":     "Task completed successfully",
-		"task_id":     task.ID,
-		"status":      string(task.Status),
+		"message":      "Task completed successfully",
+		"task_id":      task.ID,
+		"status":       string(task.Status),
 		"completed_by": agentID,
 	}
 	if len(followUpTaskIDs) > 0 {
@@ -1178,9 +1178,9 @@ func (h *TeamsHandler) ErrorTeamTask(ctx context.Context, teamID, agentID, userI
 		Success: true,
 		Task:    task,
 		Data: map[string]interface{}{
-			"message":    "Task error reported successfully",
-			"task_id":    task.ID,
-			"error_type": request.ErrorType,
+			"message":      "Task error reported successfully",
+			"task_id":      task.ID,
+			"error_type":   request.ErrorType,
 			"is_retryable": request.IsRetryable,
 		},
 	}, nil
@@ -1406,7 +1406,7 @@ func (h *TeamsHandler) ClearTeamTasks(ctx context.Context, teamID, agentID, user
 						}
 					}
 				}
-				
+
 				// Add all others to removal list
 				for _, task := range group {
 					if task.ID != keepTask.ID {
@@ -1432,7 +1432,7 @@ func (h *TeamsHandler) ClearTeamTasks(ctx context.Context, teamID, agentID, user
 	if memory.Contexts.Shared == nil {
 		memory.Contexts.Shared = make(map[string]interface{})
 	}
-	
+
 	// Clear the tasks map and rebuild with remaining tasks
 	tasksMap := make(map[string]interface{})
 	for _, task := range tasksKept {
@@ -1463,7 +1463,7 @@ func (h *TeamsHandler) ClearTeamTasks(ctx context.Context, teamID, agentID, user
 	if reason == "" {
 		reason = fmt.Sprintf("Team task %s operation", action)
 	}
-	log.Printf("✅ Team task clear action '%s' completed: removed %d tasks, kept %d tasks. Reason: %s", 
+	log.Printf("✅ Team task clear action '%s' completed: removed %d tasks, kept %d tasks. Reason: %s",
 		action, len(tasksRemoved), len(tasksKept), reason)
 
 	return &types.TeamTaskResponse{
@@ -1584,12 +1584,12 @@ func convertToTeamTask(taskData interface{}) (*types.TeamTask, error) {
 	if task, ok := taskData.(*types.TeamTask); ok {
 		return task, nil
 	}
-	
+
 	// If it's a TeamTask struct, return pointer to it
 	if task, ok := taskData.(types.TeamTask); ok {
 		return &task, nil
 	}
-	
+
 	// If it's a map (from JSON unmarshaling), convert it
 	if taskMap, ok := taskData.(map[string]interface{}); ok {
 		// Marshal back to JSON and unmarshal to TeamTask
@@ -1597,16 +1597,16 @@ func convertToTeamTask(taskData interface{}) (*types.TeamTask, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal task data: %w", err)
 		}
-		
+
 		var task types.TeamTask
 		err = json.Unmarshal(taskJSON, &task)
 		if err != nil {
 			return nil, fmt.Errorf("failed to unmarshal task data: %w", err)
 		}
-		
+
 		return &task, nil
 	}
-	
+
 	return nil, fmt.Errorf("invalid task data type: %T", taskData)
 }
 
@@ -1618,7 +1618,7 @@ func generateTaskID() string {
 // UpdateTeamTask updates an existing task in the team's task memory
 func (h *TeamsHandler) UpdateTeamTask(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
 	log.Printf("🔍 UpdateTeamTask called with teamID: %s, agentID: %s, userID: %s, taskID: %s", teamID, agentID, userID, request.TaskID)
-	
+
 	// Validate access
 	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
 	if err != nil {
@@ -1793,7 +1793,7 @@ func (h *TeamsHandler) UpdateTeamTask(ctx context.Context, teamID, agentID, user
 // StoreAgentTask stores a task record in the agent's task memory
 func (h *TeamsHandler) StoreAgentTask(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
 	log.Printf("🔍 StoreAgentTask called with teamID: %s, agentID: %s, userID: %s", teamID, agentID, userID)
-	
+
 	// Validate access
 	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
 	if err != nil {
@@ -1850,7 +1850,7 @@ func (h *TeamsHandler) StoreAgentTask(ctx context.Context, teamID, agentID, user
 	}
 
 	agentTasks := memory.Contexts.Shared[agentTasksKey].(map[string]interface{})
-	
+
 	// Ensure context exists in agent tasks
 	contextKey := fmt.Sprintf("context_%s", context)
 	if agentTasks[contextKey] == nil {
@@ -1901,7 +1901,7 @@ func (h *TeamsHandler) StoreAgentTask(ctx context.Context, teamID, agentID, user
 // ListAgentTasks retrieves tasks from the agent's task memory
 func (h *TeamsHandler) ListAgentTasks(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
 	log.Printf("🔍 ListAgentTasks called with teamID: %s, agentID: %s, userID: %s", teamID, agentID, userID)
-	
+
 	// Validate access
 	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
 	if err != nil {
@@ -1946,7 +1946,7 @@ func (h *TeamsHandler) ListAgentTasks(ctx context.Context, teamID, agentID, user
 	// Check agent-specific task storage
 	agentTasksKey := fmt.Sprintf("agent_tasks_%s", agentID)
 	agentTasksInterface := team.Memory.Contexts.Shared[agentTasksKey]
-	
+
 	if agentTasksInterface == nil {
 		log.Printf("✅ No agent tasks found - returning empty list")
 		return &types.TeamTaskResponse{
@@ -2022,7 +2022,7 @@ func (h *TeamsHandler) ListAgentTasks(ctx context.Context, teamID, agentID, user
 // DeleteAgentTask removes a task from the agent's task memory
 func (h *TeamsHandler) DeleteAgentTask(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
 	log.Printf("🔍 DeleteAgentTask called with teamID: %s, agentID: %s, userID: %s, taskID: %s", teamID, agentID, userID, request.TaskID)
-	
+
 	// Validate access
 	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
 	if err != nil {
@@ -2070,7 +2070,7 @@ func (h *TeamsHandler) DeleteAgentTask(ctx context.Context, teamID, agentID, use
 	// Check agent-specific task storage
 	agentTasksKey := fmt.Sprintf("agent_tasks_%s", agentID)
 	agentTasksInterface := team.Memory.Contexts.Shared[agentTasksKey]
-	
+
 	if agentTasksInterface == nil {
 		return &types.TeamTaskResponse{
 			Success: false,
@@ -2139,6 +2139,406 @@ func (h *TeamsHandler) DeleteAgentTask(ctx context.Context, teamID, agentID, use
 			"context":      context,
 			"agent_id":     agentID,
 			"deleted_task": deletedTask,
+		},
+	}, nil
+}
+
+// UpdateAgentTaskProgress stores progress tracking data for a task the agent is working on
+func (h *TeamsHandler) UpdateAgentTaskProgress(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+	log.Printf("🔍 UpdateAgentTaskProgress called with teamID: %s, agentID: %s, userID: %s, taskID: %s", teamID, agentID, userID, request.TaskID)
+
+	// Validate access
+	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
+	if err != nil {
+		log.Printf("❌ UpdateAgentTaskProgress access validation failed: %v", err)
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Access denied: %v", err),
+		}, nil
+	}
+	log.Printf("✅ UpdateAgentTaskProgress access validation passed")
+
+	// Validate required parameters
+	if request.TaskID == "" {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   "Task ID is required for progress update",
+		}, nil
+	}
+	if request.ProgressData == nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   "Progress data is required",
+		}, nil
+	}
+
+	// Get team memory
+	team, err := h.getTeamByID(teamID, userID)
+	if err != nil {
+		log.Printf("❌ UpdateAgentTaskProgress team lookup failed: %v", err)
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Team not found: %v", err),
+		}, nil
+	}
+	log.Printf("✅ UpdateAgentTaskProgress team found: %s", team.Name)
+
+	// Initialize memory if needed
+	var memory *types.TeamMemory
+	if team.Memory != nil {
+		memory = team.Memory
+	} else {
+		memory, err = h.InitializeTeamMemory(teamID)
+		if err != nil {
+			return &types.TeamTaskResponse{
+				Success: false,
+				Error:   fmt.Sprintf("Failed to initialize memory: %v", err),
+			}, nil
+		}
+	}
+
+	// Ensure shared context exists for agent progress storage
+	if memory.Contexts.Shared == nil {
+		memory.Contexts.Shared = make(map[string]interface{})
+	}
+
+	// Create agent-specific progress storage path
+	agentProgressKey := fmt.Sprintf("agent_progress_%s", agentID)
+	if memory.Contexts.Shared[agentProgressKey] == nil {
+		memory.Contexts.Shared[agentProgressKey] = make(map[string]interface{})
+	}
+
+	agentProgress := memory.Contexts.Shared[agentProgressKey].(map[string]interface{})
+
+	// Add checkpoint timestamp and reason
+	progressData := make(map[string]interface{})
+	for k, v := range request.ProgressData {
+		progressData[k] = v
+	}
+
+	now := time.Now()
+	progressData["checkpoint_created_at"] = now.Format(time.RFC3339)
+	if request.CheckpointReason != "" {
+		progressData["checkpoint_reason"] = request.CheckpointReason
+	}
+
+	// Store progress data
+	agentProgress[request.TaskID] = progressData
+
+	// Update memory metadata
+	memory.Metadata.UpdatedAt = now
+
+	// Save updated memory
+	err = h.saveTeamMemory(teamID, userID, memory)
+	if err != nil {
+		log.Printf("❌ UpdateAgentTaskProgress save failed: %v", err)
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Failed to save progress: %v", err),
+		}, nil
+	}
+
+	log.Printf("✅ Agent task progress updated successfully: %s for agent %s", request.TaskID, agentID)
+
+	return &types.TeamTaskResponse{
+		Success: true,
+		Data: map[string]interface{}{
+			"message":               "Agent task progress updated successfully",
+			"task_id":               request.TaskID,
+			"agent_id":              agentID,
+			"progress_data":         progressData,
+			"checkpoint_created_at": now.Format(time.RFC3339),
+		},
+	}, nil
+}
+
+// ReadAgentTaskProgress retrieves saved progress data for tasks the agent is working on
+func (h *TeamsHandler) ReadAgentTaskProgress(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+	log.Printf("🔍 ReadAgentTaskProgress called with teamID: %s, agentID: %s, userID: %s", teamID, agentID, userID)
+
+	// Validate access
+	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
+	if err != nil {
+		log.Printf("❌ ReadAgentTaskProgress access validation failed: %v", err)
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Access denied: %v", err),
+		}, nil
+	}
+	log.Printf("✅ ReadAgentTaskProgress access validation passed")
+
+	// Get team memory
+	team, err := h.getTeamByID(teamID, userID)
+	if err != nil {
+		log.Printf("❌ ReadAgentTaskProgress team lookup failed: %v", err)
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Team not found: %v", err),
+		}, nil
+	}
+	log.Printf("✅ ReadAgentTaskProgress team found: %s", team.Name)
+
+	// Check if memory exists
+	if team.Memory == nil || team.Memory.Contexts.Shared == nil {
+		return &types.TeamTaskResponse{
+			Success: true,
+			Data: map[string]interface{}{
+				"message":          "No agent progress data found",
+				"progress_records": []interface{}{},
+			},
+		}, nil
+	}
+
+	// Get agent-specific progress storage
+	agentProgressKey := fmt.Sprintf("agent_progress_%s", agentID)
+	agentProgressInterface := team.Memory.Contexts.Shared[agentProgressKey]
+
+	if agentProgressInterface == nil {
+		return &types.TeamTaskResponse{
+			Success: true,
+			Data: map[string]interface{}{
+				"message":          "No agent progress data found",
+				"progress_records": []interface{}{},
+			},
+		}, nil
+	}
+
+	agentProgress, ok := agentProgressInterface.(map[string]interface{})
+	if !ok {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   "Invalid agent progress data format",
+		}, nil
+	}
+
+	var progressRecords []interface{}
+
+	// If specific task ID requested
+	if request.TaskID != "" {
+		if progressData, exists := agentProgress[request.TaskID]; exists {
+			progressRecords = append(progressRecords, map[string]interface{}{
+				"task_id":       request.TaskID,
+				"progress_data": progressData,
+			})
+		}
+	} else {
+		// Return all progress records
+		for taskID, progressData := range agentProgress {
+			// Apply status filter if provided
+			if len(request.StatusFilter) > 0 {
+				if progressMap, ok := progressData.(map[string]interface{}); ok {
+					if status, ok := progressMap["status"].(string); ok {
+						filterMatch := false
+						for _, filterStatus := range request.StatusFilter {
+							if status == filterStatus {
+								filterMatch = true
+								break
+							}
+						}
+						if !filterMatch {
+							continue
+						}
+					}
+				}
+			}
+
+			// Apply include_completed filter
+			if !request.IncludeCompleted {
+				if progressMap, ok := progressData.(map[string]interface{}); ok {
+					if status, ok := progressMap["status"].(string); ok {
+						if status == "completed" || status == "error" {
+							continue
+						}
+					}
+				}
+			}
+
+			progressRecords = append(progressRecords, map[string]interface{}{
+				"task_id":       taskID,
+				"progress_data": progressData,
+			})
+
+			// Apply limit
+			if len(progressRecords) >= request.Limit {
+				break
+			}
+		}
+	}
+
+	log.Printf("✅ ReadAgentTaskProgress completed: found %d progress records for agent %s", len(progressRecords), agentID)
+
+	return &types.TeamTaskResponse{
+		Success: true,
+		Data: map[string]interface{}{
+			"message":          "Agent task progress retrieved successfully",
+			"agent_id":         agentID,
+			"progress_records": progressRecords,
+			"total_count":      len(progressRecords),
+		},
+	}, nil
+}
+
+// ClearAgentTaskProgress clears saved progress data for tasks
+func (h *TeamsHandler) ClearAgentTaskProgress(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+	log.Printf("🔍 ClearAgentTaskProgress called with teamID: %s, agentID: %s, userID: %s", teamID, agentID, userID)
+
+	// Validate access
+	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
+	if err != nil {
+		log.Printf("❌ ClearAgentTaskProgress access validation failed: %v", err)
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Access denied: %v", err),
+		}, nil
+	}
+	log.Printf("✅ ClearAgentTaskProgress access validation passed")
+
+	// Get team memory
+	team, err := h.getTeamByID(teamID, userID)
+	if err != nil {
+		log.Printf("❌ ClearAgentTaskProgress team lookup failed: %v", err)
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Team not found: %v", err),
+		}, nil
+	}
+	log.Printf("✅ ClearAgentTaskProgress team found: %s", team.Name)
+
+	// Check if memory exists
+	if team.Memory == nil || team.Memory.Contexts.Shared == nil {
+		return &types.TeamTaskResponse{
+			Success: true,
+			Data: map[string]interface{}{
+				"message":       "No agent progress data to clear",
+				"cleared_count": 0,
+			},
+		}, nil
+	}
+
+	// Get agent-specific progress storage
+	agentProgressKey := fmt.Sprintf("agent_progress_%s", agentID)
+	agentProgressInterface := team.Memory.Contexts.Shared[agentProgressKey]
+
+	if agentProgressInterface == nil {
+		return &types.TeamTaskResponse{
+			Success: true,
+			Data: map[string]interface{}{
+				"message":       "No agent progress data to clear",
+				"cleared_count": 0,
+			},
+		}, nil
+	}
+
+	agentProgress, ok := agentProgressInterface.(map[string]interface{})
+	if !ok {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   "Invalid agent progress data format",
+		}, nil
+	}
+
+	var clearedTasks []string
+	var clearedCount int
+
+	action := request.Action
+	if action == "" {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   "Action is required for clearing progress",
+		}, nil
+	}
+
+	now := time.Now()
+
+	switch action {
+	case "clear_task":
+		if request.TaskID == "" {
+			return &types.TeamTaskResponse{
+				Success: false,
+				Error:   "Task ID is required for clear_task action",
+			}, nil
+		}
+		if _, exists := agentProgress[request.TaskID]; exists {
+			delete(agentProgress, request.TaskID)
+			clearedTasks = append(clearedTasks, request.TaskID)
+			clearedCount = 1
+		}
+
+	case "clear_completed":
+		cutoffTime := now.Add(-time.Duration(request.OlderThanHours) * time.Hour)
+		for taskID, progressData := range agentProgress {
+			if progressMap, ok := progressData.(map[string]interface{}); ok {
+				if status, ok := progressMap["status"].(string); ok {
+					if status == "completed" {
+						// Check if old enough
+						if lastUpdatedStr, ok := progressMap["last_updated"].(string); ok {
+							if lastUpdated, err := time.Parse(time.RFC3339, lastUpdatedStr); err == nil {
+								if lastUpdated.Before(cutoffTime) {
+									delete(agentProgress, taskID)
+									clearedTasks = append(clearedTasks, taskID)
+									clearedCount++
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+	case "clear_abandoned":
+		cutoffTime := now.Add(-time.Duration(request.OlderThanHours) * time.Hour)
+		for taskID, progressData := range agentProgress {
+			if progressMap, ok := progressData.(map[string]interface{}); ok {
+				if lastUpdatedStr, ok := progressMap["last_updated"].(string); ok {
+					if lastUpdated, err := time.Parse(time.RFC3339, lastUpdatedStr); err == nil {
+						if lastUpdated.Before(cutoffTime) {
+							delete(agentProgress, taskID)
+							clearedTasks = append(clearedTasks, taskID)
+							clearedCount++
+						}
+					}
+				}
+			}
+		}
+
+	case "clear_all":
+		for taskID := range agentProgress {
+			delete(agentProgress, taskID)
+			clearedTasks = append(clearedTasks, taskID)
+			clearedCount++
+		}
+
+	default:
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Invalid clear action: %s", action),
+		}, nil
+	}
+
+	// Update memory metadata
+	team.Memory.Metadata.UpdatedAt = now
+
+	// Save updated memory
+	err = h.saveTeamMemory(teamID, userID, team.Memory)
+	if err != nil {
+		log.Printf("❌ ClearAgentTaskProgress save failed: %v", err)
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Failed to save cleared progress: %v", err),
+		}, nil
+	}
+
+	log.Printf("✅ Agent task progress cleared successfully: %d tasks for agent %s", clearedCount, agentID)
+
+	return &types.TeamTaskResponse{
+		Success: true,
+		Data: map[string]interface{}{
+			"message":       "Agent task progress cleared successfully",
+			"action":        action,
+			"agent_id":      agentID,
+			"cleared_tasks": clearedTasks,
+			"cleared_count": clearedCount,
+			"reason":        request.Reason,
 		},
 	}, nil
 }

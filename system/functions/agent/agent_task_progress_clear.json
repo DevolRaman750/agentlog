@@ -1,0 +1,70 @@
+{
+  "id": "func-agent-task-progress-clear",
+  "name": "agent_task_progress_clear",
+  "provider": "internal",
+  "function_group": "internal",
+  "display_name": "Agent Task Progress: Clear",
+  "description": "Clear saved progress data for tasks. Use this to clean up completed tasks, remove abandoned progress, or maintain agent memory hygiene. Agent context is automatically inferred from the agent's team membership.",
+  "endpoint": {
+    "path": "/internal/agent/task/progress/clear",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "required": ["action"],
+    "properties": {
+      "action": {
+        "type": "string",
+        "enum": ["clear_task", "clear_completed", "clear_abandoned", "clear_all"],
+        "description": "Type of cleanup to perform"
+      },
+      "task_id": {
+        "type": "string",
+        "description": "Specific task ID to clear (required for 'clear_task' action)"
+      },
+      "older_than_hours": {
+        "type": "integer",
+        "minimum": 1,
+        "default": 24,
+        "description": "For 'clear_completed' or 'clear_abandoned' - only clear progress older than this many hours"
+      },
+      "reason": {
+        "type": "string",
+        "description": "Reason for clearing progress (for logging/audit purposes)"
+      }
+    }
+  },
+  "examples": [
+    {
+      "name": "Clear specific completed task",
+      "parameters": {
+        "action": "clear_task",
+        "task_id": "task_abc123",
+        "reason": "Task completed successfully, cleaning up progress data"
+      }
+    },
+    {
+      "name": "Clear old completed tasks",
+      "parameters": {
+        "action": "clear_completed",
+        "older_than_hours": 48,
+        "reason": "Regular cleanup of completed task progress"
+      }
+    },
+    {
+      "name": "Clear abandoned tasks",
+      "parameters": {
+        "action": "clear_abandoned",
+        "older_than_hours": 72,
+        "reason": "Cleaning up tasks that have been stuck for 3+ days"
+      }
+    },
+    {
+      "name": "Clear all progress data",
+      "parameters": {
+        "action": "clear_all",
+        "reason": "Agent reset - clearing all progress data"
+      }
+    }
+  ]
+}

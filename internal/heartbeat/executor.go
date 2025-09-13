@@ -333,12 +333,20 @@ func (he *HeartbeatExecutor) executeAgentTemplate(ctx context.Context, agent *Ov
 		}
 	}
 
+	// Use effective_context which contains the complete context (template + shared team context)
+	// This ensures agents get both their individual template context AND any shared team context
+	contextToUse := template.ContextTemplate
+	if agent.EffectiveContext != nil && *agent.EffectiveContext != "" {
+		// effective_context already contains: template_context + "\n\n--- SHARED TEAM CONTEXT ---\n" + shared_context
+		contextToUse = *agent.EffectiveContext
+	}
+
 	// Create execution request
 	executionRequest := &types.MultiExecutionRequest{
 		ExecutionRunName:      fmt.Sprintf("Agent: %s %s (Heartbeat)", agent.FirstName, agent.LastName),
 		Description:           fmt.Sprintf("Automated execution for agent %s via HeartbeatExecutor", agent.ID),
 		BasePrompt:            template.TemplatePrompt,
-		Context:               template.ContextTemplate,
+		Context:               contextToUse,
 		EnableFunctionCalling: template.EnableFunctionCalling,
 		AgentID:               &agent.ID, // Important: link execution to agent
 		Configurations:        []types.APIConfiguration{config},

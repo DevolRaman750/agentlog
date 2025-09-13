@@ -242,17 +242,17 @@ type FunctionCall struct {
 
 // SessionApiKeys represents API keys passed with each request (not stored on backend)
 type SessionApiKeys struct {
-	GeminiApiKey      string `json:"geminiApiKey,omitempty"`
-	OpenRouterApiKey  string `json:"openRouterApiKey,omitempty"` // For Kimi K2 and other models via OpenRouter
-	OpenWeatherApiKey string `json:"openWeatherApiKey,omitempty"`
-	Neo4jUrl          string `json:"neo4jUrl,omitempty"`
-	Neo4jUsername     string `json:"neo4jUsername,omitempty"`
-	Neo4jPassword     string `json:"neo4jPassword,omitempty"`
-	Neo4jDatabase     string `json:"neo4jDatabase,omitempty"`
-	GithubApiKey      string `json:"githubApiKey,omitempty"`
-	SlackBotToken     string `json:"slackBotToken,omitempty"`     // Slack Bot Token (xoxb-...)
+	GeminiApiKey        string `json:"geminiApiKey,omitempty"`
+	OpenRouterApiKey    string `json:"openRouterApiKey,omitempty"` // For Kimi K2 and other models via OpenRouter
+	OpenWeatherApiKey   string `json:"openWeatherApiKey,omitempty"`
+	Neo4jUrl            string `json:"neo4jUrl,omitempty"`
+	Neo4jUsername       string `json:"neo4jUsername,omitempty"`
+	Neo4jPassword       string `json:"neo4jPassword,omitempty"`
+	Neo4jDatabase       string `json:"neo4jDatabase,omitempty"`
+	GithubApiKey        string `json:"githubApiKey,omitempty"`
+	SlackBotToken       string `json:"slackBotToken,omitempty"`       // Slack Bot Token (xoxb-...)
 	WhatsappAccessToken string `json:"whatsappAccessToken,omitempty"` // WhatsApp Business API Access Token (EAA...)
-	GoogleDriveApiKey string `json:"googleDriveApiKey,omitempty"` // Google Drive API OAuth 2.0 Access Token
+	GoogleDriveApiKey   string `json:"googleDriveApiKey,omitempty"`   // Google Drive API OAuth 2.0 Access Token
 }
 
 // GeminiClientConfig represents the configuration for the Gemini client
@@ -634,6 +634,8 @@ type Agent struct {
 	TotalExecutions  int32           `json:"totalExecutions"`
 	CreatedAt        time.Time       `json:"createdAt"`
 	UpdatedAt        time.Time       `json:"updatedAt"`
+	// Context fields
+	EffectiveContext *string `json:"effectiveContext,omitempty"` // Combined template + shared team context
 	// Memory fields
 	Memory          *AgentMemory `json:"memory,omitempty"`
 	MemorySizeBytes int32        `json:"memorySizeBytes"`
@@ -701,13 +703,19 @@ type TeamUpdateRequest struct {
 	MaxTokensPerDay *int32  `json:"maxTokensPerDay,omitempty" validate:"omitempty,min=1000"`
 }
 
+// TeamContextUpdateRequest represents the request to update shared team context
+type TeamContextUpdateRequest struct {
+	SharedTeamContext *string `json:"sharedTeamContext,omitempty" validate:"omitempty,max=2000"`
+}
+
 // TeamWithAgentsCreateRequest represents the request to create a team with agents
 type TeamWithAgentsCreateRequest struct {
-	Name            string                      `json:"name" validate:"required,min=1,max=100"`
-	Description     *string                     `json:"description,omitempty" validate:"omitempty,max=500"`
-	MaxTokensPerDay int32                       `json:"maxTokensPerDay" validate:"required,min=1000"`
-	TeamConfigId    *string                     `json:"teamConfigId,omitempty"`
-	Agents          []AgentCreateRequestForTeam `json:"agents" validate:"required,min=1"`
+	Name              string                      `json:"name" validate:"required,min=1,max=100"`
+	Description       *string                     `json:"description,omitempty" validate:"omitempty,max=500"`
+	MaxTokensPerDay   int32                       `json:"maxTokensPerDay" validate:"required,min=1000"`
+	TeamConfigId      *string                     `json:"teamConfigId,omitempty"`
+	SharedTeamContext *string                     `json:"sharedTeamContext,omitempty" validate:"omitempty,max=2000"`
+	Agents            []AgentCreateRequestForTeam `json:"agents" validate:"required,min=1"`
 }
 
 // AgentCreateRequestForTeam represents an agent to be created as part of a team
@@ -854,37 +862,37 @@ type MemorySearchResult struct {
 
 // AgentApiKey represents a mapping between agents and API keys
 type AgentApiKey struct {
-	ID                string    `json:"id"`
-	AgentID           string    `json:"agentId"`
-	ApiKeyID          string    `json:"apiKeyId"`
-	IsDefault         bool      `json:"isDefault"`
-	UseGlobalDefault  bool      `json:"useGlobalDefault"`
-	Priority          int       `json:"priority"`
-	CreatedAt         time.Time `json:"createdAt"`
-	UpdatedAt         time.Time `json:"updatedAt"`
-	
+	ID               string    `json:"id"`
+	AgentID          string    `json:"agentId"`
+	ApiKeyID         string    `json:"apiKeyId"`
+	IsDefault        bool      `json:"isDefault"`
+	UseGlobalDefault bool      `json:"useGlobalDefault"`
+	Priority         int       `json:"priority"`
+	CreatedAt        time.Time `json:"createdAt"`
+	UpdatedAt        time.Time `json:"updatedAt"`
+
 	// Populated via JOINs when needed
-	ApiKey            *UserApiKey `json:"apiKey,omitempty"`
-	ServiceName       string      `json:"serviceName,omitempty"`
-	DisplayName       string      `json:"displayName,omitempty"`
-	ValidationStatus  string      `json:"validationStatus,omitempty"`
-	IsActive          bool        `json:"isActive,omitempty"`
+	ApiKey           *UserApiKey `json:"apiKey,omitempty"`
+	ServiceName      string      `json:"serviceName,omitempty"`
+	DisplayName      string      `json:"displayName,omitempty"`
+	ValidationStatus string      `json:"validationStatus,omitempty"`
+	IsActive         bool        `json:"isActive,omitempty"`
 }
 
 // AgentApiKeyCreateRequest represents a request to create an agent API key mapping
 type AgentApiKeyCreateRequest struct {
-	AgentID           string `json:"agentId" validate:"required"`
-	ApiKeyID          string `json:"apiKeyId" validate:"required"`
-	IsDefault         bool   `json:"isDefault"`
-	UseGlobalDefault  bool   `json:"useGlobalDefault"`
-	Priority          int    `json:"priority"`
+	AgentID          string `json:"agentId" validate:"required"`
+	ApiKeyID         string `json:"apiKeyId" validate:"required"`
+	IsDefault        bool   `json:"isDefault"`
+	UseGlobalDefault bool   `json:"useGlobalDefault"`
+	Priority         int    `json:"priority"`
 }
 
 // AgentApiKeyUpdateRequest represents a request to update an agent API key mapping
 type AgentApiKeyUpdateRequest struct {
-	IsDefault         *bool `json:"isDefault,omitempty"`
-	UseGlobalDefault  *bool `json:"useGlobalDefault,omitempty"`
-	Priority          *int  `json:"priority,omitempty"`
+	IsDefault        *bool `json:"isDefault,omitempty"`
+	UseGlobalDefault *bool `json:"useGlobalDefault,omitempty"`
+	Priority         *int  `json:"priority,omitempty"`
 }
 
 // AgentWithApiKeys represents an agent with its associated API keys
@@ -895,23 +903,23 @@ type AgentWithApiKeys struct {
 
 // AgentApiKeyConfiguration represents the API key configuration for an agent
 type AgentApiKeyConfiguration struct {
-	AgentID           string                 `json:"agentId"`
-	ServiceApiKeys    map[string]UserApiKey  `json:"serviceApiKeys"`    // Service name -> API key
-	FallbackApiKeys   map[string]UserApiKey  `json:"fallbackApiKeys"`   // Service name -> fallback API key
-	UseGlobalDefaults bool                   `json:"useGlobalDefaults"`
+	AgentID           string                `json:"agentId"`
+	ServiceApiKeys    map[string]UserApiKey `json:"serviceApiKeys"`  // Service name -> API key
+	FallbackApiKeys   map[string]UserApiKey `json:"fallbackApiKeys"` // Service name -> fallback API key
+	UseGlobalDefaults bool                  `json:"useGlobalDefaults"`
 }
 
 // TeamTaskStatus represents the status of a team task
 type TeamTaskStatus string
 
 const (
-	TaskStatusPending     TeamTaskStatus = "pending"
-	TaskStatusClaimed     TeamTaskStatus = "claimed"
-	TaskStatusInProgress  TeamTaskStatus = "in_progress"
-	TaskStatusCompleted   TeamTaskStatus = "completed"
-	TaskStatusFailed      TeamTaskStatus = "failed"
-	TaskStatusBlocked     TeamTaskStatus = "blocked"
-	TaskStatusCancelled   TeamTaskStatus = "cancelled"
+	TaskStatusPending    TeamTaskStatus = "pending"
+	TaskStatusClaimed    TeamTaskStatus = "claimed"
+	TaskStatusInProgress TeamTaskStatus = "in_progress"
+	TaskStatusCompleted  TeamTaskStatus = "completed"
+	TaskStatusFailed     TeamTaskStatus = "failed"
+	TaskStatusBlocked    TeamTaskStatus = "blocked"
+	TaskStatusCancelled  TeamTaskStatus = "cancelled"
 )
 
 // TeamTaskPriority represents task priority levels
@@ -951,8 +959,8 @@ type TeamTask struct {
 
 // TaskArtifact represents an artifact created during task execution
 type TaskArtifact struct {
-	Type        string `json:"type"`        // pull_request, issue, document, analysis, etc.
-	Identifier  string `json:"identifier"`  // PR number, issue number, file path, etc.
+	Type        string `json:"type"`       // pull_request, issue, document, analysis, etc.
+	Identifier  string `json:"identifier"` // PR number, issue number, file path, etc.
 	URL         string `json:"url,omitempty"`
 	Description string `json:"description,omitempty"`
 }
@@ -966,52 +974,56 @@ type TaskFollowUp struct {
 
 // TeamTaskRequest represents requests for team task operations
 type TeamTaskRequest struct {
-	TeamID               string                 `json:"team_id" validate:"required"`
-	AgentID              string                 `json:"agent_id" validate:"required"`
-	TaskID               string                 `json:"task_id,omitempty"`
-	TaskTitle            string                 `json:"task_title,omitempty"`
-	TaskDescription      string                 `json:"task_description,omitempty"`
-	Priority             string                 `json:"priority,omitempty"`
-	EstimatedDuration    string                 `json:"estimated_duration,omitempty"`
-	ActualDuration       string                 `json:"actual_duration,omitempty"`
-	RequiredCapabilities []string               `json:"required_capabilities,omitempty"`
-	Dependencies         []string               `json:"dependencies,omitempty"`
-	Deadline             *time.Time             `json:"deadline,omitempty"`
-	Metadata             map[string]interface{} `json:"metadata,omitempty"`
-	CompletionStatus     string                 `json:"completion_status,omitempty"`
-	Results              map[string]interface{} `json:"results,omitempty"`
-	CompletionNotes      string                 `json:"completion_notes,omitempty"`
-	ArtifactsCreated     []TaskArtifact         `json:"artifacts_created,omitempty"`
-	FollowUpTasks        []TaskFollowUp         `json:"follow_up_tasks,omitempty"`
-	FilterCriteria       *TaskFilterCriteria    `json:"filter_criteria,omitempty"`
-	StatusFilter         []string               `json:"status_filter,omitempty"`
-	PriorityFilter       []string               `json:"priority_filter,omitempty"`
-	AssignedAgentFilter  string                 `json:"assigned_agent_filter,omitempty"`
-	CapabilityFilter     []string               `json:"capability_filter,omitempty"`
-	CreatedAfter         *time.Time             `json:"created_after,omitempty"`
-	DeadlineBefore       *time.Time             `json:"deadline_before,omitempty"`
-	SortBy               string                 `json:"sort_by,omitempty"`
-	SortOrder            string                 `json:"sort_order,omitempty"`
-	Limit                int                    `json:"limit,omitempty"`
-	IncludeCompleted     bool                   `json:"include_completed,omitempty"`
-	EstimatedStartTime   *time.Time             `json:"estimated_start_time,omitempty"`
-	ErrorType            string                 `json:"error_type,omitempty"`
-	ErrorMessage         string                 `json:"error_message,omitempty"`
-	ErrorCode            string                 `json:"error_code,omitempty"`
-	AttemptedActions     []string               `json:"attempted_actions,omitempty"`
-	RetryCount           int                    `json:"retry_count,omitempty"`
-	IsRetryable          bool                   `json:"is_retryable,omitempty"`
-	SuggestedRetryDelay  string                 `json:"suggested_retry_delay,omitempty"`
-	WorkaroundSuggestions []string              `json:"workaround_suggestions,omitempty"`
-	RequiresHumanIntervention bool              `json:"requires_human_intervention,omitempty"`
-	ContextData          map[string]interface{} `json:"context_data,omitempty"`
+	TeamID                    string                 `json:"team_id" validate:"required"`
+	AgentID                   string                 `json:"agent_id" validate:"required"`
+	TaskID                    string                 `json:"task_id,omitempty"`
+	TaskTitle                 string                 `json:"task_title,omitempty"`
+	TaskDescription           string                 `json:"task_description,omitempty"`
+	Priority                  string                 `json:"priority,omitempty"`
+	EstimatedDuration         string                 `json:"estimated_duration,omitempty"`
+	ActualDuration            string                 `json:"actual_duration,omitempty"`
+	RequiredCapabilities      []string               `json:"required_capabilities,omitempty"`
+	Dependencies              []string               `json:"dependencies,omitempty"`
+	Deadline                  *time.Time             `json:"deadline,omitempty"`
+	Metadata                  map[string]interface{} `json:"metadata,omitempty"`
+	CompletionStatus          string                 `json:"completion_status,omitempty"`
+	Results                   map[string]interface{} `json:"results,omitempty"`
+	CompletionNotes           string                 `json:"completion_notes,omitempty"`
+	ArtifactsCreated          []TaskArtifact         `json:"artifacts_created,omitempty"`
+	FollowUpTasks             []TaskFollowUp         `json:"follow_up_tasks,omitempty"`
+	FilterCriteria            *TaskFilterCriteria    `json:"filter_criteria,omitempty"`
+	StatusFilter              []string               `json:"status_filter,omitempty"`
+	PriorityFilter            []string               `json:"priority_filter,omitempty"`
+	AssignedAgentFilter       string                 `json:"assigned_agent_filter,omitempty"`
+	CapabilityFilter          []string               `json:"capability_filter,omitempty"`
+	CreatedAfter              *time.Time             `json:"created_after,omitempty"`
+	DeadlineBefore            *time.Time             `json:"deadline_before,omitempty"`
+	SortBy                    string                 `json:"sort_by,omitempty"`
+	SortOrder                 string                 `json:"sort_order,omitempty"`
+	Limit                     int                    `json:"limit,omitempty"`
+	IncludeCompleted          bool                   `json:"include_completed,omitempty"`
+	EstimatedStartTime        *time.Time             `json:"estimated_start_time,omitempty"`
+	ErrorType                 string                 `json:"error_type,omitempty"`
+	ErrorMessage              string                 `json:"error_message,omitempty"`
+	ErrorCode                 string                 `json:"error_code,omitempty"`
+	AttemptedActions          []string               `json:"attempted_actions,omitempty"`
+	RetryCount                int                    `json:"retry_count,omitempty"`
+	IsRetryable               bool                   `json:"is_retryable,omitempty"`
+	SuggestedRetryDelay       string                 `json:"suggested_retry_delay,omitempty"`
+	WorkaroundSuggestions     []string               `json:"workaround_suggestions,omitempty"`
+	RequiresHumanIntervention bool                   `json:"requires_human_intervention,omitempty"`
+	ContextData               map[string]interface{} `json:"context_data,omitempty"`
 	// Team Task Clear fields
-	Action               string                 `json:"action,omitempty"`
-	OlderThanDays        int                    `json:"older_than_days,omitempty"`
-	DuplicateCriteria    string                 `json:"duplicate_criteria,omitempty"`
-	KeepNewest           bool                   `json:"keep_newest,omitempty"`
-	Confirmation         bool                   `json:"confirmation,omitempty"`
-	Reason               string                 `json:"reason,omitempty"`
+	Action            string `json:"action,omitempty"`
+	OlderThanDays     int    `json:"older_than_days,omitempty"`
+	DuplicateCriteria string `json:"duplicate_criteria,omitempty"`
+	KeepNewest        bool   `json:"keep_newest,omitempty"`
+	Confirmation      bool   `json:"confirmation,omitempty"`
+	Reason            string `json:"reason,omitempty"`
+	// Agent Task Progress fields
+	ProgressData     map[string]interface{} `json:"progress_data,omitempty"`
+	CheckpointReason string                 `json:"checkpoint_reason,omitempty"`
+	OlderThanHours   int                    `json:"older_than_hours,omitempty"`
 }
 
 // TaskFilterCriteria represents filtering criteria for task queries
@@ -1023,12 +1035,12 @@ type TaskFilterCriteria struct {
 
 // TeamTaskResponse represents responses for team task operations
 type TeamTaskResponse struct {
-	Success  bool        `json:"success"`
-	Task     *TeamTask   `json:"task,omitempty"`
-	Tasks    []TeamTask  `json:"tasks,omitempty"`
+	Success  bool                   `json:"success"`
+	Task     *TeamTask              `json:"task,omitempty"`
+	Tasks    []TeamTask             `json:"tasks,omitempty"`
 	Data     map[string]interface{} `json:"data,omitempty"`
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
-	Error    string      `json:"error,omitempty"`
+	Error    string                 `json:"error,omitempty"`
 }
 
 // ToJSON converts any struct to JSON string for database storage

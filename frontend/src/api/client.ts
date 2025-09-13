@@ -37,6 +37,7 @@ interface TeamWithAgentsCreateRequest {
   description?: string;
   maxTokensPerDay: number;
   teamConfigId?: string;
+  sharedTeamContext?: string;
   agents: AgentCreateRequestForTeam[];
 }
 
@@ -1428,6 +1429,22 @@ class GoGentAPI {
       return {
         success: false,
         error: error.response?.data?.error || error.message || 'Failed to update team',
+      };
+    }
+  }
+
+  async updateTeamContext(id: string, sharedTeamContext?: string): Promise<ApiResponse<{ message: string }>> {
+    try {
+      const response: AxiosResponse = await this.api.put(`/api/teams/${id}/context`, { sharedTeamContext });
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('API Error (updateTeamContext):', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to update team context',
       };
     }
   }

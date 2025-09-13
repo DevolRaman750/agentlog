@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Team, Agent } from '../types';
 import { goGentAPI } from '../api/client';
 import { AlertAPI } from './CustomAlert';
+import EditTeamContextModal from './EditTeamContextModal';
 
 interface TeamCardProps {
   team: Team;
@@ -38,6 +39,7 @@ const TeamCard: React.FC<TeamCardProps> = ({
   const safeAgents = Array.isArray(agents) ? agents : [];
   
   const [isLoading, setIsLoading] = useState(false);
+  const [showEditContextModal, setShowEditContextModal] = useState(false);
 
   const activeAgents = safeAgents.filter(agent => agent?.lifecycleStatus === 'ACTIVE');
   const pausedAgents = safeAgents.filter(agent => agent?.lifecycleStatus === 'PAUSED');
@@ -195,6 +197,15 @@ const TeamCard: React.FC<TeamCardProps> = ({
             <Ionicons name="library" size={16} color="#FF6B35" />
           </TouchableOpacity>
           
+          {/* Edit Team Context Button */}
+          <TouchableOpacity
+            style={[styles.controlButton, styles.contextButton]}
+            onPress={() => setShowEditContextModal(true)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="document-text" size={16} color="#5856D6" />
+          </TouchableOpacity>
+          
           <TouchableOpacity
             style={[styles.controlButton, styles.pauseButton]}
             onPress={handlePauseAll}
@@ -286,6 +297,17 @@ const TeamCard: React.FC<TeamCardProps> = ({
           </Text>
         </View>
       </View>
+
+      {/* Edit Team Context Modal */}
+      <EditTeamContextModal
+        visible={showEditContextModal}
+        team={team}
+        onClose={() => setShowEditContextModal(false)}
+        onSuccess={() => {
+          setShowEditContextModal(false);
+          onTeamUpdate(); // Refresh the team data
+        }}
+      />
     </TouchableOpacity>
   );
 };
@@ -355,6 +377,10 @@ const styles = StyleSheet.create({
   memoryButton: {
     borderColor: '#FF6B35',
     backgroundColor: '#FFF4F0',
+  },
+  contextButton: {
+    borderColor: '#5856D6',
+    backgroundColor: '#F0F0FF',
   },
   pauseButton: {
     borderColor: '#FF9500',

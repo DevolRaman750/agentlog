@@ -63,6 +63,9 @@ func (h *TeamsHandler) HandleTeamByID(w http.ResponseWriter, r *http.Request) {
 				// /api/teams/{id}/agents
 				h.handleTeamAgents(w, r, teamID)
 			}
+		case "context":
+			// /api/teams/{id}/context
+			h.handleTeamContextOperations(w, r, teamID)
 		case "memory":
 			h.handleTeamMemory(w, r, teamID, pathParts)
 		case "pause-all":
@@ -215,6 +218,22 @@ func (h *TeamsHandler) createTeamWithAgents(w http.ResponseWriter, r *http.Reque
 			return
 		}
 
+		// Load template to get context for appending shared context
+		template, err := h.getTemplateByIDTx(tx, agentReq.TemplateID)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to load template %s: %v", agentReq.TemplateID, err), http.StatusInternalServerError)
+			return
+		}
+
+		// Create effective context by appending shared team context to template context
+		var effectiveContext *string
+		if req.SharedTeamContext != nil && *req.SharedTeamContext != "" {
+			combinedContext := appendSharedContextToTemplate(template.ContextTemplate, *req.SharedTeamContext)
+			effectiveContext = &combinedContext
+		} else if template.ContextTemplate != "" {
+			effectiveContext = &template.ContextTemplate
+		}
+
 		agent := types.Agent{
 			ID:               uuid.New().String(),
 			UserID:           user.ID,
@@ -230,6 +249,7 @@ func (h *TeamsHandler) createTeamWithAgents(w http.ResponseWriter, r *http.Reque
 			TotalExecutions:  0,
 			CreatedAt:        time.Now(),
 			UpdatedAt:        time.Now(),
+			EffectiveContext: effectiveContext,
 		}
 
 		// Set default lifecycle status if not provided
@@ -620,4 +640,216 @@ func (h *TeamsHandler) validateTeamWithAgentsCreateRequest(req *types.TeamWithAg
 	}
 
 	return nil
+}
+
+// getTemplateByIDTx retrieves a template by ID within a transaction
+func (h *TeamsHandler) getTemplateByIDTx(tx *sql.Tx, templateID string) (*types.ExecutionTemplate, error) {
+	query := `
+		SELECT id, name, description, template_prompt, context_template,
+		       enable_function_calling, preferred_configuration_id, is_active, user_id, created_at, updated_at
+		FROM execution_templates 
+		WHERE id = ? AND is_active = 1
+	`
+
+	var template types.ExecutionTemplate
+	var createdAt, updatedAt time.Time
+	var preferredConfigID sql.NullString
+	var description sql.NullString
+	var contextTemplate sql.NullString
+
+	err := tx.QueryRow(query, templateID).Scan(
+		&template.ID,
+		&template.Name,
+		&description,
+		&template.TemplatePrompt,
+		&contextTemplate,
+		&template.EnableFunctionCalling,
+		&preferredConfigID,
+		&template.IsActive,
+		&template.UserID,
+		&createdAt,
+		&updatedAt,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("template %s not found or inactive", templateID)
+		}
+		return nil, fmt.Errorf("failed to get template %s: %w", templateID, err)
+	}
+
+	template.CreatedAt = createdAt
+	template.UpdatedAt = updatedAt
+
+	// Handle nullable fields
+	if description.Valid {
+		template.Description = description.String
+	}
+	if contextTemplate.Valid {
+		template.ContextTemplate = contextTemplate.String
+	}
+	if preferredConfigID.Valid {
+		template.PreferredConfigurationID = &preferredConfigID.String
+	}
+
+	return &template, nil
+}
+
+// handleTeamContextOperations handles team context update operations
+func (h *TeamsHandler) handleTeamContextOperations(w http.ResponseWriter, r *http.Request, teamID string) {
+	user, ok := auth.GetUserFromContext(r.Context())
+	if !ok {
+		http.Error(w, "User not found in context", http.StatusUnauthorized)
+		return
+	}
+
+	if r.Method != http.MethodPut {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req types.TeamContextUpdateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Update team context for all agents in the team
+	err := h.updateTeamContextForAllAgents(teamID, user.ID, req.SharedTeamContext)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "Team not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, fmt.Sprintf("Failed to update team context: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "Team context updated successfully"})
+}
+
+// updateTeamContextForAllAgents updates the effective context for all agents in a team
+func (h *TeamsHandler) updateTeamContextForAllAgents(teamID, userID string, sharedContext *string) error {
+	// Start transaction
+	tx, err := h.db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to start transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Get all agents in the team
+	agents, err := h.getTeamAgentsTx(tx, teamID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to get team agents: %w", err)
+	}
+
+	// Update effective context for each agent
+	for _, agent := range agents {
+		// Get the agent's template
+		template, err := h.getTemplateByIDTx(tx, agent.TemplateID)
+		if err != nil {
+			return fmt.Errorf("failed to get template for agent %s: %w", agent.ID, err)
+		}
+
+		// Create effective context by appending shared team context to template context
+		var effectiveContext *string
+		if sharedContext != nil && *sharedContext != "" {
+			combinedContext := appendSharedContextToTemplate(template.ContextTemplate, *sharedContext)
+			effectiveContext = &combinedContext
+		} else if template.ContextTemplate != "" {
+			effectiveContext = &template.ContextTemplate
+		}
+
+		// Update the agent's effective context
+		err = h.updateAgentEffectiveContextTx(tx, agent.ID, effectiveContext)
+		if err != nil {
+			return fmt.Errorf("failed to update effective context for agent %s: %w", agent.ID, err)
+		}
+	}
+
+	// Commit transaction
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+}
+
+// getTeamAgentsTx retrieves all agents in a team within a transaction
+func (h *TeamsHandler) getTeamAgentsTx(tx *sql.Tx, teamID, userID string) ([]types.Agent, error) {
+	query := `
+		SELECT id, user_id, first_name, last_name, template_id, team_id,
+		       max_tokens_per_day, heartbeat_minutes, lifecycle_status,
+		       tokens_used_today, tokens_reset_date, total_executions,
+		       effective_context, created_at, updated_at
+		FROM agents 
+		WHERE team_id = ? AND user_id = ?
+	`
+
+	rows, err := tx.Query(query, teamID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var agents []types.Agent
+	for rows.Next() {
+		var agent types.Agent
+		var createdAt, updatedAt time.Time
+		var effectiveContext sql.NullString
+
+		err := rows.Scan(
+			&agent.ID,
+			&agent.UserID,
+			&agent.FirstName,
+			&agent.LastName,
+			&agent.TemplateID,
+			&agent.TeamID,
+			&agent.MaxTokensPerDay,
+			&agent.HeartbeatMinutes,
+			&agent.LifecycleStatus,
+			&agent.TokensUsedToday,
+			&agent.TokensResetDate,
+			&agent.TotalExecutions,
+			&effectiveContext,
+			&createdAt,
+			&updatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		agent.CreatedAt = createdAt
+		agent.UpdatedAt = updatedAt
+
+		if effectiveContext.Valid {
+			agent.EffectiveContext = &effectiveContext.String
+		}
+
+		agents = append(agents, agent)
+	}
+
+	return agents, nil
+}
+
+// updateAgentEffectiveContextTx updates an agent's effective context within a transaction
+func (h *TeamsHandler) updateAgentEffectiveContextTx(tx *sql.Tx, agentID string, effectiveContext *string) error {
+	query := `UPDATE agents SET effective_context = ?, updated_at = NOW() WHERE id = ?`
+	_, err := tx.Exec(query, effectiveContext, agentID)
+	return err
+}
+
+// appendSharedContextToTemplate combines template context with shared team context
+func appendSharedContextToTemplate(templateContext, sharedContext string) string {
+	if sharedContext == "" {
+		return templateContext
+	}
+
+	if templateContext == "" {
+		return sharedContext
+	}
+
+	// Append shared context with proper formatting
+	return templateContext + "\n\n--- SHARED TEAM CONTEXT ---\n" + sharedContext
 }

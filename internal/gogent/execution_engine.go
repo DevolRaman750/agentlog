@@ -91,9 +91,9 @@ func (c *Client) executeMultiVariationWithRun(ctx context.Context, userID string
 
 	startTime := time.Now()
 
-    // Execute each configuration with rate limiting (or defer to engine for multi)
-    preparedConfigs := make([]types.APIConfiguration, 0, len(request.Configurations))
-    for i, config := range request.Configurations {
+	// Execute each configuration with rate limiting (or defer to engine for multi)
+	preparedConfigs := make([]types.APIConfiguration, 0, len(request.Configurations))
+	for i, config := range request.Configurations {
 		config.ID = uuid.New().String()
 
 		// CRITICAL: Add function tools to configuration if function calling is enabled
@@ -169,39 +169,39 @@ func (c *Client) executeMultiVariationWithRun(ctx context.Context, userID string
 				fmt.Sprintf("No function tools added to configuration: enableFunctionCalling=%v, toolCount=%d", request.EnableFunctionCalling, len(request.FunctionTools)), nil)
 		}
 
-        // Execute single or defer to engine multi
-        c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryExecution,
-            fmt.Sprintf("Executing variation: %s", config.VariationName), nil)
+		// Execute single or defer to engine multi
+		c.logExecutionEvent(types.LogLevelInfo, types.LogCategoryExecution,
+			fmt.Sprintf("Executing variation: %s", config.VariationName), nil)
 
-        // Log AI model call start
-        sequenceNum := i + 1
-        c.logExecutionFlowEvent("ai_model_call", sequenceNum, "pending", nil, map[string]interface{}{
-            "configurationName": config.VariationName,
-            "modelName":         config.ModelName,
-        }, nil, nil)
+		// Log AI model call start
+		sequenceNum := i + 1
+		c.logExecutionFlowEvent("ai_model_call", sequenceNum, "pending", nil, map[string]interface{}{
+			"configurationName": config.VariationName,
+			"modelName":         config.ModelName,
+		}, nil, nil)
 
-        // Ensure the prepared config has the actual persisted ID (handles upsert cases)
-        if actualConfig.ID != "" {
-            config.ID = actualConfig.ID
-        }
-        // Defer execution to engine multi; collect prepared config
-        preparedConfigs = append(preparedConfigs, config)
-    }
+		// Ensure the prepared config has the actual persisted ID (handles upsert cases)
+		if actualConfig.ID != "" {
+			config.ID = actualConfig.ID
+		}
+		// Defer execution to engine multi; collect prepared config
+		preparedConfigs = append(preparedConfigs, config)
+	}
 
-    // Execute engine multi and merge results
-    engRes, err := c.newEngine().ExecuteMulti(ctx, userID, executionRun.ID, preparedConfigs, request.BasePrompt, request.Context)
-    if err != nil {
-        c.logExecutionEvent(types.LogLevelWarn, types.LogCategoryError, fmt.Sprintf("Engine multi execution encountered error: %v", err), nil)
-    }
-    if engRes != nil {
-        result.Results = engRes.Results
-        result.SuccessCount = engRes.SuccessCount
-        result.ErrorCount = engRes.ErrorCount
-        result.TotalTime = engRes.TotalTime
-        if engRes.Comparison != nil {
-            result.Comparison = engRes.Comparison
-        }
-    }
+	// Execute engine multi and merge results
+	engRes, err := c.newEngine().ExecuteMulti(ctx, userID, executionRun.ID, preparedConfigs, request.BasePrompt, request.Context)
+	if err != nil {
+		c.logExecutionEvent(types.LogLevelWarn, types.LogCategoryError, fmt.Sprintf("Engine multi execution encountered error: %v", err), nil)
+	}
+	if engRes != nil {
+		result.Results = engRes.Results
+		result.SuccessCount = engRes.SuccessCount
+		result.ErrorCount = engRes.ErrorCount
+		result.TotalTime = engRes.TotalTime
+		if engRes.Comparison != nil {
+			result.Comparison = engRes.Comparison
+		}
+	}
 
 	// Store function tools for replay functionality - these are available to ALL configurations
 	if request.EnableFunctionCalling && len(request.FunctionTools) > 0 {
@@ -236,15 +236,15 @@ func (c *Client) executeMultiVariationWithRun(ctx context.Context, userID string
 		"totalTime":    result.TotalTime,
 	}, &totalTimeMs, nil)
 
-    // Comparison already handled by engine multi path
+	// Comparison already handled by engine multi path
 
 	return result, nil
 }
 
 // executeSingleVariation executes a single variation and logs everything
 func (c *Client) executeSingleVariation(ctx context.Context, userID string, executionRunID string, config *types.APIConfiguration, prompt, context string) (*types.VariationResult, error) {
-    // Always delegate to the engine implementation
-    return c.newEngine().ExecuteSingle(ctx, userID, executionRunID, config, prompt, context)
+	// Always delegate to the engine implementation
+	return c.newEngine().ExecuteSingle(ctx, userID, executionRunID, config, prompt, context)
 }
 
 // compareResults compares the results of multiple variations with comprehensive metrics
@@ -252,48 +252,48 @@ func (c *Client) executeSingleVariation(ctx context.Context, userID string, exec
 
 // Helper functions for calculating different metrics
 func (c *Client) calculateResponseTimeScore(responseTimeMs int32) float64 {
-    return engine.ResponseTimeScore(responseTimeMs)
+	return engine.ResponseTimeScore(responseTimeMs)
 }
 
 func (c *Client) calculateCreativityScore(config types.APIConfiguration, response types.APIResponse) float64 {
-    return engine.CreativityScore(config, response)
+	return engine.CreativityScore(config, response)
 }
 
 func (c *Client) calculateCoherenceScore(responseText string) float64 {
-    return engine.CoherenceScore(responseText)
+	return engine.CoherenceScore(responseText)
 }
 
 func (c *Client) calculateTokenEfficiencyScore(response types.APIResponse) float64 {
-    return engine.TokenEfficiencyScore(response)
+	return engine.TokenEfficiencyScore(response)
 }
 
 func (c *Client) calculateSafetyScore(responseText string) float64 {
-    return engine.SafetyScore(responseText)
+	return engine.SafetyScore(responseText)
 }
 
 func (c *Client) calculateCostEffectivenessScore(response types.APIResponse) float64 {
-    return engine.CostEffectivenessScore(response)
+	return engine.CostEffectivenessScore(response)
 }
 
 func (c *Client) calculateEstimatedCost(response types.APIResponse) float64 {
-    return engine.EstimatedCost(response)
+	return engine.EstimatedCost(response)
 }
 
 // Helper functions
 func (c *Client) getScoreFromMap(scores map[string]interface{}, configName, scoreKey string) float64 {
-    return engine.GetScoreFromMap(scores, configName, scoreKey)
+	return engine.GetScoreFromMap(scores, configName, scoreKey)
 }
 
 func (c *Client) getTokenCount(metadata map[string]interface{}, key string) int {
-    return engine.GetTokenCount(metadata, key)
+	return engine.GetTokenCount(metadata, key)
 }
 
 func (c *Client) findFastest(results []types.VariationResult) *types.VariationResult {
-    return engine.FindFastest(results)
+	return engine.FindFastest(results)
 }
 
 func (c *Client) findMostCreative(scores map[string]interface{}) string {
-    return engine.FindMostCreative(scores)
+	return engine.FindMostCreative(scores)
 }
 
 // StoreComparisonResult stores a comparison result in the database
@@ -2308,18 +2308,18 @@ func (c *Client) createDetailedGenericSummary(result map[string]interface{}) str
 // createIntelligentResultSummary extracts only essential information from function results
 // This prevents context overflow by avoiding large JSON blobs in synthesis prompts
 func (c *Client) createIntelligentResultSummary(functionName string, result map[string]interface{}) string {
-    // Delegate to engine helper to keep behavior consistent and testable
-    return engine.SummarizeResult(functionName, result)
+	// Delegate to engine helper to keep behavior consistent and testable
+	return engine.SummarizeResult(functionName, result)
 }
 
 // createFullDataSummary is kept for compatibility; delegate to engine
 func (c *Client) createFullDataSummary(result map[string]interface{}) string {
-    s := engine.CreateFullDataSummary(result)
-    // When marshaling fails, engine falls back to generic; we log for observability
-    if s == engine.CreateGenericSummary(result) {
-        log.Printf("⚠️ Failed to marshal result to JSON; using generic summary")
-    }
-    return s
+	s := engine.CreateFullDataSummary(result)
+	// When marshaling fails, engine falls back to generic; we log for observability
+	if s == engine.CreateGenericSummary(result) {
+		log.Printf("⚠️ Failed to marshal result to JSON; using generic summary")
+	}
+	return s
 }
 
 // autoExtractParameters automatically extracts missing parameters from previous function results
@@ -2364,23 +2364,23 @@ func (c *Client) detectTaskCompletion(functionCalls []ResponsePart, functionResu
 
 // smartTruncateJSON truncates JSON at logical boundaries to avoid malformed JSON
 func (c *Client) smartTruncateJSON(jsonStr string, maxLength int) string {
-    return engine.SmartTruncateJSON(jsonStr, maxLength)
+	return engine.SmartTruncateJSON(jsonStr, maxLength)
 }
 
 // autoExtractParametersFromContext extracts parameters for next iteration function calls using current results
 func (c *Client) autoExtractParametersFromContext(ctx context.Context, funcCall *ResponsePart, previousResults []map[string]interface{}) {
-    if funcCall.FunctionCall.Args == nil {
-        funcCall.FunctionCall.Args = make(map[string]interface{})
-    }
-    // Use engine helper; add observability
-    filled := engine.AutoFillMissingArgs(funcCall.FunctionCall.Name, funcCall.FunctionCall.Args, previousResults)
-    if filled {
-        if ch, _ := funcCall.FunctionCall.Args["channel"].(string); ch != "" {
-            log.Printf("🔄 Auto-extraction: %s now has channel=%s", funcCall.FunctionCall.Name, ch)
-        }
-    } else if ch, ok := funcCall.FunctionCall.Args["channel"].(string); ok && ch != "" {
-        log.Printf("✅ Auto-extraction: %s already has channel parameter", funcCall.FunctionCall.Name)
-    }
+	if funcCall.FunctionCall.Args == nil {
+		funcCall.FunctionCall.Args = make(map[string]interface{})
+	}
+	// Use engine helper; add observability
+	filled := engine.AutoFillMissingArgs(funcCall.FunctionCall.Name, funcCall.FunctionCall.Args, previousResults)
+	if filled {
+		if ch, _ := funcCall.FunctionCall.Args["channel"].(string); ch != "" {
+			log.Printf("🔄 Auto-extraction: %s now has channel=%s", funcCall.FunctionCall.Name, ch)
+		}
+	} else if ch, ok := funcCall.FunctionCall.Args["channel"].(string); ok && ch != "" {
+		log.Printf("✅ Auto-extraction: %s already has channel parameter", funcCall.FunctionCall.Name)
+	}
 }
 
 // createGenericSummary provides a fallback summary for unknown functions

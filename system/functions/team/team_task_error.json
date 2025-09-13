@@ -3,7 +3,7 @@
   "name": "team_task_error",
   "provider": "internal",
   "display_name": "Team Task: Mark Error",
-  "description": "Mark a task as failed or encountering an error and store error details. Use this when a task cannot be completed due to errors, API failures, missing resources, or other blocking issues. Helps with debugging and task management.",
+  "description": "Mark a task as failed or encountering an error and store error details. Use this when a task cannot be completed due to errors, API failures, missing resources, or other blocking issues. Helps with debugging and task management. Team context is automatically inferred from the agent's team membership.",
   "endpoint": {
     "path": "/internal/team/task/error",
     "method": "POST"
@@ -11,14 +11,6 @@
   "parameters": {
     "type": "object",
     "properties": {
-      "team_id": {
-        "type": "string",
-        "description": "Team ID containing the task. The requesting agent must be a member of this team."
-      },
-      "agent_id": {
-        "type": "string",
-        "description": "Agent ID reporting the error. Must be the agent who claimed this task."
-      },
       "task_id": {
         "type": "string",
         "description": "ID of the task that encountered an error"
@@ -85,8 +77,6 @@
     {
       "name": "Report API rate limit error",
       "parameters": {
-        "team_id": "team_123",
-        "agent_id": "agent_456",
         "task_id": "task_abc123",
         "error_type": "rate_limit",
         "error_message": "GitHub API rate limit exceeded. Limit: 5000, Used: 5000, Resets at: 2024-01-15T16:00:00Z",
@@ -104,8 +94,6 @@
     {
       "name": "Report authentication failure",
       "parameters": {
-        "team_id": "team_123",
-        "agent_id": "agent_456",
         "task_id": "task_def456",
         "error_type": "authentication",
         "error_message": "Slack API token is invalid or expired. Unable to send messages to channel.",
@@ -124,8 +112,6 @@
     {
       "name": "Report dependency failure",
       "parameters": {
-        "team_id": "team_123",
-        "agent_id": "agent_456",
         "task_id": "task_ghi789",
         "error_type": "dependency_failure",
         "error_message": "Cannot complete code review task because dependent task 'run_tests' failed",

@@ -590,15 +590,15 @@ func (h *TeamsHandler) insertAgentTx(tx *sql.Tx, agent *types.Agent) error {
 			id, user_id, first_name, last_name, template_id, team_id,
 			max_tokens_per_day, heartbeat_minutes, lifecycle_status,
 			tokens_used_today, tokens_reset_date, total_executions,
-			created_at, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			effective_context, created_at, updated_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
 	_, err := tx.Exec(query,
 		agent.ID, agent.UserID, agent.FirstName, agent.LastName, agent.TemplateID, agent.TeamID,
 		agent.MaxTokensPerDay, agent.HeartbeatMinutes, agent.LifecycleStatus,
 		agent.TokensUsedToday, agent.TokensResetDate, agent.TotalExecutions,
-		agent.CreatedAt, agent.UpdatedAt,
+		agent.EffectiveContext, agent.CreatedAt, agent.UpdatedAt,
 	)
 	return err
 }

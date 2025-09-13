@@ -6,6 +6,15 @@
   "system_config_id": "system-config-gemini-pro",
   "template_id": "template-task-creator",
   "function_config": {
+    "agent_task_progress_read": {
+      "default_context": "progress",
+      "include_completed": false,
+      "limit": 50
+    },
+    "agent_task_progress_update": {
+      "default_context": "progress",
+      "auto_timestamp": true
+    },
     "team_task_store": {
       "auto_retry": true,
       "max_retries": 3

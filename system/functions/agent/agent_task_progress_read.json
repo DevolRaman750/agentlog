@@ -1,0 +1,69 @@
+{
+  "id": "func-agent-task-progress-read",
+  "name": "agent_task_progress_read",
+  "provider": "internal",
+  "function_group": "internal",
+  "display_name": "Agent Task Progress: Read",
+  "description": "Retrieve saved progress data for tasks the agent is working on. Use this to resume work after execution interruptions, check current status, or review execution history. Agent context is automatically inferred from the agent's team membership.",
+  "endpoint": {
+    "path": "/internal/agent/task/progress/read",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "task_id": {
+        "type": "string",
+        "description": "Specific task ID to retrieve progress for. If not provided, returns progress for all active tasks."
+      },
+      "status_filter": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": ["claimed", "in_progress", "checkpoint", "completed", "error"]
+        },
+        "description": "Filter by progress status. If not provided, returns all statuses."
+      },
+      "include_completed": {
+        "type": "boolean",
+        "default": false,
+        "description": "Whether to include completed or error status tasks in results"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 50,
+        "default": 10,
+        "description": "Maximum number of progress records to return"
+      }
+    }
+  },
+  "examples": [
+    {
+      "name": "Get progress for specific task",
+      "parameters": {
+        "task_id": "task_abc123"
+      }
+    },
+    {
+      "name": "Get all active task progress",
+      "parameters": {
+        "status_filter": ["claimed", "in_progress", "checkpoint"]
+      }
+    },
+    {
+      "name": "Get recent task history",
+      "parameters": {
+        "include_completed": true,
+        "limit": 5
+      }
+    },
+    {
+      "name": "Check for stuck tasks",
+      "parameters": {
+        "status_filter": ["in_progress"],
+        "include_completed": false
+      }
+    }
+  ]
+}

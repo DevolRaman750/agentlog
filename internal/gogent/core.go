@@ -925,8 +925,8 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 	agentsHandler := agents.NewAgentsHandler(c.db)
 	teamsHandler := teams.NewTeamsHandler(c.db)
 
-	// Check if this is a team memory or team task function
-	if strings.HasPrefix(functionName, "team_memory_") || strings.HasPrefix(functionName, "team_task_") {
+	// Check if this is a team/agent task or team memory function
+	if strings.HasPrefix(functionName, "team_memory_") || strings.HasPrefix(functionName, "team_task_") || strings.HasPrefix(functionName, "agent_task_") {
 		// For team functions, ALWAYS get team_id from agent's team membership
 		// No longer accept team_id or agent_id as parameters - infer from execution context
 		var teamID string
@@ -939,10 +939,14 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 				log.Printf("🔧 Found team_id from agent lookup: %s", teamID)
 			} else {
 				log.Printf("🔍 Failed to get team_id from agent lookup: %v", queryErr)
-				return nil, fmt.Errorf("TEAM FUNCTION ERROR: %s requires agent to be assigned to a team (agent: %s)", functionName, agentID)
+				if queryErr != nil {
+					return nil, fmt.Errorf("TEAM FUNCTION ERROR: %s failed to lookup team membership for agent %s: %v", functionName, agentID, queryErr)
+				} else {
+					return nil, fmt.Errorf("TEAM FUNCTION ERROR: %s requires agent to be assigned to a team (agent: %s not found in any team)", functionName, agentID)
+				}
 			}
 		} else {
-			return nil, fmt.Errorf("TEAM FUNCTION ERROR: %s requires valid agent context", functionName)
+			return nil, fmt.Errorf("TEAM FUNCTION ERROR: %s requires valid agent context - no agent ID provided", functionName)
 		}
 
 		log.Printf("🔧 Team function %s - using team_id: %s, agent_id: %s", functionName, teamID, agentID)
@@ -1024,7 +1028,7 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 			log.Printf("✅ Team memory function %s completed successfully", functionName)
 			return result, nil
 
-		} else if strings.HasPrefix(functionName, "team_task_") {
+		} else if strings.HasPrefix(functionName, "team_task_") || strings.HasPrefix(functionName, "agent_task_") {
 			// Handle team task functions
 			log.Printf("🔍 Entering team task function path for: %s", functionName)
 			// Convert args to TeamTaskRequest
@@ -1261,6 +1265,27 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 				taskRequest.Reason = reason
 			}
 
+			// Map agent task progress specific parameters
+			if progressData, ok := args["progress_data"].(map[string]interface{}); ok {
+				taskRequest.ProgressData = progressData
+			}
+			if checkpointReason, ok := args["checkpoint_reason"].(string); ok {
+				taskRequest.CheckpointReason = checkpointReason
+			}
+			if statusFilter, ok := args["status_filter"].([]interface{}); ok {
+				for _, status := range statusFilter {
+					if statusStr, ok := status.(string); ok {
+						taskRequest.StatusFilter = append(taskRequest.StatusFilter, statusStr)
+					}
+				}
+			}
+			if includeCompleted, ok := args["include_completed"].(bool); ok {
+				taskRequest.IncludeCompleted = includeCompleted
+			}
+			if olderThanHours, ok := args["older_than_hours"].(float64); ok {
+				taskRequest.OlderThanHours = int(olderThanHours)
+			}
+
 			var taskResponse *types.TeamTaskResponse
 			var err error
 
@@ -1269,20 +1294,119 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 				log.Printf("🔍 About to call StoreTeamTask with teamID=%s, agentID=%s, userID=%s", teamID, agentID, userID)
 				taskResponse, err = teamsHandler.StoreTeamTask(ctx, teamID, agentID, userID, taskRequest)
 				log.Printf("🔍 StoreTeamTask returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
+				// Auto-log progress on successful creation
+				if err == nil && taskResponse != nil && taskResponse.Success && taskResponse.Task != nil {
+					progressReq := &types.TeamTaskRequest{
+						TaskID: taskResponse.Task.ID,
+						ProgressData: map[string]interface{}{
+							"status":       "created",
+							"current_step": "task_created",
+						},
+						CheckpointReason: "auto_progress_after_create",
+					}
+					if _, perr := teamsHandler.UpdateAgentTaskProgress(ctx, teamID, agentID, userID, progressReq); perr != nil {
+						log.Printf("⚠️ Auto progress update after create failed: %v", perr)
+					}
+				}
 			case "team_task_claim":
+				// task_id is optional for claim - can auto-select if not provided
+				log.Printf("🔍 About to call ClaimTeamTask with teamID=%s, agentID=%s, userID=%s, taskID=%s", teamID, agentID, userID, taskRequest.TaskID)
 				taskResponse, err = teamsHandler.ClaimTeamTask(ctx, teamID, agentID, userID, taskRequest)
+				log.Printf("🔍 ClaimTeamTask returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
+				// Auto-log progress on successful claim
+				if err == nil && taskResponse != nil && taskResponse.Success && taskResponse.Task != nil {
+					// Build a minimal progress update indicating claim
+					progressReq := &types.TeamTaskRequest{
+						TaskID: taskResponse.Task.ID,
+						ProgressData: map[string]interface{}{
+							"status":       "claimed",
+							"current_step": "task_claimed",
+							"next_actions": []string{"analyze_requirements", "plan_execution"},
+						},
+						CheckpointReason: "auto_progress_after_claim",
+					}
+					if _, perr := teamsHandler.UpdateAgentTaskProgress(ctx, teamID, agentID, userID, progressReq); perr != nil {
+						log.Printf("⚠️ Auto progress update after claim failed: %v", perr)
+					}
+				}
 			case "team_task_complete":
+				// task_id is required for complete
+				if taskRequest.TaskID == "" {
+					return nil, fmt.Errorf("TEAM FUNCTION ERROR: %s requires task_id parameter to specify which task to complete", functionName)
+				}
+				log.Printf("🔍 About to call CompleteTeamTask with teamID=%s, agentID=%s, userID=%s, taskID=%s", teamID, agentID, userID, taskRequest.TaskID)
 				taskResponse, err = teamsHandler.CompleteTeamTask(ctx, teamID, agentID, userID, taskRequest)
+				log.Printf("🔍 CompleteTeamTask returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
+				// Auto-clear progress on successful completion
+				if err == nil && taskResponse != nil && taskResponse.Success {
+					clearReq := &types.TeamTaskRequest{TaskID: taskRequest.TaskID}
+					if _, cerr := teamsHandler.ClearAgentTaskProgress(ctx, teamID, agentID, userID, clearReq); cerr != nil {
+						log.Printf("⚠️ Auto progress clear after completion failed: %v", cerr)
+					}
+				}
 			case "team_task_list":
 				taskResponse, err = teamsHandler.ListTeamTasks(ctx, teamID, agentID, userID, taskRequest)
 			case "team_task_error":
+				// task_id is required for error reporting
+				if taskRequest.TaskID == "" {
+					return nil, fmt.Errorf("TEAM FUNCTION ERROR: %s requires task_id parameter to specify which task encountered an error", functionName)
+				}
+				log.Printf("🔍 About to call ErrorTeamTask with teamID=%s, agentID=%s, userID=%s, taskID=%s", teamID, agentID, userID, taskRequest.TaskID)
 				taskResponse, err = teamsHandler.ErrorTeamTask(ctx, teamID, agentID, userID, taskRequest)
+				log.Printf("🔍 ErrorTeamTask returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
+				// Auto-clear progress on error to prevent stale state
+				if err == nil && taskResponse != nil && taskResponse.Success {
+					clearReq := &types.TeamTaskRequest{TaskID: taskRequest.TaskID}
+					if _, cerr := teamsHandler.ClearAgentTaskProgress(ctx, teamID, agentID, userID, clearReq); cerr != nil {
+						log.Printf("⚠️ Auto progress clear after error failed: %v", cerr)
+					}
+				}
 			case "team_task_clear":
 				taskResponse, err = teamsHandler.ClearTeamTasks(ctx, teamID, agentID, userID, taskRequest)
 			case "team_task_delete":
+				// task_id is required for delete
+				if taskRequest.TaskID == "" {
+					return nil, fmt.Errorf("TEAM FUNCTION ERROR: %s requires task_id parameter to specify which task to delete", functionName)
+				}
+				log.Printf("🔍 About to call DeleteTeamTask with teamID=%s, agentID=%s, userID=%s, taskID=%s", teamID, agentID, userID, taskRequest.TaskID)
 				taskResponse, err = teamsHandler.DeleteTeamTask(ctx, teamID, agentID, userID, taskRequest)
+				log.Printf("🔍 DeleteTeamTask returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
+				// Auto-log progress on successful delete
+				if err == nil && taskResponse != nil && taskResponse.Success {
+					progressReq := &types.TeamTaskRequest{
+						TaskID: taskRequest.TaskID,
+						ProgressData: map[string]interface{}{
+							"status":       "deleted",
+							"current_step": "task_deleted",
+						},
+						CheckpointReason: "auto_progress_after_delete",
+					}
+					if _, perr := teamsHandler.UpdateAgentTaskProgress(ctx, teamID, agentID, userID, progressReq); perr != nil {
+						log.Printf("⚠️ Auto progress update after delete failed: %v", perr)
+					}
+				}
 			case "team_task_update":
+				// task_id is required for update
+				if taskRequest.TaskID == "" {
+					return nil, fmt.Errorf("TEAM FUNCTION ERROR: %s requires task_id parameter to specify which task to update", functionName)
+				}
+				log.Printf("🔍 About to call UpdateTeamTask with teamID=%s, agentID=%s, userID=%s, taskID=%s", teamID, agentID, userID, taskRequest.TaskID)
 				taskResponse, err = teamsHandler.UpdateTeamTask(ctx, teamID, agentID, userID, taskRequest)
+				log.Printf("🔍 UpdateTeamTask returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
+				// Auto-log progress on successful update
+				if err == nil && taskResponse != nil && taskResponse.Success {
+					progressReq := &types.TeamTaskRequest{
+						TaskID: taskRequest.TaskID,
+						ProgressData: map[string]interface{}{
+							"status":       "updated",
+							"current_step": "task_updated",
+						},
+						CheckpointReason: "auto_progress_after_update",
+					}
+					if _, perr := teamsHandler.UpdateAgentTaskProgress(ctx, teamID, agentID, userID, progressReq); perr != nil {
+						log.Printf("⚠️ Auto progress update after update failed: %v", perr)
+					}
+				}
 			case "agent_task_store":
 				log.Printf("🔍 About to call StoreAgentTask with teamID=%s, agentID=%s, userID=%s", teamID, agentID, userID)
 				taskResponse, err = teamsHandler.StoreAgentTask(ctx, teamID, agentID, userID, taskRequest)
@@ -1291,6 +1415,22 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 				taskResponse, err = teamsHandler.ListAgentTasks(ctx, teamID, agentID, userID, taskRequest)
 			case "agent_task_delete":
 				taskResponse, err = teamsHandler.DeleteAgentTask(ctx, teamID, agentID, userID, taskRequest)
+			case "agent_task_progress_update":
+				// task_id is required for progress update
+				if taskRequest.TaskID == "" {
+					return nil, fmt.Errorf("TEAM FUNCTION ERROR: %s requires task_id parameter to specify which task progress to update", functionName)
+				}
+				log.Printf("🔍 About to call UpdateAgentTaskProgress with teamID=%s, agentID=%s, userID=%s, taskID=%s", teamID, agentID, userID, taskRequest.TaskID)
+				taskResponse, err = teamsHandler.UpdateAgentTaskProgress(ctx, teamID, agentID, userID, taskRequest)
+				log.Printf("🔍 UpdateAgentTaskProgress returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
+			case "agent_task_progress_read":
+				log.Printf("🔍 About to call ReadAgentTaskProgress with teamID=%s, agentID=%s, userID=%s", teamID, agentID, userID)
+				taskResponse, err = teamsHandler.ReadAgentTaskProgress(ctx, teamID, agentID, userID, taskRequest)
+				log.Printf("🔍 ReadAgentTaskProgress returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
+			case "agent_task_progress_clear":
+				log.Printf("🔍 About to call ClearAgentTaskProgress with teamID=%s, agentID=%s, userID=%s", teamID, agentID, userID)
+				taskResponse, err = teamsHandler.ClearAgentTaskProgress(ctx, teamID, agentID, userID, taskRequest)
+				log.Printf("🔍 ClearAgentTaskProgress returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
 			default:
 				return nil, fmt.Errorf("unsupported team task function: %s", functionName)
 			}

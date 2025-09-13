@@ -11,6 +11,7 @@ import TabNavigator from './src/navigation/TabNavigator';
 import { UserStatusBar } from './src/components/UserStatusBar';
 import { CustomAlert } from './src/components/CustomAlert';
 import { linking } from './src/navigation/linking';
+import { BetaBanner } from './src/components/BetaBanner';
 
 export default function App() {
   // Update page title when navigation state changes
@@ -62,6 +63,7 @@ export default function App() {
                   <SafeAreaView style={styles.container}>
                     <View style={styles.container}>
                       <UserStatusBar />
+                      <BetaBanner />
                       <View style={styles.content}>
                         <TabNavigator />
                       </View>
