@@ -32,8 +32,9 @@ Batteries included functions with customizations:
 <img width="711" height="810" alt="image" src="https://github.com/user-attachments/assets/633f4119-0ea0-444a-b252-1ccfa66ce749" />
 
 
-Team memory functions":
-<img width="1465" height="819" alt="image" src="https://github.com/user-attachments/assets/6982d947-3d3f-429a-be13-399a8f22bd7d" />
+"Stateless" agent self tracking:
+<img width="810" height="653" alt="image" src="https://github.com/user-attachments/assets/f75eb179-86a5-4371-a910-31cae642b654" />
+
 
 ... And more!
 
