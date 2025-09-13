@@ -498,6 +498,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
         {showExecutionFlowGraph && (
           <Modal visible={showExecutionFlowGraph} animationType="slide" presentationStyle="pageSheet">
             <ExecutionFlowGraph
+              key={`modal-flow-${executionResult.executionRun.id}-${selectedConfigurationId || 'default'}`}
               executionRunId={executionResult.executionRun.id}
               visible={showExecutionFlowGraph}
               onClose={() => setShowExecutionFlowGraph(false)}
@@ -561,6 +562,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
         {showExecutionFlowGraph && (
           <Modal visible={showExecutionFlowGraph} animationType="slide" presentationStyle="pageSheet">
             <ExecutionFlowGraph
+              key={`modal-flow-${executionResult.executionRun.id}-${selectedConfigurationId || 'default'}`}
               executionRunId={executionResult.executionRun.id}
               visible={showExecutionFlowGraph}
               onClose={() => setShowExecutionFlowGraph(false)}

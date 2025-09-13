@@ -86,30 +86,62 @@ const ExecutionFlowGraph: React.FC<ExecutionFlowGraphProps> = ({
 
   useEffect(() => {
     if (visible && executionRunId && executionRunId.trim() !== '') {
-      // Fetch data for valid execution IDs
+      // Always fetch data for valid execution IDs, even if we have cached data
+      // This ensures we get the latest data for completed executions
       fetchExecutionFlowData();
     }
   }, [visible, executionRunId, configurationId]);
+
+  // Add a separate effect to handle execution completion
+  useEffect(() => {
+    if (visible && executionRunId && executionRunId.trim() !== '') {
+      // Force refresh data when component becomes visible for completed executions
+      // This handles the case where execution just completed
+      if (!loading && flowData) {
+        // If we have data but execution might have completed, refresh it
+        fetchExecutionFlowData();
+      }
+    }
+  }, [visible]);
 
   const fetchExecutionFlowData = async () => {
     setLoading(true);
     setError(null);
 
     try {
+      console.log(`🔄 Fetching execution flow data for execution: ${executionRunId}, config: ${configurationId || 'none'}`);
+      
       const response = configurationId 
         ? await goGentAPI.getExecutionFlowGraphByConfiguration(executionRunId, configurationId)
         : await goGentAPI.getExecutionFlowGraph(executionRunId);
       
+      console.log('📊 Execution flow response:', response);
+      
       if (response.success && response.data) {
         const data: ExecutionFlowGraph = response.data;
-        setFlowData(data);
+        
+        // Validate that we have meaningful data
+        if (!data.events || data.events.length === 0) {
+          console.warn('⚠️ Execution flow data has no events');
+          setError('No execution events found. This execution may not have generated any flow data.');
+        } else {
+          console.log(`✅ Loaded execution flow data with ${data.events.length} events`);
+          setFlowData(data);
+        }
       } else {
-        throw new Error(response.error || 'Failed to fetch execution flow data');
+        const errorMsg = response.error || 'Failed to fetch execution flow data';
+        console.error('❌ Execution flow fetch failed:', errorMsg);
+        throw new Error(errorMsg);
       }
     } catch (err: any) {
-      console.error('Error fetching execution flow data:', err);
+      console.error('❌ Error fetching execution flow data:', err);
       const message = err.message || 'Failed to fetch execution flow data';
       setError(typeof message === 'string' ? message : JSON.stringify(message));
+      
+      // Don't clear existing data on error - keep what we have
+      if (!flowData) {
+        setFlowData(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -267,7 +299,14 @@ const ExecutionFlowGraph: React.FC<ExecutionFlowGraphProps> = ({
     if (!events || events.length === 0) {
       return (
         <View style={styles.emptyFlameGraph}>
-          <Text style={styles.emptyFlameGraphText}>No execution events to display</Text>
+          <Text style={styles.emptyFlameGraphText}>
+            {loading ? 'Loading execution data...' : 'No execution events to display'}
+          </Text>
+          {!loading && (
+            <Text style={styles.emptyFlameGraphSubtext}>
+              This execution may not have generated any flow data, or the data may still be processing.
+            </Text>
+          )}
         </View>
       );
     }
@@ -1499,6 +1538,14 @@ const styles = StyleSheet.create({
   emptyFlameGraphText: {
     fontSize: 14,
     color: '#6B7280',
+  },
+  emptyFlameGraphSubtext: {
+    fontSize: 12,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 8,
+    paddingHorizontal: 20,
+    lineHeight: 16,
   },
   flameGraphLegend: {
     backgroundColor: '#FFFFFF',

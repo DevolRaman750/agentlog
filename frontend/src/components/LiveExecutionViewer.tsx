@@ -788,7 +788,9 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
           </ScrollView>
         ) : (
           // Show real ExecutionFlowGraph for real IDs - it handles its own loading/error states
+          // Force key prop to ensure component remounts when execution ID changes
           <ExecutionFlowGraph
+            key={`flow-${executionId}`}
             executionRunId={executionId}
             visible={true}
             onClose={() => {}} // No close in live view

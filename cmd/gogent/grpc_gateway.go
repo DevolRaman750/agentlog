@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -14,6 +15,8 @@ import (
 	"gogent/internal/auth"
 	pb "gogent/proto"
 
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -24,6 +27,7 @@ import (
 type GRPCGateway struct {
 	grpcClient pb.GogentServiceClient
 	grpcConn   *grpc.ClientConn
+	db         *sql.DB
 }
 
 // NewGRPCGateway creates a new HTTP-to-gRPC gateway
@@ -31,6 +35,22 @@ func NewGRPCGateway() (*GRPCGateway, error) {
 	// Load environment variables
 	if err := godotenv.Load("config.env"); err != nil {
 		log.Printf("Warning: could not load config.env file: %v", err)
+	}
+
+	// Connect to database
+	dbURL := os.Getenv("DB_URL")
+	if dbURL == "" {
+		return nil, fmt.Errorf("DB_URL environment variable is required")
+	}
+
+	db, err := sql.Open("mysql", dbURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+
+	// Test database connection
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
 	grpcPort := os.Getenv("GRPC_PORT")
@@ -44,6 +64,7 @@ func NewGRPCGateway() (*GRPCGateway, error) {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
+		db.Close()
 		return nil, fmt.Errorf("failed to connect to gRPC server: %w", err)
 	}
 
@@ -52,15 +73,26 @@ func NewGRPCGateway() (*GRPCGateway, error) {
 	return &GRPCGateway{
 		grpcClient: client,
 		grpcConn:   conn,
+		db:         db,
 	}, nil
 }
 
 // Close closes the gateway resources
 func (g *GRPCGateway) Close() error {
+	var err error
 	if g.grpcConn != nil {
-		return g.grpcConn.Close()
+		err = g.grpcConn.Close()
 	}
-	return nil
+	if g.db != nil {
+		if dbErr := g.db.Close(); dbErr != nil {
+			if err != nil {
+				err = fmt.Errorf("multiple errors: %v, %v", err, dbErr)
+			} else {
+				err = dbErr
+			}
+		}
+	}
+	return err
 }
 
 // Health check endpoint
@@ -109,6 +141,29 @@ func (g *GRPCGateway) executeHandler(w http.ResponseWriter, r *http.Request) {
 		EnableFunctionCalling: getBoolFromMap(httpReq, "enableFunctionCalling"),
 		UseMock:               r.Header.Get("X-Use-Mock") == "true",
 		SessionApiKeys:        make(map[string]string),
+	}
+
+	// If this is an agent execution, load the agent's effective context
+	if agentID := getStringFromMap(httpReq, "agentId"); agentID != "" {
+		log.Printf("🤖 Agent execution detected via gRPC gateway - loading agent's effective context")
+
+		// Extract user ID from JWT context
+		userID, err := g.getUserID(r)
+		if err == nil {
+			// Load agent's effective context from database
+			agentContext, err := g.loadAgentEffectiveContext(context.Background(), userID, agentID)
+			if err != nil {
+				log.Printf("⚠️ Failed to load agent effective context: %v", err)
+				// Continue with original context - don't fail the execution
+			} else if agentContext != "" {
+				log.Printf("✅ Using agent's effective context (length: %d chars)", len(agentContext))
+				grpcReq.Context = agentContext
+			} else {
+				log.Printf("ℹ️ Agent has no effective context, using original context")
+			}
+		} else {
+			log.Printf("⚠️ Failed to get user ID for agent context loading: %v", err)
+		}
 	}
 
 	// Initialize header encryption utility
@@ -745,4 +800,66 @@ func runGRPCGateway() {
 	fmt.Println()
 
 	log.Fatal(http.ListenAndServe(":"+port, nil))
+}
+
+// getUserID extracts user ID from JWT context (copied from server.go)
+func (g *GRPCGateway) getUserID(r *http.Request) (string, error) {
+	// Extract JWT token from Authorization header
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		return "", fmt.Errorf("authorization header required")
+	}
+
+	// Remove "Bearer " prefix
+	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+	if tokenString == authHeader {
+		return "", fmt.Errorf("invalid authorization header format")
+	}
+
+	// Parse and validate JWT token
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(os.Getenv("JWT_SECRET")), nil
+	})
+
+	if err != nil {
+		return "", fmt.Errorf("failed to parse token: %w", err)
+	}
+
+	if !token.Valid {
+		return "", fmt.Errorf("invalid token")
+	}
+
+	// Extract user ID from claims
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return "", fmt.Errorf("invalid token claims")
+	}
+
+	userID, ok := claims["user_id"].(string)
+	if !ok {
+		return "", fmt.Errorf("user_id not found in token")
+	}
+
+	return userID, nil
+}
+
+// loadAgentEffectiveContext loads the agent's effective context from the database
+func (g *GRPCGateway) loadAgentEffectiveContext(ctx context.Context, userID, agentID string) (string, error) {
+	// Query the agent's effective context from database
+	query := `SELECT effective_context FROM agents WHERE id = ? AND user_id = ?`
+	var effectiveContext sql.NullString
+
+	err := g.db.QueryRowContext(ctx, query, agentID, userID).Scan(&effectiveContext)
+	if err != nil {
+		return "", fmt.Errorf("failed to load agent effective context: %w", err)
+	}
+
+	if effectiveContext.Valid {
+		return effectiveContext.String, nil
+	}
+
+	return "", nil // No effective context set
 }

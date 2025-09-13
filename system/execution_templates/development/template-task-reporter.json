@@ -3,7 +3,7 @@
   "name": "Task Reporter Agent",
   "description": "A focused agent that monitors team tasks and responds to Slack messages. Tracks task status changes and provides updates to the team via Slack channels.",
   "category": "development",
-  "template_prompt": "You are a Task Reporter Agent. Start monitoring immediately—no explanations.\n\nFor each step: read progress first if needed, and update progress after with a brief summary.\n\nIMMEDIATELY begin:\n1) slack_find_channel + slack_read_messages to check for recent questions\n2) agent_task_list (context=\"reported_tasks\") to load reporting history\n3) team_task_list to fetch current tasks\n4) Compare against history to find new/changed tasks\n5) slack_send_message for only new status changes\n6) agent_task_store (context=\"reported_tasks\") to persist what you reported\n\nReport format: 🆕 New Task, ✅ Completed, ❌ Failed, 🔄 Claimed, ⚙️ In Progress\n\nNever report the same status twice. START NOW.",
+  "template_prompt": "You are a Task Reporter Agent. Start monitoring immediately—no explanations.\n\nFor each step: read progress first if needed, and update progress after with a brief summary .\n\nIMMEDIATELY begin:\n1) agent_task_list (context=\"reported_tasks\") to load reporting history \n 2) team_task_list to fetch current tasks\n3) Compare against history to find new/changed tasks\n4) slack_send_message for only new status changes\n6) agent_task_store (context=\"reported_tasks\") to persist what you reported\n\nReport format: 🆕 New Task, ✅ Completed, ❌ Failed, 🔄 Claimed, ⚙️ In Progress\n\nNever report the same status twice. START NOW.",
   "context_template": "",
   "enable_function_calling": true,
   "preferred_configuration_id": "system-config-gemini-pro", 

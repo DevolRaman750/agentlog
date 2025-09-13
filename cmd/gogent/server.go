@@ -264,9 +264,29 @@ func (s *Server) executeHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("  BasePrompt: '%s'", request.BasePrompt)
 	log.Printf("  Description: '%s'", request.Description)
 	log.Printf("  Configurations count: %d", len(request.Configurations))
+	if request.AgentID != nil {
+		log.Printf("  AgentID: '%s'", *request.AgentID)
+	}
 	if len(request.Configurations) > 0 {
 		log.Printf("  First config - ModelName: '%s', VariationName: '%s'",
 			request.Configurations[0].ModelName, request.Configurations[0].VariationName)
+	}
+
+	// If this is an agent execution, load the agent's effective context
+	if request.AgentID != nil && *request.AgentID != "" {
+		log.Printf("🤖 Agent execution detected - loading agent's effective context")
+
+		// Load agent's effective context from database
+		agentContext, err := s.loadAgentEffectiveContext(context.Background(), userID, *request.AgentID)
+		if err != nil {
+			log.Printf("⚠️ Failed to load agent effective context: %v", err)
+			// Continue with original context - don't fail the execution
+		} else if agentContext != "" {
+			log.Printf("✅ Using agent's effective context (length: %d chars)", len(agentContext))
+			request.Context = agentContext
+		} else {
+			log.Printf("ℹ️ Agent has no effective context, using original context")
+		}
 	}
 
 	// Create the execution run first to get the real database UUID
@@ -491,6 +511,24 @@ func (s *Server) runAsyncExecution(executionID string, request *types.MultiExecu
 	}
 
 	log.Printf("✅ Async execution completed: %s", executionID)
+}
+
+// loadAgentEffectiveContext loads the agent's effective context from the database
+func (s *Server) loadAgentEffectiveContext(ctx context.Context, userID, agentID string) (string, error) {
+	// Query the agent's effective context from database
+	query := `SELECT effective_context FROM agents WHERE id = ? AND user_id = ?`
+	var effectiveContext sql.NullString
+
+	err := s.client.GetDB().QueryRowContext(ctx, query, agentID, userID).Scan(&effectiveContext)
+	if err != nil {
+		return "", fmt.Errorf("failed to load agent effective context: %w", err)
+	}
+
+	if effectiveContext.Valid {
+		return effectiveContext.String, nil
+	}
+
+	return "", nil // No effective context set
 }
 
 // markExecutionFailed marks an execution as failed in database
