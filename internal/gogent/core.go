@@ -3182,6 +3182,8 @@ func (c *Client) GetExecutionFlowGraph(ctx context.Context, userID string, execu
 	if err != nil {
 		log.Printf("⚠️ Failed to get execution flow events: %v", err)
 		events = []types.ExecutionFlowEvent{} // Continue with empty events
+	} else {
+		log.Printf("📊 Retrieved %d execution flow events for run %s", len(events), executionRunID)
 	}
 
 	// Get function calls for this execution run
@@ -3189,6 +3191,8 @@ func (c *Client) GetExecutionFlowGraph(ctx context.Context, userID string, execu
 	if err != nil {
 		log.Printf("⚠️ Failed to get function calls: %v", err)
 		functionCalls = []types.FunctionCall{} // Continue with empty function calls
+	} else {
+		log.Printf("📊 Retrieved %d function calls for run %s", len(functionCalls), executionRunID)
 	}
 
 	// Get execution stats
