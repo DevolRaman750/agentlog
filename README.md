@@ -28,9 +28,11 @@ Detailed execution logs, flow graphs and flame graphs for each execution:
 Execution/Comparison metrics on every execution:
 <img width="708" height="306" alt="image" src="https://github.com/user-attachments/assets/bb08d4c5-147e-4230-ae37-89f2f65d9e6d" />
 
+Batteries included functions with customizations:
+<img width="711" height="810" alt="image" src="https://github.com/user-attachments/assets/633f4119-0ea0-444a-b252-1ccfa66ce749" />
 
-team memory management:
 
+Team memory functions":
 <img width="1465" height="819" alt="image" src="https://github.com/user-attachments/assets/6982d947-3d3f-429a-be13-399a8f22bd7d" />
 
 ... And more!
