@@ -925,8 +925,8 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 	agentsHandler := agents.NewAgentsHandler(c.db)
 	teamsHandler := teams.NewTeamsHandler(c.db)
 
-	// Check if this is a team/agent task or team memory function
-	if strings.HasPrefix(functionName, "team_memory_") || strings.HasPrefix(functionName, "team_task_") || strings.HasPrefix(functionName, "agent_task_") {
+	// Check if this is a team memory or team task function
+	if strings.HasPrefix(functionName, "team_memory_") || strings.HasPrefix(functionName, "team_task_") {
 		// For team functions, ALWAYS get team_id from agent's team membership
 		// No longer accept team_id or agent_id as parameters - infer from execution context
 		var teamID string
@@ -1465,6 +1465,95 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 		} else {
 			return nil, fmt.Errorf("unsupported team function: %s", functionName)
 		}
+	}
+
+	// Check if this is an agent task function
+	if strings.HasPrefix(functionName, "agent_task_") {
+		// Handle agent task functions - route to agent memory system
+		log.Printf("🔍 Entering agent task function path for: %s", functionName)
+
+		// Convert args to TeamTaskRequest (reusing the same structure)
+		taskRequest := &types.TeamTaskRequest{
+			AgentID: agentID,
+		}
+		log.Printf("🔍 Created TeamTaskRequest with AgentID=%s", agentID)
+
+		// Map function arguments to task request fields
+		if taskID, ok := args["task_id"].(string); ok {
+			taskRequest.TaskID = taskID
+		}
+		if progressData, ok := args["progress_data"].(map[string]interface{}); ok {
+			taskRequest.ProgressData = progressData
+		}
+		if checkpointReason, ok := args["checkpoint_reason"].(string); ok {
+			taskRequest.CheckpointReason = checkpointReason
+		}
+		if statusFilter, ok := args["status_filter"].([]interface{}); ok {
+			for _, status := range statusFilter {
+				if statusStr, ok := status.(string); ok {
+					taskRequest.StatusFilter = append(taskRequest.StatusFilter, statusStr)
+				}
+			}
+		}
+		if limit, ok := args["limit"].(float64); ok {
+			taskRequest.Limit = int(limit)
+		}
+		if includeCompleted, ok := args["include_completed"].(bool); ok {
+			taskRequest.IncludeCompleted = includeCompleted
+		}
+
+		// Route to appropriate agent task function
+		var taskResponse *types.TeamTaskResponse
+		var err error
+
+		switch functionName {
+		case "agent_task_progress_update":
+			// task_id is required for progress update
+			if taskRequest.TaskID == "" {
+				return nil, fmt.Errorf("AGENT FUNCTION ERROR: %s requires task_id parameter to specify which task progress to update", functionName)
+			}
+			log.Printf("🔍 About to call UpdateAgentTaskProgress with agentID=%s, taskID=%s", agentID, taskRequest.TaskID)
+			taskResponse, err = agentsHandler.UpdateAgentTaskProgress(ctx, agentID, userID, taskRequest)
+			log.Printf("🔍 UpdateAgentTaskProgress returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
+		case "agent_task_progress_read":
+			log.Printf("🔍 About to call ReadAgentTaskProgress with agentID=%s", agentID)
+			taskResponse, err = agentsHandler.ReadAgentTaskProgress(ctx, agentID, userID, taskRequest)
+			log.Printf("🔍 ReadAgentTaskProgress returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
+		case "agent_task_progress_clear":
+			log.Printf("🔍 About to call ClearAgentTaskProgress with agentID=%s", agentID)
+			taskResponse, err = agentsHandler.ClearAgentTaskProgress(ctx, agentID, userID, taskRequest)
+			log.Printf("🔍 ClearAgentTaskProgress returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
+		default:
+			return nil, fmt.Errorf("unsupported agent task function: %s", functionName)
+		}
+
+		if err != nil {
+			return nil, fmt.Errorf("agent task function %s failed: %w", functionName, err)
+		}
+
+		// Convert response to map[string]interface{}
+		result := map[string]interface{}{
+			"success": taskResponse.Success,
+		}
+
+		if taskResponse.Error != "" {
+			result["error"] = taskResponse.Error
+		}
+		if taskResponse.Task != nil {
+			result["task"] = taskResponse.Task
+		}
+		if taskResponse.Tasks != nil {
+			result["tasks"] = taskResponse.Tasks
+		}
+		if taskResponse.Data != nil {
+			result["data"] = taskResponse.Data
+		}
+		if taskResponse.Metadata != nil {
+			result["metadata"] = taskResponse.Metadata
+		}
+
+		log.Printf("✅ Agent task function %s completed successfully", functionName)
+		return result, nil
 	}
 
 	// Convert args to AgentMemoryRequest for agent memory functions

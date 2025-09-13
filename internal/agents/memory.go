@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -502,4 +503,251 @@ func (h *AgentsHandler) saveAgentMemory(ctx context.Context, agentID, userID str
 	}
 
 	return nil
+}
+
+// UpdateAgentTaskProgress stores progress tracking data for a task the agent is working on in agent memory
+func (h *AgentsHandler) UpdateAgentTaskProgress(ctx context.Context, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+	log.Printf("🔍 UpdateAgentTaskProgress called with agentID: %s, userID: %s, taskID: %s", agentID, userID, request.TaskID)
+
+	// Validate required parameters
+	if request.TaskID == "" {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   "Task ID is required for progress update",
+		}, nil
+	}
+	if request.ProgressData == nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   "Progress data is required",
+		}, nil
+	}
+
+	// Get agent memory from database
+	agent, err := h.getAgentByID(userID, agentID)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Agent not found: %v", err),
+		}, nil
+	}
+
+	// Parse existing memory or initialize if empty
+	var memory *types.AgentMemory
+	if agent.Memory != nil {
+		memory = agent.Memory
+	} else {
+		memory, err = h.InitializeMemory(agentID)
+		if err != nil {
+			return &types.TeamTaskResponse{
+				Success: false,
+				Error:   fmt.Sprintf("Failed to initialize memory: %v", err),
+			}, nil
+		}
+	}
+
+	// Ensure workflow context exists for agent task progress storage
+	if memory.Contexts.Workflow == nil {
+		memory.Contexts.Workflow = make(map[string]interface{})
+	}
+
+	// Create task progress storage path
+	taskProgressKey := fmt.Sprintf("task_progress_%s", request.TaskID)
+
+	// Add checkpoint timestamp and reason
+	progressData := make(map[string]interface{})
+	for k, v := range request.ProgressData {
+		progressData[k] = v
+	}
+
+	now := time.Now()
+	progressData["checkpoint_created_at"] = now.Format(time.RFC3339)
+	if request.CheckpointReason != "" {
+		progressData["checkpoint_reason"] = request.CheckpointReason
+	}
+
+	// Store progress data in agent's workflow context
+	memory.Contexts.Workflow[taskProgressKey] = progressData
+
+	// Update memory metadata
+	memory.Metadata.UpdatedAt = now
+	memory.Metadata.AccessCount++
+
+	// Save updated memory
+	err = h.saveAgentMemory(ctx, agentID, userID, memory)
+	if err != nil {
+		log.Printf("❌ UpdateAgentTaskProgress save failed: %v", err)
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Failed to save progress: %v", err),
+		}, nil
+	}
+
+	log.Printf("✅ Agent task progress updated successfully: %s for agent %s", request.TaskID, agentID)
+
+	return &types.TeamTaskResponse{
+		Success: true,
+		Data: map[string]interface{}{
+			"message":               "Agent task progress updated successfully",
+			"task_id":               request.TaskID,
+			"agent_id":              agentID,
+			"progress_data":         progressData,
+			"checkpoint_created_at": now.Format(time.RFC3339),
+		},
+	}, nil
+}
+
+// ReadAgentTaskProgress retrieves saved progress data for tasks the agent is working on from agent memory
+func (h *AgentsHandler) ReadAgentTaskProgress(ctx context.Context, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+	log.Printf("🔍 ReadAgentTaskProgress called with agentID: %s, userID: %s", agentID, userID)
+
+	// Get agent memory from database
+	agent, err := h.getAgentByID(userID, agentID)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Agent not found: %v", err),
+		}, nil
+	}
+
+	if agent.Memory == nil || agent.Memory.Contexts.Workflow == nil {
+		return &types.TeamTaskResponse{
+			Success: true,
+			Data: map[string]interface{}{
+				"progress_records": []interface{}{},
+				"message":          "No task progress data found",
+			},
+		}, nil
+	}
+
+	// Collect task progress records
+	var progressRecords []map[string]interface{}
+
+	if request.TaskID != "" {
+		// Read specific task progress
+		taskProgressKey := fmt.Sprintf("task_progress_%s", request.TaskID)
+		if progressData, exists := agent.Memory.Contexts.Workflow[taskProgressKey]; exists {
+			progressRecords = append(progressRecords, map[string]interface{}{
+				"task_id":       request.TaskID,
+				"progress_data": progressData,
+			})
+		}
+	} else {
+		// Read all task progress records
+		for key, progressData := range agent.Memory.Contexts.Workflow {
+			if strings.HasPrefix(key, "task_progress_") {
+				taskID := strings.TrimPrefix(key, "task_progress_")
+
+				// Apply status filter if provided
+				if len(request.StatusFilter) > 0 {
+					if progressMap, ok := progressData.(map[string]interface{}); ok {
+						if status, exists := progressMap["status"].(string); exists {
+							found := false
+							for _, filterStatus := range request.StatusFilter {
+								if status == filterStatus {
+									found = true
+									break
+								}
+							}
+							if !found {
+								continue
+							}
+						}
+					}
+				}
+
+				progressRecords = append(progressRecords, map[string]interface{}{
+					"task_id":       taskID,
+					"progress_data": progressData,
+				})
+			}
+		}
+	}
+
+	// Apply limit if specified
+	limit := request.Limit
+	if limit <= 0 {
+		limit = 10 // Default limit
+	}
+	if len(progressRecords) > limit {
+		progressRecords = progressRecords[:limit]
+	}
+
+	log.Printf("✅ ReadAgentTaskProgress found %d progress records for agent %s", len(progressRecords), agentID)
+
+	return &types.TeamTaskResponse{
+		Success: true,
+		Data: map[string]interface{}{
+			"progress_records": progressRecords,
+			"total_count":      len(progressRecords),
+			"agent_id":         agentID,
+		},
+	}, nil
+}
+
+// ClearAgentTaskProgress clears progress data for tasks the agent is working on from agent memory
+func (h *AgentsHandler) ClearAgentTaskProgress(ctx context.Context, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+	log.Printf("🔍 ClearAgentTaskProgress called with agentID: %s, userID: %s", agentID, userID)
+
+	// Get agent memory from database
+	agent, err := h.getAgentByID(userID, agentID)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Agent not found: %v", err),
+		}, nil
+	}
+
+	if agent.Memory == nil || agent.Memory.Contexts.Workflow == nil {
+		return &types.TeamTaskResponse{
+			Success: true,
+			Data: map[string]interface{}{
+				"message": "No task progress data to clear",
+			},
+		}, nil
+	}
+
+	var clearedCount int
+	now := time.Now()
+
+	if request.TaskID != "" {
+		// Clear specific task progress
+		taskProgressKey := fmt.Sprintf("task_progress_%s", request.TaskID)
+		if _, exists := agent.Memory.Contexts.Workflow[taskProgressKey]; exists {
+			delete(agent.Memory.Contexts.Workflow, taskProgressKey)
+			clearedCount = 1
+		}
+	} else {
+		// Clear all task progress records
+		for key := range agent.Memory.Contexts.Workflow {
+			if strings.HasPrefix(key, "task_progress_") {
+				delete(agent.Memory.Contexts.Workflow, key)
+				clearedCount++
+			}
+		}
+	}
+
+	// Update memory metadata
+	agent.Memory.Metadata.UpdatedAt = now
+
+	// Save updated memory
+	err = h.saveAgentMemory(ctx, agentID, userID, agent.Memory)
+	if err != nil {
+		log.Printf("❌ ClearAgentTaskProgress save failed: %v", err)
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Failed to save cleared memory: %v", err),
+		}, nil
+	}
+
+	log.Printf("✅ ClearAgentTaskProgress cleared %d progress records for agent %s", clearedCount, agentID)
+
+	return &types.TeamTaskResponse{
+		Success: true,
+		Data: map[string]interface{}{
+			"message":       "Agent task progress cleared successfully",
+			"cleared_count": clearedCount,
+			"agent_id":      agentID,
+		},
+	}, nil
 }

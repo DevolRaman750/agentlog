@@ -307,13 +307,7 @@ func (h *GitHubAppHandler) getInstallationToken(ctx context.Context, config *typ
 
 func (h *GitHubAppHandler) generateJWT(config *types.GitHubAppConfig) (string, error) {
 	// Debug: Log private key info (first/last 50 chars for security)
-	keyLen := len(config.PrivateKey)
-	if keyLen > 100 {
-		fmt.Printf("🔍 [PEM_DEBUG] Private key length: %d, starts with: %s..., ends with: ...%s\n", 
-			keyLen, config.PrivateKey[:50], config.PrivateKey[keyLen-50:])
-	} else {
-		fmt.Printf("🔍 [PEM_DEBUG] Private key length: %d, content: %s\n", keyLen, config.PrivateKey)
-	}
+
 	
 	// Parse private key
 	block, _ := pem.Decode([]byte(config.PrivateKey))
