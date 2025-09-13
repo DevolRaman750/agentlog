@@ -6,12 +6,9 @@ live demo:  https://agentlog.scalebase.io
 agentlog is a Go platform that wraps AI APIs (starting with Google Gemini) with multi-variation execution, database logging, and use case-specific implementations. It enables you to run the same AI prompt with different configurations, compare results, and implement domain-specific AI solutions like procurement management, legal analysis, and more.
 
 
-https://github.com/user-attachments/assets/43184a26-4a6f-4f93-a655-f58f7badaddc
 
 
-
-
-#### More screenshots:
+#### Screenshots of Features:
 
 AI Team Dashboad:
 <img width="708" height="807" alt="image" src="https://github.com/user-attachments/assets/f6dd22ce-8738-4c87-b1a6-f4afa22faa9b" />
