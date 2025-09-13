@@ -1,4 +1,5 @@
 # agentlog - AI Multi-Variation Execution Platform with Interface Architecture
+**note**: Agentlog is in beta, and is under heavy development.  Breaking changes may occur.  
 
 live demo:  https://agentlog.scalebase.io
 
@@ -10,6 +11,29 @@ agentlog is a Go platform that wraps AI APIs (starting with Google Gemini) with 
 https://github.com/user-attachments/assets/43184a26-4a6f-4f93-a655-f58f7badaddc
 
 
+
+
+#### More screenshots:
+
+AI Team Dashboad:
+<img width="708" height="807" alt="image" src="https://github.com/user-attachments/assets/f6dd22ce-8738-4c87-b1a6-f4afa22faa9b" />
+
+Experimentation mode to compare multiple models:
+<img width="711" height="810" alt="image" src="https://github.com/user-attachments/assets/be8bceed-b3ca-4e64-b66b-c98459609842" />
+
+Detailed execution logs, flow graphs and flame graphs for each execution:
+<img width="959" height="694" alt="image" src="https://github.com/user-attachments/assets/f5cfa8a2-6745-42ae-8aab-e2039a720e38" />
+
+
+Execution/Comparison metrics on every execution:
+<img width="708" height="306" alt="image" src="https://github.com/user-attachments/assets/bb08d4c5-147e-4230-ae37-89f2f65d9e6d" />
+
+
+team memory management:
+
+<img width="1465" height="819" alt="image" src="https://github.com/user-attachments/assets/6982d947-3d3f-429a-be13-399a8f22bd7d" />
+
+... And more!
 
 
 ## 🚀 Quick Start
