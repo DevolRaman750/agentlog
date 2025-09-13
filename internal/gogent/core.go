@@ -1304,7 +1304,7 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 						},
 						CheckpointReason: "auto_progress_after_create",
 					}
-					if _, perr := teamsHandler.UpdateAgentTaskProgress(ctx, teamID, agentID, userID, progressReq); perr != nil {
+					if _, perr := agentsHandler.UpdateAgentTaskProgress(ctx, agentID, userID, progressReq); perr != nil {
 						log.Printf("⚠️ Auto progress update after create failed: %v", perr)
 					}
 				}
@@ -1325,7 +1325,7 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 						},
 						CheckpointReason: "auto_progress_after_claim",
 					}
-					if _, perr := teamsHandler.UpdateAgentTaskProgress(ctx, teamID, agentID, userID, progressReq); perr != nil {
+					if _, perr := agentsHandler.UpdateAgentTaskProgress(ctx, agentID, userID, progressReq); perr != nil {
 						log.Printf("⚠️ Auto progress update after claim failed: %v", perr)
 					}
 				}
@@ -1340,7 +1340,7 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 				// Auto-clear progress on successful completion
 				if err == nil && taskResponse != nil && taskResponse.Success {
 					clearReq := &types.TeamTaskRequest{TaskID: taskRequest.TaskID}
-					if _, cerr := teamsHandler.ClearAgentTaskProgress(ctx, teamID, agentID, userID, clearReq); cerr != nil {
+					if _, cerr := agentsHandler.ClearAgentTaskProgress(ctx, agentID, userID, clearReq); cerr != nil {
 						log.Printf("⚠️ Auto progress clear after completion failed: %v", cerr)
 					}
 				}
@@ -1357,7 +1357,7 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 				// Auto-clear progress on error to prevent stale state
 				if err == nil && taskResponse != nil && taskResponse.Success {
 					clearReq := &types.TeamTaskRequest{TaskID: taskRequest.TaskID}
-					if _, cerr := teamsHandler.ClearAgentTaskProgress(ctx, teamID, agentID, userID, clearReq); cerr != nil {
+					if _, cerr := agentsHandler.ClearAgentTaskProgress(ctx, agentID, userID, clearReq); cerr != nil {
 						log.Printf("⚠️ Auto progress clear after error failed: %v", cerr)
 					}
 				}
@@ -1381,7 +1381,7 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 						},
 						CheckpointReason: "auto_progress_after_delete",
 					}
-					if _, perr := teamsHandler.UpdateAgentTaskProgress(ctx, teamID, agentID, userID, progressReq); perr != nil {
+					if _, perr := agentsHandler.UpdateAgentTaskProgress(ctx, agentID, userID, progressReq); perr != nil {
 						log.Printf("⚠️ Auto progress update after delete failed: %v", perr)
 					}
 				}
@@ -1403,7 +1403,7 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 						},
 						CheckpointReason: "auto_progress_after_update",
 					}
-					if _, perr := teamsHandler.UpdateAgentTaskProgress(ctx, teamID, agentID, userID, progressReq); perr != nil {
+					if _, perr := agentsHandler.UpdateAgentTaskProgress(ctx, agentID, userID, progressReq); perr != nil {
 						log.Printf("⚠️ Auto progress update after update failed: %v", perr)
 					}
 				}
@@ -1415,22 +1415,6 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 				taskResponse, err = teamsHandler.ListAgentTasks(ctx, teamID, agentID, userID, taskRequest)
 			case "agent_task_delete":
 				taskResponse, err = teamsHandler.DeleteAgentTask(ctx, teamID, agentID, userID, taskRequest)
-			case "agent_task_progress_update":
-				// task_id is required for progress update
-				if taskRequest.TaskID == "" {
-					return nil, fmt.Errorf("TEAM FUNCTION ERROR: %s requires task_id parameter to specify which task progress to update", functionName)
-				}
-				log.Printf("🔍 About to call UpdateAgentTaskProgress with teamID=%s, agentID=%s, userID=%s, taskID=%s", teamID, agentID, userID, taskRequest.TaskID)
-				taskResponse, err = teamsHandler.UpdateAgentTaskProgress(ctx, teamID, agentID, userID, taskRequest)
-				log.Printf("🔍 UpdateAgentTaskProgress returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
-			case "agent_task_progress_read":
-				log.Printf("🔍 About to call ReadAgentTaskProgress with teamID=%s, agentID=%s, userID=%s", teamID, agentID, userID)
-				taskResponse, err = teamsHandler.ReadAgentTaskProgress(ctx, teamID, agentID, userID, taskRequest)
-				log.Printf("🔍 ReadAgentTaskProgress returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
-			case "agent_task_progress_clear":
-				log.Printf("🔍 About to call ClearAgentTaskProgress with teamID=%s, agentID=%s, userID=%s", teamID, agentID, userID)
-				taskResponse, err = teamsHandler.ClearAgentTaskProgress(ctx, teamID, agentID, userID, taskRequest)
-				log.Printf("🔍 ClearAgentTaskProgress returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
 			default:
 				return nil, fmt.Errorf("unsupported team task function: %s", functionName)
 			}
