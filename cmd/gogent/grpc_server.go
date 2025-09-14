@@ -95,10 +95,7 @@ func (s *GRPCServer) CreateTemporaryUser(ctx context.Context, req *pb.CreateTemp
 }
 
 func (s *GRPCServer) SaveTemporaryAccount(ctx context.Context, req *pb.SaveTemporaryAccountRequest) (*pb.SaveTemporaryAccountResponse, error) {
-	user, emailSent, err := s.businessLogic.SaveTemporaryAccount(req.Email)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Failed to save temporary account: %v", err)
-	}
+	user, emailSent := s.businessLogic.SaveTemporaryAccount(req.Email)
 
 	protoUser := s.convertUserToProto(user)
 	return &pb.SaveTemporaryAccountResponse{
@@ -108,10 +105,7 @@ func (s *GRPCServer) SaveTemporaryAccount(ctx context.Context, req *pb.SaveTempo
 }
 
 func (s *GRPCServer) VerifyEmail(ctx context.Context, req *pb.VerifyEmailRequest) (*pb.VerifyEmailResponse, error) {
-	user, verified, err := s.businessLogic.VerifyEmail(req.Token)
-	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "Email verification failed: %v", err)
-	}
+	user, verified := s.businessLogic.VerifyEmail(req.Token)
 
 	protoUser := s.convertUserToProto(user)
 	return &pb.VerifyEmailResponse{
@@ -121,10 +115,7 @@ func (s *GRPCServer) VerifyEmail(ctx context.Context, req *pb.VerifyEmailRequest
 }
 
 func (s *GRPCServer) GetCurrentUser(ctx context.Context, req *pb.GetCurrentUserRequest) (*pb.GetCurrentUserResponse, error) {
-	user, err := s.businessLogic.GetCurrentUser()
-	if err != nil {
-		return nil, status.Errorf(codes.Unauthenticated, "Failed to get current user: %v", err)
-	}
+	user := s.businessLogic.GetCurrentUser()
 
 	protoUser := s.convertUserToProto(user)
 	return &pb.GetCurrentUserResponse{
@@ -290,10 +281,7 @@ func (s *GRPCServer) ListConfigurations(ctx context.Context, req *pb.ListConfigu
 func (s *GRPCServer) CreateConfiguration(ctx context.Context, req *pb.CreateConfigurationRequest) (*pb.CreateConfigurationResponse, error) {
 	config := s.convertProtoConfigurationToInternal(req.Configuration)
 
-	createdConfig, err := s.businessLogic.CreateConfiguration(config)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Failed to create configuration: %v", err)
-	}
+	createdConfig := s.businessLogic.CreateConfiguration(config)
 
 	protoConfig := s.convertConfigurationToProto(createdConfig)
 	return &pb.CreateConfigurationResponse{
@@ -362,10 +350,7 @@ func (s *GRPCServer) GetFunction(ctx context.Context, req *pb.GetFunctionRequest
 func (s *GRPCServer) CreateFunction(ctx context.Context, req *pb.CreateFunctionRequest) (*pb.CreateFunctionResponse, error) {
 	function := s.convertProtoFunctionToInternal(req.Function)
 
-	createdFunction, err := s.businessLogic.CreateFunction(function)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Failed to create function: %v", err)
-	}
+	createdFunction := s.businessLogic.CreateFunction(function)
 
 	protoFunction := s.convertFunctionToProto(createdFunction)
 	return &pb.CreateFunctionResponse{

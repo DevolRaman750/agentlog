@@ -1027,7 +1027,6 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 
 			log.Printf("✅ Team memory function %s completed successfully", functionName)
 			return result, nil
-
 		} else if strings.HasPrefix(functionName, "team_task_") || strings.HasPrefix(functionName, "agent_task_") {
 			// Handle team task functions
 			log.Printf("🔍 Entering team task function path for: %s", functionName)

@@ -219,7 +219,7 @@ func splitPath(path string) []string {
 	return strings.Split(path, "/")
 }
 
-// AdapterToExistingExecutionEngine creates an adapter to integrate with the existing execution engine
+// ExecutionEngineAdapter creates an adapter to integrate with the existing execution engine
 type ExecutionEngineAdapter struct {
 	businessLogic BusinessLogicInterface
 }

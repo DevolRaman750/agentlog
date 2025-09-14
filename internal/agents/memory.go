@@ -255,7 +255,7 @@ func (h *AgentsHandler) ClearMemory(ctx context.Context, agentID, userID string,
 	case "clear_all":
 		agent.Memory, err = h.InitializeMemory(agentID)
 	case "compact":
-		err = h.compactMemory(agent.Memory)
+		h.compactMemory(agent.Memory)
 	default:
 		return &types.AgentMemoryResponse{
 			Success: false,
@@ -455,7 +455,7 @@ func (h *AgentsHandler) clearPath(memory *types.AgentMemory, path string) error 
 	return nil
 }
 
-func (h *AgentsHandler) compactMemory(memory *types.AgentMemory) error {
+func (h *AgentsHandler) compactMemory(memory *types.AgentMemory) {
 	// Remove empty contexts and optimize structure
 	if len(memory.Contexts.Workflow) == 0 {
 		memory.Contexts.Workflow = nil
@@ -475,8 +475,6 @@ func (h *AgentsHandler) compactMemory(memory *types.AgentMemory) error {
 		}
 	}
 	memory.Relationships = activeRelationships
-
-	return nil
 }
 
 func (h *AgentsHandler) saveAgentMemory(ctx context.Context, agentID, userID string, memory *types.AgentMemory) error {

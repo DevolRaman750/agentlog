@@ -146,7 +146,7 @@ func (bl *BusinessLogic) CreateTemporaryUser(sessionID string) (*auth.User, stri
 	return user, tempPassword, token, nil
 }
 
-func (bl *BusinessLogic) SaveTemporaryAccount(email string) (*auth.User, bool, error) {
+func (bl *BusinessLogic) SaveTemporaryAccount(email string) (*auth.User, bool) {
 	log.Printf("💾 Saving temporary account with email: %s", email)
 
 	now := time.Now()
@@ -161,10 +161,10 @@ func (bl *BusinessLogic) SaveTemporaryAccount(email string) (*auth.User, bool, e
 	}
 
 	emailSent := true
-	return user, emailSent, nil
+	return user, emailSent
 }
 
-func (bl *BusinessLogic) VerifyEmail(token string) (*auth.User, bool, error) {
+func (bl *BusinessLogic) VerifyEmail(token string) (*auth.User, bool) {
 	log.Printf("✅ Verifying email with token: %s", token)
 
 	email := "user@example.com"
@@ -179,10 +179,10 @@ func (bl *BusinessLogic) VerifyEmail(token string) (*auth.User, bool, error) {
 	}
 
 	verified := true
-	return user, verified, nil
+	return user, verified
 }
 
-func (bl *BusinessLogic) GetCurrentUser() (*auth.User, error) {
+func (bl *BusinessLogic) GetCurrentUser() *auth.User {
 	log.Printf("👤 Getting current user")
 
 	// TODO: Extract user from JWT token in context
@@ -200,7 +200,7 @@ func (bl *BusinessLogic) GetCurrentUser() (*auth.User, error) {
 		LastLoginAt:   &lastLogin,
 	}
 
-	return user, nil
+	return user
 }
 
 // =============================================================================
@@ -349,14 +349,14 @@ func (bl *BusinessLogic) GetDefaultConfigurations() []types.APIConfiguration {
 	}
 }
 
-func (bl *BusinessLogic) CreateConfiguration(config *types.APIConfiguration) (*types.APIConfiguration, error) {
+func (bl *BusinessLogic) CreateConfiguration(config *types.APIConfiguration) *types.APIConfiguration {
 	log.Printf("➕ Creating configuration: %s", config.VariationName)
 
 	// TODO: Implement actual creation logic
 	config.ID = fmt.Sprintf("config-%d", time.Now().Unix())
 	config.CreatedAt = time.Now()
 
-	return config, nil
+	return config
 }
 
 func (bl *BusinessLogic) UpdateConfiguration(id string, config *types.APIConfiguration) (*types.APIConfiguration, error) {
@@ -491,7 +491,7 @@ func (bl *BusinessLogic) GetFunction(id string) (*types.FunctionDefinition, erro
 	return nil, fmt.Errorf("function not found: %s", id)
 }
 
-func (bl *BusinessLogic) CreateFunction(function *types.FunctionDefinition) (*types.FunctionDefinition, error) {
+func (bl *BusinessLogic) CreateFunction(function *types.FunctionDefinition) *types.FunctionDefinition {
 	log.Printf("➕ Creating function: %s", function.DisplayName)
 
 	// TODO: Implement actual database insertion
@@ -500,7 +500,7 @@ func (bl *BusinessLogic) CreateFunction(function *types.FunctionDefinition) (*ty
 	function.UpdatedAt = time.Now()
 	function.IsActive = true
 
-	return function, nil
+	return function
 }
 
 func (bl *BusinessLogic) UpdateFunction(id string, function *types.FunctionDefinition) (*types.FunctionDefinition, error) {
@@ -599,7 +599,7 @@ func (bl *BusinessLogic) GetHealthStatus() (string, string, bool, bool) {
 	return status, version, database, geminiAPI
 }
 
-func (bl *BusinessLogic) TestConnection() (*types.APIResponse, error) {
+func (bl *BusinessLogic) TestConnection() *types.APIResponse {
 	log.Printf("🔍 Testing connection")
 
 	response := &types.APIResponse{
@@ -611,7 +611,7 @@ func (bl *BusinessLogic) TestConnection() (*types.APIResponse, error) {
 	// Note: Since we no longer store API keys, we can only test basic connectivity
 	// Real API testing would require session API keys to be passed in
 	log.Printf("✅ Connection test completed (mock mode)")
-	return response, nil
+	return response
 }
 
 // =============================================================================

@@ -195,8 +195,6 @@ func (p *GeminiProvider) callGeminiWithTools(ctx context.Context, config *types.
 // This is a simplified parser - in full implementation, this would integrate
 // with your existing sophisticated function calling logic
 func (p *GeminiProvider) parseFunctionCallsFromResponse(responseText string) []FunctionCall {
-	var functionCalls []FunctionCall
-
 	// Simple detection for function calls in text
 	// Your existing implementation in internal/gogent/client.go has much more sophisticated parsing
 	if strings.Contains(responseText, "function_call") || strings.Contains(responseText, "tool_call") {
@@ -204,7 +202,8 @@ func (p *GeminiProvider) parseFunctionCallsFromResponse(responseText string) []F
 		// TODO: Integrate with existing function call parsing from internal/gogent/client.go
 	}
 
-	return functionCalls
+	// Return empty slice - this is intentional for the placeholder implementation
+	return []FunctionCall{}
 }
 
 // Close cleans up the Gemini provider resources

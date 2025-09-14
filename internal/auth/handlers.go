@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-// Request/Response types for auth handlers
+// LoginRequest represents the request payload for user login
 type LoginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
