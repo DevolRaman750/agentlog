@@ -1162,7 +1162,7 @@ func (c *Client) processIterativeFunctionCalls(ctx context.Context, config *type
 // processIterativeFunctionCallsWithSynthesis executes functions and gets LLM synthesis using Gemini REST API
 // Allow natural workflow completion without artificial depth limits
 func (c *Client) processIterativeFunctionCallsWithSynthesis(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest, functionCalls []ResponsePart, originalPrompt string) string {
-	const maxIterationDepth = 12 // Allow natural workflow completion
+	const maxIterationDepth = 20 // Allow natural workflow completion
 
 	return c.processIterativeFunctionCallsWithSynthesisRecursive(ctx, config, request, functionCalls, originalPrompt, 0, maxIterationDepth)
 }
