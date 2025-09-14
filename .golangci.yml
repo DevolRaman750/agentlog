@@ -40,12 +40,10 @@ linters-settings:
 linters:
   enable:
     - bodyclose
-    - deadcode
     - depguard
     - dogsled
     - dupl
     - errcheck
-    - exportloopref
     - exhaustive
     - funlen
     - gochecknoinits
@@ -54,8 +52,6 @@ linters:
     - gocyclo
     - gofmt
     - goimports
-    - golint
-    - gomnd
     - goprintffuncname
     - gosec
     - gosimple
@@ -63,65 +59,63 @@ linters:
     - ineffassign
     - lll
     - misspell
+    - mnd
     - nakedret
     - noctx
     - nolintlint
+    - revive
     - rowserrcheck
     - staticcheck
-    - structcheck
     - stylecheck
     - typecheck
     - unconvert
     - unparam
     - unused
-    - varcheck
     - whitespace
 
   disable:
-    - maligned
     - prealloc
-    - scopelint
 
 issues:
   exclude-rules:
     - path: vendor/
       linters:
-        - gomnd
+        - mnd
         - funlen
         - gocyclo
     - path: node_modules/
       linters:
-        - gomnd
+        - mnd
         - funlen
         - gocyclo
     - path: frontend/node_modules/
       linters:
-        - gomnd
+        - mnd
         - funlen
         - gocyclo
     - path: frontend/dist/
       linters:
-        - gomnd
+        - mnd
         - funlen
         - gocyclo
     - path: bin/
       linters:
-        - gomnd
+        - mnd
         - funlen
         - gocyclo
     - path: coverage-reports/
       linters:
-        - gomnd
+        - mnd
         - funlen
         - gocyclo
     - path: ".*\\.pb\\.go$"
       linters:
-        - gomnd
+        - mnd
         - funlen
         - gocyclo
     - path: _test\.go
       linters:
-        - gomnd
+        - mnd
         - funlen
         - gocyclo
     - path: cmd/
@@ -136,13 +130,13 @@ issues:
         - errcheck
     - text: "exported (.+) should have comment or be unexported"
       linters:
-        - golint
+        - revive
     - text: "should have a package comment"
       linters:
-        - golint
+        - revive
     - text: "comment on exported"
       linters:
-        - golint
+        - revive
 
   exclude-use-default: false
   max-issues-per-linter: 0
