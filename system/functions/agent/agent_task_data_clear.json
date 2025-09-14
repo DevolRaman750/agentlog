@@ -38,8 +38,7 @@
       },
       "confirmation": {
         "type": "boolean",
-        "description": "Must be true to confirm data clearing operation. This prevents accidental data loss.",
-        "enum": [true]
+        "description": "Must be true to confirm data clearing operation. This prevents accidental data loss."
       },
       "reason": {
         "type": "string",
