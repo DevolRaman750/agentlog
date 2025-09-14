@@ -751,3 +751,244 @@ func (h *AgentsHandler) ClearAgentTaskProgress(ctx context.Context, agentID, use
 		},
 	}, nil
 }
+
+// ListAgentTasks retrieves agent-specific tasks from agent memory
+func (h *AgentsHandler) ListAgentTasks(ctx context.Context, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+	log.Printf("🔍 ListAgentTasks called with agentID: %s, userID: %s", agentID, userID)
+
+	// Get agent memory from database
+	agent, err := h.getAgentByID(userID, agentID)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Agent not found: %v", err),
+		}, nil
+	}
+
+	if agent.Memory == nil || agent.Memory.Contexts.Workflow == nil {
+		return &types.TeamTaskResponse{
+			Success: true,
+			Tasks:   []types.TeamTask{},
+			Data: map[string]interface{}{
+				"message": "No agent tasks found",
+			},
+		}, nil
+	}
+
+	// Collect agent tasks from memory
+	var agentTasks []types.TeamTask
+	context := request.TaskTitle // Using TaskTitle field for context filter
+
+	for key, taskData := range agent.Memory.Contexts.Workflow {
+		if strings.HasPrefix(key, "agent_task_") {
+			// Skip progress tracking entries
+			if strings.HasPrefix(key, "task_progress_") {
+				continue
+			}
+
+			// Apply context filter if specified
+			if context != "" && !strings.Contains(key, context) {
+				continue
+			}
+
+			// Convert task data to TeamTask structure
+			if taskMap, ok := taskData.(map[string]interface{}); ok {
+				task := types.TeamTask{
+					ID:          key,
+					Title:       fmt.Sprintf("Agent Task: %s", key),
+					Description: "Agent-specific task stored in memory",
+					Status:      types.TeamTaskStatus("completed"), // Agent tasks are typically completed when stored
+				}
+
+				// Extract task details if available
+				if title, exists := taskMap["title"].(string); exists {
+					task.Title = title
+				}
+				if desc, exists := taskMap["description"].(string); exists {
+					task.Description = desc
+				}
+				if status, exists := taskMap["status"].(string); exists {
+					task.Status = types.TeamTaskStatus(status)
+				}
+				if metadata, exists := taskMap["metadata"].(map[string]interface{}); exists {
+					task.Metadata = metadata
+				}
+
+				agentTasks = append(agentTasks, task)
+			}
+		}
+	}
+
+	// Apply limit if specified
+	limit := request.Limit
+	if limit <= 0 {
+		limit = 50 // Default limit
+	}
+	if len(agentTasks) > limit {
+		agentTasks = agentTasks[:limit]
+	}
+
+	log.Printf("✅ ListAgentTasks found %d agent tasks for agent %s", len(agentTasks), agentID)
+
+	return &types.TeamTaskResponse{
+		Success: true,
+		Tasks:   agentTasks,
+		Data: map[string]interface{}{
+			"total_count": len(agentTasks),
+			"agent_id":    agentID,
+		},
+	}, nil
+}
+
+// StoreAgentTask stores an agent-specific task in agent memory
+func (h *AgentsHandler) StoreAgentTask(ctx context.Context, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+	log.Printf("🔍 StoreAgentTask called with agentID: %s, userID: %s", agentID, userID)
+
+	// Get agent memory from database
+	agent, err := h.getAgentByID(userID, agentID)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Agent not found: %v", err),
+		}, nil
+	}
+
+	// Parse existing memory or initialize if empty
+	var memory *types.AgentMemory
+	if agent.Memory != nil {
+		memory = agent.Memory
+	} else {
+		memory, err = h.InitializeMemory(agentID)
+		if err != nil {
+			return &types.TeamTaskResponse{
+				Success: false,
+				Error:   fmt.Sprintf("Failed to initialize memory: %v", err),
+			}, nil
+		}
+	}
+
+	// Ensure workflow context exists
+	if memory.Contexts.Workflow == nil {
+		memory.Contexts.Workflow = make(map[string]interface{})
+	}
+
+	// Generate task ID if not provided
+	taskID := request.TaskID
+	if taskID == "" {
+		taskID = fmt.Sprintf("agent_task_%s_%d", agentID, time.Now().Unix())
+	}
+
+	// Create task data
+	taskData := map[string]interface{}{
+		"title":       request.TaskTitle,
+		"description": request.TaskDescription,
+		"status":      "stored",
+		"created_at":  time.Now().Format(time.RFC3339),
+		"agent_id":    agentID,
+	}
+
+	if request.Metadata != nil {
+		taskData["metadata"] = request.Metadata
+	}
+
+	// Store task in agent memory
+	memory.Contexts.Workflow[taskID] = taskData
+
+	// Update memory metadata
+	now := time.Now()
+	memory.Metadata.UpdatedAt = now
+	memory.Metadata.AccessCount++
+
+	// Save updated memory
+	err = h.saveAgentMemory(ctx, agentID, userID, memory)
+	if err != nil {
+		log.Printf("❌ StoreAgentTask save failed: %v", err)
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Failed to save task: %v", err),
+		}, nil
+	}
+
+	log.Printf("✅ Agent task stored successfully: %s for agent %s", taskID, agentID)
+
+	return &types.TeamTaskResponse{
+		Success: true,
+		Task: &types.TeamTask{
+			ID:          taskID,
+			Title:       request.TaskTitle,
+			Description: request.TaskDescription,
+			Status:      types.TeamTaskStatus("stored"),
+			Metadata:    request.Metadata,
+		},
+		Data: map[string]interface{}{
+			"message":  "Agent task stored successfully",
+			"task_id":  taskID,
+			"agent_id": agentID,
+		},
+	}, nil
+}
+
+// DeleteAgentTask deletes an agent-specific task from agent memory
+func (h *AgentsHandler) DeleteAgentTask(ctx context.Context, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+	log.Printf("🔍 DeleteAgentTask called with agentID: %s, userID: %s", agentID, userID)
+
+	// Get agent memory from database
+	agent, err := h.getAgentByID(userID, agentID)
+	if err != nil {
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Agent not found: %v", err),
+		}, nil
+	}
+
+	if agent.Memory == nil || agent.Memory.Contexts.Workflow == nil {
+		return &types.TeamTaskResponse{
+			Success: true,
+			Data: map[string]interface{}{
+				"message": "No agent tasks to delete",
+			},
+		}, nil
+	}
+
+	// Delete specific task if task ID provided
+	if request.TaskID != "" {
+		if _, exists := agent.Memory.Contexts.Workflow[request.TaskID]; exists {
+			delete(agent.Memory.Contexts.Workflow, request.TaskID)
+		} else {
+			return &types.TeamTaskResponse{
+				Success: false,
+				Error:   "Task not found",
+			}, nil
+		}
+	} else {
+		// Delete all agent tasks (but keep progress tracking)
+		for key := range agent.Memory.Contexts.Workflow {
+			if strings.HasPrefix(key, "agent_task_") && !strings.HasPrefix(key, "task_progress_") {
+				delete(agent.Memory.Contexts.Workflow, key)
+			}
+		}
+	}
+
+	// Update memory metadata
+	agent.Memory.Metadata.UpdatedAt = time.Now()
+
+	// Save updated memory
+	err = h.saveAgentMemory(ctx, agentID, userID, agent.Memory)
+	if err != nil {
+		log.Printf("❌ DeleteAgentTask save failed: %v", err)
+		return &types.TeamTaskResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Failed to delete task: %v", err),
+		}, nil
+	}
+
+	log.Printf("✅ Agent task deleted successfully for agent %s", agentID)
+
+	return &types.TeamTaskResponse{
+		Success: true,
+		Data: map[string]interface{}{
+			"message":  "Agent task deleted successfully",
+			"agent_id": agentID,
+		},
+	}, nil
+}

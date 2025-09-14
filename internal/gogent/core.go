@@ -1407,14 +1407,6 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 						log.Printf("⚠️ Auto progress update after update failed: %v", perr)
 					}
 				}
-			case "agent_task_store":
-				log.Printf("🔍 About to call StoreAgentTask with teamID=%s, agentID=%s, userID=%s", teamID, agentID, userID)
-				taskResponse, err = teamsHandler.StoreAgentTask(ctx, teamID, agentID, userID, taskRequest)
-				log.Printf("🔍 StoreAgentTask returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
-			case "agent_task_list":
-				taskResponse, err = teamsHandler.ListAgentTasks(ctx, teamID, agentID, userID, taskRequest)
-			case "agent_task_delete":
-				taskResponse, err = teamsHandler.DeleteAgentTask(ctx, teamID, agentID, userID, taskRequest)
 			default:
 				return nil, fmt.Errorf("unsupported team task function: %s", functionName)
 			}
@@ -1485,6 +1477,18 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 		if includeCompleted, ok := args["include_completed"].(bool); ok {
 			taskRequest.IncludeCompleted = includeCompleted
 		}
+		if context, ok := args["context"].(string); ok {
+			taskRequest.TaskTitle = context // Reusing TaskTitle field for context
+		}
+		if taskTitle, ok := args["task_title"].(string); ok {
+			taskRequest.TaskTitle = taskTitle
+		}
+		if taskDescription, ok := args["task_description"].(string); ok {
+			taskRequest.TaskDescription = taskDescription
+		}
+		if metadata, ok := args["metadata"].(map[string]interface{}); ok {
+			taskRequest.Metadata = metadata
+		}
 
 		// Route to appropriate agent task function
 		var taskResponse *types.TeamTaskResponse
@@ -1507,6 +1511,18 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 			log.Printf("🔍 About to call ClearAgentTaskProgress with agentID=%s", agentID)
 			taskResponse, err = agentsHandler.ClearAgentTaskProgress(ctx, agentID, userID, taskRequest)
 			log.Printf("🔍 ClearAgentTaskProgress returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
+		case "agent_task_list":
+			log.Printf("🔍 About to call ListAgentTasks with agentID=%s", agentID)
+			taskResponse, err = agentsHandler.ListAgentTasks(ctx, agentID, userID, taskRequest)
+			log.Printf("🔍 ListAgentTasks returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
+		case "agent_task_store":
+			log.Printf("🔍 About to call StoreAgentTask with agentID=%s", agentID)
+			taskResponse, err = agentsHandler.StoreAgentTask(ctx, agentID, userID, taskRequest)
+			log.Printf("🔍 StoreAgentTask returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
+		case "agent_task_delete":
+			log.Printf("🔍 About to call DeleteAgentTask with agentID=%s", agentID)
+			taskResponse, err = agentsHandler.DeleteAgentTask(ctx, agentID, userID, taskRequest)
+			log.Printf("🔍 DeleteAgentTask returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
 		default:
 			return nil, fmt.Errorf("unsupported agent task function: %s", functionName)
 		}
