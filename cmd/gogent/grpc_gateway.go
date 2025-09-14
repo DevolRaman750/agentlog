@@ -15,6 +15,8 @@ import (
 	"gogent/internal/auth"
 	pb "gogent/proto"
 
+	"github.com/imran31415/gracewrap"
+
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
@@ -799,7 +801,30 @@ func runGRPCGateway() {
 	fmt.Printf("🎯 Frontend can use this gateway as a drop-in replacement for the REST API\n")
 	fmt.Println()
 
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	// Create HTTP server with graceful shutdown support
+	httpServer := &http.Server{
+		Addr:    ":" + port,
+		Handler: nil, // Using http.DefaultServeMux
+	}
+
+	// Create graceful wrapper with Kubernetes-optimized config
+	config := gracewrap.DefaultConfig()
+	config.DrainTimeout = 30 * time.Second     // Wait 30s for in-flight requests
+	config.HardStopTimeout = 10 * time.Second  // Hard stop after 10s
+	config.LoadBalancerDelay = 5 * time.Second // Wait 5s for load balancer to notice
+	graceful := gracewrap.New(&config)
+
+	// Wrap HTTP server with graceful shutdown
+	if err := graceful.WrapHTTP(httpServer); err != nil {
+		log.Fatalf("Failed to wrap HTTP server: %v", err)
+	}
+
+	log.Printf("🚀 GoGent gRPC Gateway starting on port %s with graceful shutdown support", port)
+
+	// Wait for shutdown signal and perform graceful shutdown
+	if err := graceful.Wait(context.Background()); err != nil {
+		log.Printf("Graceful shutdown error: %v", err)
+	}
 }
 
 // getUserID extracts user ID from JWT context (copied from server.go)
