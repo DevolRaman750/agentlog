@@ -1,0 +1,98 @@
+{
+  "id": "func-agent-task-data-retrieve-1754754882",
+  "name": "agent_task_data_retrieve",
+  "provider": "internal",
+  "function_group": "internal",
+  "display_name": "Agent Task Data: Retrieve",
+  "description": "Retrieve task-specific data from agent memory with filtering and search capabilities. Use this to get previously stored code snippets, API responses, research findings, or any information stored during task execution.",
+  "endpoint": {
+    "path": "/internal/agent/task/data/retrieve",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "required": ["task_id"],
+    "properties": {
+      "task_id": {
+        "type": "string",
+        "description": "The task ID to retrieve data for. Must match the current task being worked on."
+      },
+      "data_key": {
+        "type": "string",
+        "description": "Specific data key to retrieve (optional). If not provided, returns all data for the task.",
+        "pattern": "^[a-z0-9_]+$"
+      },
+      "data_type": {
+        "type": "string",
+        "enum": ["code", "api_response", "research", "analysis", "documentation", "error_log", "configuration", "other"],
+        "description": "Filter by data type (optional). If not provided, returns all types."
+      },
+      "priority": {
+        "type": "string",
+        "enum": ["low", "medium", "high", "critical"],
+        "description": "Filter by priority level (optional). If not provided, returns all priorities."
+      },
+      "step_filter": {
+        "type": "string",
+        "description": "Filter by the step where data was gathered (optional). If not provided, returns data from all steps."
+      },
+      "search_query": {
+        "type": "string",
+        "description": "Search for data entries containing this text in content, future_use, or metadata (optional).",
+        "minLength": 3,
+        "maxLength": 100
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 50,
+        "description": "Maximum number of data entries to return (default: 10).",
+        "default": 10
+      },
+      "include_metadata": {
+        "type": "boolean",
+        "description": "Whether to include metadata in the response (default: true).",
+        "default": true
+      }
+    }
+  },
+  "examples": [
+    {
+      "name": "Retrieve all task data",
+      "parameters": {
+        "task_id": "task_123"
+      }
+    },
+    {
+      "name": "Retrieve specific data entry",
+      "parameters": {
+        "task_id": "task_123",
+        "data_key": "github_api_response"
+      }
+    },
+    {
+      "name": "Retrieve code snippets only",
+      "parameters": {
+        "task_id": "task_123",
+        "data_type": "code",
+        "priority": "critical"
+      }
+    },
+    {
+      "name": "Search for specific content",
+      "parameters": {
+        "task_id": "task_123",
+        "search_query": "authentication",
+        "limit": 5
+      }
+    },
+    {
+      "name": "Retrieve data from specific step",
+      "parameters": {
+        "task_id": "task_123",
+        "step_filter": "code_analysis",
+        "include_metadata": false
+      }
+    }
+  ]
+}

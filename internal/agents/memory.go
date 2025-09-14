@@ -992,3 +992,410 @@ func (h *AgentsHandler) DeleteAgentTask(ctx context.Context, agentID, userID str
 		},
 	}, nil
 }
+
+// StoreAgentTaskData stores task-specific data in agent memory with strict validation
+func (h *AgentsHandler) StoreAgentTaskData(ctx context.Context, agentID, userID string, request *types.AgentTaskDataRequest) (*types.AgentTaskDataResponse, error) {
+	log.Printf("🔍 StoreAgentTaskData called with agentID: %s, userID: %s, taskID: %s", agentID, userID, request.TaskID)
+
+	// Validate required parameters
+	if request.TaskID == "" {
+		return &types.AgentTaskDataResponse{
+			Success: false,
+			Error:   "Task ID is required",
+		}, nil
+	}
+
+	if request.DataKey == "" {
+		return &types.AgentTaskDataResponse{
+			Success: false,
+			Error:   "Data key is required",
+		}, nil
+	}
+
+	if request.DataContent == "" {
+		return &types.AgentTaskDataResponse{
+			Success: false,
+			Error:   "Data content is required",
+		}, nil
+	}
+
+	if request.DataType == "" {
+		return &types.AgentTaskDataResponse{
+			Success: false,
+			Error:   "Data type is required",
+		}, nil
+	}
+
+	if request.CurrentStep == "" {
+		return &types.AgentTaskDataResponse{
+			Success: false,
+			Error:   "Current step is required",
+		}, nil
+	}
+
+	if request.FutureUse == "" {
+		return &types.AgentTaskDataResponse{
+			Success: false,
+			Error:   "Future use description is required",
+		}, nil
+	}
+
+	// Validate data type
+	validDataTypes := []string{"code", "api_response", "research", "analysis", "documentation", "error_log", "configuration", "other"}
+	if !contains(validDataTypes, request.DataType) {
+		return &types.AgentTaskDataResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Invalid data type: %s. Must be one of: %v", request.DataType, validDataTypes),
+		}, nil
+	}
+
+	// Validate priority
+	if request.Priority == "" {
+		request.Priority = "medium"
+	}
+	validPriorities := []string{"low", "medium", "high", "critical"}
+	if !contains(validPriorities, request.Priority) {
+		return &types.AgentTaskDataResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Invalid priority: %s. Must be one of: %v", request.Priority, validPriorities),
+		}, nil
+	}
+
+	// Get agent from database
+	agent, err := h.getAgentByID(userID, agentID)
+	if err != nil {
+		log.Printf("❌ StoreAgentTaskData getAgentByID failed: %v", err)
+		return &types.AgentTaskDataResponse{
+			Success: false,
+			Error:   "Agent not found",
+		}, nil
+	}
+
+	// Initialize memory if nil
+	if agent.Memory == nil {
+		agent.Memory = &types.AgentMemory{
+			Contexts: types.AgentMemoryContexts{},
+		}
+	}
+
+	// Initialize task data storage in workflow context if not exists
+	taskDataKey := fmt.Sprintf("task_data_%s", request.TaskID)
+	if agent.Memory.Contexts.Workflow == nil {
+		agent.Memory.Contexts.Workflow = make(map[string]interface{})
+	}
+	if agent.Memory.Contexts.Workflow[taskDataKey] == nil {
+		agent.Memory.Contexts.Workflow[taskDataKey] = make(map[string]interface{})
+	}
+
+	taskData := agent.Memory.Contexts.Workflow[taskDataKey].(map[string]interface{})
+
+	// Create the data entry
+	dataEntry := types.AgentTaskData{
+		DataKey:     request.DataKey,
+		DataContent: request.DataContent,
+		DataType:    request.DataType,
+		CurrentStep: request.CurrentStep,
+		FutureUse:   request.FutureUse,
+		Priority:    request.Priority,
+		StoredAt:    time.Now(),
+		Metadata:    request.Metadata,
+	}
+
+	// Store the data entry
+	taskData[request.DataKey] = dataEntry
+
+	// Save to database
+	agent.Memory.Contexts.Workflow[taskDataKey] = taskData
+	if err := h.saveAgentMemory(ctx, agentID, userID, agent.Memory); err != nil {
+		log.Printf("❌ StoreAgentTaskData save failed: %v", err)
+		return &types.AgentTaskDataResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Failed to save task data: %v", err),
+		}, nil
+	}
+
+	log.Printf("✅ StoreAgentTaskData success: stored %s for task %s", request.DataKey, request.TaskID)
+
+	return &types.AgentTaskDataResponse{
+		Success: true,
+		Data:    []types.AgentTaskData{dataEntry},
+		Metadata: map[string]interface{}{
+			"message":   "Task data stored successfully",
+			"agent_id":  agentID,
+			"task_id":   request.TaskID,
+			"data_key":  request.DataKey,
+			"data_type": request.DataType,
+			"stored_at": dataEntry.StoredAt,
+		},
+	}, nil
+}
+
+// RetrieveAgentTaskData retrieves task-specific data from agent memory with filtering
+func (h *AgentsHandler) RetrieveAgentTaskData(ctx context.Context, agentID, userID string, request *types.AgentTaskDataRequest) (*types.AgentTaskDataResponse, error) {
+	log.Printf("🔍 RetrieveAgentTaskData called with agentID: %s, userID: %s, taskID: %s", agentID, userID, request.TaskID)
+
+	// Validate required parameters
+	if request.TaskID == "" {
+		return &types.AgentTaskDataResponse{
+			Success: false,
+			Error:   "Task ID is required",
+		}, nil
+	}
+
+	// Get agent from database
+	agent, err := h.getAgentByID(userID, agentID)
+	if err != nil {
+		log.Printf("❌ RetrieveAgentTaskData getAgentByID failed: %v", err)
+		return &types.AgentTaskDataResponse{
+			Success: false,
+			Error:   "Agent not found",
+		}, nil
+	}
+
+	// Initialize memory if nil
+	if agent.Memory == nil || agent.Memory.Contexts.Workflow == nil {
+		return &types.AgentTaskDataResponse{
+			Success: true,
+			Data:    []types.AgentTaskData{},
+			Metadata: map[string]interface{}{
+				"message":  "No task data found",
+				"agent_id": agentID,
+				"task_id":  request.TaskID,
+			},
+		}, nil
+	}
+
+	// Get task data
+	taskDataKey := fmt.Sprintf("task_data_%s", request.TaskID)
+	taskDataInterface, exists := agent.Memory.Contexts.Workflow[taskDataKey]
+	if !exists {
+		return &types.AgentTaskDataResponse{
+			Success: true,
+			Data:    []types.AgentTaskData{},
+			Metadata: map[string]interface{}{
+				"message":  "No task data found",
+				"agent_id": agentID,
+				"task_id":  request.TaskID,
+			},
+		}, nil
+	}
+
+	taskData := taskDataInterface.(map[string]interface{})
+	var results []types.AgentTaskData
+
+	// If specific data key requested
+	if request.DataKey != "" {
+		if dataEntryInterface, exists := taskData[request.DataKey]; exists {
+			if dataEntry, ok := dataEntryInterface.(types.AgentTaskData); ok {
+				results = append(results, dataEntry)
+			}
+		}
+	} else {
+		// Get all data entries
+		for _, dataEntryInterface := range taskData {
+			if dataEntry, ok := dataEntryInterface.(types.AgentTaskData); ok {
+				// Apply filters
+				if request.DataType != "" && dataEntry.DataType != request.DataType {
+					continue
+				}
+				if request.Priority != "" && dataEntry.Priority != request.Priority {
+					continue
+				}
+				if request.StepFilter != "" && dataEntry.CurrentStep != request.StepFilter {
+					continue
+				}
+				if request.SearchQuery != "" {
+					searchText := strings.ToLower(request.SearchQuery)
+					contentMatch := strings.Contains(strings.ToLower(dataEntry.DataContent), searchText)
+					futureUseMatch := strings.Contains(strings.ToLower(dataEntry.FutureUse), searchText)
+					if !contentMatch && !futureUseMatch {
+						continue
+					}
+				}
+
+				results = append(results, dataEntry)
+			}
+		}
+	}
+
+	// Apply limit
+	if request.Limit > 0 && len(results) > request.Limit {
+		results = results[:request.Limit]
+	}
+
+	// Remove metadata if requested
+	if !request.IncludeMetadata {
+		for i := range results {
+			results[i].Metadata = nil
+		}
+	}
+
+	log.Printf("✅ RetrieveAgentTaskData success: found %d entries for task %s", len(results), request.TaskID)
+
+	return &types.AgentTaskDataResponse{
+		Success: true,
+		Data:    results,
+		Metadata: map[string]interface{}{
+			"message":  "Task data retrieved successfully",
+			"agent_id": agentID,
+			"task_id":  request.TaskID,
+			"count":    len(results),
+			"filters": map[string]interface{}{
+				"data_key":     request.DataKey,
+				"data_type":    request.DataType,
+				"priority":     request.Priority,
+				"step_filter":  request.StepFilter,
+				"search_query": request.SearchQuery,
+			},
+		},
+	}, nil
+}
+
+// ClearAgentTaskData clears task-specific data from agent memory with optional filtering
+func (h *AgentsHandler) ClearAgentTaskData(ctx context.Context, agentID, userID string, request *types.AgentTaskDataRequest) (*types.AgentTaskDataResponse, error) {
+	log.Printf("🔍 ClearAgentTaskData called with agentID: %s, userID: %s, taskID: %s", agentID, userID, request.TaskID)
+
+	// Validate required parameters
+	if request.TaskID == "" {
+		return &types.AgentTaskDataResponse{
+			Success: false,
+			Error:   "Task ID is required",
+		}, nil
+	}
+
+	if !request.Confirmation {
+		return &types.AgentTaskDataResponse{
+			Success: false,
+			Error:   "Confirmation is required to clear task data",
+		}, nil
+	}
+
+	// Get agent from database
+	agent, err := h.getAgentByID(userID, agentID)
+	if err != nil {
+		log.Printf("❌ ClearAgentTaskData getAgentByID failed: %v", err)
+		return &types.AgentTaskDataResponse{
+			Success: false,
+			Error:   "Agent not found",
+		}, nil
+	}
+
+	// Initialize memory if nil
+	if agent.Memory == nil || agent.Memory.Contexts.Workflow == nil {
+		return &types.AgentTaskDataResponse{
+			Success: true,
+			Data:    []types.AgentTaskData{},
+			Metadata: map[string]interface{}{
+				"message":  "No task data to clear",
+				"agent_id": agentID,
+				"task_id":  request.TaskID,
+			},
+		}, nil
+	}
+
+	// Get task data
+	taskDataKey := fmt.Sprintf("task_data_%s", request.TaskID)
+	taskDataInterface, exists := agent.Memory.Contexts.Workflow[taskDataKey]
+	if !exists {
+		return &types.AgentTaskDataResponse{
+			Success: true,
+			Data:    []types.AgentTaskData{},
+			Metadata: map[string]interface{}{
+				"message":  "No task data to clear",
+				"agent_id": agentID,
+				"task_id":  request.TaskID,
+			},
+		}, nil
+	}
+
+	taskData := taskDataInterface.(map[string]interface{})
+	var clearedEntries []types.AgentTaskData
+
+	// If specific data key requested
+	if request.DataKey != "" {
+		if dataEntryInterface, exists := taskData[request.DataKey]; exists {
+			if dataEntry, ok := dataEntryInterface.(types.AgentTaskData); ok {
+				clearedEntries = append(clearedEntries, dataEntry)
+				delete(taskData, request.DataKey)
+			}
+		}
+	} else {
+		// Clear based on filters
+		keysToDelete := []string{}
+		for key, dataEntryInterface := range taskData {
+			if dataEntry, ok := dataEntryInterface.(types.AgentTaskData); ok {
+				// Apply filters
+				if request.DataType != "" && dataEntry.DataType != request.DataType {
+					continue
+				}
+				if request.Priority != "" && dataEntry.Priority != request.Priority {
+					continue
+				}
+				if request.StepFilter != "" && dataEntry.CurrentStep != request.StepFilter {
+					continue
+				}
+
+				clearedEntries = append(clearedEntries, dataEntry)
+				keysToDelete = append(keysToDelete, key)
+			}
+		}
+
+		// Delete filtered entries
+		for _, key := range keysToDelete {
+			delete(taskData, key)
+		}
+	}
+
+	// If no specific data key and no filters, clear all task data
+	if request.DataKey == "" && request.DataType == "" && request.Priority == "" && request.StepFilter == "" {
+		clearedEntries = []types.AgentTaskData{}
+		for _, dataEntryInterface := range taskData {
+			if dataEntry, ok := dataEntryInterface.(types.AgentTaskData); ok {
+				clearedEntries = append(clearedEntries, dataEntry)
+			}
+		}
+		delete(agent.Memory.Contexts.Workflow, taskDataKey)
+	} else {
+		// Update the task data in memory
+		agent.Memory.Contexts.Workflow[taskDataKey] = taskData
+	}
+
+	// Save to database
+	if err := h.saveAgentMemory(ctx, agentID, userID, agent.Memory); err != nil {
+		log.Printf("❌ ClearAgentTaskData save failed: %v", err)
+		return &types.AgentTaskDataResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Failed to clear task data: %v", err),
+		}, nil
+	}
+
+	log.Printf("✅ ClearAgentTaskData success: cleared %d entries for task %s", len(clearedEntries), request.TaskID)
+
+	return &types.AgentTaskDataResponse{
+		Success: true,
+		Data:    clearedEntries,
+		Metadata: map[string]interface{}{
+			"message":       "Task data cleared successfully",
+			"agent_id":      agentID,
+			"task_id":       request.TaskID,
+			"cleared_count": len(clearedEntries),
+			"reason":        request.Reason,
+			"filters": map[string]interface{}{
+				"data_key":    request.DataKey,
+				"data_type":   request.DataType,
+				"priority":    request.Priority,
+				"step_filter": request.StepFilter,
+			},
+		},
+	}, nil
+}
+
+// Helper function to check if a slice contains a string
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
+}

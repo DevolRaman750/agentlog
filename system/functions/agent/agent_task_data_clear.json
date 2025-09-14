@@ -1,0 +1,88 @@
+{
+  "id": "func-agent-task-data-clear-1754754882",
+  "name": "agent_task_data_clear",
+  "provider": "internal",
+  "function_group": "internal",
+  "display_name": "Agent Task Data: Clear",
+  "description": "Clear task-specific data from agent memory with optional filtering. Use this to clean up old or irrelevant data, or when a task is completed and the stored data is no longer needed.",
+  "endpoint": {
+    "path": "/internal/agent/task/data/clear",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "required": ["task_id", "confirmation"],
+    "properties": {
+      "task_id": {
+        "type": "string",
+        "description": "The task ID to clear data for. Must match the current task."
+      },
+      "data_key": {
+        "type": "string",
+        "description": "Specific data key to clear (optional). If not provided, clears all data for the task.",
+        "pattern": "^[a-z0-9_]+$"
+      },
+      "data_type": {
+        "type": "string",
+        "enum": ["code", "api_response", "research", "analysis", "documentation", "error_log", "configuration", "other"],
+        "description": "Clear only data of this type (optional). If not provided, clears all types."
+      },
+      "priority": {
+        "type": "string",
+        "enum": ["low", "medium", "high", "critical"],
+        "description": "Clear only data of this priority (optional). If not provided, clears all priorities."
+      },
+      "step_filter": {
+        "type": "string",
+        "description": "Clear only data from this step (optional). If not provided, clears data from all steps."
+      },
+      "confirmation": {
+        "type": "boolean",
+        "description": "Must be true to confirm data clearing operation. This prevents accidental data loss.",
+        "enum": [true]
+      },
+      "reason": {
+        "type": "string",
+        "description": "Reason for clearing the data (optional). Will be logged for audit purposes.",
+        "maxLength": 100
+      }
+    }
+  },
+  "examples": [
+    {
+      "name": "Clear all task data",
+      "parameters": {
+        "task_id": "task_123",
+        "confirmation": true,
+        "reason": "Task completed successfully"
+      }
+    },
+    {
+      "name": "Clear specific data entry",
+      "parameters": {
+        "task_id": "task_123",
+        "data_key": "old_research_data",
+        "confirmation": true,
+        "reason": "Data no longer relevant"
+      }
+    },
+    {
+      "name": "Clear low priority data",
+      "parameters": {
+        "task_id": "task_123",
+        "priority": "low",
+        "confirmation": true,
+        "reason": "Cleanup old reference data"
+      }
+    },
+    {
+      "name": "Clear data from specific step",
+      "parameters": {
+        "task_id": "task_123",
+        "step_filter": "research_phase",
+        "confirmation": true,
+        "reason": "Research phase completed"
+      }
+    }
+  ]
+}

@@ -1523,6 +1523,74 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 			log.Printf("🔍 About to call DeleteAgentTask with agentID=%s", agentID)
 			taskResponse, err = agentsHandler.DeleteAgentTask(ctx, agentID, userID, taskRequest)
 			log.Printf("🔍 DeleteAgentTask returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
+		case "agent_task_data_store":
+			log.Printf("🔍 About to call StoreAgentTaskData with agentID=%s", agentID)
+			// Create AgentTaskDataRequest for data storage
+			dataRequest := &types.AgentTaskDataRequest{
+				TaskID:      taskRequest.TaskID,
+				DataKey:     getStringArg(args, "data_key"),
+				DataContent: getStringArg(args, "data_content"),
+				DataType:    getStringArg(args, "data_type"),
+				CurrentStep: getStringArg(args, "current_step"),
+				FutureUse:   getStringArg(args, "future_use"),
+				Priority:    getStringArg(args, "priority"),
+				Metadata:    getMapArg(args, "metadata"),
+			}
+			dataResponse, err := agentsHandler.StoreAgentTaskData(ctx, agentID, userID, dataRequest)
+			if err != nil {
+				return nil, fmt.Errorf("agent task data function %s failed: %w", functionName, err)
+			}
+			return map[string]interface{}{
+				"success":  dataResponse.Success,
+				"data":     dataResponse.Data,
+				"metadata": dataResponse.Metadata,
+				"error":    dataResponse.Error,
+			}, nil
+		case "agent_task_data_retrieve":
+			log.Printf("🔍 About to call RetrieveAgentTaskData with agentID=%s", agentID)
+			// Create AgentTaskDataRequest for data retrieval
+			dataRequest := &types.AgentTaskDataRequest{
+				TaskID:          taskRequest.TaskID,
+				DataKey:         getStringArg(args, "data_key"),
+				DataType:        getStringArg(args, "data_type"),
+				Priority:        getStringArg(args, "priority"),
+				StepFilter:      getStringArg(args, "step_filter"),
+				SearchQuery:     getStringArg(args, "search_query"),
+				Limit:           getIntArg(args, "limit"),
+				IncludeMetadata: getBoolArg(args, "include_metadata"),
+			}
+			dataResponse, err := agentsHandler.RetrieveAgentTaskData(ctx, agentID, userID, dataRequest)
+			if err != nil {
+				return nil, fmt.Errorf("agent task data function %s failed: %w", functionName, err)
+			}
+			return map[string]interface{}{
+				"success":  dataResponse.Success,
+				"data":     dataResponse.Data,
+				"metadata": dataResponse.Metadata,
+				"error":    dataResponse.Error,
+			}, nil
+		case "agent_task_data_clear":
+			log.Printf("🔍 About to call ClearAgentTaskData with agentID=%s", agentID)
+			// Create AgentTaskDataRequest for data clearing
+			dataRequest := &types.AgentTaskDataRequest{
+				TaskID:       taskRequest.TaskID,
+				DataKey:      getStringArg(args, "data_key"),
+				DataType:     getStringArg(args, "data_type"),
+				Priority:     getStringArg(args, "priority"),
+				StepFilter:   getStringArg(args, "step_filter"),
+				Confirmation: getBoolArg(args, "confirmation"),
+				Reason:       getStringArg(args, "reason"),
+			}
+			dataResponse, err := agentsHandler.ClearAgentTaskData(ctx, agentID, userID, dataRequest)
+			if err != nil {
+				return nil, fmt.Errorf("agent task data function %s failed: %w", functionName, err)
+			}
+			return map[string]interface{}{
+				"success":  dataResponse.Success,
+				"data":     dataResponse.Data,
+				"metadata": dataResponse.Metadata,
+				"error":    dataResponse.Error,
+			}, nil
 		default:
 			return nil, fmt.Errorf("unsupported agent task function: %s", functionName)
 		}
@@ -3949,4 +4017,36 @@ func (c *Client) buildGoogleDriveAPIURL(functionName string, args map[string]int
 	default:
 		return "", fmt.Errorf("unsupported Google Drive function: %s", functionName)
 	}
+}
+
+// Helper functions for extracting arguments from function calls
+func getStringArg(args map[string]interface{}, key string) string {
+	if val, ok := args[key].(string); ok {
+		return val
+	}
+	return ""
+}
+
+func getIntArg(args map[string]interface{}, key string) int {
+	if val, ok := args[key].(int); ok {
+		return val
+	}
+	if val, ok := args[key].(float64); ok {
+		return int(val)
+	}
+	return 0
+}
+
+func getBoolArg(args map[string]interface{}, key string) bool {
+	if val, ok := args[key].(bool); ok {
+		return val
+	}
+	return false
+}
+
+func getMapArg(args map[string]interface{}, key string) map[string]interface{} {
+	if val, ok := args[key].(map[string]interface{}); ok {
+		return val
+	}
+	return nil
 }

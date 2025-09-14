@@ -1043,6 +1043,44 @@ type TeamTaskResponse struct {
 	Error    string                 `json:"error,omitempty"`
 }
 
+// AgentTaskDataRequest represents requests for agent task data operations
+type AgentTaskDataRequest struct {
+	TaskID          string                 `json:"task_id" validate:"required"`
+	DataKey         string                 `json:"data_key,omitempty"`
+	DataContent     string                 `json:"data_content,omitempty"`
+	DataType        string                 `json:"data_type,omitempty"`
+	CurrentStep     string                 `json:"current_step,omitempty"`
+	FutureUse       string                 `json:"future_use,omitempty"`
+	Priority        string                 `json:"priority,omitempty"`
+	StepFilter      string                 `json:"step_filter,omitempty"`
+	SearchQuery     string                 `json:"search_query,omitempty"`
+	Limit           int                    `json:"limit,omitempty"`
+	IncludeMetadata bool                   `json:"include_metadata,omitempty"`
+	Confirmation    bool                   `json:"confirmation,omitempty"`
+	Reason          string                 `json:"reason,omitempty"`
+	Metadata        map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// AgentTaskData represents a single task data entry
+type AgentTaskData struct {
+	DataKey     string                 `json:"data_key"`
+	DataContent string                 `json:"data_content"`
+	DataType    string                 `json:"data_type"`
+	CurrentStep string                 `json:"current_step"`
+	FutureUse   string                 `json:"future_use"`
+	Priority    string                 `json:"priority"`
+	StoredAt    time.Time              `json:"stored_at"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// AgentTaskDataResponse represents responses for agent task data operations
+type AgentTaskDataResponse struct {
+	Success  bool                   `json:"success"`
+	Data     []AgentTaskData        `json:"data,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Error    string                 `json:"error,omitempty"`
+}
+
 // ToJSON converts any struct to JSON string for database storage
 func ToJSON(v interface{}) (string, error) {
 	bytes, err := json.Marshal(v)
