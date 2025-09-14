@@ -12,6 +12,8 @@ import (
 	"gogent/internal/types"
 	pb "gogent/proto"
 
+	"github.com/imran31415/gracewrap"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -868,5 +870,22 @@ func runGRPCServer() {
 	fmt.Printf("   - Health: Health\n")
 	fmt.Println()
 
-	log.Fatal(grpcServer.Serve(lis))
+	// Create graceful wrapper with Kubernetes-optimized config
+	config := gracewrap.DefaultConfig()
+	config.DrainTimeout = 30 * time.Second     // Wait 30s for in-flight requests
+	config.HardStopTimeout = 10 * time.Second  // Hard stop after 10s
+	config.LoadBalancerDelay = 5 * time.Second // Wait 5s for load balancer to notice
+	graceful := gracewrap.New(&config)
+
+	// Wrap gRPC server with graceful shutdown
+	if err := graceful.WrapGRPC(grpcServer, lis); err != nil {
+		log.Fatalf("Failed to wrap gRPC server: %v", err)
+	}
+
+	log.Printf("🚀 GoGent gRPC Server starting on port %s with graceful shutdown support", port)
+
+	// Wait for shutdown signal and perform graceful shutdown
+	if err := graceful.Wait(context.Background()); err != nil {
+		log.Printf("Graceful shutdown error: %v", err)
+	}
 }

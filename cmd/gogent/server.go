@@ -22,6 +22,8 @@ import (
 	"gogent/internal/templates"
 	"gogent/internal/types"
 
+	"github.com/imran31415/gracewrap"
+
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
 )
@@ -1978,6 +1980,8 @@ func runServer() {
 	mux.HandleFunc("/health", server.healthHandler)
 	mux.HandleFunc("/test", server.testHandler)
 
+	// Add graceful shutdown health endpoints (will be added after graceful wrapper is created)
+
 	// Auth endpoints
 	mux.HandleFunc("/api/auth/register", server.authHandlers.RegisterHandler)
 	mux.HandleFunc("/api/auth/login", server.authHandlers.LoginHandler)
@@ -2118,7 +2122,35 @@ func runServer() {
 	// Apply CORS middleware to the mux
 	handler := server.enableCORS(mux)
 
-	log.Fatal(http.ListenAndServe(":"+port, handler))
+	// Create HTTP server with graceful shutdown support
+	httpServer := &http.Server{
+		Addr:    ":" + port,
+		Handler: handler,
+	}
+
+	// Create graceful wrapper with Kubernetes-optimized config
+	config := gracewrap.DefaultConfig()
+	config.DrainTimeout = 30 * time.Second     // Wait 30s for in-flight requests
+	config.HardStopTimeout = 10 * time.Second  // Hard stop after 10s
+	config.LoadBalancerDelay = 5 * time.Second // Wait 5s for load balancer to notice
+	graceful := gracewrap.New(&config)
+
+	// Add graceful shutdown health endpoints for Kubernetes
+	mux.Handle("/health/ready", graceful.HealthHandler())  // Readiness probe
+	mux.Handle("/health/live", graceful.LivenessHandler()) // Liveness probe
+
+	// Wrap HTTP server with graceful shutdown
+	if err := graceful.WrapHTTP(httpServer); err != nil {
+		log.Fatalf("Failed to wrap HTTP server: %v", err)
+	}
+
+	log.Printf("🚀 GoGent HTTP Server starting on port %s with graceful shutdown support", port)
+	log.Printf("📊 Health endpoints: /health/ready (readiness), /health/live (liveness)")
+
+	// Wait for shutdown signal and perform graceful shutdown
+	if err := graceful.Wait(context.Background()); err != nil {
+		log.Printf("Graceful shutdown error: %v", err)
+	}
 }
 
 // createMockExecutionResult creates mock detailed data based on a real execution run
