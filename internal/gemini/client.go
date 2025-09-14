@@ -74,12 +74,14 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 	// Add generation config with function calling optimizations
 	generationConfig := make(map[string]interface{})
 
-	// For function calling, use slightly higher temperature to prevent deterministic loops
-	if len(config.Tools) > 0 {
-		generationConfig["temperature"] = 0.1 // Slightly higher than 0 to prevent loops
-		log.Printf("🎯 Using temperature=0.1 for function calling (prevents loops)")
-	} else if config.Temperature != nil {
+	// Respect user temperature configuration, with minimal override only for extreme deterministic cases
+	if config.Temperature != nil {
 		generationConfig["temperature"] = *config.Temperature
+		// Only override if user set temperature to 0.0 (completely deterministic) and we have tools
+		if *config.Temperature == 0.0 && len(config.Tools) > 0 {
+			generationConfig["temperature"] = 0.1 // Minimal variation to prevent deterministic loops
+			log.Printf("🎯 Overriding temperature from 0.0 to 0.1 for function calling (prevents deterministic loops)")
+		}
 	}
 
 	if config.MaxTokens != nil {

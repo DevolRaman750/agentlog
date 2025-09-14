@@ -83,7 +83,7 @@ func (h *HeaderProcessor) replaceTokenPlaceholders(headerValue string) string {
 func (h *HeaderProcessor) maskHeaderValue(key, value string) string {
 	// Mask Authorization headers and other sensitive headers
 	sensitiveHeaders := []string{"Authorization", "X-API-Key", "Bearer", "Token"}
-	
+
 	for _, sensitive := range sensitiveHeaders {
 		if strings.Contains(strings.ToLower(key), strings.ToLower(sensitive)) {
 			if len(value) > 20 {
@@ -92,7 +92,7 @@ func (h *HeaderProcessor) maskHeaderValue(key, value string) string {
 			return value + "...***"
 		}
 	}
-	
+
 	return value
 }
 

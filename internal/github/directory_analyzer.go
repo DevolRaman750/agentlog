@@ -109,4 +109,3 @@ func getIntFromResult(result map[string]interface{}, key string) int {
 	}
 	return 0
 }
- 

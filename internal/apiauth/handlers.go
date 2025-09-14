@@ -308,7 +308,6 @@ func (h *GitHubAppHandler) getInstallationToken(ctx context.Context, config *typ
 func (h *GitHubAppHandler) generateJWT(config *types.GitHubAppConfig) (string, error) {
 	// Debug: Log private key info (first/last 50 chars for security)
 
-	
 	// Parse private key
 	block, _ := pem.Decode([]byte(config.PrivateKey))
 	if block == nil {
@@ -387,7 +386,7 @@ func (h *GitHubAppHandler) requestInstallationToken(ctx context.Context, install
 func (h *GitHubAppHandler) normalizePEMKey(key string) string {
 	// Remove any extra whitespace
 	key = strings.TrimSpace(key)
-	
+
 	// If the key doesn't have proper line breaks, add them
 	if !strings.Contains(key, "\n") {
 		// Split on common PEM markers and rejoin with newlines
@@ -395,7 +394,7 @@ func (h *GitHubAppHandler) normalizePEMKey(key string) string {
 		key = strings.ReplaceAll(key, "-----END RSA PRIVATE KEY-----", "\n-----END RSA PRIVATE KEY-----")
 		key = strings.ReplaceAll(key, "-----BEGIN PRIVATE KEY-----", "-----BEGIN PRIVATE KEY-----\n")
 		key = strings.ReplaceAll(key, "-----END PRIVATE KEY-----", "\n-----END PRIVATE KEY-----")
-		
+
 		// Add newlines every 64 characters for the key content (standard PEM format)
 		lines := strings.Split(key, "\n")
 		var normalizedLines []string
@@ -417,7 +416,7 @@ func (h *GitHubAppHandler) normalizePEMKey(key string) string {
 		}
 		key = strings.Join(normalizedLines, "\n")
 	}
-	
+
 	fmt.Printf("🔧 [PEM_DEBUG] Normalized PEM key length: %d\n", len(key))
 	return key
 }

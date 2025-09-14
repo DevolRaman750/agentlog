@@ -339,7 +339,7 @@ func TestPerformanceAndTiming(t *testing.T) {
 		assert.LessOrEqual(t, executionTimeMs, elapsed.Milliseconds()+100) // Allow some margin
 	})
 
-		t.Run("MCPExecutionTiming", func(t *testing.T) {
+	t.Run("MCPExecutionTiming", func(t *testing.T) {
 		funcDef := &db.FunctionDefinition{
 			Name:       "mcp_performance_test",
 			HttpMethod: sql.NullString{String: "MCP", Valid: true},
@@ -357,7 +357,7 @@ func TestPerformanceAndTiming(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.True(t, result["success"].(bool))
-		
+
 		// Verify timing is recorded in result
 		executionTimeMs := result["execution_time_ms"].(int64)
 		assert.GreaterOrEqual(t, executionTimeMs, int64(0))

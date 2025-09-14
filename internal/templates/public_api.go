@@ -439,9 +439,9 @@ func (pah *PublicAPIHandler) recordTemplateExecution(execution *types.ExecutionT
 			error_message, execution_run_id, created_at
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
-	
+
 	parametersJSON, _ := json.Marshal(execution.ParametersProvided)
-	
+
 	_, err := pah.templateService.db.Exec(query,
 		execution.ID,
 		execution.TemplateID,
@@ -457,12 +457,12 @@ func (pah *PublicAPIHandler) recordTemplateExecution(execution *types.ExecutionT
 		execution.ExecutionRunID,
 		execution.CreatedAt,
 	)
-	
+
 	if err != nil {
 		log.Printf("Failed to record template execution: %v", err)
 		return err
 	}
-	
+
 	log.Printf("Recorded template execution: %s", execution.ID)
 	return nil
 }
@@ -473,13 +473,13 @@ func (pah *PublicAPIHandler) updateTemplateExecution(execution *types.ExecutionT
 		SET status = ?, error_message = ?, execution_run_id = ?, completed_at = ?
 		WHERE id = ?
 	`
-	
+
 	now := time.Now()
 	var completedAt *time.Time
 	if execution.Status == "completed" || execution.Status == "failed" {
 		completedAt = &now
 	}
-	
+
 	_, err := pah.templateService.db.Exec(query,
 		execution.Status,
 		execution.ErrorMessage,
@@ -487,12 +487,12 @@ func (pah *PublicAPIHandler) updateTemplateExecution(execution *types.ExecutionT
 		completedAt,
 		execution.ID,
 	)
-	
+
 	if err != nil {
 		log.Printf("Failed to update template execution: %v", err)
 		return err
 	}
-	
+
 	log.Printf("Updated template execution: %s, status: %s", execution.ID, execution.Status)
 	return nil
 }
@@ -505,13 +505,13 @@ func (pah *PublicAPIHandler) getTemplateExecution(executionID string) (*types.Ex
 		FROM execution_template_executions 
 		WHERE id = ?
 	`
-	
+
 	execution := &types.ExecutionTemplateExecution{}
 	var parametersJSON string
 	var authTokenID *string
 	var executionRunID *string
 	var completedAt *time.Time
-	
+
 	err := pah.templateService.db.QueryRow(query, executionID).Scan(
 		&execution.ID,
 		&execution.TemplateID,
@@ -528,7 +528,7 @@ func (pah *PublicAPIHandler) getTemplateExecution(executionID string) (*types.Ex
 		&execution.CreatedAt,
 		&completedAt,
 	)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("template execution not found: %s", executionID)
@@ -536,7 +536,7 @@ func (pah *PublicAPIHandler) getTemplateExecution(executionID string) (*types.Ex
 		log.Printf("Failed to get template execution: %v", err)
 		return nil, err
 	}
-	
+
 	// Parse JSON parameters
 	if parametersJSON != "" {
 		err = json.Unmarshal([]byte(parametersJSON), &execution.ParametersProvided)
@@ -544,12 +544,12 @@ func (pah *PublicAPIHandler) getTemplateExecution(executionID string) (*types.Ex
 			log.Printf("Failed to parse parameters JSON: %v", err)
 		}
 	}
-	
+
 	// Set nullable fields
 	execution.AuthTokenID = authTokenID
 	execution.ExecutionRunID = executionRunID
 	execution.CompletedAt = completedAt
-	
+
 	return execution, nil
 }
 

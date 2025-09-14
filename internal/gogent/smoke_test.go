@@ -159,18 +159,18 @@ func TestExecutionFlow(t *testing.T) {
 			{"status": "success", "messages": []interface{}{}},
 		}
 
-		// Test completion detection with new aggressive limits
-		shouldComplete := client.detectTaskCompletion(functionCalls, functionResults, 3, "test prompt")
+		// Test completion detection with reasonable limits
+		shouldComplete := client.detectTaskCompletion(functionCalls, functionResults, 5, "test prompt")
 
-		// At depth 3 with successful calls, should not force completion
+		// At depth 5 with successful calls, should not force completion
 		if shouldComplete {
-			t.Error("Should not force completion at depth 3 with only 2 successful calls")
+			t.Error("Should not force completion at depth 5 with only 2 successful calls")
 		}
 
-		// Test force completion at new max depth (6)
-		shouldComplete = client.detectTaskCompletion(functionCalls, functionResults, 6, "test prompt")
+		// Test force completion at safety net depth (10)
+		shouldComplete = client.detectTaskCompletion(functionCalls, functionResults, 10, "test prompt")
 		if !shouldComplete {
-			t.Error("Should force completion at depth 6 (new aggressive limit)")
+			t.Error("Should force completion at depth 10 (safety net limit)")
 		}
 	})
 
@@ -179,6 +179,7 @@ func TestExecutionFlow(t *testing.T) {
 
 		// Test detectGeminiLoopPattern function
 		t.Run("Consecutive_Function_Loop_Detection", func(t *testing.T) {
+			// Create 5 calls with 4 being the same function (should trigger detection)
 			functionCalls := []ResponsePart{
 				{FunctionCall: struct {
 					Name string                 `json:"name"`
@@ -192,15 +193,24 @@ func TestExecutionFlow(t *testing.T) {
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "slack_read_messages", Args: map[string]interface{}{"channel": "C123"}}},
+				{FunctionCall: struct {
+					Name string                 `json:"name"`
+					Args map[string]interface{} `json:"args"`
+				}{Name: "slack_read_messages", Args: map[string]interface{}{"channel": "C123"}}},
+				{FunctionCall: struct {
+					Name string                 `json:"name"`
+					Args map[string]interface{} `json:"args"`
+				}{Name: "github_get_issues", Args: nil}},
 			}
 
-			// Should detect loop after 3 consecutive calls
-			if !client.detectGeminiLoopPattern(functionCalls, 1) {
+			// Should detect loop after 4+ consecutive calls at depth 3+
+			if !client.detectGeminiLoopPattern(functionCalls, 3) {
 				t.Error("Should detect consecutive function loop")
 			}
 		})
 
 		t.Run("Alternating_Pattern_Loop_Detection", func(t *testing.T) {
+			// Create 6 calls with alternating pattern (should trigger detection at depth 5+)
 			functionCalls := []ResponsePart{
 				{FunctionCall: struct {
 					Name string                 `json:"name"`
@@ -218,18 +228,26 @@ func TestExecutionFlow(t *testing.T) {
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "slack_find_channel", Args: nil}},
+				{FunctionCall: struct {
+					Name string                 `json:"name"`
+					Args map[string]interface{} `json:"args"`
+				}{Name: "team_task_list", Args: nil}},
+				{FunctionCall: struct {
+					Name string                 `json:"name"`
+					Args map[string]interface{} `json:"args"`
+				}{Name: "slack_find_channel", Args: nil}},
 			}
 
-			// Should detect alternating pattern loop
-			if !client.detectGeminiLoopPattern(functionCalls, 1) {
+			// Should detect alternating pattern loop at depth 5+
+			if !client.detectGeminiLoopPattern(functionCalls, 5) {
 				t.Error("Should detect alternating pattern loop")
 			}
 		})
 
 		t.Run("Excessive_Calls_Detection", func(t *testing.T) {
-			// Create 10 function calls
-			functionCalls := make([]ResponsePart, 10)
-			for i := 0; i < 10; i++ {
+			// Create 15 function calls
+			functionCalls := make([]ResponsePart, 15)
+			for i := 0; i < 15; i++ {
 				functionCalls[i] = ResponsePart{
 					FunctionCall: struct {
 						Name string                 `json:"name"`
@@ -238,9 +256,9 @@ func TestExecutionFlow(t *testing.T) {
 				}
 			}
 
-			// Should detect excessive calls at depth 4
-			if !client.detectGeminiLoopPattern(functionCalls, 4) {
-				t.Error("Should detect excessive calls at depth 4")
+			// Should detect excessive calls at depth 6+
+			if !client.detectGeminiLoopPattern(functionCalls, 6) {
+				t.Error("Should detect excessive calls at depth 6")
 			}
 		})
 

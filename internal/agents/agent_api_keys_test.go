@@ -42,7 +42,7 @@ func TestAgentApiKeyConfiguration(t *testing.T) {
 		}
 
 		config.ServiceApiKeys["github"] = testKey
-		
+
 		if len(config.ServiceApiKeys) != 1 {
 			t.Errorf("Expected 1 service key, got %d", len(config.ServiceApiKeys))
 		}
@@ -60,11 +60,11 @@ func TestAgentApiKeyConfiguration(t *testing.T) {
 	t.Run("AgentApiKeyTypesValidation", func(t *testing.T) {
 		// Test AgentApiKeyCreateRequest validation
 		createReq := &types.AgentApiKeyCreateRequest{
-			AgentID:           "agent-123",
-			ApiKeyID:          "key-456",
-			IsDefault:         false,
-			UseGlobalDefault:  true,
-			Priority:          100,
+			AgentID:          "agent-123",
+			ApiKeyID:         "key-456",
+			IsDefault:        false,
+			UseGlobalDefault: true,
+			Priority:         100,
 		}
 
 		if createReq.AgentID != "agent-123" {
@@ -90,7 +90,7 @@ func TestAgentApiKeyConfiguration(t *testing.T) {
 		// Test AgentApiKeyUpdateRequest
 		isDefaultTrue := true
 		priorityNew := 50
-		
+
 		updateReq := &types.AgentApiKeyUpdateRequest{
 			IsDefault: &isDefaultTrue,
 			Priority:  &priorityNew,
@@ -114,7 +114,7 @@ func TestAgentApiKeyHandlerMethods(t *testing.T) {
 
 		// Test that the GetAgentApiKeyConfiguration method exists and has correct signature
 		ctx := context.Background()
-		
+
 		// This will panic due to nil db, so we need to recover from panic
 		defer func() {
 			if r := recover(); r != nil {
@@ -122,10 +122,10 @@ func TestAgentApiKeyHandlerMethods(t *testing.T) {
 				t.Logf("Got expected panic due to nil database: %v", r)
 			}
 		}()
-		
+
 		// This will panic, but that's fine - we just want to verify method exists
 		_, err := handler.GetAgentApiKeyConfiguration(ctx, "test-agent")
-		
+
 		// If we reach here without panic, something's wrong
 		if err == nil {
 			t.Error("Expected error or panic due to nil database connection, but got none")

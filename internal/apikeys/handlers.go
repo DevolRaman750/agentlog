@@ -116,19 +116,19 @@ func (h *Handler) GetAPIKeys(w http.ResponseWriter, r *http.Request) {
 // HandleKeyRoutes is a generic handler for /api/user/api-keys/ and /api/user/api-keys/{id}
 func (h *Handler) HandleKeyRoutes(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
-	
+
 	// Handle function requirements endpoint first
 	if strings.HasPrefix(path, "/api/user/api-keys/functions/") && strings.HasSuffix(path, "/requirements") {
 		h.GetFunctionApiKeyRequirements(w, r)
 		return
 	}
-	
+
 	// Handle test endpoint
 	if strings.HasPrefix(path, "/api/user/api-keys/") && strings.HasSuffix(path, "/test") {
 		h.TestAPIKey(w, r)
 		return
 	}
-	
+
 	trimmedPath := strings.TrimSuffix(path, "/")
 	parts := strings.Split(trimmedPath, "/")
 

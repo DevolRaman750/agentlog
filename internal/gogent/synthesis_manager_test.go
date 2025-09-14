@@ -10,9 +10,9 @@ func TestSynthesisManager_GeminiSpecificLimits(t *testing.T) {
 	sm := NewSynthesisManager()
 
 	t.Run("Gemini_Excessive_Calls_Limit", func(t *testing.T) {
-		// Create 10 function calls for Gemini (should trigger limit)
-		functionCalls := make([]ResponsePart, 10)
-		for i := 0; i < 10; i++ {
+		// Create 12 function calls for Gemini (should trigger limit)
+		functionCalls := make([]ResponsePart, 12)
+		for i := 0; i < 12; i++ {
 			functionCalls[i] = ResponsePart{
 				FunctionCall: struct {
 					Name string                 `json:"name"`
@@ -32,20 +32,20 @@ func TestSynthesisManager_GeminiSpecificLimits(t *testing.T) {
 
 		decision := sm.DetermineSynthesisStrategy(config)
 
-		// Gemini should force completion at 10 calls
+		// Gemini should force completion at 12 calls
 		if !decision.ForceCompletion {
-			t.Error("Gemini should force completion at 10 function calls")
+			t.Error("Gemini should force completion at 12 function calls")
 		}
 
 		if decision.AllowFunctionCalls {
-			t.Error("Gemini should not allow function calls at 10 calls")
+			t.Error("Gemini should not allow function calls at 12 calls")
 		}
 	})
 
 	t.Run("Gemini_Depth_Limit", func(t *testing.T) {
 		config := &SynthesisConfig{
 			ProviderType:    "gemini",
-			Depth:           8, // Should trigger Gemini depth limit
+			Depth:           12, // Should trigger Gemini depth limit
 			ShouldComplete:  false,
 			FunctionCalls:   []ResponsePart{},
 			FunctionResults: []map[string]interface{}{},
@@ -54,13 +54,13 @@ func TestSynthesisManager_GeminiSpecificLimits(t *testing.T) {
 
 		decision := sm.DetermineSynthesisStrategy(config)
 
-		// Gemini should force completion at depth 8
+		// Gemini should force completion at depth 12
 		if !decision.ForceCompletion {
-			t.Error("Gemini should force completion at depth 8")
+			t.Error("Gemini should force completion at depth 12")
 		}
 
 		if decision.AllowFunctionCalls {
-			t.Error("Gemini should not allow function calls at depth 8")
+			t.Error("Gemini should not allow function calls at depth 12")
 		}
 	})
 

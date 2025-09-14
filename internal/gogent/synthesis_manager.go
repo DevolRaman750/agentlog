@@ -53,11 +53,10 @@ func (sm *SynthesisManager) DetermineSynthesisStrategy(config *SynthesisConfig) 
 		}
 	}
 
-	// Check for excessive function calls (stronger loop detection)
-	// More aggressive limits for Gemini to prevent loops
+	// Check for excessive function calls (reasonable limits)
 	maxCalls := 15
 	if config.ProviderType == "gemini" {
-		maxCalls = 10 // Lower limit for Gemini
+		maxCalls = 12 // Slightly lower limit for Gemini to prevent runaway execution
 	}
 
 	if len(config.FunctionCalls) >= maxCalls {
@@ -71,10 +70,9 @@ func (sm *SynthesisManager) DetermineSynthesisStrategy(config *SynthesisConfig) 
 	}
 
 	// Only stop for absolute safety net (prevent runaway costs)
-	// More aggressive depth limits for Gemini
 	maxDepth := 15
 	if config.ProviderType == "gemini" {
-		maxDepth = 8 // Lower depth limit for Gemini
+		maxDepth = 12 // Reasonable depth limit for Gemini
 	}
 
 	if config.Depth >= maxDepth {

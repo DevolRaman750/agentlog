@@ -22,10 +22,10 @@ func TestCreateIntelligentResultSummary(t *testing.T) {
 			},
 		}
 
-    summary := client.createIntelligentResultSummary("slack_find_channel", result)
-    if !strings.Contains(summary, "ai-intern") || !strings.Contains(summary, "C099KTQE1L5") || !strings.Contains(summary, "channels") {
-        t.Errorf("Summary JSON should contain channel info, got: %s", summary)
-    }
+		summary := client.createIntelligentResultSummary("slack_find_channel", result)
+		if !strings.Contains(summary, "ai-intern") || !strings.Contains(summary, "C099KTQE1L5") || !strings.Contains(summary, "channels") {
+			t.Errorf("Summary JSON should contain channel info, got: %s", summary)
+		}
 	})
 
 	t.Run("Slack Read Messages Summary", func(t *testing.T) {
@@ -49,19 +49,19 @@ func TestCreateIntelligentResultSummary(t *testing.T) {
 
 		summary := client.createIntelligentResultSummary("slack_read_messages", result)
 
-    // Verify the JSON contains essential information
-    if !strings.Contains(summary, "How many open issues") {
-        t.Errorf("Summary should contain message text, got: %s", summary)
-    }
-    if !strings.Contains(summary, "1755282095.291769") {
-        t.Errorf("Summary should contain timestamp, got: %s", summary)
-    }
-    if !strings.Contains(summary, "messages") {
-        t.Errorf("Summary should contain messages array, got: %s", summary)
-    }
-    if len(summary) > 2000 {
-        t.Errorf("Summary too long (%d chars)", len(summary))
-    }
+		// Verify the JSON contains essential information
+		if !strings.Contains(summary, "How many open issues") {
+			t.Errorf("Summary should contain message text, got: %s", summary)
+		}
+		if !strings.Contains(summary, "1755282095.291769") {
+			t.Errorf("Summary should contain timestamp, got: %s", summary)
+		}
+		if !strings.Contains(summary, "messages") {
+			t.Errorf("Summary should contain messages array, got: %s", summary)
+		}
+		if len(summary) > 2000 {
+			t.Errorf("Summary too long (%d chars)", len(summary))
+		}
 	})
 
 	t.Run("GitHub Issues Summary", func(t *testing.T) {
@@ -83,12 +83,12 @@ func TestCreateIntelligentResultSummary(t *testing.T) {
 
 		summary := client.createIntelligentResultSummary("github_read_issues", result)
 
-    if !strings.Contains(summary, "\"number\":123") {
-        t.Errorf("Summary should contain issue number, got: %s", summary)
-    }
-    if !strings.Contains(summary, "Fix authentication bug") {
-        t.Errorf("Summary should contain issue title, got: %s", summary)
-    }
+		if !strings.Contains(summary, "\"number\":123") {
+			t.Errorf("Summary should contain issue number, got: %s", summary)
+		}
+		if !strings.Contains(summary, "Fix authentication bug") {
+			t.Errorf("Summary should contain issue title, got: %s", summary)
+		}
 	})
 
 	t.Run("Error Handling", func(t *testing.T) {
@@ -119,9 +119,9 @@ func TestCreateIntelligentResultSummary(t *testing.T) {
 
 		summary := client.createIntelligentResultSummary("slack_read_messages", result)
 
-    if !strings.Contains(summary, longText[:20]) {
-        t.Errorf("Summary should include long message content, got: %s", summary)
-    }
+		if !strings.Contains(summary, longText[:20]) {
+			t.Errorf("Summary should include long message content, got: %s", summary)
+		}
 	})
 
 	t.Run("GitHub List Branches Full Data", func(t *testing.T) {
@@ -164,11 +164,11 @@ func TestCreateIntelligentResultSummary(t *testing.T) {
 
 		summary := client.createIntelligentResultSummary("slack_read_messages", result)
 
-    // Should include all messages in JSON
-    messageCount := strings.Count(summary, "Message ")
-    if messageCount != 10 {
-        t.Errorf("Should include 10 messages, found %d", messageCount)
-    }
+		// Should include all messages in JSON
+		messageCount := strings.Count(summary, "Message ")
+		if messageCount != 10 {
+			t.Errorf("Should include 10 messages, found %d", messageCount)
+		}
 	})
 }
 
@@ -239,19 +239,19 @@ func TestContextPreservation(t *testing.T) {
 
 	prompt := synthesisPrompt.String()
 
-    // Verify the prompt contains essential information in JSON form
-    if !strings.Contains(prompt, "ai-intern") || !strings.Contains(prompt, "C099KTQE1L5") {
-        t.Error("Should contain channel information")
-    }
-    if !strings.Contains(prompt, "How many open issues") {
-        t.Error("Should contain message text")
-    }
-    if !strings.Contains(prompt, "\"number\":123") {
-        t.Error("Should contain issue number")
-    }
+	// Verify the prompt contains essential information in JSON form
+	if !strings.Contains(prompt, "ai-intern") || !strings.Contains(prompt, "C099KTQE1L5") {
+		t.Error("Should contain channel information")
+	}
+	if !strings.Contains(prompt, "How many open issues") {
+		t.Error("Should contain message text")
+	}
+	if !strings.Contains(prompt, "\"number\":123") {
+		t.Error("Should contain issue number")
+	}
 
-    // It is acceptable for the prompt to contain raw JSON structures with the new design
-    if !strings.Contains(prompt, `"channels":`) && !strings.Contains(prompt, `"messages":`) {
-        t.Error("Should contain raw JSON for context preservation")
-    }
+	// It is acceptable for the prompt to contain raw JSON structures with the new design
+	if !strings.Contains(prompt, `"channels":`) && !strings.Contains(prompt, `"messages":`) {
+		t.Error("Should contain raw JSON for context preservation")
+	}
 }

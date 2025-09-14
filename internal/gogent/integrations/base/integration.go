@@ -32,11 +32,11 @@ type APIIntegration interface {
 type AuthMethod string
 
 const (
-	AuthMethodAPIKey    AuthMethod = "api_key"
-	AuthMethodOAuth     AuthMethod = "oauth"
-	AuthMethodBearer    AuthMethod = "bearer"
-	AuthMethodBasic     AuthMethod = "basic"
-	AuthMethodCustom    AuthMethod = "custom"
+	AuthMethodAPIKey AuthMethod = "api_key"
+	AuthMethodOAuth  AuthMethod = "oauth"
+	AuthMethodBearer AuthMethod = "bearer"
+	AuthMethodBasic  AuthMethod = "basic"
+	AuthMethodCustom AuthMethod = "custom"
 )
 
 // IntegrationConfig holds configuration for an integration

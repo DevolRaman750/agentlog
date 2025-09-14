@@ -663,7 +663,7 @@ func (h *AgentsHandler) getAgentApiKeyConfiguration(ctx context.Context, agentID
 	// Load the actual API key details for agent-specific keys
 	serviceApiKeys := make(map[string]types.UserApiKey)
 	fallbackApiKeys := make(map[string]types.UserApiKey)
-	
+
 	for _, agentKey := range agentApiKeys {
 		// Get the full API key details
 		var apiKey types.UserApiKey
@@ -688,7 +688,7 @@ func (h *AgentsHandler) getAgentApiKeyConfiguration(ctx context.Context, agentID
 			&apiKey.LastUsedAt, &apiKey.ServiceConfig, &apiKey.Environment,
 			&apiKey.RateLimitPerHour, &apiKey.RateLimitPerDay, &apiKey.RateLimitBurst,
 			&apiKey.CreatedAt, &apiKey.UpdatedAt, &apiKey.CreatedBy)
-		
+
 		if err != nil {
 			fmt.Printf("⚠️ Failed to load API key %s for agent %s: %v\n", agentKey.ApiKeyID, agentID, err)
 			continue
@@ -696,7 +696,7 @@ func (h *AgentsHandler) getAgentApiKeyConfiguration(ctx context.Context, agentID
 
 		// Add to agent-specific keys
 		serviceApiKeys[apiKey.ServiceName] = apiKey
-		
+
 		// If useGlobalDefault is enabled, we'll need to get the global fallback later
 		if agentKey.UseGlobalDefault {
 			// Mark that this service should have a fallback
@@ -716,7 +716,7 @@ func (h *AgentsHandler) getAgentApiKeyConfiguration(ctx context.Context, agentID
 			if _, hasAgentSpecific := serviceApiKeys[serviceName]; !hasAgentSpecific {
 				serviceApiKeys[serviceName] = globalKey
 			}
-			
+
 			// Fill in fallback keys where requested
 			if _, needsFallback := fallbackApiKeys[serviceName]; needsFallback {
 				fallbackApiKeys[serviceName] = globalKey
@@ -754,7 +754,7 @@ func (h *AgentsHandler) getUserGlobalApiKeys(ctx context.Context, userID string)
 	defer rows.Close()
 
 	serviceKeys := make(map[string]types.UserApiKey)
-	
+
 	for rows.Next() {
 		var apiKey types.UserApiKey
 		err := rows.Scan(
@@ -768,7 +768,7 @@ func (h *AgentsHandler) getUserGlobalApiKeys(ctx context.Context, userID string)
 			&apiKey.LastUsedAt, &apiKey.ServiceConfig, &apiKey.Environment,
 			&apiKey.RateLimitPerHour, &apiKey.RateLimitPerDay, &apiKey.RateLimitBurst,
 			&apiKey.CreatedAt, &apiKey.UpdatedAt, &apiKey.CreatedBy)
-		
+
 		if err != nil {
 			return nil, err
 		}
