@@ -1,0 +1,42 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 70%
+        threshold: 5%
+        informational: true
+    patch:
+      default:
+        target: 60%
+        threshold: 5%
+        informational: true
+
+comment:
+  layout: "header,diff,files,footer"
+  behavior: default
+  require_changes: false
+  require_base: no
+  require_head: yes
+
+github_checks:
+  annotations: true
+
+ignore:
+  - "**/*_test.go"
+  - "**/test/**"
+  - "**/tests/**"
+  - "**/mocks/**"
+  - "**/mock/**"
+  - "**/proto/**"
+  - "**/frontend/**"
+  - "**/node_modules/**"
+  - "**/vendor/**"
+  - "**/bin/**"
+  - "**/dist/**"
+  - "**/coverage/**"
+  - "**/coverage-reports/**"
+
+fixes:
+  - "cmd/gogent/::cmd/gogent/"
+  - "internal/::internal/"
+  - "pkg/::pkg/"

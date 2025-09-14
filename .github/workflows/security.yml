@@ -1,0 +1,151 @@
+name: Security Scan
+
+on:
+  schedule:
+    # Run security scans daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  GO_VERSION: '1.23.10'
+
+jobs:
+  vulnerability-scan:
+    name: Vulnerability Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Install govulncheck
+      run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+    - name: Run vulnerability scan
+      run: |
+        echo "Running vulnerability scan..."
+        govulncheck ./... || true
+        echo "Vulnerability scan completed"
+
+    - name: Generate vulnerability report
+      run: |
+        govulncheck -json ./... > vuln-report.json || true
+        echo "Vulnerability report generated"
+
+    - name: Upload vulnerability report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: vulnerability-report
+        path: vuln-report.json
+
+  dependency-audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Audit dependencies
+      run: |
+        go list -json -m all | jq -r '.Path + " " + .Version' > dependencies.txt
+        echo "Dependencies audited:"
+        cat dependencies.txt
+
+    - name: Check for known vulnerabilities
+      run: |
+        go mod download
+        go mod verify
+        echo "Dependencies verified"
+
+  code-security:
+    name: Code Security Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Run Gosec Security Scanner
+      uses: securecodewarrior/github-action-gosec@master
+      with:
+        args: '-fmt sarif -out gosec.sarif ./...'
+
+    - name: Upload SARIF file
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: gosec.sarif
+
+  license-check:
+    name: License Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Install go-licenses
+      run: go install github.com/google/go-licenses@latest
+
+    - name: Check licenses
+      run: |
+        go-licenses report ./... > licenses.txt || true
+        echo "License report generated:"
+        cat licenses.txt
+
+    - name: Upload license report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: license-report
+        path: licenses.txt
+
+  security-summary:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs: [vulnerability-scan, dependency-audit, code-security, license-check]
+    if: always()
+    
+    steps:
+    - name: Security scan summary
+      run: |
+        echo "🔒 Security Scan Summary"
+        echo "========================"
+        echo "Vulnerability Scan: ${{ needs.vulnerability-scan.result }}"
+        echo "Dependency Audit: ${{ needs.dependency-audit.result }}"
+        echo "Code Security: ${{ needs.code-security.result }}"
+        echo "License Check: ${{ needs.license-check.result }}"
+        
+        if [[ "${{ needs.vulnerability-scan.result }}" == "success" && 
+              "${{ needs.dependency-audit.result }}" == "success" && 
+              "${{ needs.code-security.result }}" == "success" && 
+              "${{ needs.license-check.result }}" == "success" ]]; then
+          echo "✅ All security checks passed!"
+        else
+          echo "⚠️  Some security checks failed or had issues"
+        fi

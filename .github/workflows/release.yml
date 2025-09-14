@@ -1,0 +1,141 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v1.0.0)'
+        required: true
+        type: string
+
+env:
+  GO_VERSION: '1.23.10'
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Set version
+      id: version
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+        else
+          echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Build backend
+      run: |
+        CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" -o bin/gogent-linux-amd64 ./cmd/gogent
+        CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" -o bin/gogent-darwin-amd64 ./cmd/gogent
+        CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" -o bin/gogent-darwin-arm64 ./cmd/gogent
+        CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" -o bin/gogent-windows-amd64.exe ./cmd/gogent
+
+    - name: Build frontend
+      run: |
+        cd frontend
+        yarn install --frozen-lockfile
+        yarn build
+
+    - name: Create release archive
+      run: |
+        mkdir -p release
+        cp bin/gogent-* release/
+        cp -r frontend/dist release/frontend
+        cp README.md release/
+        cp config.example.env release/
+        tar -czf gogent-${{ steps.version.outputs.version }}-linux-amd64.tar.gz -C release gogent-linux-amd64 README.md config.example.env
+        tar -czf gogent-${{ steps.version.outputs.version }}-darwin-amd64.tar.gz -C release gogent-darwin-amd64 README.md config.example.env
+        tar -czf gogent-${{ steps.version.outputs.version }}-darwin-arm64.tar.gz -C release gogent-darwin-arm64 README.md config.example.env
+        zip gogent-${{ steps.version.outputs.version }}-windows-amd64.zip -C release gogent-windows-amd64.exe README.md config.example.env
+        tar -czf gogent-${{ steps.version.outputs.version }}-frontend.tar.gz -C release frontend
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        if [ -f CHANGELOG.md ]; then
+          # Extract changelog for this version
+          awk "/^## \[${{ steps.version.outputs.version }}\]/{flag=1;next}/^## \[/{flag=0}flag" CHANGELOG.md > release_notes.md
+        else
+          echo "## What's Changed" > release_notes.md
+          echo "- Initial release" >> release_notes.md
+        fi
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.version.outputs.version }}
+        name: Release ${{ steps.version.outputs.version }}
+        body_path: release_notes.md
+        files: |
+          gogent-${{ steps.version.outputs.version }}-linux-amd64.tar.gz
+          gogent-${{ steps.version.outputs.version }}-darwin-amd64.tar.gz
+          gogent-${{ steps.version.outputs.version }}-darwin-arm64.tar.gz
+          gogent-${{ steps.version.outputs.version }}-windows-amd64.zip
+          gogent-${{ steps.version.outputs.version }}-frontend.tar.gz
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docker-release:
+    name: Docker Release
+    runs-on: ubuntu-latest
+    needs: release
+    if: github.event_name == 'push'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Extract version
+      id: version
+      run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+    - name: Build and push backend image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile.backend
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_USERNAME }}/gogent-backend:${{ steps.version.outputs.version }}
+          ${{ secrets.DOCKER_USERNAME }}/gogent-backend:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Build and push frontend image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./frontend
+        file: ./frontend/Dockerfile
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_USERNAME }}/gogent-frontend:${{ steps.version.outputs.version }}
+          ${{ secrets.DOCKER_USERNAME }}/gogent-frontend:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
