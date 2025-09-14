@@ -74,10 +74,10 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 	// Add generation config with function calling optimizations
 	generationConfig := make(map[string]interface{})
 
-	// For function calling, use temperature=0 for deterministic behavior (best practice)
+	// For function calling, use slightly higher temperature to prevent deterministic loops
 	if len(config.Tools) > 0 {
-		generationConfig["temperature"] = 0.0
-		log.Printf("🎯 Using temperature=0 for function calling (best practice)")
+		generationConfig["temperature"] = 0.1 // Slightly higher than 0 to prevent loops
+		log.Printf("🎯 Using temperature=0.1 for function calling (prevents loops)")
 	} else if config.Temperature != nil {
 		generationConfig["temperature"] = *config.Temperature
 	}

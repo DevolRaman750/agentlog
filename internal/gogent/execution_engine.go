@@ -1160,9 +1160,9 @@ func (c *Client) processIterativeFunctionCalls(ctx context.Context, config *type
 }
 
 // processIterativeFunctionCallsWithSynthesis executes functions and gets LLM synthesis using Gemini REST API
-// Allow natural workflow completion without artificial depth limits
+// Add hard limits to prevent infinite loops while allowing natural workflow completion
 func (c *Client) processIterativeFunctionCallsWithSynthesis(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest, functionCalls []ResponsePart, originalPrompt string) string {
-	const maxIterationDepth = 20 // Allow natural workflow completion
+	const maxIterationDepth = 8 // Reduced from 20 to prevent infinite loops for Gemini
 
 	return c.processIterativeFunctionCallsWithSynthesisRecursive(ctx, config, request, functionCalls, originalPrompt, 0, maxIterationDepth)
 }
@@ -1176,7 +1176,7 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursive(ctx context
 func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest, functionCalls []ResponsePart, originalPrompt string, depth int, maxDepth int, allFunctionCalls []ResponsePart, allFunctionResults []map[string]interface{}) string {
 	if depth >= maxDepth {
 		log.Printf("⚠️ Maximum function calling depth (%d) reached, stopping iteration", maxDepth)
-		return fmt.Sprintf("I executed %d functions but reached maximum iteration depth. Results may be incomplete.", len(functionCalls))
+		return fmt.Sprintf("I executed %d functions but reached maximum iteration depth. Results may be incomplete.", len(allFunctionCalls))
 	}
 	log.Printf("🔧 Starting function calling with Gemini synthesis for %d function(s)", len(functionCalls))
 
@@ -1314,6 +1314,12 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 	currentAllFunctionCalls := append(allFunctionCalls, functionCalls...)
 	currentAllFunctionResults := append(allFunctionResults, functionResults...)
 
+	// Enhanced loop detection for Gemini - check for patterns earlier
+	if c.detectGeminiLoopPattern(currentAllFunctionCalls, depth) {
+		log.Printf("🛑 Gemini loop pattern detected at depth %d, forcing completion", depth)
+		return c.createFallbackSummary(currentAllFunctionCalls, currentAllFunctionResults)
+	}
+
 	// Create a clean synthesis prompt with current time context
 	currentTime := time.Now()
 	timeContext := fmt.Sprintf("Current time: %s (UTC: %s, Unix timestamp: %d)",
@@ -1357,9 +1363,16 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 	} else if shouldComplete {
 		synthesisPrompt += "\n**FINAL RESPONSE REQUIRED:** You now have all the necessary data to complete the user's request. STOP calling functions and provide a comprehensive final response using the data above.\n\n**CRITICAL: You must respond ONLY in natural language. DO NOT return code blocks, function calls, or tool_code. Do not use markdown code blocks or backticks. Provide a clear, human-readable summary that directly addresses the user's original request. Explain what you found and what actions you took.**"
 	} else {
+		// Add depth awareness to prevent loops
+		depthWarning := ""
+		if depth >= 3 {
+			depthWarning = "\n**IMPORTANT:** You have already made several function calls. Consider if you have enough information to complete the user's request. Avoid making unnecessary additional function calls.\n"
+		}
+
 		// Add state management instructions based on research best practices
 		synthesisPrompt += "\n**PROGRESS TRACKING:** Before making any function calls, briefly recap what you have already accomplished in this task. Consider whether you have enough data to complete the user's request.\n\n"
 		synthesisPrompt += "**IMPORTANT:** If you have already gathered the necessary data (channel info, messages, GitHub data), proceed to complete the task (send replies, add reactions) rather than repeating data collection functions."
+		synthesisPrompt += depthWarning
 	}
 
 	// Create a new API request for synthesis
@@ -1525,6 +1538,18 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 						summary += synthesisResponse.ResponseText
 					} else {
 						summary += "The functions executed successfully but some calls failed validation."
+					}
+					return summary
+				}
+
+				// Additional Gemini-specific loop prevention: check if we're at high depth
+				if depth >= 5 {
+					log.Printf("🛑 Gemini depth limit reached (%d), preventing additional function calls", depth)
+					summary := "I completed the analysis but reached the depth limit to prevent infinite loops. "
+					if synthesisResponse.ResponseText != "" {
+						summary += synthesisResponse.ResponseText
+					} else {
+						summary += "The functions executed successfully."
 					}
 					return summary
 				}
@@ -2348,11 +2373,48 @@ func (c *Client) autoExtractParameters(ctx context.Context, funcCall *ResponsePa
 	}
 }
 
+// detectGeminiLoopPattern detects loop patterns specifically for Gemini execution
+func (c *Client) detectGeminiLoopPattern(functionCalls []ResponsePart, depth int) bool {
+	// More aggressive loop detection for Gemini
+	if len(functionCalls) < 2 {
+		return false
+	}
+
+	// Check for rapid repetition of the same function (2+ times in last 3 calls)
+	if len(functionCalls) >= 3 {
+		last3 := functionCalls[len(functionCalls)-3:]
+		if last3[0].FunctionCall.Name == last3[1].FunctionCall.Name &&
+			last3[1].FunctionCall.Name == last3[2].FunctionCall.Name {
+			log.Printf("🔄 Gemini loop detected: %s called 3 times consecutively", last3[0].FunctionCall.Name)
+			return true
+		}
+	}
+
+	// Check for alternating pattern (A-B-A-B)
+	if len(functionCalls) >= 4 {
+		last4 := functionCalls[len(functionCalls)-4:]
+		if last4[0].FunctionCall.Name == last4[2].FunctionCall.Name &&
+			last4[1].FunctionCall.Name == last4[3].FunctionCall.Name &&
+			last4[0].FunctionCall.Name != last4[1].FunctionCall.Name {
+			log.Printf("🔄 Gemini alternating loop detected: %s <-> %s", last4[0].FunctionCall.Name, last4[1].FunctionCall.Name)
+			return true
+		}
+	}
+
+	// Check for excessive function calls at moderate depth
+	if depth >= 4 && len(functionCalls) >= 10 {
+		log.Printf("🔄 Gemini excessive calls detected: %d calls at depth %d", len(functionCalls), depth)
+		return true
+	}
+
+	return false
+}
+
 // detectTaskCompletion determines if we have enough data to complete the user's task
 func (c *Client) detectTaskCompletion(functionCalls []ResponsePart, functionResults []map[string]interface{}, depth int, originalPrompt string) bool {
-	// Safety net: prevent runaway execution at very high depths
-	if depth >= 15 {
-		log.Printf("🛑 Safety net: Force completion at depth %d to prevent runaway execution", depth)
+	// More aggressive safety net for Gemini
+	if depth >= 6 {
+		log.Printf("🛑 Gemini safety net: Force completion at depth %d to prevent runaway execution", depth)
 		return true
 	}
 
