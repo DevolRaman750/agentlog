@@ -13,6 +13,30 @@ import (
 	"gogent/internal/types"
 )
 
+const (
+	// String constants for repeated values
+	textType        = "text"
+	numberType      = "number"
+	booleanType     = "boolean"
+	apiPrefix       = "api"
+	publicPrefix    = "public"
+	nilValue        = "nil"
+	completedStatus = "completed"
+	failedStatus    = "failed"
+	dayWindow       = "day"
+	hourWindow      = "hour"
+	burstWindow     = "burst"
+	trueValue       = "true"
+	templatesPath   = "templates"
+
+	// SQL query constants
+	functionAssociationQuery = `
+		INSERT INTO execution_template_functions (
+			id, template_id, function_id, is_required, execution_order, created_at, updated_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?)
+	`
+)
+
 // TemplateService handles all execution template operations
 type TemplateService struct {
 	db *sql.DB
@@ -35,7 +59,11 @@ func (ts *TemplateService) CreateTemplate(template *types.ExecutionTemplate, par
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		if err := tx.Rollback(); err != nil {
+			log.Printf("Failed to rollback transaction: %v", err)
+		}
+	}()
 
 	// Generate template ID
 	template.ID = generateTemplateID()
@@ -101,7 +129,7 @@ func (ts *TemplateService) CreateTemplate(template *types.ExecutionTemplate, par
 
 		// Set default values for required fields if not provided
 		if param.UIComponent == "" {
-			param.UIComponent = "text" // Default to text input
+			param.UIComponent = textType // Default to text input
 		}
 
 		err = ts.insertTemplateParameter(tx, &param)
@@ -111,26 +139,22 @@ func (ts *TemplateService) CreateTemplate(template *types.ExecutionTemplate, par
 	}
 
 	// Insert function associations
-	for i, functionId := range functionIds {
-		if functionId == "" {
+	for i, functionID := range functionIds {
+		if functionID == "" {
 			continue // Skip empty function IDs
 		}
 
 		associationID := generateFunctionAssociationID()
-		functionQuery := `
-			INSERT INTO execution_template_functions (
-				id, template_id, function_id, is_required, execution_order, created_at, updated_at
-			) VALUES (?, ?, ?, ?, ?, ?, ?)
-		`
+		functionQuery := functionAssociationQuery
 
 		_, err = tx.Exec(functionQuery,
-			associationID, template.ID, functionId, false, i+1, template.CreatedAt, template.UpdatedAt,
+			associationID, template.ID, functionID, false, i+1, template.CreatedAt, template.UpdatedAt,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("failed to insert function association %s: %w", functionId, err)
+			return nil, fmt.Errorf("failed to insert function association %s: %w", functionID, err)
 		}
 
-		log.Printf("🔗 Associated function %s with template %s", functionId, template.ID)
+		log.Printf("🔗 Associated function %s with template %s", functionID, template.ID)
 	}
 
 	// Create initial version record
@@ -241,11 +265,11 @@ func (ts *TemplateService) GetTemplateByID(templateID string, includeParameters,
 	}
 
 	// Always load function associations
-	functionIds, err := ts.getTemplateFunctionIDs(templateID)
+	functionIDs, err := ts.getTemplateFunctionIDs(templateID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load function associations: %w", err)
 	}
-	template.FunctionIDs = functionIds
+	template.FunctionIDs = functionIDs
 
 	return &template, nil
 }
@@ -360,13 +384,13 @@ func (ts *TemplateService) ListTemplates(userID string, limit, offset int, categ
 		}
 
 		// Always load function associations for each template
-		functionIds, err := ts.getTemplateFunctionIDs(template.ID)
+		functionIDs, err := ts.getTemplateFunctionIDs(template.ID)
 		if err != nil {
 			log.Printf("Warning: failed to load function associations for template %s: %v", template.ID, err)
 			// Don't fail the whole request, just set empty slice
 			template.FunctionIDs = []string{}
 		} else {
-			template.FunctionIDs = functionIds
+			template.FunctionIDs = functionIDs
 		}
 
 		// Load auth tokens if requested
@@ -393,7 +417,11 @@ func (ts *TemplateService) UpdateTemplate(templateID string, template *types.Exe
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		if err := tx.Rollback(); err != nil {
+			log.Printf("Failed to rollback transaction: %v", err)
+		}
+	}()
 
 	// Update template
 	template.UpdatedAt = time.Now()
@@ -475,7 +503,7 @@ func (ts *TemplateService) UpdateTemplate(templateID string, template *types.Exe
 		param.UpdatedAt = time.Now()
 
 		if param.UIComponent == "" {
-			param.UIComponent = "text"
+			param.UIComponent = textType
 		}
 
 		err = ts.insertTemplateParameter(tx, &param)
@@ -492,27 +520,23 @@ func (ts *TemplateService) UpdateTemplate(templateID string, template *types.Exe
 
 	// Insert new function associations
 	log.Printf("🔥 SERVICE: UpdateTemplate processing %d functions for template %s", len(functionIds), template.ID)
-	for i, functionId := range functionIds {
-		if functionId == "" {
+	for i, functionID := range functionIds {
+		if functionID == "" {
 			log.Printf("🔥 SERVICE: Skipping empty function ID at index %d", i)
 			continue
 		}
 
 		associationID := generateFunctionAssociationID()
-		functionQuery := `
-			INSERT INTO execution_template_functions (
-				id, template_id, function_id, is_required, execution_order, created_at, updated_at
-			) VALUES (?, ?, ?, ?, ?, ?, ?)
-		`
+		functionQuery := functionAssociationQuery
 
 		_, err = tx.Exec(functionQuery,
-			associationID, template.ID, functionId, false, i+1, template.UpdatedAt, template.UpdatedAt,
+			associationID, template.ID, functionID, false, i+1, template.UpdatedAt, template.UpdatedAt,
 		)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to insert function association %s: %w", functionId, err)
+			return nil, nil, fmt.Errorf("failed to insert function association %s: %w", functionID, err)
 		}
 
-		log.Printf("🔗 Associated function %s with template %s", functionId, template.ID)
+		log.Printf("🔗 Associated function %s with template %s", functionID, template.ID)
 	}
 
 	// Create new version record
@@ -599,11 +623,11 @@ func (ts *TemplateService) SubstituteTemplateParameters(template *types.Executio
 		if param.DefaultValue != "" {
 			var defaultValue interface{}
 			switch param.ParameterType {
-			case "number":
+			case numberType:
 				if val, err := strconv.ParseFloat(param.DefaultValue, 64); err == nil {
 					defaultValue = val
 				}
-			case "boolean":
+			case booleanType:
 				if val, err := strconv.ParseBool(param.DefaultValue); err == nil {
 					defaultValue = val
 				}
@@ -911,7 +935,7 @@ func (ts *TemplateService) createTemplateVersion(tx *sql.Tx, template *types.Exe
 func (ts *TemplateService) insertParameterVersion(tx *sql.Tx, versionID string, param *types.ExecutionTemplateParameter) error {
 	// Set default values for required fields if not provided
 	if param.UIComponent == "" {
-		param.UIComponent = "text" // Default to text input
+		param.UIComponent = textType // Default to text input
 	}
 
 	var validationRulesJSON interface{}
@@ -1052,20 +1076,20 @@ func (ts *TemplateService) getTemplateFunctionIDs(templateID string) ([]string, 
 	}
 	defer rows.Close()
 
-	var functionIds []string
+	var functionIDs []string
 	for rows.Next() {
-		var functionId string
-		if err := rows.Scan(&functionId); err != nil {
+		var functionID string
+		if err := rows.Scan(&functionID); err != nil {
 			return nil, fmt.Errorf("failed to scan function ID: %w", err)
 		}
-		functionIds = append(functionIds, functionId)
+		functionIDs = append(functionIDs, functionID)
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("failed to iterate function associations: %w", err)
 	}
 
-	return functionIds, nil
+	return functionIDs, nil
 }
 
 // ID generation functions

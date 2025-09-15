@@ -15,6 +15,9 @@ import (
 // Log event type constants
 const (
 	LogEventFunctionExecution = "function_execution_start"
+
+	// Emoji constants
+	CheckmarkEmoji = "✅"
 )
 
 // logExecutionEvent logs an execution event to the database
@@ -177,7 +180,7 @@ func (c *Client) getLogEmoji(level types.LogLevel, category types.LogCategory) s
 		case types.LogCategoryAPICall:
 			return "🌐"
 		case types.LogCategoryCompletion:
-			return "✅"
+			return CheckmarkEmoji
 		default:
 			return "ℹ️"
 		}

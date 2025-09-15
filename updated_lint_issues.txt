@@ -1,0 +1,1468 @@
+internal/interfaces/gogent.go:15:1: The line is 132 characters long, which exceeds the maximum of 120 characters. (lll)
+	ExecuteSingleVariation(ctx context.Context, config *types.APIConfiguration, prompt, context string) (*types.VariationResult, error)
+^
+internal/interfaces/gogent.go:24:1: The line is 123 characters long, which exceeds the maximum of 120 characters. (lll)
+	CreateExecutionRun(ctx context.Context, name, description string, enableFunctionCalling bool) (*types.ExecutionRun, error)
+^
+internal/interfaces/gogent.go:78:1: The line is 121 characters long, which exceeds the maximum of 120 characters. (lll)
+	GenerateContent(ctx context.Context, config *types.APIConfiguration, prompt, context string) (*types.APIResponse, error)
+^
+internal/interfaces/gogent.go:141:1: The line is 121 characters long, which exceeds the maximum of 120 characters. (lll)
+	GenerateNegotiationStrategies(ctx context.Context, vendorProfile map[string]interface{}) (map[string]interface{}, error)
+^
+internal/interfaces/gogent.go:159:1: The line is 122 characters long, which exceeds the maximum of 120 characters. (lll)
+	CreateCustomExecutor(useCaseName string, config *types.GeminiClientConfig, dbURL string) (UseCaseSpecificExecutor, error)
+^
+internal/apikeys/handlers.go:70:27: Error return value of `(*encoding/json.Encoder).Encode` is not checked (errcheck)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+	                         ^
+internal/apikeys/handlers.go:109:27: Error return value of `(*encoding/json.Encoder).Encode` is not checked (errcheck)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+	                         ^
+internal/apikeys/handlers.go:177:27: Error return value of `(*encoding/json.Encoder).Encode` is not checked (errcheck)
+	json.NewEncoder(w).Encode(apiKey)
+	                         ^
+internal/apikeys/service.go:569:19: Error return value of `tx.Rollback` is not checked (errcheck)
+	defer tx.Rollback()
+	                 ^
+internal/apikeys/service.go:682:19: Error return value of `tx.Rollback` is not checked (errcheck)
+	defer tx.Rollback()
+	                 ^
+internal/apikeys/service.go:209:15: string `api_key` has 3 occurrences, make it a constant (goconst)
+			authMode = "api_key"
+			           ^
+internal/apikeys/service.go:549:11: string `UPDATE user_api_keys SET is_default = FALSE WHERE user_id = ? AND service_name = ? AND is_default = TRUE` has 2 occurrences, make it a constant (goconst)
+	query := `UPDATE user_api_keys SET is_default = FALSE WHERE user_id = ? AND service_name = ? AND is_default = TRUE`
+	         ^
+internal/apikeys/service.go:561:1: cyclomatic complexity 19 of func `(*Service).UpdateAPIKey` is high (> 15) (gocyclo)
+func (s *Service) UpdateAPIKey(ctx context.Context, userID, keyID string, req *types.UpdateAPIKeyRequest) (*types.UserAPIKey, error) {
+^
+internal/apikeys/service.go:146:1: cyclomatic complexity 17 of func `(*Service).CreateAPIKey` is high (> 15) (gocyclo)
+func (s *Service) CreateAPIKey(ctx context.Context, userID string, req *types.CreateAPIKeyRequest) (*types.UserAPIKey, error) {
+^
+internal/apikeys/service.go:737:1: cyclomatic complexity 16 of func `(*Service).scanAPIKeyRow` is high (> 15) (gocyclo)
+func (s *Service) scanAPIKeyRow(scanner interface {
+^
+internal/apikeys/service.go:647:17: G201: SQL string formatting (gosec)
+	updateQuery := fmt.Sprintf(
+		`UPDATE user_api_keys SET %s WHERE id = ? AND user_id = ?`,
+		strings.Join(updateFields, ", "),
+	)
+internal/apikeys/service.go:722:30: unused-parameter: parameter 'ctx' seems to be unused, consider removing or renaming it as _ (revive)
+func (s *Service) TestAPIKey(ctx context.Context, userID, keyID string) (*types.APIKeyValidationResult, error) {
+                             ^
+internal/apikeys/service.go:727:48: unused-parameter: parameter 'ctx' seems to be unused, consider removing or renaming it as _ (revive)
+func (s *Service) GetFunctionGroupAPIKeyStatus(ctx context.Context, userID string) ([]*types.FunctionGroupAPIKeyStatus, error) {
+                                               ^
+internal/apikeys/service.go:732:58: unused-parameter: parameter 'userID' seems to be unused, consider removing or renaming it as _ (revive)
+func (s *Service) GetAPIKeyStatistics(_ context.Context, userID string) (*types.APIKeyStatistics, error) {
+                                                         ^
+internal/apikeys/service.go:134:9: var-naming: don't use underscores in Go names; var ciphertext_bytes should be ciphertextBytes (revive)
+	nonce, ciphertext_bytes := data[:nonceSize], data[nonceSize:]
+	       ^
+internal/apikeys/service.go:413:19: Function 'GetFunctionAPIKeyRequirements' is too long (71 > 60) (funlen)
+func (s *Service) GetFunctionAPIKeyRequirements(ctx context.Context, userID, functionID string) (*types.FunctionAPIKeyRequirements, error) {
+                  ^
+internal/apikeys/service.go:65:41: Magic number: 64, in <argument> detected (mnd)
+	key := argon2.IDKey(password, salt, 1, 64*1024, 4, 32)
+	                                       ^
+internal/apikeys/handlers.go:136:19: Magic number: 4, in <condition> detected (mnd)
+	if len(parts) == 4 {
+	                 ^
+internal/apikeys/handlers.go:149:19: Magic number: 5, in <condition> detected (mnd)
+	if len(parts) == 5 {
+	                 ^
+internal/apikeys/service.go:53:18: Magic number: 32, in <condition> detected (mnd)
+		if len(key) == 32 {
+		               ^
+internal/apikeys/service.go:395:32: rows.Err must be checked (rowserrcheck)
+	rows, err := s.db.QueryContext(ctx, query, userID, serviceName)
+	                              ^
+internal/code_analysis/analyzer.go:102:7: string `python` has 2 occurrences, make it a constant (goconst)
+	case "python":
+	     ^
+internal/code_analysis/analyzer.go:97:21: string `typescript` has 2 occurrences, make it a constant (goconst)
+	case "javascript", "typescript":
+	                   ^
+internal/code_analysis/analyzer.go:91:7: string `go` has 2 occurrences, make it a constant (goconst)
+	case "go":
+	     ^
+internal/code_analysis/analyzer.go:196:1: cyclomatic complexity 16 of func `(*Analyzer).InferDirectoryPurpose` is high (> 15) (gocyclo)
+func (a *Analyzer) InferDirectoryPurpose(filesWithContent []map[string]interface{}) string {
+^
+internal/code_analysis/analyzer.go:1:9: var-naming: don't use an underscore in package name (revive)
+package code_analysis
+        ^
+internal/code_analysis/analyzer.go:228:9: indent-error-flow: if block ends with a return statement, so drop this else and outdent its block (revive)
+	} else {
+		return "Go code module (purpose unclear from file analysis)"
+	}
+internal/code_analysis/analyzer.go:414:19: Magic number: 2, in <condition> detected (mnd)
+		if len(match) > 2 {
+		                ^
+internal/code_analysis/analyzer.go:18:21: Magic number: 500000, in <assign> detected (mnd)
+		MaxFileSizeBytes: 500000, // 500KB - increased for larger source files
+		                  ^
+internal/gemini/client.go:47:1: cyclomatic complexity 27 of func `(*Client).GenerateContent` is high (> 15) (gocyclo)
+func (c *Client) GenerateContent(ctx context.Context, config *types.APIConfiguration, prompt, contextStr string) (*types.APIResponse, error) {
+^
+internal/gemini/client.go:321:3: nilValReturn: returned expr is always nil; replace params with nil (gocritic)
+		return params
+		^
+internal/gemini/client.go:52:1: The line is 133 characters long, which exceeds the maximum of 120 characters. (lll)
+	timeContext := fmt.Sprintf("**SYSTEM TIME CONTEXT:**\n- Current time: %s\n- UTC time: %s\n- Unix timestamp: %d\n- Timezone: %s\n\n"+
+^
+internal/gemini/client.go:53:1: The line is 174 characters long, which exceeds the maximum of 120 characters. (lll)
+		"Use this current time information for any time-sensitive operations, queries, or when interpreting relative time references like 'recent', 'today', 'last hour', etc.\n\n",
+^
+internal/types/api_keys.go:131:2: var-naming: struct field HttpStatusCode should be HTTPStatusCode (revive)
+	HttpStatusCode    *int      `json:"httpStatusCode,omitempty"`
+	^
+internal/types/api_keys.go:139:2: var-naming: struct field HttpStatusCode should be HTTPStatusCode (revive)
+	HttpStatusCode  *int                   `json:"httpStatusCode,omitempty"`
+	^
+internal/types/types.go:108:1: The line is 141 characters long, which exceeds the maximum of 120 characters. (lll)
+	FunctionGroup     string                 `json:"functionGroup"`          // Group functions by category (e.g., "graph", "weather", "github")
+^
+internal/types/types.go:119:1: The line is 135 characters long, which exceeds the maximum of 120 characters. (lll)
+	QueryTemplate     string                 `json:"queryTemplate,omitempty"`     // Cypher query template with {{parameter}} placeholders
+^
+internal/types/types.go:120:1: The line is 162 characters long, which exceeds the maximum of 120 characters. (lll)
+	ResultTransformer string                 `json:"resultTransformer,omitempty"` // How to transform the raw results (e.g., 'sales_summary', 'normalize_attributes')
+^
+internal/types/types.go:121:1: The line is 134 characters long, which exceeds the maximum of 120 characters. (lll)
+	FallbackData      map[string]interface{} `json:"fallbackData,omitempty"`      // Fallback data when external services are unavailable
+^
+internal/types/types.go:827:1: The line is 124 characters long, which exceeds the maximum of 120 characters. (lll)
+	AgentID       string                 `json:"agentId" validate:"required"` // Agent making the request (must be team member)
+^
+internal/agents/memory.go:69:7: string `session` has 4 occurrences, make it a constant (goconst)
+	case "session":
+	     ^
+internal/agents/memory.go:71:7: string `persistent` has 4 occurrences, make it a constant (goconst)
+	case "persistent":
+	     ^
+internal/agents/memory.go:67:7: string `workflow` has 4 occurrences, make it a constant (goconst)
+	case "workflow":
+	     ^
+internal/agents/memory.go:1253:1: cyclomatic complexity 26 of func `(*AgentsHandler).ClearAgentTaskData` is high (> 15) (gocyclo)
+func (h *AgentsHandler) ClearAgentTaskData(ctx context.Context, agentID, userID string, request *types.AgentTaskDataRequest) (*types.AgentTaskDataResponse, error) {
+^
+internal/agents/handlers.go:424:1: cyclomatic complexity 25 of func `(*AgentsHandler).handleAgentMemory` is high (> 15) (gocyclo)
+func (h *AgentsHandler) handleAgentMemory(w http.ResponseWriter, r *http.Request, agentID string, pathParts []string) {
+^
+internal/agents/memory.go:1132:1: cyclomatic complexity 24 of func `(*AgentsHandler).RetrieveAgentTaskData` is high (> 15) (gocyclo)
+func (h *AgentsHandler) RetrieveAgentTaskData(ctx context.Context, agentID, userID string, request *types.AgentTaskDataRequest) (*types.AgentTaskDataResponse, error) {
+^
+internal/agents/memory.go:754:1: cyclomatic complexity 16 of func `(*AgentsHandler).ListAgentTasks` is high (> 15) (gocyclo)
+func (h *AgentsHandler) ListAgentTasks(ctx context.Context, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+^
+internal/agents/memory.go:599:1: cyclomatic complexity 16 of func `(*AgentsHandler).ReadAgentTaskProgress` is high (> 15) (gocyclo)
+func (h *AgentsHandler) ReadAgentTaskProgress(ctx context.Context, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+^
+internal/agents/handlers.go:360:1: cyclomatic complexity 16 of func `(*AgentsHandler).validateUpdateRequest` is high (> 15) (gocyclo)
+func (h *AgentsHandler) validateUpdateRequest(req *types.AgentUpdateRequest) error {
+^
+internal/agents/database.go:313:11: G201: SQL string formatting (gosec)
+	query := fmt.Sprintf(`
+		UPDATE agents 
+		SET %s
+		WHERE user_id = ? AND id = ?
+	`, strings.Join(setParts, ", "))
+internal/agents/database.go:580:11: G201: SQL string formatting (gosec)
+	query := fmt.Sprintf(`
+		UPDATE agent_api_keys 
+		SET %s
+		WHERE agent_id = ? AND id = ?
+	`, strings.Join(setParts, ", "))
+internal/agents/memory.go:488:35: G115: integer overflow conversion int -> int32 (gosec)
+	memory.Metadata.SizeBytes = int32(sizeBytes)
+	                                 ^
+internal/agents/handlers.go:554:65: unused-parameter: parameter 'r' seems to be unused, consider removing or renaming it as _ (revive)
+func (h *AgentsHandler) listAgentAPIKeys(w http.ResponseWriter, r *http.Request, agentID, userID string) {
+                                                                ^
+internal/agents/handlers.go:569:92: unused-parameter: parameter 'userID' seems to be unused, consider removing or renaming it as _ (revive)
+func (h *AgentsHandler) createAgentAPIKey(w http.ResponseWriter, r *http.Request, agentID, userID string) {
+                                                                                           ^
+internal/agents/memory.go:15:42: unused-parameter: parameter 'agentID' seems to be unused, consider removing or renaming it as _ (revive)
+func (h *AgentsHandler) InitializeMemory(agentID string) (*types.AgentMemory, error) {
+                                         ^
+internal/agents/handlers.go:635:106: unused-parameter: parameter 'userID' seems to be unused, consider removing or renaming it as _ (revive)
+func (h *AgentsHandler) updateAgentAPIKey(w http.ResponseWriter, r *http.Request, agentID, keyMappingID, userID string) {
+                                                                                                         ^
+internal/agents/handlers.go:659:73: unused-parameter: parameter 'r' seems to be unused, consider removing or renaming it as _ (revive)
+func (h *AgentsHandler) deleteAgentAPIKeyHandler(w http.ResponseWriter, r *http.Request, agentID, keyMappingID, userID string) {
+                                                                        ^
+internal/agents/handlers.go:20:6: exported: type name will be used as agents.AgentsHandler by other packages, and that stutters; consider calling this Handler (revive)
+type AgentsHandler struct {
+     ^
+internal/agents/database.go:89:25: Function 'getAgentsWithStats' is too long (78 > 60) (funlen)
+func (h *AgentsHandler) getAgentsWithStats(userID string) ([]types.Agent, error) {
+                        ^
+internal/agents/database.go:173:25: Function 'getAgentByID' is too long (70 > 60) (funlen)
+func (h *AgentsHandler) getAgentByID(userID, agentID string) (*types.Agent, error) {
+                        ^
+internal/agents/database.go:382:25: Function 'getExecutionsByAgentID' is too long (73 > 60) (funlen)
+func (h *AgentsHandler) getExecutionsByAgentID(agentID string, limit, offset int) ([]ExecutionRunWithTokens, error) {
+                        ^
+internal/agents/database.go:649:25: Function 'getAgentAPIKeyConfiguration' is too long (70 > 60) (funlen)
+func (h *AgentsHandler) getAgentAPIKeyConfiguration(ctx context.Context, agentID string) (*types.AgentAPIKeyConfiguration, error) {
+                        ^
+internal/agents/memory.go:37:25: Function 'ReadMemory' is too long (64 > 60) (funlen)
+func (h *AgentsHandler) ReadMemory(ctx context.Context, agentID, userID string, request *types.AgentMemoryRequest) (*types.AgentMemoryResponse, error) {
+                        ^
+internal/agents/memory.go:112:25: Function 'WriteMemory' is too long (69 > 60) (funlen)
+func (h *AgentsHandler) WriteMemory(ctx context.Context, agentID, userID string, request *types.AgentMemoryRequest) (*types.AgentMemoryResponse, error) {
+                        ^
+internal/agents/memory.go:507:25: Function 'UpdateAgentTaskProgress' is too long (79 > 60) (funlen)
+func (h *AgentsHandler) UpdateAgentTaskProgress(ctx context.Context, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+                        ^
+internal/agents/memory.go:842:25: Function 'StoreAgentTask' is too long (76 > 60) (funlen)
+func (h *AgentsHandler) StoreAgentTask(ctx context.Context, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+                        ^
+internal/agents/memory.go:995:25: Function 'StoreAgentTaskData' has too many statements (41 > 40) (funlen)
+func (h *AgentsHandler) StoreAgentTaskData(ctx context.Context, agentID, userID string, request *types.AgentTaskDataRequest) (*types.AgentTaskDataResponse, error) {
+                        ^
+internal/agents/database.go:667:2: rangeValCopy: each iteration copies 176 bytes (consider pointers or indexing) (gocritic)
+	for _, agentKey := range agentAPIKeys {
+	^
+internal/agents/database.go:715:3: rangeValCopy: each iteration copies 408 bytes (consider pointers or indexing) (gocritic)
+		for serviceName, globalKey := range userAPIKeys {
+		^
+internal/agents/memory.go:1194:4: nestingReduce: invert if cond, replace body with `continue`, move old body after the statement (gocritic)
+			if dataEntry, ok := dataEntryInterface.(types.AgentTaskData); ok {
+			^
+internal/agents/memory.go:1324:4: nestingReduce: invert if cond, replace body with `continue`, move old body after the statement (gocritic)
+			if dataEntry, ok := dataEntryInterface.(types.AgentTaskData); ok {
+			^
+internal/agents/database.go:388:1: The line is 121 characters long, which exceeds the maximum of 120 characters. (lll)
+			COALESCE(SUM(CAST(JSON_UNQUOTE(JSON_EXTRACT(resp.usage_metadata, '$.total_tokens')) AS UNSIGNED)), 0) as total_tokens,
+^
+internal/agents/database.go:389:1: The line is 123 characters long, which exceeds the maximum of 120 characters. (lll)
+			COALESCE(SUM(CAST(JSON_UNQUOTE(JSON_EXTRACT(resp.usage_metadata, '$.prompt_tokens')) AS UNSIGNED)), 0) as prompt_tokens,
+^
+internal/agents/database.go:390:1: The line is 131 characters long, which exceeds the maximum of 120 characters. (lll)
+			COALESCE(SUM(CAST(JSON_UNQUOTE(JSON_EXTRACT(resp.usage_metadata, '$.completion_tokens')) AS UNSIGNED)), 0) as completion_tokens,
+^
+internal/agents/handlers.go:623:1: The line is 125 characters long, which exceeds the maximum of 120 characters. (lll)
+func (h *AgentsHandler) handleAgentAPIKeyByID(w http.ResponseWriter, r *http.Request, agentID, keyMappingID, userID string) {
+^
+internal/agents/handlers.go:678:1: The line is 131 characters long, which exceeds the maximum of 120 characters. (lll)
+func (h *AgentsHandler) GetAgentAPIKeyConfiguration(ctx context.Context, agentID string) (*types.AgentAPIKeyConfiguration, error) {
+^
+internal/agents/memory.go:191:1: The line is 154 characters long, which exceeds the maximum of 120 characters. (lll)
+func (h *AgentsHandler) SearchMemory(ctx context.Context, agentID, userID string, request *types.AgentMemoryRequest) (*types.AgentMemoryResponse, error) {
+^
+internal/agents/memory.go:230:1: The line is 153 characters long, which exceeds the maximum of 120 characters. (lll)
+func (h *AgentsHandler) ClearMemory(ctx context.Context, agentID, userID string, request *types.AgentMemoryRequest) (*types.AgentMemoryResponse, error) {
+^
+internal/agents/memory.go:315:1: The line is 137 characters long, which exceeds the maximum of 120 characters. (lll)
+func (h *AgentsHandler) writeToContext(context map[string]interface{}, path string, data map[string]interface{}, strategy string) error {
+^
+internal/agents/memory.go:363:1: The line is 124 characters long, which exceeds the maximum of 120 characters. (lll)
+func (h *AgentsHandler) performMemorySearch(memory *types.AgentMemory, query string, limit int) []types.MemorySearchResult {
+^
+internal/agents/memory.go:388:1: The line is 137 characters long, which exceeds the maximum of 120 characters. (lll)
+func (h *AgentsHandler) searchInContext(context map[string]interface{}, contextName, query string, results *[]types.MemorySearchResult) {
+^
+internal/agents/memory.go:687:1: The line is 158 characters long, which exceeds the maximum of 120 characters. (lll)
+func (h *AgentsHandler) ClearAgentTaskProgress(ctx context.Context, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+^
+internal/agents/memory.go:930:1: The line is 151 characters long, which exceeds the maximum of 120 characters. (lll)
+func (h *AgentsHandler) DeleteAgentTask(ctx context.Context, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+^
+internal/agents/memory.go:1042:1: The line is 131 characters long, which exceeds the maximum of 120 characters. (lll)
+	validDataTypes := []string{"code", "api_response", "research", "analysis", "documentation", "error_log", "configuration", "other"}
+^
+internal/agents/handlers.go:45:22: Magic number: 3, in <condition> detected (mnd)
+	if len(pathParts) < 3 {
+	                    ^
+internal/agents/handlers.go:344:28: Magic number: 5, in <condition> detected (mnd)
+	if req.HeartbeatMinutes < 5 {
+	                          ^
+internal/agents/handlers.go:433:23: Magic number: 5, in <condition> detected (mnd)
+	if len(pathParts) >= 5 {
+	                     ^
+internal/agents/memory.go:436:18: Magic number: 2, in <condition> detected (mnd)
+	if len(parts) < 2 {
+	                ^
+internal/agents/memory.go:443:19: Magic number: 2, in <condition> detected (mnd)
+		if len(parts) > 2 {
+		                ^
+internal/agents/memory.go:412:10: Magic number: 0.8, in <return> detected (mnd)
+		return 0.8
+		       ^
+internal/agents/memory.go:414:10: Magic number: 0.6, in <return> detected (mnd)
+		return 0.6
+		       ^
+internal/agents/memory.go:416:9: Magic number: 0.5, in <return> detected (mnd)
+	return 0.5
+	       ^
+internal/gogent/integrations/base/client.go:59:16: string `GET` has 3 occurrences, make it a constant (goconst)
+	httpMethod := "GET"
+	              ^
+internal/gogent/integrations/base/client.go:45:22: Function 'ExecuteRequest' has too many statements (45 > 40) (funlen)
+func (c *HTTPClient) ExecuteRequest(ctx context.Context, integration APIIntegration, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+                     ^
+internal/gogent/integrations/base/client.go:124:1: The line is 146 characters long, which exceeds the maximum of 120 characters. (lll)
+func (c *HTTPClient) prepareRequestBody(integration APIIntegration, funcDef *db.FunctionDefinition, args map[string]interface{}) ([]byte, error) {
+^
+internal/gogent/integrations/base/integration.go:19:1: The line is 122 characters long, which exceeds the maximum of 120 characters. (lll)
+	PrepareRequest(ctx context.Context, req *http.Request, funcDef *db.FunctionDefinition, args map[string]interface{}) error
+^
+internal/gogent/integrations/base/headers.go:89:20: Magic number: 20, in <condition> detected (mnd)
+			if len(value) > 20 {
+			                ^
+internal/gogent/integrations/base/client.go:27:13: Magic number: 30, in <operation> detected (mnd)
+		timeout = 30 * time.Second
+		          ^
+internal/providers/factory.go:150:10: string `kimi` has 2 occurrences, but such constant `ProviderTypeKimi` already exists (goconst)
+		return "kimi" // Using "kimi" provider name for backwards compatibility, but it handles all OpenRouter models
+		       ^
+internal/providers/factory.go:142:10: string `gemini` has 4 occurrences, but such constant `ProviderTypeGemini` already exists (goconst)
+		return "gemini"
+		       ^
+internal/providers/kimi_provider.go:264:1: cyclomatic complexity 16 of func `(*KimiProvider).parseKimiResponse` is high (> 15) (gocyclo)
+func (p *KimiProvider) parseKimiResponse(response map[string]interface{}, duration time.Duration) (*ModelResponse, error) {
+^
+internal/providers/factory.go:102:12: indent-error-flow: if block ends with a return statement, so drop this else and outdent its block (revive)
+				} else {
+					return key
+				}
+internal/providers/factory.go:111:12: indent-error-flow: if block ends with a return statement, so drop this else and outdent its block (revive)
+				} else {
+					return key
+				}
+internal/providers/kimi_provider.go:24:1: paramTypeCombine: func(apiKey string, baseURL string) (*KimiProvider, error) could be replaced with func(apiKey, baseURL string) (*KimiProvider, error) (gocritic)
+func NewKimiProvider(apiKey string, baseURL string) (*KimiProvider, error) {
+^
+internal/providers/factory.go:34:1: The line is 139 characters long, which exceeds the maximum of 120 characters. (lll)
+func (f *ProviderFactory) CreateProvider(ctx context.Context, modelName string, sessionKeys *types.SessionAPIKeys) (ModelProvider, error) {
+^
+internal/providers/factory.go:81:1: The line is 127 characters long, which exceeds the maximum of 120 characters. (lll)
+func (f *ProviderFactory) createGeminiProvider(ctx context.Context, sessionKeys *types.SessionAPIKeys) (ModelProvider, error) {
+^
+internal/providers/factory.go:131:1: The line is 124 characters long, which exceeds the maximum of 120 characters. (lll)
+		return nil, fmt.Errorf("OpenRouter API key is required for Kimi models (set openRouterAPIKey or use sk-or- prefixed key)")
+^
+internal/providers/gemini_provider.go:72:1: The line is 142 characters long, which exceeds the maximum of 120 characters. (lll)
+func (p *GeminiProvider) GenerateContent(ctx context.Context, config *types.APIConfiguration, request *ModelRequest) (*ModelResponse, error) {
+^
+internal/providers/gemini_provider.go:91:1: The line is 148 characters long, which exceeds the maximum of 120 characters. (lll)
+func (p *GeminiProvider) generateSimpleContent(ctx context.Context, config *types.APIConfiguration, request *ModelRequest) (*ModelResponse, error) {
+^
+internal/providers/gemini_provider.go:116:1: The line is 154 characters long, which exceeds the maximum of 120 characters. (lll)
+func (p *GeminiProvider) generateWithFunctionCalling(ctx context.Context, config *types.APIConfiguration, request *ModelRequest) (*ModelResponse, error) {
+^
+internal/providers/gemini_provider.go:162:1: The line is 174 characters long, which exceeds the maximum of 120 characters. (lll)
+func (p *GeminiProvider) callGeminiWithTools(ctx context.Context, config *types.APIConfiguration, request *ModelRequest, _ []map[string]interface{}) (*ModelResponse, error) {
+^
+internal/providers/kimi_provider.go:88:1: The line is 140 characters long, which exceeds the maximum of 120 characters. (lll)
+func (p *KimiProvider) GenerateContent(ctx context.Context, config *types.APIConfiguration, request *ModelRequest) (*ModelResponse, error) {
+^
+internal/providers/kimi_provider.go:216:1: The line is 128 characters long, which exceeds the maximum of 120 characters. (lll)
+func (p *KimiProvider) makeAPIRequest(ctx context.Context, requestBody map[string]interface{}) (map[string]interface{}, error) {
+^
+internal/providers/factory.go:98:19: Magic number: 10, in <condition> detected (mnd)
+				if len(key) > 10 {
+				              ^
+internal/providers/factory.go:107:19: Magic number: 10, in <condition> detected (mnd)
+				if len(key) > 10 {
+				              ^
+internal/providers/kimi_provider.go:36:37: Magic number: 120, in <assign> detected (mnd)
+		httpClient: &http.Client{Timeout: 120 * time.Second}, // Longer timeout for complex function calls
+		                                  ^
+internal/providers/factory.go:83:15: ST1005: error strings should not be capitalized (stylecheck)
+		return nil, fmt.Errorf("Gemini API key is required")
+		            ^
+internal/providers/gemini_provider.go:80:16: ST1005: error strings should not be capitalized (stylecheck)
+			return nil, fmt.Errorf("Gemini simple generation failed: %w", err)
+			            ^
+internal/providers/gemini_provider.go:131:15: ST1005: error strings should not be capitalized (stylecheck)
+		return nil, fmt.Errorf("Gemini function calling failed: %w", err)
+		            ^
+internal/auth/auth.go:496:12: Error return value of `rand.Read` is not checked (errcheck)
+		rand.Read(randBytes)
+		         ^
+internal/auth/auth.go:505:11: Error return value of `rand.Read` is not checked (errcheck)
+	rand.Read(bytes)
+	         ^
+internal/auth/auth.go:669:30: string `test` has 8 occurrences, make it a constant (goconst)
+			if os.Getenv("GO_ENV") != "test" && !strings.Contains(os.Args[0], ".test") {
+			                          ^
+internal/auth/auth.go:644:1: cyclomatic complexity 46 of func `(*HeaderEncryption).GetDecryptedAPIKeysFromHeaders` is high (> 15) (gocyclo)
+func (he *HeaderEncryption) GetDecryptedAPIKeysFromHeaders(headers map[string][]string) map[string]string {
+^
+internal/auth/auth.go:16:2: G501: Blocklisted import crypto/md5: weak cryptographic primitive (gosec)
+	"crypto/md5"
+	^
+internal/auth/auth.go:533:3: G101: Potential hardcoded credentials (gosec)
+		secret = "gogent_shared_secret_v1_default"
+		^
+internal/auth/auth.go:587:8: G401: Use of weak cryptographic primitive (gosec)
+		h := md5.New()
+		     ^
+internal/auth/middleware.go:13:6: exported: func name will be used as auth.AuthMiddleware by other packages, and that stutters; consider calling this Middleware (revive)
+func AuthMiddleware(authService *AuthService) func(http.HandlerFunc) http.HandlerFunc {
+     ^
+internal/auth/auth.go:66:44: unused-parameter: parameter 'sessionID' seems to be unused, consider removing or renaming it as _ (revive)
+func (as *AuthService) CreateTemporaryUser(sessionID string) (*User, string, string, error) {
+                                           ^
+internal/auth/auth.go:442:65: unused-parameter: parameter 'token' seems to be unused, consider removing or renaming it as _ (revive)
+	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+	                                                               ^
+internal/auth/auth.go:44:6: exported: type name will be used as auth.AuthService by other packages, and that stutters; consider calling this Service (revive)
+type AuthService struct {
+     ^
+internal/auth/handlers.go:77:6: exported: type name will be used as auth.AuthHandlers by other packages, and that stutters; consider calling this Handlers (revive)
+type AuthHandlers struct {
+     ^
+internal/auth/auth.go:544:29: Function 'DecryptAPIKey' has too many statements (58 > 40) (funlen)
+func (he *HeaderEncryption) DecryptAPIKey(encryptedData string) (string, error) {
+                            ^
+internal/auth/auth.go:667:10: elseif: can replace 'else {if cond {}}' with 'else if cond {}' (gocritic)
+		} else {
+		       ^
+internal/auth/auth.go:679:10: elseif: can replace 'else {if cond {}}' with 'else if cond {}' (gocritic)
+		} else {
+		       ^
+internal/auth/auth.go:690:10: elseif: can replace 'else {if cond {}}' with 'else if cond {}' (gocritic)
+		} else {
+		       ^
+internal/auth/auth.go:626:1: The line is 127 characters long, which exceeds the maximum of 120 characters. (lll)
+		log.Printf("🔓 DEBUG: Invalid padding length - padLen: %d, dataLen: %d, blockSize: %d", padLen, len(decrypted), aes.BlockSize)
+^
+internal/auth/auth.go:68:62: Magic number: 8, in <argument> detected (mnd)
+	tempUsername := fmt.Sprintf("temp_%s", generateRandomString(8))
+	                                                            ^
+internal/auth/auth.go:71:39: Magic number: 12, in <argument> detected (mnd)
+	tempPassword := generateRandomString(12)
+	                                     ^
+internal/auth/auth.go:504:24: Magic number: 32, in <argument> detected (mnd)
+	bytes := make([]byte, 32)
+	                      ^
+internal/auth/auth.go:307:24: Magic number: 6, in <condition> detected (mnd)
+	if len(newPassword) < 6 {
+	                      ^
+internal/auth/auth.go:551:22: Magic number: 20, in <condition> detected (mnd)
+	if len(keyPrefix) > 20 {
+	                    ^
+internal/auth/auth.go:568:17: Magic number: 16, in <condition> detected (mnd)
+	if len(data) < 16 {
+	               ^
+internal/auth/auth.go:61:16: Magic number: 24, in <assign> detected (mnd)
+		tokenExpiry: 24 * time.Hour, // 24 hours
+		             ^
+internal/teams/memory.go:1797:28: string `1.0` has 2 occurrences, but such constant `MemoryVersion` already exists (goconst)
+	memory.Metadata.Version = "1.0"
+	                          ^
+internal/teams/memory.go:1286:30: string `completed` has 3 occurrences, but such constant `TaskStatusCompleted` already exists (goconst)
+			if string(task.Status) == "completed" {
+			                          ^
+internal/teams/memory.go:1218:1: cyclomatic complexity 64 of func `(*Handler).ClearTeamTasks` is high (> 15) (gocyclo)
+func (h *Handler) ClearTeamTasks(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+^
+internal/teams/memory.go:993:1: cyclomatic complexity 36 of func `(*Handler).ListTeamTasks` is high (> 15) (gocyclo)
+func (h *Handler) ListTeamTasks(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+^
+internal/teams/memory.go:689:1: cyclomatic complexity 36 of func `(*Handler).ClaimTeamTask` is high (> 15) (gocyclo)
+func (h *Handler) ClaimTeamTask(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+^
+internal/teams/memory.go:2410:1: cyclomatic complexity 28 of func `(*Handler).ClearAgentTaskProgress` is high (> 15) (gocyclo)
+func (h *Handler) ClearAgentTaskProgress(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+^
+internal/teams/memory.go:1647:1: cyclomatic complexity 28 of func `(*Handler).UpdateTeamTask` is high (> 15) (gocyclo)
+func (h *Handler) UpdateTeamTask(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+^
+internal/teams/handlers.go:546:1: cyclomatic complexity 26 of func `(*Handler).handleTeamMemory` is high (> 15) (gocyclo)
+func (h *Handler) handleTeamMemory(w http.ResponseWriter, r *http.Request, teamID string, pathParts []string) {
+^
+internal/teams/memory.go:392:1: cyclomatic complexity 25 of func `(*Handler).writeToContext` is high (> 15) (gocyclo)
+func (h *Handler) writeToContext(context map[string]interface{}, path string, data interface{}, mergeStrategy string) error {
+^
+internal/teams/memory.go:2284:1: cyclomatic complexity 22 of func `(*Handler).ReadAgentTaskProgress` is high (> 15) (gocyclo)
+func (h *Handler) ReadAgentTaskProgress(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+^
+internal/teams/handlers.go:164:1: cyclomatic complexity 21 of func `(*Handler).createTeamWithAgents` is high (> 15) (gocyclo)
+func (h *Handler) createTeamWithAgents(w http.ResponseWriter, r *http.Request) {
+^
+internal/teams/memory.go:869:1: cyclomatic complexity 18 of func `(*Handler).CompleteTeamTask` is high (> 15) (gocyclo)
+func (h *Handler) CompleteTeamTask(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+^
+internal/teams/database.go:183:14: G202: SQL string concatenation (gosec)
+    query := "UPDATE teams SET " + strings.Join(setParts, ", ") + " WHERE id = ? AND user_id = ?"
+             ^
+internal/teams/memory.go:245:36: unused-parameter: parameter 'ctx' seems to be unused, consider removing or renaming it as _ (revive)
+func (h *Handler) SearchTeamMemory(ctx context.Context, teamID, agentID, userID string, request *types.TeamMemoryRequest) (*types.TeamMemoryResponse, error) {
+                                   ^
+internal/teams/database.go:227:19: Function 'getTeamWithAgents' is too long (69 > 60) (funlen)
+func (h *Handler) getTeamWithAgents(teamID, userID string) (types.TeamWithAgents, error) {
+                  ^
+internal/teams/memory.go:66:19: Function 'ReadTeamMemory' is too long (74 > 60) (funlen)
+func (h *Handler) ReadTeamMemory(_ context.Context, teamID, agentID, userID string, request *types.TeamMemoryRequest) (*types.TeamMemoryResponse, error) {
+                  ^
+internal/teams/memory.go:152:19: Function 'WriteTeamMemory' is too long (82 > 60) (funlen)
+func (h *Handler) WriteTeamMemory(_ context.Context, teamID, agentID, userID string, request *types.TeamMemoryRequest) (*types.TeamMemoryResponse, error) {
+                  ^
+internal/teams/database.go:138:34: hugeParam: team is heavy (168 bytes); consider passing it by pointer (gocritic)
+func (h *Handler) createTeamInDB(team types.Team) error {
+                                 ^
+internal/teams/database.go:563:48: hugeParam: team is heavy (168 bytes); consider passing it by pointer (gocritic)
+func (h *Handler) createTeamInDBTx(tx *sql.Tx, team types.Team) error {
+                                               ^
+internal/teams/handlers.go:792:2: rangeValCopy: each iteration copies 288 bytes (consider pointers or indexing) (gocritic)
+	for _, agent := range agents {
+	^
+internal/teams/memory.go:1285:3: rangeValCopy: each iteration copies 344 bytes (consider pointers or indexing) (gocritic)
+		for _, task := range tasks {
+		^
+internal/teams/memory.go:1294:3: rangeValCopy: each iteration copies 344 bytes (consider pointers or indexing) (gocritic)
+		for _, task := range tasks {
+		^
+internal/teams/memory.go:1303:3: rangeValCopy: each iteration copies 344 bytes (consider pointers or indexing) (gocritic)
+		for _, task := range tasks {
+		^
+internal/teams/database.go:182:1: File is not properly formatted (gofmt)
+    // Build the query without fmt.Sprintf to avoid gosec G201 false positive.
+^
+internal/teams/handlers.go:133:1: File is not properly formatted (gofmt)
+        team := types.Team{
+^
+internal/teams/memory.go:916:1: The line is 122 characters long, which exceeds the maximum of 120 characters. (lll)
+			Error:   fmt.Sprintf("Task %s is assigned to %s, cannot be completed by %s", request.TaskID, task.AssignedTo, agentID),
+^
+internal/teams/memory.go:1500:1: The line is 145 characters long, which exceeds the maximum of 120 characters. (lll)
+			"message":       fmt.Sprintf("Successfully completed %s action. Removed %d tasks, kept %d tasks.", action, len(tasksRemoved), len(tasksKept)),
+^
+internal/teams/memory.go:1648:1: The line is 132 characters long, which exceeds the maximum of 120 characters. (lll)
+	log.Printf("🔍 UpdateTeamTask called with teamID: %s, agentID: %s, userID: %s, taskID: %s", teamID, agentID, userID, request.TaskID)
+^
+internal/teams/memory.go:2052:1: The line is 133 characters long, which exceeds the maximum of 120 characters. (lll)
+	log.Printf("🔍 DeleteAgentTask called with teamID: %s, agentID: %s, userID: %s, taskID: %s", teamID, agentID, userID, request.TaskID)
+^
+internal/teams/memory.go:2176:1: The line is 141 characters long, which exceeds the maximum of 120 characters. (lll)
+	log.Printf("🔍 UpdateAgentTaskProgress called with teamID: %s, agentID: %s, userID: %s, taskID: %s", teamID, agentID, userID, request.TaskID)
+^
+internal/teams/memory.go:1360:59: Magic number: 24, in <argument> detected (mnd)
+					daysDiff := int(time.Since(task.CreatedAt).Hours() / 24)
+					                                                     ^
+internal/teams/memory.go:1382:57: Magic number: 24, in <argument> detected (mnd)
+			daysDiff := int(time.Since(task.CreatedAt).Hours() / 24)
+			                                                     ^
+internal/teams/handlers.go:50:22: Magic number: 3, in <condition> detected (mnd)
+	if len(pathParts) < 3 {
+	                    ^
+internal/teams/handlers.go:57:22: Magic number: 3, in <condition> detected (mnd)
+	if len(pathParts) > 3 {
+	                    ^
+internal/teams/handlers.go:60:24: Magic number: 4, in <condition> detected (mnd)
+			if len(pathParts) > 4 {
+			                    ^
+internal/teams/memory.go:560:16: Magic number: 0.8, in <assign> detected (mnd)
+				Relevance: 0.8,
+				           ^
+internal/teams/handlers.go:834:23: rows.Err must be checked (rowserrcheck)
+	rows, err := tx.Query(query, teamID, userID)
+	                     ^
+pkg/engine/engine.go:49:21: G115: integer overflow conversion int64 -> int32 (gosec)
+	durationMs := int32(time.Since(start).Milliseconds())
+	                   ^
+pkg/engine/basic_comparator.go:26:28: Function 'Compare' is too long (90 > 60) (funlen)
+func (bc *BasicComparator) Compare(_ context.Context, result *types.ExecutionResult) (*types.ComparisonResult, error) {
+                           ^
+pkg/engine/basic_comparator.go:43:2: rangeValCopy: each iteration copies 576 bytes (consider pointers or indexing) (gocritic)
+	for _, vr := range result.Results {
+	^
+pkg/engine/basic_comparator.go:94:2: rangeValCopy: each iteration copies 576 bytes (consider pointers or indexing) (gocritic)
+	for _, vr := range result.Results {
+	^
+pkg/engine/compare.go:64:22: hugeParam: config is heavy (216 bytes); consider passing it by pointer (gocritic)
+func CreativityScore(config types.APIConfiguration, response types.APIResponse) float64 {
+                     ^
+pkg/engine/compare.go:107:27: hugeParam: response is heavy (168 bytes); consider passing it by pointer (gocritic)
+func TokenEfficiencyScore(response types.APIResponse) float64 {
+                          ^
+pkg/engine/compare.go:145:29: hugeParam: response is heavy (168 bytes); consider passing it by pointer (gocritic)
+func CostEffectivenessScore(response types.APIResponse) float64 {
+                            ^
+pkg/engine/compare.go:166:20: hugeParam: response is heavy (168 bytes); consider passing it by pointer (gocritic)
+func EstimatedCost(response types.APIResponse) float64 {
+                   ^
+pkg/engine/engine.go:23:1: paramTypeCombine: func(ctx context.Context, userID string, executionRunID string, cfg *types.APIConfiguration, prompt, ctxText string) (*types.VariationResult, error) could be replaced with func(ctx context.Context, userID, executionRunID string, cfg *types.APIConfiguration, prompt, ctxText string) (*types.VariationResult, error) (gocritic)
+func (e *Engine) ExecuteSingle(ctx context.Context, userID string, executionRunID string, cfg *types.APIConfiguration, prompt, ctxText string) (*types.VariationResult, error) {
+^
+pkg/engine/engine.go:83:1: paramTypeCombine: func(ctx context.Context, userID string, executionRunID string, configs []types.APIConfiguration, prompt, ctxText string) (*types.ExecutionResult, error) could be replaced with func(ctx context.Context, userID, executionRunID string, configs []types.APIConfiguration, prompt, ctxText string) (*types.ExecutionResult, error) (gocritic)
+func (e *Engine) ExecuteMulti(ctx context.Context, userID string, executionRunID string, configs []types.APIConfiguration, prompt, ctxText string) (*types.ExecutionResult, error) {
+^
+pkg/engine/basic_comparator.go:4:1: File is not properly formatted (gofmt)
+    "context"
+^
+pkg/engine/compare.go:70:1: The line is 123 characters long, which exceeds the maximum of 120 characters. (lll)
+	indicators := []string{"imagine", "creative", "artistic", "vivid", "colorful", "metaphor", "poetry", "story", "narrative"}
+^
+pkg/engine/compare.go:90:1: The line is 130 characters long, which exceeds the maximum of 120 characters. (lll)
+	indicators := []string{"first", "second", "third", "however", "therefore", "because", "although", "furthermore", "in conclusion"}
+^
+pkg/engine/engine.go:53:1: The line is 199 characters long, which exceeds the maximum of 120 characters. (lll)
+		resp = &types.APIResponse{ID: uuid.New().String(), RequestID: req.ID, ResponseStatus: types.ResponseStatusError, ErrorMessage: err.Error(), ResponseTimeMs: int64(durationMs), CreatedAt: time.Now()}
+^
+internal/gogent/core.go:3577: 3577-3614 lines are duplicate of `internal/gogent/core.go:3693-3730` (dupl)
+	for rows.Next() {
+		var call types.FunctionCall
+		var functionArgs, functionResponse, errorDetails sql.NullString
+
+		err := rows.Scan(
+			&call.ID,
+			&call.RequestID,
+			&call.FunctionName,
+			&functionArgs,
+			&functionResponse,
+			&call.ExecutionStatus,
+			&errorDetails,
+			&call.CreatedAt,
+		)
+		if err != nil {
+			log.Printf("⚠️ Failed to scan function call: %v", err)
+			continue
+		}
+
+		// Handle nullable fields and JSON parsing
+		if functionArgs.Valid {
+			var args map[string]interface{}
+			if err := json.Unmarshal([]byte(functionArgs.String), &args); err == nil {
+				call.FunctionArgs = args
+			}
+		}
+		if functionResponse.Valid {
+			var response map[string]interface{}
+			if err := json.Unmarshal([]byte(functionResponse.String), &response); err == nil {
+				call.FunctionResponse = response
+			}
+		}
+		if errorDetails.Valid {
+			call.ErrorDetails = errorDetails.String
+		}
+
+		functionCalls = append(functionCalls, call)
+	}
+internal/gogent/core.go:3693: 3693-3730 lines are duplicate of `internal/gogent/core.go:3577-3614` (dupl)
+	for rows.Next() {
+		var call types.FunctionCall
+		var functionArgs, functionResponse, errorDetails sql.NullString
+
+		err := rows.Scan(
+			&call.ID,
+			&call.RequestID,
+			&call.FunctionName,
+			&functionArgs,
+			&functionResponse,
+			&call.ExecutionStatus,
+			&errorDetails,
+			&call.CreatedAt,
+		)
+		if err != nil {
+			log.Printf("⚠️ Failed to scan function call: %v", err)
+			continue
+		}
+
+		// Handle nullable fields and JSON parsing
+		if functionArgs.Valid {
+			var args map[string]interface{}
+			if err := json.Unmarshal([]byte(functionArgs.String), &args); err == nil {
+				call.FunctionArgs = args
+			}
+		}
+		if functionResponse.Valid {
+			var response map[string]interface{}
+			if err := json.Unmarshal([]byte(functionResponse.String), &response); err == nil {
+				call.FunctionResponse = response
+			}
+		}
+		if errorDetails.Valid {
+			call.ErrorDetails = errorDetails.String
+		}
+
+		functionCalls = append(functionCalls, call)
+	}
+internal/gogent/core.go:3335: 3335-3375 lines are duplicate of `internal/gogent/core.go:3408-3448` (dupl)
+	for rows.Next() {
+		var log types.ExecutionLog
+		var configurationIDStr, requestID sql.NullString
+		var details sql.NullString
+		var sequenceNumber sql.NullInt32
+		var durationMs sql.NullInt64
+
+		err := rows.Scan(
+			&log.ID,
+			&log.ExecutionRunID,
+			&configurationIDStr,
+			&requestID,
+			&log.LogLevel,
+			&log.LogCategory,
+			&log.Message,
+			&details,
+			&log.Timestamp,
+			&sequenceNumber,
+			&durationMs,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan execution log: %w", err)
+		}
+
+		if configurationIDStr.Valid {
+			log.ConfigurationID = &configurationIDStr.String
+		}
+		if requestID.Valid {
+			log.RequestID = &requestID.String
+		}
+		if sequenceNumber.Valid {
+			seqNum := int32(sequenceNumber.Int32)
+			log.SequenceNumber = &seqNum
+		}
+		if durationMs.Valid {
+			durMs := int32(durationMs.Int64)
+			log.DurationMs = &durMs
+		}
+
+		logs = append(logs, log)
+	}
+internal/gogent/core.go:3408: 3408-3448 lines are duplicate of `internal/gogent/core.go:3335-3375` (dupl)
+	for rows.Next() {
+		var log types.ExecutionLog
+		var configurationID, requestID sql.NullString
+		var details sql.NullString
+		var sequenceNumber sql.NullInt32
+		var durationMs sql.NullInt64
+
+		err := rows.Scan(
+			&log.ID,
+			&log.ExecutionRunID,
+			&configurationID,
+			&requestID,
+			&log.LogLevel,
+			&log.LogCategory,
+			&log.Message,
+			&details,
+			&log.Timestamp,
+			&sequenceNumber,
+			&durationMs,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan execution log: %w", err)
+		}
+
+		if configurationID.Valid {
+			log.ConfigurationID = &configurationID.String
+		}
+		if requestID.Valid {
+			log.RequestID = &requestID.String
+		}
+		if sequenceNumber.Valid {
+			seqNum := int32(sequenceNumber.Int32)
+			log.SequenceNumber = &seqNum
+		}
+		if durationMs.Valid {
+			durMs := int32(durationMs.Int64)
+			log.DurationMs = &durMs
+		}
+
+		logs = append(logs, log)
+	}
+internal/gogent/core.go:3516: 3516-3555 lines are duplicate of `internal/gogent/core.go:3632-3671` (dupl)
+	for _, dbEvent := range dbEvents {
+		event := types.ExecutionFlowEvent{
+			ID:             dbEvent.ID,
+			ExecutionRunID: dbEvent.ExecutionRunID,
+			EventType:      types.ExecutionFlowEventType(dbEvent.EventType),
+			SequenceNumber: dbEvent.SequenceNumber,
+			Status:         types.ExecutionFlowEventStatus(dbEvent.Status.ExecutionFlowEventsStatus),
+		}
+
+		// Handle CreatedAt timestamp
+		if dbEvent.CreatedAt.Valid {
+			event.CreatedAt = dbEvent.CreatedAt.Time
+		}
+
+		// Handle nullable fields
+		if dbEvent.RequestID.Valid {
+			event.RequestID = &dbEvent.RequestID.String
+		}
+		if dbEvent.ParentEventID.Valid {
+			event.ParentEventID = &dbEvent.ParentEventID.String
+		}
+		if dbEvent.ErrorMessage.Valid {
+			event.ErrorMessage = &dbEvent.ErrorMessage.String
+		}
+		if dbEvent.DurationMs.Valid {
+			event.DurationMs = &dbEvent.DurationMs.Int32
+		}
+
+		// Parse event data JSON
+		if dbEvent.EventData != nil {
+			var eventData map[string]interface{}
+			if err := json.Unmarshal(dbEvent.EventData, &eventData); err != nil {
+				log.Printf("⚠️ Failed to parse event data JSON for event %s: %v", event.ID, err)
+			} else {
+				event.EventData = eventData
+			}
+		}
+
+		events = append(events, event)
+	}
+internal/gogent/core.go:3632: 3632-3671 lines are duplicate of `internal/gogent/core.go:3516-3555` (dupl)
+	for _, dbEvent := range dbEvents {
+		event := types.ExecutionFlowEvent{
+			ID:             dbEvent.ID,
+			ExecutionRunID: dbEvent.ExecutionRunID,
+			EventType:      types.ExecutionFlowEventType(dbEvent.EventType),
+			SequenceNumber: dbEvent.SequenceNumber,
+			Status:         types.ExecutionFlowEventStatus(dbEvent.Status.ExecutionFlowEventsStatus),
+		}
+
+		// Handle CreatedAt timestamp
+		if dbEvent.CreatedAt.Valid {
+			event.CreatedAt = dbEvent.CreatedAt.Time
+		}
+
+		// Handle nullable fields
+		if dbEvent.RequestID.Valid {
+			event.RequestID = &dbEvent.RequestID.String
+		}
+		if dbEvent.ParentEventID.Valid {
+			event.ParentEventID = &dbEvent.ParentEventID.String
+		}
+		if dbEvent.ErrorMessage.Valid {
+			event.ErrorMessage = &dbEvent.ErrorMessage.String
+		}
+		if dbEvent.DurationMs.Valid {
+			event.DurationMs = &dbEvent.DurationMs.Int32
+		}
+
+		// Parse event data JSON
+		if dbEvent.EventData != nil {
+			var eventData map[string]interface{}
+			if err := json.Unmarshal(dbEvent.EventData, &eventData); err != nil {
+				log.Printf("⚠️ Failed to parse event data JSON for event %s: %v", event.ID, err)
+			} else {
+				event.EventData = eventData
+			}
+		}
+
+		events = append(events, event)
+	}
+internal/templates/public_api.go:223:30: Error return value of `pah.updateTemplateExecution` is not checked (errcheck)
+		pah.updateTemplateExecution(templateExecution)
+		                           ^
+internal/templates/public_api.go:232:29: Error return value of `pah.updateTemplateExecution` is not checked (errcheck)
+	pah.updateTemplateExecution(templateExecution)
+	                           ^
+internal/templates/service.go:61:19: Error return value of `tx.Rollback` is not checked (errcheck)
+	defer tx.Rollback()
+	                 ^
+internal/templates/tokens.go:335:11: Error return value of `rand.Read` is not checked (errcheck)
+	rand.Read(bytes)
+	         ^
+internal/gogent/execution_engine.go:306:17: Error return value of `json.Unmarshal` is not checked (errcheck)
+		json.Unmarshal(row.ConfigurationScores, &configurationScores)
+		              ^
+internal/gogent/execution_engine.go:311:17: Error return value of `json.Unmarshal` is not checked (errcheck)
+		json.Unmarshal([]byte(bestConfigData), &bestConfiguration)
+		              ^
+internal/gogent/execution_engine.go:316:17: Error return value of `json.Unmarshal` is not checked (errcheck)
+		json.Unmarshal([]byte(allConfigData), &allConfigurations)
+		              ^
+internal/heartbeat/executor.go:56:17: Error return value of `config.Validate` is not checked (errcheck)
+	config.Validate()
+	               ^
+internal/templates/public_api.go:220:30: string `failed` has 3 occurrences, but such constant `failedStatus` already exists (goconst)
+		templateExecution.Status = "failed"
+		                           ^
+internal/templates/service.go:497:24: string `text` has 2 occurrences, but such constant `textType` already exists (goconst)
+			param.UIComponent = "text"
+			                    ^
+internal/templates/public_api.go:377:57: string `public` has 2 occurrences, but such constant `publicPrefix` already exists (goconst)
+	if len(parts) >= 4 && parts[0] == "api" && parts[1] == "public" && parts[2] == "templates" {
+	                                                       ^
+internal/templates/handlers.go:601:61: string `templates` has 4 occurrences, make it a constant (goconst)
+	if len(parts) >= 3 && parts[0] == apiPrefix && parts[1] == "templates" {
+	                                                           ^
+internal/templates/ratelimiter.go:332:7: string `burst` has 2 occurrences, but such constant `burstWindow` already exists (goconst)
+	case "burst":
+	     ^
+internal/templates/ratelimiter.go:330:7: string `day` has 2 occurrences, but such constant `dayWindow` already exists (goconst)
+	case "day":
+	     ^
+internal/templates/handlers.go:102:50: string `true` has 2 occurrences, but such constant `trueValue` already exists (goconst)
+	includeTokens := query.Get("include_tokens") == "true"
+	                                                ^
+internal/templates/ratelimiter.go:328:7: string `hour` has 2 occurrences, but such constant `hourWindow` already exists (goconst)
+	case "hour":
+	     ^
+internal/templates/handlers.go:611:36: string `api` has 3 occurrences, but such constant `apiPrefix` already exists (goconst)
+	if len(parts) >= 5 && parts[0] == "api" && parts[1] == "templates" && parts[3] == "tokens" {
+	                                  ^
+internal/templates/public_api.go:303:32: string `completed` has 2 occurrences, but such constant `completedStatus` already exists (goconst)
+		(templateExecution.Status == "completed" || templateExecution.Status == "failed") {
+		                             ^
+internal/gogent/integrations/slack/integration.go:51:9: string `slack` has 2 occurrences, make it a constant (goconst)
+	return "slack"
+	       ^
+internal/gogent/integrations/slack/integration.go:63:16: string `GET` has 2 occurrences, make it a constant (goconst)
+	httpMethod := "GET"
+	              ^
+internal/gogent/integrations/github/integration.go:54:9: string `github` has 2 occurrences, make it a constant (goconst)
+	return "github"
+	       ^
+internal/gogent/integrations/github/integration.go:405:48: string `base64` has 2 occurrences, make it a constant (goconst)
+	if !hasContent || !hasEncoding || encoding != "base64" {
+	                                              ^
+internal/gogent/integrations/github/integration.go:76:17: string `GET` has 2 occurrences, make it a constant (goconst)
+		httpMethod := "GET"
+		              ^
+internal/gogent/integrations/github/integration.go:160:7: string `github_read_code` has 2 occurrences, make it a constant (goconst)
+	case "github_read_code":
+	     ^
+internal/gogent/integrations/github/integration.go:209:7: string `github_create_update_file` has 2 occurrences, make it a constant (goconst)
+	case "github_create_update_file":
+	     ^
+internal/gogent/core.go:417:53: string `invalid` has 2 occurrences, make it a constant (goconst)
+		if !apiKey.IsActive || apiKey.ValidationStatus == "invalid" {
+		                                                  ^
+internal/gogent/core.go:1018:9: string `team_memory_read` has 3 occurrences, make it a constant (goconst)
+			case "team_memory_read":
+			     ^
+internal/gogent/execution_engine.go:820:102: string `validation_failed` has 5 occurrences, make it a constant (goconst)
+			if status, ok := allFunctionResults[i]["status"].(string); ok && (status == "failed" || status == "validation_failed") {
+			                                                                                                  ^
+internal/gogent/execution_engine.go:1654:8: string `error` has 2 occurrences, make it a constant (goconst)
+		case "error", "status":
+		     ^
+internal/gogent/execution_engine.go:1625:10: string `server_error` has 2 occurrences, make it a constant (goconst)
+		return "server_error"
+		       ^
+internal/gogent/core.go:2022:10: string `github_read_issues` has 4 occurrences, make it a constant (goconst)
+				case "github_read_issues", "github_read_commits", "github_read_code", "github_search_code":
+				     ^
+internal/gogent/core.go:2024:59: string `slack_send_message` has 2 occurrences, make it a constant (goconst)
+				case "slack_find_channel", FunctionSlackReadMessages, "slack_send_message":
+				                                                      ^
+internal/gogent/core.go:464:8: string `whatsapp` has 2 occurrences, make it a constant (goconst)
+		case "whatsapp":
+		     ^
+internal/gogent/core.go:3183:12: string `pending` has 2 occurrences, but such constant `StatusPending` already exists (goconst)
+		status = "pending" // Default if not set
+		         ^
+internal/gogent/core.go:2421:30: string `communication` has 3 occurrences, but such constant `FunctionGroupCommunication` already exists (goconst)
+	if funcDef.FunctionGroup == "communication" && strings.HasPrefix(functionName, "slack_") {
+	                            ^
+internal/gogent/api_management.go:92:7: string `failed` has 6 occurrences, make it a constant (goconst)
+	case "failed":
+	     ^
+internal/gogent/core.go:821:7: string `commit_files` has 2 occurrences, make it a constant (goconst)
+	case "commit_files":
+	     ^
+internal/gogent/core.go:885:7: string `GET` has 6 occurrences, make it a constant (goconst)
+	case "GET", "POST", "PUT", "PATCH", "DELETE":
+	     ^
+internal/gogent/core.go:2019:16: string `success` has 2 occurrences, make it a constant (goconst)
+		if status == "success" {
+		             ^
+internal/gogent/core.go:2561:8: string `googledrive_list_files` has 2 occurrences, make it a constant (goconst)
+		case "googledrive_list_files":
+		     ^
+internal/gogent/logging.go:180:11: string `✅` has 2 occurrences, make it a constant (goconst)
+			return "✅"
+			       ^
+internal/gogent/core.go:1851:7: string `team_task_list` has 4 occurrences, but such constant `FunctionTeamTaskList` already exists (goconst)
+	case "team_task_list":
+	     ^
+internal/gogent/execution_engine.go:1627:10: string `unknown` has 15 occurrences, but such constant `StatusUnknown` already exists (goconst)
+		return "unknown"
+		       ^
+internal/gogent/execution_engine.go:392:21: string `gemini` has 3 occurrences, but such constant `ServiceGemini` already exists (goconst)
+	if providerType == "gemini" {
+	                   ^
+internal/templates/service.go:410:1: cyclomatic complexity 23 of func `(*TemplateService).UpdateTemplate` is high (> 15) (gocyclo)
+func (ts *TemplateService) UpdateTemplate(templateID string, template *types.ExecutionTemplate, parameters []types.ExecutionTemplateParameter, functionIds []string, changeSummary string) (*types.ExecutionTemplate, *types.ExecutionTemplateVersion, error) {
+^
+internal/templates/public_api.go:42:1: cyclomatic complexity 22 of func `(*PublicAPIHandler).ExecuteTemplate` is high (> 15) (gocyclo)
+func (pah *PublicAPIHandler) ExecuteTemplate(w http.ResponseWriter, r *http.Request) {
+^
+internal/templates/service.go:273:1: cyclomatic complexity 19 of func `(*TemplateService).ListTemplates` is high (> 15) (gocyclo)
+func (ts *TemplateService) ListTemplates(userID string, limit, offset int, category string, includePublic, includeInactive, includeTokens bool) ([]types.ExecutionTemplate, int, error) {
+^
+internal/templates/service.go:170:1: cyclomatic complexity 17 of func `(*TemplateService).GetTemplateByID` is high (> 15) (gocyclo)
+func (ts *TemplateService) GetTemplateByID(templateID string, includeParameters, includeTokens bool) (*types.ExecutionTemplate, error) {
+^
+internal/templates/tokens.go:275:1: cyclomatic complexity 16 of func `(*TemplateService).ValidateTokenAccess` is high (> 15) (gocyclo)
+func (ts *TemplateService) ValidateTokenAccess(token *types.ExecutionTemplateAuthToken, clientIP, origin string) error {
+^
+internal/templates/service.go:752:1: cyclomatic complexity 16 of func `(*TemplateService).validateSingleParameter` is high (> 15) (gocyclo)
+func (ts *TemplateService) validateSingleParameter(param *types.ExecutionTemplateParameter, value interface{}) []types.TemplateParameterValidationError {
+^
+internal/templates/service.go:56:1: cyclomatic complexity 16 of func `(*TemplateService).CreateTemplate` is high (> 15) (gocyclo)
+func (ts *TemplateService) CreateTemplate(template *types.ExecutionTemplate, parameters []types.ExecutionTemplateParameter, functionIds []string) (*types.ExecutionTemplate, error) {
+^
+internal/gogent/integrations/github/integration.go:131:1: cyclomatic complexity 34 of func `(*Integration).buildLegacyURL` is high (> 15) (gocyclo)
+func (g *Integration) buildLegacyURL(funcDef *db.FunctionDefinition, args map[string]interface{}) (string, error) {
+^
+internal/gogent/integrations/github/integration.go:58:1: cyclomatic complexity 17 of func `(*Integration).BuildURL` is high (> 15) (gocyclo)
+func (g *Integration) BuildURL(funcDef *db.FunctionDefinition, args map[string]interface{}) (string, error) {
+^
+internal/gogent/core.go:894:1: cyclomatic complexity 235 of func `(*Client).executeInternalFunction` is high (> 15) (gocyclo)
+func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+^
+internal/gogent/core.go:2198:1: cyclomatic complexity 107 of func `(*Client).executeAPIFunction` is high (> 15) (gocyclo)
+func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+^
+internal/gogent/core.go:3817:1: cyclomatic complexity 61 of func `(*Client).buildGoogleDriveAPIURL` is high (> 15) (gocyclo)
+func (c *Client) buildGoogleDriveAPIURL(functionName string, args map[string]interface{}) (string, error) {
+^
+internal/gogent/core.go:2904:1: cyclomatic complexity 41 of func `(*Client).GetExecutionResult` is high (> 15) (gocyclo)
+func (c *Client) GetExecutionResult(ctx context.Context, userID string, executionRunID string) (*types.ExecutionResult, error) {
+^
+internal/gogent/core.go:2612:1: cyclomatic complexity 40 of func `(*Client).buildGitHubAPIURL` is high (> 15) (gocyclo)
+func (c *Client) buildGitHubAPIURL(functionName string, args map[string]interface{}) (string, error) {
+^
+internal/gogent/execution_engine.go:1139:1: cyclomatic complexity 34 of func `(*Client).processIterativeFunctionCallsWithSynthesisRecursiveAccumulated` is high (> 15) (gocyclo)
+func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest, functionCalls []ResponsePart, originalPrompt string, depth int, maxDepth int, allFunctionCalls []ResponsePart, allFunctionResults []map[string]interface{}) string {
+^
+internal/gogent/execution_engine.go:1014:1: cyclomatic complexity 32 of func `(*Client).createFallbackSummary` is high (> 15) (gocyclo)
+func (c *Client) createFallbackSummary(functionCalls []ResponsePart, functionResults []map[string]interface{}) string {
+^
+internal/gogent/system_sync.go:194:1: cyclomatic complexity 26 of func `(*Client).syncFunctionToDatabase` is high (> 15) (gocyclo)
+func (c *Client) syncFunctionToDatabase(ctx context.Context, spec *FunctionSpec) error {
+^
+internal/gogent/core.go:389:1: cyclomatic complexity 24 of func `(*Client).LoadDatabaseAPIKeys` is high (> 15) (gocyclo)
+func (c *Client) LoadDatabaseAPIKeys(ctx context.Context, userID string) error {
+^
+internal/gogent/synthesis_manager.go:114:1: cyclomatic complexity 23 of func `(*SynthesisManager).detectIdenticalFunctionLoop` is high (> 15) (gocyclo)
+func (sm *SynthesisManager) detectIdenticalFunctionLoop(functionCalls []ResponsePart) bool {
+^
+internal/gogent/execution_engine.go:60:1: cyclomatic complexity 23 of func `(*Client).executeMultiVariationWithRun` is high (> 15) (gocyclo)
+func (c *Client) executeMultiVariationWithRun(ctx context.Context, userID string, executionRun *types.ExecutionRun, request *types.MultiExecutionRequest) (*types.ExecutionResult, error) {
+^
+internal/gogent/logging.go:54:1: cyclomatic complexity 21 of func `(*Client).logExecutionFlowEvent` is high (> 15) (gocyclo)
+func (c *Client) logExecutionFlowEvent(eventType string, sequenceNumber int, status string, parentEventID *string, eventData map[string]interface{}, durationMs *int32, errorMessage *string) {
+^
+internal/gogent/core.go:516:1: cyclomatic complexity 21 of func `(*Client).LoadAgentAPIKeys` is high (> 15) (gocyclo)
+func (c *Client) LoadAgentAPIKeys(ctx context.Context, agentID string) error {
+^
+internal/gogent/execution_engine.go:742:1: cyclomatic complexity 18 of func `(*Client).processProviderSynthesisWithIteration` is high (> 15) (gocyclo)
+func (c *Client) processProviderSynthesisWithIteration(ctx context.Context, config *types.APIConfiguration, synthesisRequest *providers.ModelRequest, provider providers.ModelProvider, providerType string, functionCalls []ResponsePart, functionResults []map[string]interface{}, originalPrompt string, depth int, maxDepth int) (string, error) {
+^
+internal/gogent/execution_engine.go:2305:1: cyclomatic complexity 16 of func `(*Client).detectGeminiLoopPattern` is high (> 15) (gocyclo)
+func (c *Client) detectGeminiLoopPattern(functionCalls []ResponsePart, depth int) bool {
+^
+internal/gogent/execution_engine.go:1604:1: cyclomatic complexity 16 of func `(*Client).classifyError` is high (> 15) (gocyclo)
+func (c *Client) classifyError(errorMsg string) string {
+^
+internal/gogent/core.go:785:1: cyclomatic complexity 16 of func `(*Client).executeMCPFunction` is high (> 15) (gocyclo)
+func (c *Client) executeMCPFunction(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+^
+internal/heartbeat/config.go:47:1: cyclomatic complexity 17 of func `LoadConfigFromEnv` is high (> 15) (gocyclo)
+func LoadConfigFromEnv() *Config {
+^
+internal/gogent/core.go:3370:18: G115: integer overflow conversion int64 -> int32 (gosec)
+			durMs := int32(durationMs.Int64)
+			              ^
+internal/gogent/core.go:3443:18: G115: integer overflow conversion int64 -> int32 (gosec)
+			durMs := int32(durationMs.Int64)
+			              ^
+internal/gogent/core.go:3771:31: G115: integer overflow conversion int -> int32 (gosec)
+		TotalFunctionCalls:    int32(functionCallCount),
+		                            ^
+internal/gogent/core.go:3772:31: G115: integer overflow conversion int -> int32 (gosec)
+		TotalAIModelCalls:     int32(requestCount),
+		                            ^
+cmd/gogent/grpc_gateway.go:805:17: G112: Potential Slowloris Attack because ReadHeaderTimeout is not configured in the http.Server (gosec)
+	httpServer := &http.Server{
+		Addr:    ":" + port,
+		Handler: nil, // Using http.DefaultServeMux
+	}
+cmd/gogent/implementation.go:125:2: G101: Potential hardcoded credentials (gosec)
+	token := "mock-jwt-token"
+	^
+cmd/gogent/implementation.go:144:2: G101: Potential hardcoded credentials (gosec)
+	token := "temp-jwt-token"
+	^
+cmd/gogent/server.go:2126:17: G112: Potential Slowloris Attack because ReadHeaderTimeout is not configured in the http.Server (gosec)
+	httpServer := &http.Server{
+		Addr:    ":" + port,
+		Handler: handler,
+	}
+internal/templates/service.go:263:2: var-naming: var functionIds should be functionIDs (revive)
+	functionIds, err := ts.getTemplateFunctionIDs(templateID)
+	^
+internal/templates/service.go:382:3: var-naming: var functionIds should be functionIDs (revive)
+		functionIds, err := ts.getTemplateFunctionIDs(template.ID)
+		^
+internal/templates/service.go:1070:6: var-naming: var functionIds should be functionIDs (revive)
+	var functionIds []string
+	    ^
+internal/gogent/integrations/slack/integration.go:264:82: unused-parameter: parameter 'funcDef' seems to be unused, consider removing or renaming it as _ (revive)
+func (s *Integration) filterChannelsByName(slackResponse map[string]interface{}, funcDef *db.FunctionDefinition, channelName string) (map[string]interface{}, error) {
+                                                                                 ^
+internal/gogent/integrations/github/integration.go:484:88: unused-parameter: parameter 'funcDef' seems to be unused, consider removing or renaming it as _ (revive)
+func (g *Integration) handleUpdateFileOnBranch(ctx context.Context, req *http.Request, funcDef *db.FunctionDefinition, args map[string]interface{}) error {
+                                                                                       ^
+internal/gogent/integrations/github/integration.go:154:6: var-naming: don't use underscores in Go names; var per_page should be perPage (revive)
+		if per_page, ok := args["per_page"]; ok {
+		   ^
+internal/gogent/integrations/github/integration.go:185:6: var-naming: don't use underscores in Go names; var per_page should be perPage (revive)
+		if per_page, ok := args["per_page"]; ok {
+		   ^
+internal/gogent/core.go:33:2: blank-imports: a blank import should be only in a main or test package, or have a comment justifying it (revive)
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+	^
+internal/gogent/core.go:201:2: redefines-builtin-id: redefinition of the built-in function copy (revive)
+	copy := make(map[string]interface{})
+	^
+internal/gogent/core.go:221:2: redefines-builtin-id: redefinition of the built-in function copy (revive)
+	copy := make([]interface{}, len(original))
+	^
+internal/heartbeat/config.go:66:6: redefines-builtin-id: redefinition of the built-in function max (revive)
+		if max, err := strconv.Atoi(val); err == nil && max > 0 {
+		   ^
+internal/heartbeat/executor.go:416:26: var-declaration: should drop = 0 from declaration of var totalTokens; it is the zero value (revive)
+	var totalTokens int32 = 0
+	                        ^
+internal/heartbeat/executor.go:17:6: exported: type name will be used as heartbeat.HeartbeatExecutor by other packages, and that stutters; consider calling this Executor (revive)
+type HeartbeatExecutor struct {
+     ^
+cmd/gogent/server.go:499:8: context-keys-type: should not use basic type string as key in context.WithValue (revive)
+	ctx = context.WithValue(ctx, "execution_run_id", executionID)
+	      ^
+cmd/gogent/grpc_gateway.go:192:5: var-naming: var neo4jUrl should be neo4jURL (revive)
+	if neo4jUrl := r.Header.Get("X-Neo4j-URL"); neo4jUrl != "" {
+	   ^
+cmd/gogent/grpc_server.go:407:22: var-naming: var totalApiRequests should be totalAPIRequests (revive)
+	totalExecutionRuns, totalApiRequests, totalApiResponses, totalFunctionCalls, avgResponseTime, successRate := s.businessLogic.GetDatabaseStats()
+	                    ^
+cmd/gogent/server.go:63:87: unused-parameter: parameter 'useMock' seems to be unused, consider removing or renaming it as _ (revive)
+func (e *ExecutionEngineAdapter) StartExecution(request *types.MultiExecutionRequest, useMock bool, sessionAPIKeys map[string]string) (string, *types.ExecutionRun, error) {
+                                                                                      ^
+cmd/gogent/server.go:232:53: unused-parameter: parameter 'r' seems to be unused, consider removing or renaming it as _ (revive)
+func (s *Server) testHandler(w http.ResponseWriter, r *http.Request) {
+                                                    ^
+cmd/gogent/server.go:1802:6: var-naming: var totalApiRequests should be totalAPIRequests (revive)
+	var totalApiRequests int32
+	    ^
+cmd/gogent/server.go:1813:6: var-naming: var totalApiResponses should be totalAPIResponses (revive)
+	var totalApiResponses int32
+	    ^
+internal/gogent/core.go:3439:19: unnecessary conversion (unconvert)
+			seqNum := int32(sequenceNumber.Int32)
+			               ^
+internal/gogent/core.go:3065:24: unnecessary conversion (unconvert)
+			ExecutionTime: int64(response.ResponseTimeMs),
+			                    ^
+internal/gogent/core.go:3076:21: unnecessary conversion (unconvert)
+		totalTime += int64(response.ResponseTimeMs)
+		                  ^
+internal/templates/tokens.go:333:6: func `generateSecureToken` is unused (unused)
+func generateSecureToken() string {
+     ^
+internal/gogent/integrations/github/integration.go:521:23: func `(*Integration).handleBranchUpdatePRWorkflow` is unused (unused)
+func (g *Integration) handleBranchUpdatePRWorkflow(ctx context.Context, req *http.Request, _ *db.FunctionDefinition, args map[string]interface{}) error {
+                      ^
+internal/gogent/execution_engine.go:1089:18: func `(*Client).processIterativeFunctionCalls` is unused (unused)
+func (c *Client) processIterativeFunctionCalls(ctx context.Context, _ *types.APIConfiguration, _ *types.APIRequest, functionCalls []ResponsePart, _ string) (string, map[string]interface{}) {
+                 ^
+internal/gogent/synthesis_manager.go:224:29: func `(*SynthesisManager).hasSignificantErrors` is unused (unused)
+func (sm *SynthesisManager) hasSignificantErrors(results []map[string]interface{}) bool {
+                            ^
+cmd/gogent/server.go:910:18: func `(*Server).generateMockResponse` is unused (unused)
+func (s *Server) generateMockResponse(prompt string, config types.APIConfiguration) string {
+                 ^
+cmd/gogent/server.go:938:6: func `containsSubstring` is unused (unused)
+func containsSubstring(text, substr string) bool {
+     ^
+cmd/gogent/server.go:945:6: func `stringContains` is unused (unused)
+func stringContains(text, substr string) bool {
+     ^
+internal/gogent/logging.go:170:3: missing cases in switch of type types.LogCategory: types.LogCategoryIntegration, types.LogCategoryError (exhaustive)
+		switch category {
+		^
+internal/github/directory_analyzer.go:26:30: Function 'ProcessDirectoryListing' is too long (91 > 60) (funlen)
+func (da *DirectoryAnalyzer) ProcessDirectoryListing(
+                             ^
+internal/gogent/core.go:1727:18: Function 'createMockMemoryResponse' is too long (168 > 60) (funlen)
+func (c *Client) createMockMemoryResponse(functionName string, args map[string]interface{}) map[string]interface{} {
+                 ^
+internal/gogent/core.go:1900:18: Function 'executeIntegrationFunction' is too long (93 > 60) (funlen)
+func (c *Client) executeIntegrationFunction(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+                 ^
+internal/gogent/core.go:2053:18: Function 'executeGitHubBranchUpdatePRWorkflow' is too long (79 > 60) (funlen)
+func (c *Client) executeGitHubBranchUpdatePRWorkflow(ctx context.Context, _ *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+                 ^
+internal/gogent/core.go:2826:18: Function 'LoadSystemFunctionTools' is too long (66 > 60) (funlen)
+func (c *Client) LoadSystemFunctionTools(ctx context.Context, userID string) ([]types.Tool, error) {
+                 ^
+internal/gogent/core.go:3313:18: Function 'GetExecutionLogsByConfiguration' is too long (68 > 60) (funlen)
+func (c *Client) GetExecutionLogsByConfiguration(ctx context.Context, executionRunID, configurationID string) ([]types.ExecutionLog, error) {
+                 ^
+internal/gogent/core.go:3386:18: Function 'GetExecutionLogsByRun' is too long (68 > 60) (funlen)
+func (c *Client) GetExecutionLogsByRun(ctx context.Context, executionRunID string) ([]types.ExecutionLog, error) {
+                 ^
+internal/gogent/execution_engine.go:383:18: Function 'callGeminiAPI' is too long (65 > 60) (funlen)
+func (c *Client) callGeminiAPI(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest) (*types.APIResponse, error) {
+                 ^
+internal/gogent/execution_engine.go:480:18: Function 'callGeminiRestAPI' is too long (77 > 60) (funlen)
+func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest) (*types.APIResponse, error) {
+                 ^
+internal/gogent/execution_engine.go:583:18: Function 'callGeminiRestAPIForSynthesis' is too long (66 > 60) (funlen)
+func (c *Client) callGeminiRestAPIForSynthesis(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest) (*types.APIResponse, error) {
+                 ^
+internal/gogent/execution_engine.go:662:18: Function 'processIterativeFunctionCallsWithProvider' is too long (62 > 60) (funlen)
+func (c *Client) processIterativeFunctionCallsWithProvider(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest, functionCalls []ResponsePart, originalPrompt string, provider providers.ModelProvider, providerType string) (string, error) {
+                 ^
+internal/gogent/execution_engine.go:880:18: Function 'executeFunctionCall' is too long (92 > 60) (funlen)
+func (c *Client) executeFunctionCall(ctx context.Context, functionName string, args map[string]interface{}) (map[string]interface{}, error) {
+                 ^
+internal/gogent/system_sync.go:433:18: Function 'syncModelConfigurationToDatabase' is too long (75 > 60) (funlen)
+func (c *Client) syncModelConfigurationToDatabase(ctx context.Context, spec *ModelConfigurationSpec) error {
+                 ^
+internal/heartbeat/executor.go:291:30: Function 'executeAgentTemplate' is too long (97 > 60) (funlen)
+func (he *HeartbeatExecutor) executeAgentTemplate(ctx context.Context, agent *OverdueAgent, template *types.ExecutionTemplate) bool {
+                             ^
+internal/heartbeat/queries.go:40:25: Function 'GetOverdueActiveAgents' is too long (68 > 60) (funlen)
+func (aq *AgentQueries) GetOverdueActiveAgents(ctx context.Context) ([]*OverdueAgent, error) {
+                        ^
+internal/heartbeat/queries.go:217:25: Function 'GetConfiguration' is too long (66 > 60) (funlen)
+func (aq *AgentQueries) GetConfiguration(ctx context.Context, configID string) (*types.APIConfiguration, error) {
+                        ^
+internal/templates/handlers.go:209:28: Function 'UpdateTemplate' has too many statements (42 > 40) (funlen)
+func (th *TemplateHandler) UpdateTemplate(w http.ResponseWriter, r *http.Request) {
+                           ^
+internal/templates/service.go:845:28: Function 'createTemplateVersion' is too long (72 > 60) (funlen)
+func (ts *TemplateService) createTemplateVersion(tx *sql.Tx, template *types.ExecutionTemplate, parameters []types.ExecutionTemplateParameter, changeType, changeSummary string) (*types.ExecutionTemplateVersion, error) {
+                           ^
+internal/templates/service.go:974:28: Function 'getTemplateAuthTokens' has too many statements (41 > 40) (funlen)
+func (ts *TemplateService) getTemplateAuthTokens(templateID string, includeInactive bool) ([]types.ExecutionTemplateAuthToken, error) {
+                           ^
+internal/templates/tokens.go:73:28: Function 'GetAuthTokenByValue' is too long (64 > 60) (funlen)
+func (ts *TemplateService) GetAuthTokenByValue(tokenValue string) (*types.ExecutionTemplateAuthToken, error) {
+                           ^
+internal/templates/tokens.go:208:28: Function 'GetAuthTokenByID' is too long (61 > 60) (funlen)
+func (ts *TemplateService) GetAuthTokenByID(tokenID string) (*types.ExecutionTemplateAuthToken, error) {
+                           ^
+cmd/gogent/grpc_gateway.go:646:6: Function 'convertExecutionResultToMap' is too long (122 > 60) (funlen)
+func convertExecutionResultToMap(result *pb.ExecutionResult) map[string]interface{} {
+     ^
+cmd/gogent/grpc_server.go:617:22: Function 'convertExecutionResultToProto' has too many statements (48 > 40) (funlen)
+func (s *GRPCServer) convertExecutionResultToProto(result *types.ExecutionResult) (*pb.ExecutionResult, error) {
+                     ^
+cmd/gogent/implementation.go:382:26: Function 'ListFunctions' is too long (82 > 60) (funlen)
+func (bl *BusinessLogic) ListFunctions(ctx context.Context) ([]*types.FunctionDefinition, error) {
+                         ^
+cmd/gogent/implementation.go:622:26: Function 'runAsyncExecution' is too long (62 > 60) (funlen)
+func (bl *BusinessLogic) runAsyncExecution(executionID string, request *types.MultiExecutionRequest, useMock bool, sessionAPIKeys map[string]string) {
+                         ^
+cmd/gogent/server.go:244:18: Function 'executeHandler' has too many statements (47 > 40) (funlen)
+func (s *Server) executeHandler(w http.ResponseWriter, r *http.Request) {
+                 ^
+cmd/gogent/server.go:550:18: Function 'executionStatusHandler' is too long (65 > 60) (funlen)
+func (s *Server) executionStatusHandler(w http.ResponseWriter, r *http.Request) {
+                 ^
+cmd/gogent/server.go:955:18: Function 'getSpecificExecutionRun' has too many statements (42 > 40) (funlen)
+func (s *Server) getSpecificExecutionRun(w http.ResponseWriter, r *http.Request, runID string) {
+                 ^
+cmd/gogent/server.go:1039:18: Function 'executionRunsHandler' has too many statements (42 > 40) (funlen)
+func (s *Server) executionRunsHandler(w http.ResponseWriter, r *http.Request) {
+                 ^
+cmd/gogent/server.go:1788:18: Function 'getUserDatabaseStats' is too long (82 > 60) (funlen)
+func (s *Server) getUserDatabaseStats(ctx context.Context, userID string) (map[string]interface{}, error) {
+                 ^
+cmd/gogent/server.go:1961:6: Function 'runServer' has too many statements (117 > 40) (funlen)
+func runServer() {
+     ^
+cmd/gogent/server.go:2157:18: Function 'createMockExecutionResult' is too long (82 > 60) (funlen)
+func (s *Server) createMockExecutionResult(run *types.ExecutionRun) *types.ExecutionResult {
+                 ^
+cmd/gogent/server.go:2695:18: Function 'createFunction' has too many statements (46 > 40) (funlen)
+func (s *Server) createFunction(w http.ResponseWriter, r *http.Request) {
+                 ^
+cmd/gogent/server.go:2991:18: Function 'createGenericMockExecutionResult' is too long (91 > 60) (funlen)
+func (s *Server) createGenericMockExecutionResult(runID string) *types.ExecutionResult {
+                 ^
+internal/gogent/api_management.go:176:1: paramTypeCombine: func(ctx context.Context, configID string, userID string) error could be replaced with func(ctx context.Context, configID, userID string) error (gocritic)
+func (c *Client) DeleteAPIConfiguration(ctx context.Context, configID string, userID string) error {
+^
+internal/gogent/api_management.go:259:1: paramTypeCombine: func(ctx context.Context, userID string, _ int32, _ int32) ([]types.APIConfiguration, error) could be replaced with func(ctx context.Context, userID string, _, _ int32) ([]types.APIConfiguration, error) (gocritic)
+func (c *Client) ListAPIConfigurationsByUser(ctx context.Context, userID string, _ int32, _ int32) ([]types.APIConfiguration, error) {
+^
+internal/gogent/api_management.go:270:2: rangeValCopy: each iteration copies 312 bytes (consider pointers or indexing) (gocritic)
+	for _, config := range configs {
+	^
+internal/gogent/core.go:526:6: emptyStringTest: replace `len(agentID) > 0` with `agentID != ""` (gocritic)
+		if len(agentID) > 0 {
+		   ^
+internal/gogent/core.go:437:16: emptyStringTest: replace `len(decryptedKey) > 0` with `decryptedKey != ""` (gocritic)
+					} else if len(decryptedKey) > 0 {
+					          ^
+internal/gogent/core.go:458:16: emptyStringTest: replace `len(decryptedKey) > 0` with `decryptedKey != ""` (gocritic)
+					} else if len(decryptedKey) > 0 {
+					          ^
+internal/gogent/core.go:471:16: emptyStringTest: replace `len(decryptedKey) > 0` with `decryptedKey != ""` (gocritic)
+					} else if len(decryptedKey) > 0 {
+					          ^
+internal/gogent/core.go:1117:6: nestingReduce: invert if cond, replace body with `continue`, move old body after the statement (gocritic)
+					if artifactMap, ok := artifact.(map[string]interface{}); ok {
+					^
+internal/gogent/core.go:3150:1: paramTypeCombine: func(ctx context.Context, userID string, executionRunID string) (*types.ExecutionRun, error) could be replaced with func(ctx context.Context, userID, executionRunID string) (*types.ExecutionRun, error) (gocritic)
+func (c *Client) GetExecutionRun(ctx context.Context, userID string, executionRunID string) (*types.ExecutionRun, error) {
+^
+internal/gogent/core.go:3263:1: paramTypeCombine: func(ctx context.Context, userID string, executionRunID string) (*types.ExecutionFlowGraph, error) could be replaced with func(ctx context.Context, userID, executionRunID string) (*types.ExecutionFlowGraph, error) (gocritic)
+func (c *Client) GetExecutionFlowGraph(ctx context.Context, userID string, executionRunID string) (*types.ExecutionFlowGraph, error) {
+^
+internal/gogent/core.go:3459:1: paramTypeCombine: func(ctx context.Context, userID string, executionRunID string, configurationID string) (*types.ExecutionFlowGraph, error) could be replaced with func(ctx context.Context, userID, executionRunID, configurationID string) (*types.ExecutionFlowGraph, error) (gocritic)
+func (c *Client) GetExecutionFlowGraphByConfiguration(ctx context.Context, userID string, executionRunID string, configurationID string) (*types.ExecutionFlowGraph, error) {
+^
+internal/gogent/core.go:560:2: rangeValCopy: each iteration copies 408 bytes (consider pointers or indexing) (gocritic)
+	for serviceName, apiKey := range agentConfig.ServiceAPIKeys {
+	^
+internal/gogent/core.go:2842:2: rangeValCopy: each iteration copies 456 bytes (consider pointers or indexing) (gocritic)
+	for _, funcDef := range funcDefs {
+	^
+internal/gogent/core.go:2943:2: rangeValCopy: each iteration copies 312 bytes (consider pointers or indexing) (gocritic)
+	for _, row := range configRows {
+	^
+internal/gogent/core.go:2973:2: rangeValCopy: each iteration copies 264 bytes (consider pointers or indexing) (gocritic)
+	for _, row := range requestRows {
+	^
+internal/gogent/core.go:2993:2: rangeValCopy: each iteration copies 312 bytes (consider pointers or indexing) (gocritic)
+	for _, respRow := range responseRows {
+	^
+internal/gogent/core.go:3222:2: rangeValCopy: each iteration copies 264 bytes (consider pointers or indexing) (gocritic)
+	for _, run := range executionRuns {
+	^
+internal/gogent/core.go:2505:4: typeAssertChain: rewrite if-else to type switch statement (gocritic)
+			if codeData, ok := responseData.(map[string]interface{}); ok {
+			^
+internal/gogent/core.go:2633:4: typeAssertChain: rewrite if-else to type switch statement (gocritic)
+			if limitInt, ok := limit.(float64); ok {
+			^
+internal/gogent/core.go:2718:4: typeAssertChain: rewrite if-else to type switch statement (gocritic)
+			if perPageInt, ok := perPage.(float64); ok {
+			^
+internal/gogent/execution_engine.go:777:23: appendAssign: append result not assigned to the same slice (gocritic)
+		allFunctionCalls := append(functionCalls, convertFunctionCallsToResponseParts(synthesisResponse.FunctionCalls)...)
+		                    ^
+internal/gogent/execution_engine.go:778:25: appendAssign: append result not assigned to the same slice (gocritic)
+		allFunctionResults := append(functionResults, additionalResults...)
+		                      ^
+internal/gogent/execution_engine.go:1277:29: appendAssign: append result not assigned to the same slice (gocritic)
+	currentAllFunctionCalls := append(allFunctionCalls, functionCalls...)
+	                           ^
+internal/gogent/execution_engine.go:315:68: emptyStringTest: replace `len(allConfigData) > 0` with `allConfigData != ""` (gocritic)
+	if allConfigData, ok := row.AllConfigurationsData.(string); ok && len(allConfigData) > 0 {
+	                                                                  ^
+internal/gogent/execution_engine.go:359:69: emptyStringTest: replace `len(allConfigData) > 0` with `allConfigData != ""` (gocritic)
+		if allConfigData, ok := row.AllConfigurationsData.(string); ok && len(allConfigData) > 0 {
+		                                                                  ^
+internal/gogent/execution_engine.go:310:69: emptyStringTest: replace `len(bestConfigData) > 0` with `bestConfigData != ""` (gocritic)
+	if bestConfigData, ok := row.BestConfigurationData.(string); ok && len(bestConfigData) > 0 {
+	                                                                   ^
+internal/gogent/execution_engine.go:354:70: emptyStringTest: replace `len(bestConfigData) > 0` with `bestConfigData != ""` (gocritic)
+		if bestConfigData, ok := row.BestConfigurationData.(string); ok && len(bestConfigData) > 0 {
+		                                                                   ^
+internal/templates/service.go:70:5: S1009: should omit nil check; len() for nil maps is defined as zero (gosimple)
+	if template.Tags != nil && len(template.Tags) > 0 {
+	   ^
+internal/templates/service.go:422:5: S1009: should omit nil check; len() for nil maps is defined as zero (gosimple)
+	if template.Tags != nil && len(template.Tags) > 0 {
+	   ^
+internal/templates/service.go:656:5: S1009: should omit nil check; len() for nil maps is defined as zero (gosimple)
+	if param.ValidationRules != nil && len(param.ValidationRules) > 0 {
+	   ^
+cmd/gogent/server.go:406:3: ineffectual assignment to neo4jURL (ineffassign)
+		neo4jURL = decryptedURL
+		^
+cmd/gogent/server.go:417:3: ineffectual assignment to neo4jUsername (ineffassign)
+		neo4jUsername = decryptedUsername
+		^
+cmd/gogent/server.go:428:3: ineffectual assignment to neo4jPassword (ineffassign)
+		neo4jPassword = decryptedPassword
+		^
+cmd/gogent/server.go:439:3: ineffectual assignment to neo4jDatabase (ineffassign)
+		neo4jDatabase = decryptedDatabase
+		^
+internal/gogent/integrations/github/integration.go:218:1: The line is 125 characters long, which exceeds the maximum of 120 characters. (lll)
+		return "", fmt.Errorf("legacy GitHub function not supported: %s (function should have endpoint_url defined)", functionName)
+^
+internal/gogent/integrations/github/integration.go:231:1: The line is 145 characters long, which exceeds the maximum of 120 characters. (lll)
+func (g *Integration) PrepareRequest(ctx context.Context, req *http.Request, funcDef *db.FunctionDefinition, args map[string]interface{}) error {
+^
+internal/gogent/integrations/github/integration.go:539:1: The line is 130 characters long, which exceeds the maximum of 120 characters. (lll)
+	if owner == "" || repo == "" || branchName == "" || filePath == "" || fileContent == "" || commitMessage == "" || prTitle == "" {
+^
+internal/gogent/integrations/github/integration.go:731:1: The line is 168 characters long, which exceeds the maximum of 120 characters. (lll)
+			errorMsg += " - Common causes: branch already exists, invalid SHA, or insufficient permissions. Try using a different branch name or verify the source SHA is valid."
+^
+internal/gogent/integrations/github/integration.go:743:1: The line is 125 characters long, which exceeds the maximum of 120 characters. (lll)
+func (g *Integration) UpdateFileOnBranch(ctx context.Context, owner, repo, filePath, content, message, branch string) error {
+^
+internal/github/fetcher.go:43:24: Magic number: 200, in <condition> detected (mnd)
+	if resp.StatusCode != 200 {
+	                      ^
+internal/gogent/integrations/github/integration.go:282:24: Magic number: 400, in <condition> detected (mnd)
+	if resp.StatusCode >= 400 {
+	                      ^
+internal/gogent/integrations/github/integration.go:630:24: Magic number: 200, in <condition> detected (mnd)
+	if resp.StatusCode != 200 {
+	                      ^
+internal/gogent/integrations/github/integration.go:672:24: Magic number: 200, in <condition> detected (mnd)
+	if resp.StatusCode != 200 {
+	                      ^
+internal/gogent/integrations/github/integration.go:723:24: Magic number: 201, in <condition> detected (mnd)
+	if resp.StatusCode != 201 {
+	                      ^
+internal/gogent/integrations/github/integration.go:830:24: Magic number: 201, in <condition> detected (mnd)
+	if resp.StatusCode != 201 {
+	                      ^
+internal/gogent/integrations/github/integration.go:623:34: Magic number: 30, in <assign> detected (mnd)
+	client := &http.Client{Timeout: 30 * time.Second}
+	                                ^
+internal/gogent/integrations/github/integration.go:665:34: Magic number: 30, in <assign> detected (mnd)
+	client := &http.Client{Timeout: 30 * time.Second}
+	                                ^
+internal/gogent/integrations/github/integration.go:716:34: Magic number: 30, in <assign> detected (mnd)
+	client := &http.Client{Timeout: 30 * time.Second}
+	                                ^
+internal/gogent/integrations/slack/integration.go:204:24: Magic number: 400, in <condition> detected (mnd)
+	if resp.StatusCode >= 400 {
+	                      ^
+internal/gogent/api_management.go:321:54: Magic number: 100, in <argument> detected (mnd)
+	return c.ListAPIConfigurationsByUser(ctx, "system", 100, 0)
+	                                                    ^
+internal/gogent/execution_engine.go:734:51: Magic number: 300, in <argument> detected (mnd)
+	synthesisCtx, cancel := context.WithTimeout(ctx, 300*time.Second) // 5 minutes for synthesis
+	                                                 ^
+internal/gogent/execution_engine.go:1424:60: Magic number: 300, in <argument> detected (mnd)
+	synthesisCtx, synthesisCancel := context.WithTimeout(ctx, 300*time.Second) // 5 minutes for synthesis
+	                                                          ^
+internal/gogent/execution_engine.go:1875:67: Magic number: 3, in <argument> detected (mnd)
+			summary.WriteString(fmt.Sprintf("... and %d more", len(issues)-3))
+			                                                               ^
+internal/gogent/execution_engine.go:1927:68: Magic number: 2, in <argument> detected (mnd)
+			summary.WriteString(fmt.Sprintf("... and %d more", len(commits)-2))
+			                                                                ^
+internal/gogent/execution_engine.go:1996:79: Magic number: 5, in <argument> detected (mnd)
+						itemNames = append(itemNames, fmt.Sprintf("... and %d more", len(items)-5))
+						                                                                        ^
+internal/gogent/execution_engine.go:2032:67: Magic number: 3, in <argument> detected (mnd)
+				summary.WriteString(fmt.Sprintf("... and %d more", len(items)-3))
+				                                                              ^
+internal/gogent/execution_engine.go:2080:64: Magic number: 3, in <argument> detected (mnd)
+			summary.WriteString(fmt.Sprintf("... and %d more", len(prs)-3))
+			                                                            ^
+internal/templates/ratelimiter.go:412:26: rows.Err must be checked (rowserrcheck)
+	rows, err := rl.db.Query(query, templateID, cutoff)
+	                        ^
+cmd/gogent/implementation.go:87:88: (*BusinessLogic).LoginUser - result 3 (error) is always nil (unparam)
+func (bl *BusinessLogic) LoginUser(username, _ string) (*auth.User, string, time.Time, error) {
+                                                                                       ^
+cmd/gogent/implementation.go:110:87: (*BusinessLogic).RegisterUser - result 2 (error) is always nil (unparam)
+func (bl *BusinessLogic) RegisterUser(username, email, _ string) (*auth.User, string, error) {
+                                                                                      ^

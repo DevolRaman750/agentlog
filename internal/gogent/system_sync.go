@@ -15,6 +15,11 @@ import (
 	"gogent/internal/db"
 )
 
+const (
+	// Default model parameters
+	DefaultTemperature = 0.5
+)
+
 // ProviderSpec defines the JSON structure for provider specifications
 type ProviderSpec struct {
 	Name               string                 `json:"name"`
@@ -76,7 +81,7 @@ func (c *Client) SyncSystemSpecs(ctx context.Context) error {
 }
 
 // syncProviders loads provider specs from JSON files and syncs to database
-func (c *Client) syncProviders(ctx context.Context) error {
+func (c *Client) syncProviders(_ context.Context) error {
 	providersDir := "system/providers"
 
 	// Check if providers directory exists
@@ -439,7 +444,7 @@ func (c *Client) syncModelConfigurationToDatabase(ctx context.Context, spec *Mod
 	configExists := err == nil
 
 	// Extract parameters
-	temperature := float32(0.5)
+	temperature := float32(DefaultTemperature)
 	maxTokens := int32(4096)
 	topP := float32(0.9)
 	topK := int32(40)

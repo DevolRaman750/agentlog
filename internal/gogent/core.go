@@ -30,7 +30,7 @@ import (
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/mysql"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
+	_ "github.com/golang-migrate/migrate/v4/source/file" // Required for file-based migrations
 	"github.com/google/uuid"
 )
 
@@ -49,13 +49,38 @@ const (
 	ServiceSlack       = "slack"
 	ServiceGoogleDrive = "googledrive"
 
+	// Function name constants
+	FunctionTeamTaskList              = "team_task_list"
+	FunctionTeamTaskStore             = "team_task_store"
+	FunctionTeamMemoryRead            = "team_memory_read"
+	FunctionTeamMemorySearch          = "team_memory_search"
+	FunctionAgentMemorySearch         = "agent_memory_search"
+	FunctionCommitFiles               = "commit_files"
+	FunctionSlackSendMessage          = "slack_send_message"
+	FunctionGoogleDriveGetFile        = "googledrive_get_file"
+	FunctionGoogleDriveGetFileContent = "googledrive_get_file_content"
+	FunctionGoogleDriveListFiles      = "googledrive_list_files"
+	FunctionGitHubReadCode            = "github_read_code"
+
+	// Status constants
+	StatusUnknown     = "unknown"
+	StatusServerError = "server_error"
+	StatusInvalid     = "invalid"
+
+	// Other constants
+	NoTitleText = "No title"
+
+	// Numeric constants
+	SystemUserID  = "system"
+	DefaultLimit  = 100
+	DefaultOffset = 0
+
 	// Function groups
 	FunctionGroupInternal      = "internal"
 	FunctionGroupCommunication = "communication"
 	FunctionGroupAPI           = "API"
 
 	// Function names
-	FunctionTeamTaskList           = "team_task_list"
 	FunctionTeamTaskClaim          = "team_task_claim"
 	FunctionTeamMemoryWrite        = "team_memory_write"
 	FunctionAgentMemoryRead        = "agent_memory_read"
@@ -69,7 +94,6 @@ const (
 	StatusEmpty   = "EMPTY"
 	StatusPresent = "PRESENT"
 	StatusMissing = "MISSING"
-	StatusUnknown = "unknown"
 
 	// Response constants
 	ResponseNoData = "No data returned"
@@ -198,18 +222,18 @@ func (c *Client) deepCopyMap(original map[string]interface{}) map[string]interfa
 		return nil
 	}
 
-	copy := make(map[string]interface{})
+	result := make(map[string]interface{})
 	for k, v := range original {
 		switch val := v.(type) {
 		case map[string]interface{}:
-			copy[k] = c.deepCopyMap(val)
+			result[k] = c.deepCopyMap(val)
 		case []interface{}:
-			copy[k] = c.deepCopySlice(val)
+			result[k] = c.deepCopySlice(val)
 		default:
-			copy[k] = val
+			result[k] = val
 		}
 	}
-	return copy
+	return result
 }
 
 // deepCopySlice creates a deep copy of a []interface{}
@@ -218,18 +242,18 @@ func (c *Client) deepCopySlice(original []interface{}) []interface{} {
 		return nil
 	}
 
-	copy := make([]interface{}, len(original))
+	result := make([]interface{}, len(original))
 	for i, v := range original {
 		switch val := v.(type) {
 		case map[string]interface{}:
-			copy[i] = c.deepCopyMap(val)
+			result[i] = c.deepCopyMap(val)
 		case []interface{}:
-			copy[i] = c.deepCopySlice(val)
+			result[i] = c.deepCopySlice(val)
 		default:
-			copy[i] = val
+			result[i] = val
 		}
 	}
-	return copy
+	return result
 }
 
 // ResponsePart represents a part of the Gemini API response
@@ -414,7 +438,7 @@ func (c *Client) LoadDatabaseAPIKeys(ctx context.Context, userID string) error {
 	sessionKeys := &types.SessionAPIKeys{}
 
 	for _, apiKey := range userAPIKeys {
-		if !apiKey.IsActive || apiKey.ValidationStatus == "invalid" {
+		if !apiKey.IsActive || apiKey.ValidationStatus == StatusInvalid {
 			continue
 		}
 
@@ -442,7 +466,7 @@ func (c *Client) LoadDatabaseAPIKeys(ctx context.Context, userID string) error {
 		case ServiceOpenWeather:
 			sessionKeys.OpenWeatherAPIKey = decryptedKey
 			log.Printf("🔑 Loaded OpenWeather API key from database")
-		case "github":
+		case ServiceGitHub:
 			sessionKeys.GithubAPIKey = decryptedKey
 			log.Printf("🔑 Loaded GitHub API key from database")
 		case ServiceOpenRouter:
@@ -494,7 +518,8 @@ func (c *Client) LoadDatabaseAPIKeys(ctx context.Context, userID string) error {
 	}
 
 	c.databaseAPIKeys = sessionKeys
-	log.Printf("🔑 Database API keys loaded: Gemini=%v, OpenWeather=%v, GitHub=%v, OpenRouter=%v, Slack=%v, WhatsApp=%v, GoogleDrive=%v",
+	log.Printf("🔑 Database API keys loaded: Gemini=%v, OpenWeather=%v, GitHub=%v, "+
+		"OpenRouter=%v, Slack=%v, WhatsApp=%v, GoogleDrive=%v",
 		sessionKeys.GeminiAPIKey != "",
 		sessionKeys.OpenWeatherAPIKey != "",
 		sessionKeys.GithubAPIKey != "",
@@ -558,7 +583,7 @@ func (c *Client) LoadAgentAPIKeys(ctx context.Context, agentID string) error {
 	sessionKeys := &types.SessionAPIKeys{}
 
 	for serviceName, apiKey := range agentConfig.ServiceAPIKeys {
-		if !apiKey.IsActive || apiKey.ValidationStatus == "invalid" {
+		if !apiKey.IsActive || apiKey.ValidationStatus == StatusInvalid {
 			log.Printf("⚠️ Skipping inactive/invalid API key for service %s", serviceName)
 			continue
 		}
@@ -591,7 +616,7 @@ func (c *Client) LoadAgentAPIKeys(ctx context.Context, agentID string) error {
 			sessionKeys.OpenWeatherAPIKey = decryptedKey
 			log.Printf("🔑 [Agent %s] Loaded OpenWeather API key - Source: %s",
 				agentID, apiKey.KeyName)
-		case "github":
+		case ServiceGitHub:
 			sessionKeys.GithubAPIKey = decryptedKey
 			log.Printf("🔑 [Agent %s] Loaded GitHub API key - Source: %s",
 				agentID, apiKey.KeyName)
@@ -818,7 +843,7 @@ func (c *Client) executeMCPFunction(ctx context.Context, funcDef *db.FunctionDef
 		if _, ok := args["branch_name"]; !ok {
 			return nil, fmt.Errorf("branch_name is required")
 		}
-	case "commit_files":
+	case FunctionCommitFiles:
 		if _, ok := args["commit_message"]; !ok {
 			return nil, fmt.Errorf("commit_message is required")
 		}
@@ -842,7 +867,7 @@ func (c *Client) executeMCPFunction(ctx context.Context, funcDef *db.FunctionDef
 		result["branch_name"] = args["branch_name"]
 		result["branch_url"] = fmt.Sprintf("https://github.com/%s/tree/%s", repo, args["branch_name"])
 		result["commit_sha"] = "abc123def456"
-	case "commit_files":
+	case FunctionCommitFiles:
 		result["files_committed"] = 1
 		result["commit_sha"] = "def456ghi789"
 		result["commit_url"] = fmt.Sprintf("https://github.com/%s/commit/def456ghi789", repo)
@@ -1015,11 +1040,11 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 			var err error
 
 			switch functionName {
-			case "team_memory_read":
+			case FunctionTeamMemoryRead:
 				response, err = teamsHandler.ReadTeamMemory(ctx, teamID, agentID, userID, request)
 			case FunctionTeamMemoryWrite:
 				response, err = teamsHandler.WriteTeamMemory(ctx, teamID, agentID, userID, request)
-			case "team_memory_search":
+			case FunctionTeamMemorySearch:
 				response, err = teamsHandler.SearchTeamMemory(ctx, teamID, agentID, userID, request)
 			case "team_memory_clear":
 				response, err = teamsHandler.ClearTeamMemory(ctx, teamID, agentID, userID, request)
@@ -1314,7 +1339,7 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 			var err error
 
 			switch functionName {
-			case "team_task_store":
+			case FunctionTeamTaskStore:
 				log.Printf("🔍 About to call StoreTeamTask with teamID=%s, agentID=%s, userID=%s", teamID, agentID, userID)
 				taskResponse, err = teamsHandler.StoreTeamTask(ctx, teamID, agentID, userID, taskRequest)
 				log.Printf("🔍 StoreTeamTask returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
@@ -1688,7 +1713,7 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 		response, err = agentsHandler.ReadMemory(ctx, agentID, userID, request)
 	case FunctionAgentMemoryWrite:
 		response, err = agentsHandler.WriteMemory(ctx, agentID, userID, request)
-	case "agent_memory_search":
+	case FunctionAgentMemorySearch:
 		response, err = agentsHandler.SearchMemory(ctx, agentID, userID, request)
 	case FunctionAgentMemoryClear:
 		response, err = agentsHandler.ClearMemory(ctx, agentID, userID, request)
@@ -1754,7 +1779,7 @@ func (c *Client) createMockMemoryResponse(functionName string, args map[string]i
 			},
 			"message": "Memory function called in non-agent execution - no data available",
 		}
-	case "agent_memory_search":
+	case FunctionAgentMemorySearch:
 		return map[string]interface{}{
 			"success":       true,
 			"function_name": functionName,
@@ -1848,7 +1873,7 @@ func (c *Client) createMockMemoryResponse(functionName string, args map[string]i
 			},
 			"message": "Team task store called in non-agent execution - task not actually stored",
 		}
-	case "team_task_list":
+	case FunctionTeamTaskList:
 		// Show clear indication that this is mock data to help with debugging
 		teamID, _ := args["team_id"].(string)
 		agentID, _ := args["agent_id"].(string)
@@ -2021,7 +2046,7 @@ func (c *Client) createIntegrationResultSummary(functionName string, result map[
 				switch functionName {
 				case "github_read_issues", "github_read_commits", "github_read_code", "github_search_code":
 					return fmt.Sprintf("GitHub API success - data type: %T", data)
-				case "slack_find_channel", FunctionSlackReadMessages, "slack_send_message":
+				case "slack_find_channel", FunctionSlackReadMessages, FunctionSlackSendMessage:
 					return fmt.Sprintf("Slack API success - data type: %T", data)
 				default:
 					return fmt.Sprintf("API success - data type: %T", data)
@@ -2409,7 +2434,7 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 			return "GitHub"
 		} else if funcDef.FunctionGroup == FunctionGroupCommunication {
 			return "Slack"
-		} else if funcDef.FunctionGroup == "googledrive" {
+		} else if funcDef.FunctionGroup == ServiceGoogleDrive {
 			return "Google Drive"
 		}
 		return FunctionGroupAPI
@@ -2435,7 +2460,7 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 			apiName = "GitHub API"
 		} else if funcDef.FunctionGroup == FunctionGroupCommunication {
 			apiName = "Slack API"
-		} else if funcDef.FunctionGroup == "googledrive" {
+		} else if funcDef.FunctionGroup == ServiceGoogleDrive {
 			apiName = "Google Drive API"
 		}
 		return nil, fmt.Errorf("%s returned %d: %s", apiName, resp.StatusCode, string(body))
@@ -2558,7 +2583,7 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 	// Add function-specific data processing for Google Drive functions
 	if funcDef.FunctionGroup == "googledrive" {
 		switch functionName {
-		case "googledrive_list_files":
+		case FunctionGoogleDriveListFiles:
 			if filesData, ok := responseData.(map[string]interface{}); ok {
 				if files, exists := filesData["files"].([]interface{}); exists {
 					result["files"] = files
@@ -2569,7 +2594,7 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 					result["next_page_token"] = nextPageToken
 				}
 			}
-		case "googledrive_get_file":
+		case FunctionGoogleDriveGetFile:
 			if fileData, ok := responseData.(map[string]interface{}); ok {
 				result["file"] = fileData
 				result["file_id"] = fileData["id"]
@@ -2580,7 +2605,7 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 				}
 				log.Printf("✅ Retrieved file metadata: %s", fileData["name"])
 			}
-		case "googledrive_get_file_content":
+		case FunctionGoogleDriveGetFileContent:
 			// For file content, the response might be text or binary
 			if content, ok := responseData.(string); ok {
 				result["content"] = content
@@ -3367,8 +3392,14 @@ func (c *Client) GetExecutionLogsByConfiguration(ctx context.Context, executionR
 			log.SequenceNumber = &seqNum
 		}
 		if durationMs.Valid {
-			durMs := int32(durationMs.Int64)
-			log.DurationMs = &durMs
+			// Guard against int64 -> int32 overflow
+			if durationMs.Int64 > int64(^uint32(0)>>1) {
+				durMs := int32(^uint32(0) >> 1) // MaxInt32
+				log.DurationMs = &durMs
+			} else {
+				durMs := int32(durationMs.Int64)
+				log.DurationMs = &durMs
+			}
 		}
 
 		logs = append(logs, log)
@@ -3440,8 +3471,14 @@ func (c *Client) GetExecutionLogsByRun(ctx context.Context, executionRunID strin
 			log.SequenceNumber = &seqNum
 		}
 		if durationMs.Valid {
-			durMs := int32(durationMs.Int64)
-			log.DurationMs = &durMs
+			// Guard against int64 -> int32 overflow
+			if durationMs.Int64 > int64(^uint32(0)>>1) {
+				durMs := int32(^uint32(0) >> 1) // MaxInt32
+				log.DurationMs = &durMs
+			} else {
+				durMs := int32(durationMs.Int64)
+				log.DurationMs = &durMs
+			}
 		}
 
 		logs = append(logs, log)
@@ -3765,12 +3802,30 @@ func (c *Client) getExecutionStats(ctx context.Context, executionRunID string) (
 		functionCallCount = 0 // Continue without function call stats
 	}
 
+	// Guard against int -> int32 overflow
+	var totalFunctionCalls, totalAIModelCalls, totalErrors int32
+	if functionCallCount > int(^uint32(0)>>1) {
+		totalFunctionCalls = int32(^uint32(0) >> 1) // MaxInt32
+	} else {
+		totalFunctionCalls = int32(functionCallCount)
+	}
+	if requestCount > int(^uint32(0)>>1) {
+		totalAIModelCalls = int32(^uint32(0) >> 1) // MaxInt32
+	} else {
+		totalAIModelCalls = int32(requestCount)
+	}
+	if errorCount > int(^uint32(0)>>1) {
+		totalErrors = int32(^uint32(0) >> 1) // MaxInt32
+	} else {
+		totalErrors = int32(errorCount)
+	}
+
 	stats := &types.ExecutionStats{
 		ID:                    uuid.New().String(),
 		ExecutionRunID:        executionRunID,
-		TotalFunctionCalls:    int32(functionCallCount),
-		TotalAIModelCalls:     int32(requestCount),
-		TotalErrors:           int32(errorCount),
+		TotalFunctionCalls:    totalFunctionCalls,
+		TotalAIModelCalls:     totalAIModelCalls,
+		TotalErrors:           totalErrors,
 		TotalRetries:          0, // TODO: Calculate retries
 		TotalExecutionTimeMs:  0, // TODO: Calculate total time
 		AvgFunctionCallTimeMs: 0, // TODO: Calculate averages

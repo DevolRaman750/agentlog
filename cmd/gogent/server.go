@@ -907,49 +907,6 @@ func (s *Server) executeMockVariation(ctx context.Context, request *types.MultiE
 	return result
 }
 
-func (s *Server) generateMockResponse(prompt string, config types.APIConfiguration) string {
-	responses := map[string]string{
-		"creative":     "🎨 [MOCK Creative Response] " + prompt + " - This creative variation emphasizes artistic expression with vivid imagery and imaginative storytelling elements.",
-		"analytical":   "🔍 [MOCK Analytical Response] " + prompt + " - This analytical variation provides structured, logical analysis with clear reasoning and factual information.",
-		"balanced":     "⚖️ [MOCK Balanced Response] " + prompt + " - This balanced variation offers a well-rounded perspective combining creativity with analytical thinking.",
-		"conservative": "📊 [MOCK Conservative Response] " + prompt + " - This conservative variation focuses on precision, accuracy, and measured responses.",
-		"experimental": "🚀 [MOCK Experimental Response] " + prompt + " - This experimental variation takes bold creative risks with unconventional approaches.",
-	}
-
-	// Determine response style based on variation name or temperature
-	for key, response := range responses {
-		if containsSubstring(config.VariationName, key) {
-			return response
-		}
-	}
-
-	// Default based on temperature
-	if config.Temperature != nil {
-		if *config.Temperature < 0.3 {
-			return responses["conservative"]
-		} else if *config.Temperature > 0.7 {
-			return responses["creative"]
-		}
-	}
-
-	return responses["balanced"]
-}
-
-func containsSubstring(text, substr string) bool {
-	return len(text) >= len(substr) &&
-		(text == substr ||
-			(len(text) > len(substr) &&
-				(stringContains(text, substr))))
-}
-
-func stringContains(text, substr string) bool {
-	for i := 0; i <= len(text)-len(substr); i++ {
-		if text[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}
 
 // Get specific execution run endpoint
 func (s *Server) getSpecificExecutionRun(w http.ResponseWriter, r *http.Request, runID string) {

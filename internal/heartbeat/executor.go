@@ -53,7 +53,9 @@ func NewHeartbeatExecutor(client *gogent.Client, config *Config) *HeartbeatExecu
 	}
 
 	// Validate and adjust config
-	config.Validate()
+	if err := config.Validate(); err != nil {
+		log.Printf("Config validation failed: %v", err)
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 

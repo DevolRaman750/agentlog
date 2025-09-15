@@ -179,8 +179,8 @@ func (h *Handler) updateTeamInDB(teamID, userID string, req types.TeamUpdateRequ
 	setParts = append(setParts, "updated_at = ?")
 	args = append(args, time.Now())
 
-    // Build the query without fmt.Sprintf to avoid gosec G201 false positive.
-    query := "UPDATE teams SET " + strings.Join(setParts, ", ") + " WHERE id = ? AND user_id = ?"
+	// Build the query without fmt.Sprintf to avoid gosec G201 false positive.
+	query := "UPDATE teams SET " + strings.Join(setParts, ", ") + " WHERE id = ? AND user_id = ?"
 
 	args = append(args, teamID, userID)
 
@@ -535,13 +535,13 @@ func (h *Handler) saveTeamMemory(teamID, userID string, memory *types.TeamMemory
 		return fmt.Errorf("failed to marshal team memory: %w", err)
 	}
 
-    sizeBytes := len(memoryJSON)
-    // Guard against potential int -> int32 overflow (gosec G115)
-    if sizeBytes > int(^uint32(0)>>1) { // math.MaxInt32 without importing math
-        memory.Metadata.SizeBytes = int32(^uint32(0) >> 1)
-    } else {
-        memory.Metadata.SizeBytes = int32(sizeBytes)
-    }
+	sizeBytes := len(memoryJSON)
+	// Guard against potential int -> int32 overflow (gosec G115)
+	if sizeBytes > int(^uint32(0)>>1) { // math.MaxInt32 without importing math
+		memory.Metadata.SizeBytes = int32(^uint32(0) >> 1)
+	} else {
+		memory.Metadata.SizeBytes = int32(sizeBytes)
+	}
 
 	// Update team record with memory
 	query := `

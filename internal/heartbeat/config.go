@@ -63,8 +63,8 @@ func LoadConfigFromEnv() *Config {
 
 	// HEARTBEAT_MAX_CONCURRENT - maximum concurrent agent executions
 	if val := os.Getenv("HEARTBEAT_MAX_CONCURRENT"); val != "" {
-		if max, err := strconv.Atoi(val); err == nil && max > 0 {
-			config.MaxConcurrentExecutions = max
+		if maxConcurrent, err := strconv.Atoi(val); err == nil && maxConcurrent > 0 {
+			config.MaxConcurrentExecutions = maxConcurrent
 		}
 	}
 

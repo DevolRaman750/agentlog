@@ -58,9 +58,9 @@ func (th *TemplateHandler) ListTemplates(w http.ResponseWriter, r *http.Request)
 	}
 
 	category := query.Get("category")
-	includePublic := query.Get("include_public") == "true"
-	includeInactive := query.Get("include_inactive") == "true"
-	includeTokens := query.Get("include_tokens") == "true"
+	includePublic := query.Get("include_public") == trueValue
+	includeInactive := query.Get("include_inactive") == trueValue
+	includeTokens := query.Get("include_tokens") == trueValue
 
 	// Get templates
 	templates, totalCount, err := th.templateService.ListTemplates(user.ID, limit, offset, category, includePublic, includeInactive, includeTokens)
@@ -98,7 +98,7 @@ func (th *TemplateHandler) GetTemplate(w http.ResponseWriter, r *http.Request) {
 	// Parse query parameters
 	query := r.URL.Query()
 	includeParameters := query.Get("include_parameters") != "false" // Default true
-	includeTokens := query.Get("include_tokens") == "true"
+	includeTokens := query.Get("include_tokens") == trueValue
 
 	// Get template
 	template, err := th.templateService.GetTemplateByID(templateID, includeParameters, includeTokens)
@@ -262,7 +262,7 @@ func (th *TemplateHandler) UpdateTemplate(w http.ResponseWriter, r *http.Request
 			if request.Template.PreferredConfigurationID != nil {
 				return *request.Template.PreferredConfigurationID
 			}
-			return "nil"
+			return nilValue
 		}(),
 		request.Template.EnableFunctionCalling)
 	log.Printf("🔍 DEBUG: FunctionIDs count: %d, FunctionIDs: %v", len(request.FunctionIDs), request.FunctionIDs)
@@ -279,7 +279,7 @@ func (th *TemplateHandler) UpdateTemplate(w http.ResponseWriter, r *http.Request
 			if request.Template.PreferredConfigurationID != nil {
 				return *request.Template.PreferredConfigurationID
 			}
-			return "nil"
+			return nilValue
 		}(),
 		request.Template.EnableFunctionCalling)
 
@@ -597,7 +597,7 @@ func (th *TemplateHandler) extractTemplateID(path string) string {
 	// /api/templates/{id}/tokens
 	// /api/templates/{id}/tokens/{tokenId}
 	parts := strings.Split(strings.Trim(path, "/"), "/")
-	if len(parts) >= 3 && parts[0] == "api" && parts[1] == "templates" {
+	if len(parts) >= 3 && parts[0] == apiPrefix && parts[1] == templatesPath {
 		return parts[2]
 	}
 	return ""
@@ -607,7 +607,7 @@ func (th *TemplateHandler) extractTemplateID(path string) string {
 func (th *TemplateHandler) extractTokenID(path string) string {
 	// Expected pattern: /api/templates/{id}/tokens/{tokenId}
 	parts := strings.Split(strings.Trim(path, "/"), "/")
-	if len(parts) >= 5 && parts[0] == "api" && parts[1] == "templates" && parts[3] == "tokens" {
+	if len(parts) >= 5 && parts[0] == apiPrefix && parts[1] == templatesPath && parts[3] == "tokens" {
 		return parts[4]
 	}
 	return ""

@@ -133,7 +133,7 @@ func (h *Handler) HandleKeyRoutes(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(trimmedPath, "/")
 
 	// /api/user/api-keys
-	if len(parts) == 4 {
+	if len(parts) == minPathParts {
 		switch r.Method {
 		case http.MethodGet:
 			h.GetAPIKeys(w, r)
@@ -146,7 +146,7 @@ func (h *Handler) HandleKeyRoutes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// /api/user/api-keys/{id}
-	if len(parts) == 5 {
+	if len(parts) == maxPathParts {
 		switch r.Method {
 		case http.MethodGet:
 			h.GetAPIKey(w, r)

@@ -22,6 +22,25 @@ import (
 // GitHub function name constants
 const (
 	FunctionGoogleDriveSearchFiles = "googledrive_search_files"
+
+	// Service and method constants
+	githubServiceName = "github"
+	httpMethodGET     = "GET"
+
+	// Function name constants
+	githubReadCodeFunction         = "github_read_code"
+	githubCreateUpdateFileFunction = "github_create_update_file"
+
+	// Encoding constants
+	base64Encoding = "base64"
+
+	// HTTP status codes
+	httpStatusOK         = 200
+	httpStatusCreated    = 201
+	httpStatusBadRequest = 400
+
+	// Timeout constants
+	httpTimeoutSeconds = 30
 )
 
 // Integration implements the GitHub API integration
@@ -51,7 +70,7 @@ func NewIntegrationWithAuth(authService *apiauth.Service, userID string) *Integr
 
 // Name returns the integration name
 func (g *Integration) Name() string {
-	return "github"
+	return githubServiceName
 }
 
 // BuildURL constructs the GitHub API URL for a given function
@@ -73,7 +92,7 @@ func (g *Integration) BuildURL(funcDef *db.FunctionDefinition, args map[string]i
 		}
 
 		// For GET requests, add remaining parameters as query parameters
-		httpMethod := "GET"
+		httpMethod := httpMethodGET
 		if funcDef.HTTPMethod.Valid {
 			httpMethod = funcDef.HTTPMethod.String
 		}
@@ -151,13 +170,13 @@ func (g *Integration) buildLegacyURL(funcDef *db.FunctionDefinition, args map[st
 		if labels, ok := args["labels"].(string); ok && labels != "" {
 			queryParams = append(queryParams, fmt.Sprintf("labels=%s", url.QueryEscape(labels)))
 		}
-		if per_page, ok := args["per_page"]; ok {
-			queryParams = append(queryParams, fmt.Sprintf("per_page=%v", per_page))
+		if perPage, ok := args["per_page"]; ok {
+			queryParams = append(queryParams, fmt.Sprintf("per_page=%v", perPage))
 		} else {
 			queryParams = append(queryParams, "per_page=30")
 		}
 
-	case "github_read_code":
+	case githubReadCodeFunction:
 		if pathParam, ok := args["path"].(string); ok && pathParam != "" {
 			encodedPath := url.PathEscape(pathParam)
 			path = fmt.Sprintf("/repos/%s/%s/contents/%s", owner, repo, encodedPath)
@@ -182,8 +201,8 @@ func (g *Integration) buildLegacyURL(funcDef *db.FunctionDefinition, args map[st
 		if until, ok := args["until"].(string); ok && until != "" {
 			queryParams = append(queryParams, fmt.Sprintf("until=%s", url.QueryEscape(until)))
 		}
-		if per_page, ok := args["per_page"]; ok {
-			queryParams = append(queryParams, fmt.Sprintf("per_page=%v", per_page))
+		if perPage, ok := args["per_page"]; ok {
+			queryParams = append(queryParams, fmt.Sprintf("per_page=%v", perPage))
 		} else {
 			queryParams = append(queryParams, "per_page=30")
 		}
@@ -206,7 +225,7 @@ func (g *Integration) buildLegacyURL(funcDef *db.FunctionDefinition, args map[st
 			return "", fmt.Errorf("github_update_issue requires 'issue_number' parameter")
 		}
 
-	case "github_create_update_file":
+	case githubCreateUpdateFileFunction:
 		if filePath, ok := args["path"].(string); ok && filePath != "" {
 			encodedPath := url.PathEscape(filePath)
 			path = fmt.Sprintf("/repos/%s/%s/contents/%s", owner, repo, encodedPath)
@@ -215,7 +234,8 @@ func (g *Integration) buildLegacyURL(funcDef *db.FunctionDefinition, args map[st
 		}
 
 	default:
-		return "", fmt.Errorf("legacy GitHub function not supported: %s (function should have endpoint_url defined)", functionName)
+		return "", fmt.Errorf("legacy GitHub function not supported: %s "+
+			"(function should have endpoint_url defined)", functionName)
 	}
 
 	// Construct final URL
@@ -228,7 +248,8 @@ func (g *Integration) buildLegacyURL(funcDef *db.FunctionDefinition, args map[st
 }
 
 // PrepareRequest prepares the HTTP request with GitHub authentication and headers
-func (g *Integration) PrepareRequest(ctx context.Context, req *http.Request, funcDef *db.FunctionDefinition, args map[string]interface{}) error {
+func (g *Integration) PrepareRequest(ctx context.Context, req *http.Request,
+	funcDef *db.FunctionDefinition, args map[string]interface{}) error {
 	// Handle composite workflow functions
 	if funcDef.Name == "github_update_file_on_branch" {
 		return g.handleUpdateFileOnBranch(ctx, req, funcDef, args)
@@ -279,7 +300,7 @@ func (g *Integration) ProcessResponse(resp *http.Response, funcDef *db.FunctionD
 	}
 
 	// Check for GitHub API errors
-	if resp.StatusCode >= 400 {
+	if resp.StatusCode >= httpStatusBadRequest {
 		var errorResp struct {
 			Message          string `json:"message"`
 			DocumentationURL string `json:"documentation_url"`
@@ -402,7 +423,7 @@ func (g *Integration) decodeFileContent(fileData map[string]interface{}) map[str
 	content, hasContent := fileData["content"].(string)
 	encoding, hasEncoding := fileData["encoding"].(string)
 
-	if !hasContent || !hasEncoding || encoding != "base64" {
+	if !hasContent || !hasEncoding || encoding != base64Encoding {
 		return fileData // No content or not base64, return as-is
 	}
 
@@ -455,7 +476,8 @@ func (g *Integration) encodeFileContent(req *http.Request, _ map[string]interfac
 			// Encode content as Base64
 			encodedContent := base64.StdEncoding.EncodeToString([]byte(contentStr))
 			bodyData["content"] = encodedContent
-			log.Printf("🔍 [GITHUB_DEBUG] Encoded file content: %d chars -> %d chars (Base64)", len(contentStr), len(encodedContent))
+			log.Printf("🔍 [GITHUB_DEBUG] Encoded file content: %d chars -> %d chars (Base64)",
+				len(contentStr), len(encodedContent))
 		}
 	}
 
@@ -481,7 +503,7 @@ func (g *Integration) encodeFileContent(req *http.Request, _ map[string]interfac
 }
 
 // handleUpdateFileOnBranch handles the composite workflow for updating a file on a specific branch
-func (g *Integration) handleUpdateFileOnBranch(ctx context.Context, req *http.Request, funcDef *db.FunctionDefinition, args map[string]interface{}) error {
+func (g *Integration) handleUpdateFileOnBranch(ctx context.Context, req *http.Request, _ *db.FunctionDefinition, args map[string]interface{}) error {
 	// Extract parameters
 	owner, _ := args["owner"].(string)
 	repo, _ := args["repo"].(string)
@@ -517,81 +539,6 @@ func (g *Integration) handleUpdateFileOnBranch(ctx context.Context, req *http.Re
 	return nil
 }
 
-// handleBranchUpdatePRWorkflow handles the complete branch creation, file update, and PR creation workflow
-func (g *Integration) handleBranchUpdatePRWorkflow(ctx context.Context, req *http.Request, _ *db.FunctionDefinition, args map[string]interface{}) error {
-	// Extract required parameters
-	owner, _ := args["owner"].(string)
-	repo, _ := args["repo"].(string)
-	branchName, _ := args["branch_name"].(string)
-	filePath, _ := args["file_path"].(string)
-	fileContent, _ := args["file_content"].(string)
-	commitMessage, _ := args["commit_message"].(string)
-	prTitle, _ := args["pr_title"].(string)
-	prBody, _ := args["pr_body"].(string)
-	baseBranch, _ := args["base_branch"].(string)
-	draft, _ := args["draft"].(bool)
-
-	// Set default base branch
-	if baseBranch == "" {
-		baseBranch = "main"
-	}
-
-	if owner == "" || repo == "" || branchName == "" || filePath == "" || fileContent == "" || commitMessage == "" || prTitle == "" {
-		return fmt.Errorf("missing required parameters for github_branch_update_pr_workflow")
-	}
-
-	log.Printf("🔧 [GITHUB_WORKFLOW] Starting complete branch-update-PR workflow")
-	log.Printf("🔧 [GITHUB_WORKFLOW] Branch: %s, File: %s, Base: %s", branchName, filePath, baseBranch)
-
-	// Step 1: Get base branch SHA
-	baseSHA, err := g.GetBranchSHA(ctx, owner, repo, baseBranch)
-	if err != nil {
-		return fmt.Errorf("failed to get base branch %s SHA: %w", baseBranch, err)
-	}
-	log.Printf("✅ [GITHUB_WORKFLOW] Got base branch %s SHA: %s", baseBranch, baseSHA)
-
-	// Step 2: Create new branch
-	err = g.CreateBranch(ctx, owner, repo, branchName, baseSHA)
-	if err != nil {
-		return fmt.Errorf("failed to create branch %s: %w", branchName, err)
-	}
-	log.Printf("✅ [GITHUB_WORKFLOW] Created branch: %s", branchName)
-
-	// Step 3: Update file on new branch
-	err = g.UpdateFileOnBranch(ctx, owner, repo, filePath, fileContent, commitMessage, branchName)
-	if err != nil {
-		return fmt.Errorf("failed to update file %s on branch %s: %w", filePath, branchName, err)
-	}
-	log.Printf("✅ [GITHUB_WORKFLOW] Updated file %s on branch %s", filePath, branchName)
-
-	// Step 4: Create pull request
-	prData := map[string]interface{}{
-		"title": prTitle,
-		"head":  branchName,
-		"base":  baseBranch,
-		"draft": draft,
-	}
-	if prBody != "" {
-		prData["body"] = prBody
-	}
-
-	prResult, err := g.CreatePullRequest(ctx, owner, repo, prData)
-	if err != nil {
-		return fmt.Errorf("failed to create pull request: %w", err)
-	}
-	log.Printf("✅ [GITHUB_WORKFLOW] Created pull request: %v", prResult)
-
-	// Modify the original request to return the PR creation result
-	prJSON, _ := json.Marshal(prData)
-	req.Body = io.NopCloser(strings.NewReader(string(prJSON)))
-	req.ContentLength = int64(len(prJSON))
-
-	// Update the URL to the PR endpoint
-	req.URL, _ = url.Parse(fmt.Sprintf("%s/repos/%s/%s/pulls", g.baseURL, owner, repo))
-
-	log.Printf("✅ [GITHUB_WORKFLOW] Complete workflow finished successfully")
-	return nil
-}
 
 // getFileSHAFromBranch retrieves the SHA of a file from a specific branch
 func (g *Integration) getFileSHAFromBranch(ctx context.Context, owner, repo, path, branch string) (string, error) {
@@ -620,14 +567,14 @@ func (g *Integration) getFileSHAFromBranch(ctx context.Context, owner, repo, pat
 	}
 
 	// Execute request
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := &http.Client{Timeout: httpTimeoutSeconds * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != httpStatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return "", fmt.Errorf("GitHub API returned status %d: %s", resp.StatusCode, string(body))
 	}
@@ -662,14 +609,14 @@ func (g *Integration) GetBranchSHA(ctx context.Context, owner, repo, branch stri
 		return "", fmt.Errorf("failed to apply auth: %w", err)
 	}
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := &http.Client{Timeout: httpTimeoutSeconds * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != httpStatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return "", fmt.Errorf("GitHub API returned status %d: %s", resp.StatusCode, string(body))
 	}
@@ -713,14 +660,14 @@ func (g *Integration) CreateBranch(ctx context.Context, owner, repo, branchName,
 		return fmt.Errorf("failed to apply auth: %w", err)
 	}
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := &http.Client{Timeout: httpTimeoutSeconds * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 201 {
+	if resp.StatusCode != httpStatusCreated {
 		body, _ := io.ReadAll(resp.Body)
 
 		// Enhanced error handling for branch creation
@@ -728,7 +675,8 @@ func (g *Integration) CreateBranch(ctx context.Context, owner, repo, branchName,
 
 		// Add specific guidance for common branch creation errors
 		if resp.StatusCode == 422 && strings.Contains(string(body), "Reference update failed") {
-			errorMsg += " - Common causes: branch already exists, invalid SHA, or insufficient permissions. Try using a different branch name or verify the source SHA is valid."
+			errorMsg += " - Common causes: branch already exists, invalid SHA, or insufficient permissions. " +
+				"Try using a different branch name or verify the source SHA is valid."
 		} else if resp.StatusCode == 422 && strings.Contains(string(body), "Reference already exists") {
 			errorMsg += " - The branch already exists. Use a different branch name or delete the existing branch first."
 		}
@@ -740,7 +688,8 @@ func (g *Integration) CreateBranch(ctx context.Context, owner, repo, branchName,
 }
 
 // UpdateFileOnBranch updates a file on a specific branch (public method for workflow use)
-func (g *Integration) UpdateFileOnBranch(ctx context.Context, owner, repo, filePath, content, message, branch string) error {
+func (g *Integration) UpdateFileOnBranch(ctx context.Context, owner, repo, filePath,
+	content, message, branch string) error {
 	// First get the current file SHA from the branch
 	fileSHA, err := g.getFileSHAFromBranch(ctx, owner, repo, filePath, branch)
 	if err != nil {
@@ -779,7 +728,7 @@ func (g *Integration) UpdateFileOnBranch(ctx context.Context, owner, repo, fileP
 		return fmt.Errorf("failed to apply auth: %w", err)
 	}
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := &http.Client{Timeout: httpTimeoutSeconds * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
@@ -795,7 +744,8 @@ func (g *Integration) UpdateFileOnBranch(ctx context.Context, owner, repo, fileP
 }
 
 // CreatePullRequest creates a pull request (public method for workflow use)
-func (g *Integration) CreatePullRequest(ctx context.Context, owner, repo string, prData map[string]interface{}) (map[string]interface{}, error) {
+func (g *Integration) CreatePullRequest(ctx context.Context, owner, repo string,
+	prData map[string]interface{}) (map[string]interface{}, error) {
 	url := fmt.Sprintf("%s/repos/%s/%s/pulls", g.baseURL, owner, repo)
 
 	jsonData, err := json.Marshal(prData)
@@ -815,7 +765,7 @@ func (g *Integration) CreatePullRequest(ctx context.Context, owner, repo string,
 		return nil, fmt.Errorf("failed to apply auth: %w", err)
 	}
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := &http.Client{Timeout: httpTimeoutSeconds * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
@@ -827,7 +777,7 @@ func (g *Integration) CreatePullRequest(ctx context.Context, owner, repo string,
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
-	if resp.StatusCode != 201 {
+	if resp.StatusCode != httpStatusCreated {
 		return nil, fmt.Errorf("GitHub API returned status %d: %s", resp.StatusCode, string(body))
 	}
 

@@ -2,11 +2,30 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
+)
+
+const (
+	// HTTP status codes
+	httpStatusOK = 200
+
+	// Timeouts
+	defaultTimeout = 30 * time.Second
+	longTimeout    = 60 * time.Second
+
+	// Test parameters
+	defaultTemperature = 0.5
+	defaultMaxTokens   = 50
+	minHistoryLength   = 2
+
+	// Response limits
+	maxResponseLength = 50
+	percentageBase    = 100
 )
 
 type TestResult struct {
@@ -22,23 +41,15 @@ func main() {
 
 	var results []TestResult
 
-	// Test 1: Backend Health Check
-	results = append(results, testBackendHealth())
-
-	// Test 2: Database Connection
-	results = append(results, testDatabaseConnection())
-
-	// Test 3: Execution History API
-	results = append(results, testExecutionHistory())
-
-	// Test 4: Direct Gemini REST API
-	results = append(results, testDirectGeminiAPI())
-
-	// Test 5: Backend API Execution
-	results = append(results, testBackendExecution())
-
-	// Test 6: Mock Responses
-	results = append(results, testMockResponses())
+	// Run all tests
+	results = append(results,
+		testBackendHealth(),      // Test 1: Backend Health Check
+		testDatabaseConnection(), // Test 2: Database Connection
+		testExecutionHistory(),   // Test 3: Execution History API
+		testDirectGeminiAPI(),    // Test 4: Direct Gemini REST API
+		testBackendExecution(),   // Test 5: Backend API Execution
+		testMockResponses(),      // Test 6: Mock Responses
+	)
 
 	// Print Results Summary
 	fmt.Println("\n📊 Test Results Summary:")
@@ -65,7 +76,7 @@ func main() {
 	}
 
 	fmt.Printf("\n🎯 Final Score: %d/%d tests passed (%.1f%%)\n",
-		passed, total, float64(passed)/float64(total)*100)
+		passed, total, float64(passed)/float64(total)*percentageBase)
 
 	if passed == total {
 		fmt.Println("🎉 All tests passed! System is working correctly.")
@@ -75,7 +86,19 @@ func main() {
 }
 
 func testBackendHealth() TestResult {
-	resp, err := http.Get("http://localhost:8080/health")
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "GET", "http://localhost:8080/health", nil)
+	if err != nil {
+		return TestResult{
+			Name:    "Backend Health Check",
+			Success: false,
+			Error:   err.Error(),
+		}
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return TestResult{
 			Name:    "Backend Health Check",
@@ -85,7 +108,7 @@ func testBackendHealth() TestResult {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != httpStatusOK {
 		return TestResult{
 			Name:    "Backend Health Check",
 			Success: false,
@@ -123,7 +146,19 @@ func testDatabaseConnection() TestResult {
 }
 
 func testExecutionHistory() TestResult {
-	resp, err := http.Get("http://localhost:8080/api/execution-runs?limit=5")
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "GET", "http://localhost:8080/api/execution-runs?limit=5", nil)
+	if err != nil {
+		return TestResult{
+			Name:    "Execution History API",
+			Success: false,
+			Error:   err.Error(),
+		}
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return TestResult{
 			Name:    "Execution History API",
@@ -133,7 +168,7 @@ func testExecutionHistory() TestResult {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != httpStatusOK {
 		return TestResult{
 			Name:    "Execution History API",
 			Success: false,
@@ -151,7 +186,7 @@ func testExecutionHistory() TestResult {
 	}
 
 	// Check if we have real data (not just 2 mock entries)
-	success := len(history) > 2
+	success := len(history) > minHistoryLength
 
 	return TestResult{
 		Name:    "Execution History API",
@@ -173,7 +208,10 @@ func testDirectGeminiAPI() TestResult {
 
 	jsonBody, _ := json.Marshal(reqBody)
 
-	req, err := http.NewRequest("POST",
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "POST",
 		"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
 		bytes.NewBuffer(jsonBody))
 	if err != nil {
@@ -187,7 +225,7 @@ func testDirectGeminiAPI() TestResult {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-goog-api-key", "AIzaSyDYOnANDd0-rhLDqGrqAVrFteUU3ylUTuc")
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := &http.Client{Timeout: defaultTimeout}
 	resp, err := client.Do(req)
 	if err != nil {
 		return TestResult{
@@ -207,7 +245,7 @@ func testDirectGeminiAPI() TestResult {
 		}
 	}
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != httpStatusOK {
 		return TestResult{
 			Name:    "Direct Gemini REST API",
 			Success: false,
@@ -252,15 +290,18 @@ func testBackendExecution() TestResult {
 				"variation_name": "test",
 				"model_name":     "gemini-1.5-flash",
 				"system_prompt":  "You are a helpful assistant",
-				"temperature":    0.5,
-				"max_tokens":     50,
+				"temperature":    defaultTemperature,
+				"max_tokens":     defaultMaxTokens,
 			},
 		},
 	}
 
 	jsonBody, _ := json.Marshal(reqBody)
 
-	req, err := http.NewRequest("POST", "http://localhost:8080/api/execute", bytes.NewBuffer(jsonBody))
+	ctx, cancel := context.WithTimeout(context.Background(), longTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "POST", "http://localhost:8080/api/execute", bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return TestResult{
 			Name:    "Backend API Execution",
@@ -272,7 +313,7 @@ func testBackendExecution() TestResult {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Gemini-API-Key", "AIzaSyDYOnANDd0-rhLDqGrqAVrFteUU3ylUTuc")
 
-	client := &http.Client{Timeout: 60 * time.Second}
+	client := &http.Client{Timeout: longTimeout}
 	resp, err := client.Do(req)
 	if err != nil {
 		return TestResult{
@@ -292,11 +333,11 @@ func testBackendExecution() TestResult {
 		}
 	}
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != httpStatusOK {
 		return TestResult{
 			Name:    "Backend API Execution",
 			Success: false,
-			Error:   fmt.Sprintf("HTTP %d: %s", resp.StatusCode, string(body)[:200]),
+			Error:   fmt.Sprintf("HTTP %d: %s", resp.StatusCode, string(body)[:httpStatusOK]),
 		}
 	}
 
@@ -356,15 +397,18 @@ func testMockResponses() TestResult {
 				"variation_name": "test-mock",
 				"model_name":     "gemini-1.5-flash",
 				"system_prompt":  "You are helpful",
-				"temperature":    0.5,
-				"max_tokens":     50,
+				"temperature":    defaultTemperature,
+				"max_tokens":     defaultMaxTokens,
 			},
 		},
 	}
 
 	jsonBody, _ := json.Marshal(reqBody)
 
-	req, err := http.NewRequest("POST", "http://localhost:8080/api/execute", bytes.NewBuffer(jsonBody))
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "POST", "http://localhost:8080/api/execute", bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return TestResult{
 			Name:    "Mock Responses Test",
@@ -376,7 +420,7 @@ func testMockResponses() TestResult {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Use-Mock", "true")
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := &http.Client{Timeout: defaultTimeout}
 	resp, err := client.Do(req)
 	if err != nil {
 		return TestResult{
@@ -387,7 +431,7 @@ func testMockResponses() TestResult {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != httpStatusOK {
 		return TestResult{
 			Name:    "Mock Responses Test",
 			Success: false,
@@ -424,11 +468,11 @@ func testMockResponses() TestResult {
 	return TestResult{
 		Name:    "Mock Responses Test",
 		Success: isMock,
-		Details: fmt.Sprintf("Response: %s", responseText[:min(50, len(responseText))]),
+		Details: fmt.Sprintf("Response: %s", responseText[:minInt(maxResponseLength, len(responseText))]),
 	}
 }
 
-func min(a, b int) int {
+func minInt(a, b int) int {
 	if a < b {
 		return a
 	}

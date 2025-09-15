@@ -329,16 +329,12 @@ func generateTokenID() string {
 	return "token-" + generateRandomString(16)
 }
 
-// generateSecureToken generates a cryptographically secure token
-func generateSecureToken() string {
-	bytes := make([]byte, 32) // 256 bits
-	rand.Read(bytes)
-	return hex.EncodeToString(bytes)
-}
 
 // generateRandomString generates a random hex string of specified length
 func generateRandomString(length int) string {
 	bytes := make([]byte, length/2)
-	rand.Read(bytes)
+	if _, err := rand.Read(bytes); err != nil {
+		panic(fmt.Sprintf("Failed to generate random bytes: %v", err))
+	}
 	return hex.EncodeToString(bytes)
 }

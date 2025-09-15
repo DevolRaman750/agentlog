@@ -220,27 +220,6 @@ func (sm *SynthesisManager) getChannelNameFromArgs(args map[string]interface{}) 
 	return ""
 }
 
-// hasSignificantErrors checks if recent function calls have significant errors
-func (sm *SynthesisManager) hasSignificantErrors(results []map[string]interface{}) bool {
-	if len(results) == 0 {
-		return false
-	}
-
-	errorCount := 0
-	for _, result := range results {
-		if status, ok := result["status"].(string); ok {
-			if status == "failed" || status == "validation_failed" {
-				errorCount++
-			}
-		}
-		if _, hasError := result["error"]; hasError {
-			errorCount++
-		}
-	}
-
-	// If more than half the recent calls failed, consider it significant
-	return float64(errorCount)/float64(len(results)) > 0.5
-}
 
 // GetSynthesisPromptSuffix returns guidance following Gemini function calling best practices
 func (sm *SynthesisManager) GetSynthesisPromptSuffix(decision *SynthesisDecision, _ string) string {

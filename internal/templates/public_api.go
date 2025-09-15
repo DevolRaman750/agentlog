@@ -217,10 +217,12 @@ func (pah *PublicAPIHandler) ExecuteTemplate(w http.ResponseWriter, r *http.Requ
 		log.Printf("Failed to start execution: %v", err)
 
 		// Update template execution status
-		templateExecution.Status = "failed"
+		templateExecution.Status = failedStatus
 		templateExecution.ErrorMessage = err.Error()
 		templateExecution.CompletedAt = &[]time.Time{time.Now()}[0]
-		pah.updateTemplateExecution(templateExecution)
+		if err := pah.updateTemplateExecution(templateExecution); err != nil {
+			log.Printf("Failed to update template execution: %v", err)
+		}
 
 		http.Error(w, "Failed to start execution", http.StatusInternalServerError)
 		return
@@ -229,7 +231,9 @@ func (pah *PublicAPIHandler) ExecuteTemplate(w http.ResponseWriter, r *http.Requ
 	// Update template execution with execution run ID
 	templateExecution.ExecutionRunID = &executionID
 	templateExecution.Status = "running"
-	pah.updateTemplateExecution(templateExecution)
+	if err := pah.updateTemplateExecution(templateExecution); err != nil {
+		log.Printf("Failed to update template execution: %v", err)
+	}
 
 	// Prepare response
 	response := &types.TemplateExecutionResponse{
@@ -300,7 +304,7 @@ func (pah *PublicAPIHandler) GetTemplateExecutionStatus(w http.ResponseWriter, r
 	// Get execution result if completed
 	var executionResult *types.ExecutionResult
 	if templateExecution.ExecutionRunID != nil &&
-		(templateExecution.Status == "completed" || templateExecution.Status == "failed") {
+		(templateExecution.Status == completedStatus || templateExecution.Status == failedStatus) {
 		_, _, _, _, result, err := pah.executionEngine.GetExecutionStatus(*templateExecution.ExecutionRunID)
 		if err == nil {
 			executionResult = result
@@ -374,7 +378,7 @@ func (pah *PublicAPIHandler) extractTemplateID(path string) string {
 	// /api/public/templates/{id}/execute
 	// /api/public/templates/{id}/info
 	parts := strings.Split(strings.Trim(path, "/"), "/")
-	if len(parts) >= 4 && parts[0] == "api" && parts[1] == "public" && parts[2] == "templates" {
+	if len(parts) >= 4 && parts[0] == apiPrefix && parts[1] == publicPrefix && parts[2] == templatesPath {
 		return parts[3]
 	}
 	return ""

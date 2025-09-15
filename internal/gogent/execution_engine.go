@@ -29,9 +29,27 @@ const (
 	ErrorTypeNotFound       = "not_found"
 	ErrorTypeValidation     = "validation"
 	ErrorTypeNetwork        = "network"
+	ErrorTypeServerError    = "server_error"
+	ErrorTypeUnknown        = "unknown"
+
+	// Status constants
+	StatusError  = "error"
+	StatusStatus = "status"
 
 	// Function results prompt
 	FunctionResultsPrompt = "**Function Results:**\n"
+
+	// Timeout constants
+	SynthesisTimeoutSeconds = 300 // 5 minutes
+
+	// Summary limits
+	MaxIssuesToShow         = 3
+	MaxCommitsToShow        = 2
+	MaxItemsToShow          = 5
+	MaxItemsToShowInSummary = 3
+	MaxPRsToShow            = 3
+	MaxMessagesToShow       = 2
+	MaxKeysToShow           = 5
 )
 
 // ExecuteMultiVariation executes the same prompt with multiple configurations
@@ -244,7 +262,13 @@ func (c *Client) executeMultiVariationWithRun(ctx context.Context, userID string
 		})
 
 	// Log execution complete flow event
-	totalTimeMs := int32(result.TotalTime)
+	// Guard against int64 -> int32 overflow
+	var totalTimeMs int32
+	if result.TotalTime > int64(^uint32(0)>>1) {
+		totalTimeMs = int32(^uint32(0) >> 1) // MaxInt32
+	} else {
+		totalTimeMs = int32(result.TotalTime)
+	}
 	c.logExecutionFlowEvent("execution_complete", len(request.Configurations)+1, "success", nil, map[string]interface{}{
 		"successCount": result.SuccessCount,
 		"errorCount":   result.ErrorCount,
@@ -303,17 +327,23 @@ func (c *Client) GetComparisonResult(ctx context.Context, executionRunID string)
 	// Parse JSON fields
 	var configurationScores map[string]interface{}
 	if len(row.ConfigurationScores) > 0 {
-		json.Unmarshal(row.ConfigurationScores, &configurationScores)
+		if err := json.Unmarshal(row.ConfigurationScores, &configurationScores); err != nil {
+			log.Printf("Failed to unmarshal configuration scores: %v", err)
+		}
 	}
 
 	var bestConfiguration *types.APIConfiguration
 	if bestConfigData, ok := row.BestConfigurationData.(string); ok && len(bestConfigData) > 0 {
-		json.Unmarshal([]byte(bestConfigData), &bestConfiguration)
+		if err := json.Unmarshal([]byte(bestConfigData), &bestConfiguration); err != nil {
+			log.Printf("Failed to unmarshal best configuration: %v", err)
+		}
 	}
 
 	var allConfigurations []types.APIConfiguration
 	if allConfigData, ok := row.AllConfigurationsData.(string); ok && len(allConfigData) > 0 {
-		json.Unmarshal([]byte(allConfigData), &allConfigurations)
+		if err := json.Unmarshal([]byte(allConfigData), &allConfigurations); err != nil {
+			log.Printf("Failed to unmarshal all configurations: %v", err)
+		}
 	}
 
 	result := &types.ComparisonResult{
@@ -461,7 +491,7 @@ func (c *Client) callGeminiAPI(ctx context.Context, config *types.APIConfigurati
 }
 
 // callMockGeminiAPI provides mock responses for testing/demo purposes
-func (c *Client) callMockGeminiAPI(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest) (*types.APIResponse, error) {
+func (c *Client) callMockGeminiAPI(_ context.Context, config *types.APIConfiguration, request *types.APIRequest) (*types.APIResponse, error) {
 	// For demo purposes when no API key is available
 	response := &types.APIResponse{
 		ID:             uuid.New().String(),
@@ -731,7 +761,7 @@ func (c *Client) processIterativeFunctionCallsWithProvider(ctx context.Context, 
 	}
 
 	// Create a longer timeout context specifically for synthesis (may take longer due to large function results)
-	synthesisCtx, cancel := context.WithTimeout(ctx, 300*time.Second) // 5 minutes for synthesis
+	synthesisCtx, cancel := context.WithTimeout(ctx, SynthesisTimeoutSeconds*time.Second) // 5 minutes for synthesis
 	defer cancel()
 
 	// Call the provider for synthesis with iterative support
@@ -1085,43 +1115,6 @@ func (c *Client) createFallbackSummary(functionCalls []ResponsePart, functionRes
 	return fmt.Sprintf("I executed %d functions to process your request. The functions completed successfully.", len(functionCalls))
 }
 
-// processIterativeFunctionCalls handles function calls with proper dependency support
-func (c *Client) processIterativeFunctionCalls(ctx context.Context, _ *types.APIConfiguration, _ *types.APIRequest, functionCalls []ResponsePart, _ string) (string, map[string]interface{}) {
-	log.Printf("🔧 Starting iterative function calling with %d initial function(s)", len(functionCalls))
-
-	// For now, execute all function calls and provide a basic summary
-	var functionNames []string
-	functionResults := make([]map[string]interface{}, len(functionCalls))
-
-	for i, funcCall := range functionCalls {
-		functionNames = append(functionNames, funcCall.FunctionCall.Name)
-		result, err := c.executeFunctionCall(ctx, funcCall.FunctionCall.Name, funcCall.FunctionCall.Args)
-		if err != nil {
-			log.Printf("⚠️ Function %s failed: %v", funcCall.FunctionCall.Name, err)
-			result = map[string]interface{}{
-				"error":  err.Error(),
-				"status": "failed",
-			}
-		}
-		functionResults[i] = result
-	}
-
-	// Create a simple summary
-	summary := fmt.Sprintf("I executed %d functions: %s", len(functionNames), strings.Join(functionNames, ", "))
-
-	// Return the first function call info for legacy compatibility
-	var firstFunctionResponse map[string]interface{}
-	if len(functionCalls) > 0 {
-		firstFunctionResponse = map[string]interface{}{
-			"function_name": functionCalls[0].FunctionCall.Name,
-			"arguments":     functionCalls[0].FunctionCall.Args,
-			"result":        functionResults[0],
-		}
-	}
-
-	return summary, firstFunctionResponse
-}
-
 // processIterativeFunctionCallsWithSynthesis executes functions and gets LLM synthesis using Gemini REST API
 // Add reasonable limits to prevent infinite loops while allowing natural workflow completion
 func (c *Client) processIterativeFunctionCallsWithSynthesis(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest, functionCalls []ResponsePart, originalPrompt string) string {
@@ -1421,7 +1414,7 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 		})
 
 	// Create a longer timeout context specifically for Gemini synthesis (may take longer due to large function results)
-	synthesisCtx, synthesisCancel := context.WithTimeout(ctx, 300*time.Second) // 5 minutes for synthesis
+	synthesisCtx, synthesisCancel := context.WithTimeout(ctx, SynthesisTimeoutSeconds*time.Second) // 5 minutes for synthesis
 	defer synthesisCancel()
 
 	synthesisResponse, err := c.callGeminiRestAPIForSynthesis(synthesisCtx, &configForSynthesis, synthesisRequest)
@@ -1622,9 +1615,9 @@ func (c *Client) classifyError(errorMsg string) string {
 	case strings.Contains(errorLower, "network") || strings.Contains(errorLower, "connection"):
 		return ErrorTypeNetwork
 	case strings.Contains(errorLower, "server error") || strings.Contains(errorLower, "500"):
-		return "server_error"
+		return ErrorTypeServerError
 	default:
-		return "unknown"
+		return ErrorTypeUnknown
 	}
 }
 
@@ -1651,7 +1644,7 @@ func (c *Client) resultHasData(result map[string]interface{}) bool {
 	// Check for common indicators of meaningful data
 	for key, value := range result {
 		switch key {
-		case "error", "status":
+		case StatusError, StatusStatus:
 			continue // Skip error/status fields
 		default:
 			if value != nil {
@@ -1871,14 +1864,14 @@ func (c *Client) createDetailedGitHubIssuesSummary(result map[string]interface{}
 	summary.WriteString(fmt.Sprintf("Found %d issues: ", len(issues)))
 
 	for i, issue := range issues {
-		if i >= 3 { // Limit to first 3 for logging
-			summary.WriteString(fmt.Sprintf("... and %d more", len(issues)-3))
+		if i >= MaxIssuesToShow { // Limit to first 3 for logging
+			summary.WriteString(fmt.Sprintf("... and %d more", len(issues)-MaxIssuesToShow))
 			break
 		}
 
 		if issueMap, ok := issue.(map[string]interface{}); ok {
 			number := "unknown"
-			title := "No title"
+			title := NoTitleText
 			state := "unknown"
 
 			if num, ok := issueMap["number"].(float64); ok {
@@ -1923,8 +1916,8 @@ func (c *Client) createDetailedGitHubCommitsSummary(result map[string]interface{
 	summary.WriteString(fmt.Sprintf("Retrieved %d commits: ", len(commits)))
 
 	for i, commit := range commits {
-		if i >= 2 { // Limit to first 2 for logging
-			summary.WriteString(fmt.Sprintf("... and %d more", len(commits)-2))
+		if i >= MaxCommitsToShow { // Limit to first 2 for logging
+			summary.WriteString(fmt.Sprintf("... and %d more", len(commits)-MaxCommitsToShow))
 			break
 		}
 
@@ -1992,8 +1985,8 @@ func (c *Client) createDetailedGitHubCodeSummary(result map[string]interface{}) 
 			if items, ok := data["items"].([]interface{}); ok {
 				var itemNames []string
 				for i, item := range items {
-					if i >= 5 { // Limit to first 5 items
-						itemNames = append(itemNames, fmt.Sprintf("... and %d more", len(items)-5))
+					if i >= MaxItemsToShow { // Limit to first 5 items
+						itemNames = append(itemNames, fmt.Sprintf("... and %d more", len(items)-MaxItemsToShow))
 						break
 					}
 					if itemMap, ok := item.(map[string]interface{}); ok {
@@ -2028,8 +2021,8 @@ func (c *Client) createDetailedGitHubSearchSummary(result map[string]interface{}
 		summary.WriteString(fmt.Sprintf("Found %d code matches: ", len(items)))
 
 		for i, item := range items {
-			if i >= 3 { // Limit to first 3 for logging
-				summary.WriteString(fmt.Sprintf("... and %d more", len(items)-3))
+			if i >= MaxItemsToShowInSummary { // Limit to first 3 for logging
+				summary.WriteString(fmt.Sprintf("... and %d more", len(items)-MaxItemsToShowInSummary))
 				break
 			}
 
@@ -2076,14 +2069,14 @@ func (c *Client) createDetailedGitHubPullRequestsSummary(result map[string]inter
 	summary.WriteString(fmt.Sprintf("Found %d pull requests: ", len(prs)))
 
 	for i, pr := range prs {
-		if i >= 3 { // Limit to first 3 for logging
-			summary.WriteString(fmt.Sprintf("... and %d more", len(prs)-3))
+		if i >= MaxPRsToShow { // Limit to first 3 for logging
+			summary.WriteString(fmt.Sprintf("... and %d more", len(prs)-MaxPRsToShow))
 			break
 		}
 
 		if prMap, ok := pr.(map[string]interface{}); ok {
 			number := "unknown"
-			title := "No title"
+			title := NoTitleText
 			state := "unknown"
 			author := "unknown"
 
@@ -2127,7 +2120,7 @@ func (c *Client) createDetailedGitHubClosePRSummary(result map[string]interface{
 
 	if state, ok := data["state"].(string); ok && state == "closed" {
 		number := "unknown"
-		title := "No title"
+		title := NoTitleText
 
 		if num, ok := data["number"].(float64); ok {
 			number = fmt.Sprintf("#%.0f", num)
@@ -2195,8 +2188,8 @@ func (c *Client) createDetailedSlackMessagesSummary(result map[string]interface{
 	summary.WriteString(fmt.Sprintf("Retrieved %d messages: ", len(messages)))
 
 	for i, message := range messages {
-		if i >= 2 { // Limit to first 2 for logging
-			summary.WriteString(fmt.Sprintf("... and %d more", len(messages)-2))
+		if i >= MaxMessagesToShow { // Limit to first 2 for logging
+			summary.WriteString(fmt.Sprintf("... and %d more", len(messages)-MaxMessagesToShow))
 			break
 		}
 
@@ -2259,8 +2252,8 @@ func (c *Client) createDetailedGenericSummary(result map[string]interface{}) str
 	summary.WriteString(fmt.Sprintf("Result with %d fields: ", len(result)))
 
 	keys := c.getMapKeys(result)
-	if len(keys) > 5 {
-		summary.WriteString(fmt.Sprintf("%s ... and %d more", strings.Join(keys[:5], ", "), len(keys)-5))
+	if len(keys) > MaxKeysToShow {
+		summary.WriteString(fmt.Sprintf("%s ... and %d more", strings.Join(keys[:MaxKeysToShow], ", "), len(keys)-MaxKeysToShow))
 	} else {
 		summary.WriteString(strings.Join(keys, ", "))
 	}

@@ -23,7 +23,8 @@ const (
 )
 
 // CreateExecutionRun creates a new execution run for grouping related API calls
-func (c *Client) CreateExecutionRun(ctx context.Context, userID, name, description string, enableFunctionCalling bool, agentID *string) (*types.ExecutionRun, error) {
+func (c *Client) CreateExecutionRun(ctx context.Context, userID, name, description string,
+	enableFunctionCalling bool, agentID *string) (*types.ExecutionRun, error) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
@@ -318,11 +319,11 @@ func (c *Client) ListAPIConfigurationsByUser(ctx context.Context, userID string,
 
 // GetSystemConfigurations gets system-level API configurations
 func (c *Client) GetSystemConfigurations(ctx context.Context) ([]types.APIConfiguration, error) {
-	return c.ListAPIConfigurationsByUser(ctx, "system", 100, 0)
+	return c.ListAPIConfigurationsByUser(ctx, SystemUserID, DefaultLimit, DefaultOffset)
 }
 
 // storeFunctionExecutionConfigs stores function tools for replay functionality
-func (c *Client) storeFunctionExecutionConfigs(ctx context.Context, userID string, executionRunID string, functionTools []types.Tool) error {
+func (c *Client) storeFunctionExecutionConfigs(_ context.Context, userID string, executionRunID string, functionTools []types.Tool) error {
 	// TODO: Implement function execution config storage
 	// This would require a new database table and corresponding queries
 	log.Printf("🔧 Storing %d function tools for execution run %s", len(functionTools), executionRunID)
