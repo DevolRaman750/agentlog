@@ -22,7 +22,7 @@ const (
 	DefaultMaxTokens = 200
 	DefaultTimeoutMs = 300
 	DefaultMaxLength = 500
-	DefaultMaxDepth = 10
+	DefaultMaxDepth  = 10
 )
 
 // ExecuteMultiVariation executes the same prompt with multiple configurations

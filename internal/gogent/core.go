@@ -36,9 +36,9 @@ import (
 
 const (
 	DefaultMaxResults = 50
-	DefaultPageSize = 100
-	DefaultTimeoutMs = 300
-	DefaultMaxDepth = 10
+	DefaultPageSize   = 100
+	DefaultTimeoutMs  = 300
+	DefaultMaxDepth   = 10
 )
 
 // Client represents the main gogent client that wraps Gemini API calls
