@@ -94,30 +94,9 @@ func TestGitHubWorkflowFunctions(t *testing.T) {
 		if os.Getenv("ALLOW_NETWORK_TESTS") != "1" {
 			t.Skip("Skipping network-dependent GitHub workflow test in restricted environment")
 		}
-		funcDef := &db.FunctionDefinition{
-			Name:       "github_branch_update_pr_workflow",
-			HTTPMethod: sql.NullString{String: "POST", Valid: true},
-		}
-
-		req := httptest.NewRequest("POST", "/test", nil)
-		args := map[string]interface{}{
-			"owner":          "microsoft",
-			"repo":           "vscode",
-			"branch_name":    "feature/update",
-			"file_path":      "README.md",
-			"file_content":   "# New Content",
-			"commit_message": "Update README",
-			"pr_title":       "Update README",
-		}
-
-		err := integration.handleBranchUpdatePRWorkflow(context.Background(), req, funcDef, args)
-
-		// Should fail with authentication error since we're using a test token
-		if err == nil {
-			t.Error("Expected error with invalid authentication, got nil")
-		} else if !strings.Contains(err.Error(), "Bad credentials") && !strings.Contains(err.Error(), "401") && !strings.Contains(err.Error(), "authentication") {
-			t.Errorf("Expected authentication error, got: %v", err)
-		}
+		// Note: github_branch_update_pr_workflow function was removed as it was unused
+		// This test is kept for documentation purposes but will be skipped
+		t.Skip("github_branch_update_pr_workflow function was removed - test skipped")
 	})
 }
 
@@ -142,15 +121,16 @@ func TestGitHubWorkflowIntegration(t *testing.T) {
 				},
 				expectOK: true,
 			},
-			{
-				name: "github_branch_update_pr_workflow",
-				funcDef: &db.FunctionDefinition{
-					Name:          "github_branch_update_pr_workflow",
-					FunctionGroup: "github",
-					EndpointUrl:   sql.NullString{String: "https://api.github.com/repos/{owner}/{repo}/pulls", Valid: true},
-				},
-				expectOK: true,
-			},
+			// Note: github_branch_update_pr_workflow function was removed as it was unused
+			// {
+			// 	name: "github_branch_update_pr_workflow",
+			// 	funcDef: &db.FunctionDefinition{
+			// 		Name:          "github_branch_update_pr_workflow",
+			// 		FunctionGroup: "github",
+			// 		EndpointUrl:   sql.NullString{String: "https://api.github.com/repos/{owner}/{repo}/pulls", Valid: true},
+			// 	},
+			// 	expectOK: true,
+			// },
 		}
 
 		for _, tt := range tests {
@@ -192,7 +172,7 @@ func TestGitHubWorkflowBestPractices(t *testing.T) {
 		// Verify that workflow functions have proper documentation
 		workflowFunctions := []string{
 			"github_update_file_on_branch",
-			"github_branch_update_pr_workflow",
+			// "github_branch_update_pr_workflow", // Removed as unused
 		}
 
 		for _, funcName := range workflowFunctions {

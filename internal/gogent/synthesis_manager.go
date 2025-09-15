@@ -220,7 +220,6 @@ func (sm *SynthesisManager) getChannelNameFromArgs(args map[string]interface{}) 
 	return ""
 }
 
-
 // GetSynthesisPromptSuffix returns guidance following Gemini function calling best practices
 func (sm *SynthesisManager) GetSynthesisPromptSuffix(decision *SynthesisDecision, _ string) string {
 	if decision.ForceCompletion {

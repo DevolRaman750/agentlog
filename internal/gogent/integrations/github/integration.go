@@ -539,7 +539,6 @@ func (g *Integration) handleUpdateFileOnBranch(ctx context.Context, req *http.Re
 	return nil
 }
 
-
 // getFileSHAFromBranch retrieves the SHA of a file from a specific branch
 func (g *Integration) getFileSHAFromBranch(ctx context.Context, owner, repo, path, branch string) (string, error) {
 	// Build URL for getting file info from specific branch

@@ -408,6 +408,10 @@ func (ts *TemplateService) ListTemplates(userID string, limit, offset int, categ
 		templates = append(templates, template)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("failed to iterate template rows: %w", err)
+	}
+
 	return templates, totalCount, nil
 }
 
@@ -755,6 +759,10 @@ func (ts *TemplateService) getTemplateParameters(templateID string) ([]types.Exe
 		parameters = append(parameters, param)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate parameter rows: %w", err)
+	}
+
 	return parameters, nil
 }
 
@@ -1057,6 +1065,10 @@ func (ts *TemplateService) getTemplateAuthTokens(templateID string, includeInact
 		}
 
 		tokens = append(tokens, token)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate token rows: %w", err)
 	}
 
 	return tokens, nil

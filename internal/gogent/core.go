@@ -63,7 +63,23 @@ const (
 	FunctionGitHubReadCode            = "github_read_code"
 
 	// Status constants
-	StatusUnknown     = "unknown"
+	StatusUnknown   = "unknown"
+	StatusCompleted = "completed"
+	StatusFailed    = "failed"
+	StatusSuccess   = "success"
+
+	// HTTP method constants
+	HTTPMethodGET     = "GET"
+	HTTPMethodPOST    = "POST"
+	HTTPMethodPUT     = "PUT"
+	HTTPMethodPATCH   = "PATCH"
+	HTTPMethodDELETE  = "DELETE"
+	HTTPMethodOPTIONS = "OPTIONS"
+
+	// Common string constants
+	StringTrue        = "true"
+	StringFalse       = "false"
+	StringSystem      = "system"
 	StatusServerError = "server_error"
 	StatusInvalid     = "invalid"
 
@@ -883,9 +899,11 @@ func (c *Client) executeMCPFunction(ctx context.Context, funcDef *db.FunctionDef
 }
 
 // executeDynamicFunction routes to the appropriate execution method based on function definition
-func (c *Client) executeDynamicFunction(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+func (c *Client) executeDynamicFunction(ctx context.Context, funcDef *db.FunctionDefinition,
+	args map[string]interface{}) (map[string]interface{}, error) {
 	// Debug logging for function routing
-	log.Printf("🔍 [ROUTING_DEBUG] Function: %s, FunctionGroup: %s, HTTPMethod: %s", funcDef.Name, funcDef.FunctionGroup, funcDef.HTTPMethod.String)
+	log.Printf("🔍 [ROUTING_DEBUG] Function: %s, FunctionGroup: %s, HTTPMethod: %s",
+		funcDef.Name, funcDef.FunctionGroup, funcDef.HTTPMethod.String)
 
 	// Handle internal functions differently
 	if funcDef.FunctionGroup == FunctionGroupInternal {
@@ -896,11 +914,13 @@ func (c *Client) executeDynamicFunction(ctx context.Context, funcDef *db.Functio
 	// Route functions with registered integrations through the integration system
 	// This ensures proper authentication and user context for all integration functions
 	if c.integrations != nil && c.integrations.HasIntegration(funcDef.FunctionGroup) {
-		log.Printf("🔍 [ROUTING_DEBUG] Routing %s to executeIntegrationFunction (function_group: %s)", funcDef.Name, funcDef.FunctionGroup)
+		log.Printf("🔍 [ROUTING_DEBUG] Routing %s to executeIntegrationFunction (function_group: %s)",
+			funcDef.Name, funcDef.FunctionGroup)
 		return c.executeIntegrationFunction(ctx, funcDef, args)
 	}
 
-	log.Printf("🔍 [ROUTING_DEBUG] No integration found for function_group: %s, falling back to HTTP method routing", funcDef.FunctionGroup)
+	log.Printf("🔍 [ROUTING_DEBUG] No integration found for function_group: %s, "+
+		"falling back to HTTP method routing", funcDef.FunctionGroup)
 	switch funcDef.HTTPMethod.String {
 	case "MYSQL":
 		log.Printf("🔍 [ROUTING_DEBUG] Routing %s to executeMySQLFunction", funcDef.Name)
@@ -908,8 +928,9 @@ func (c *Client) executeDynamicFunction(ctx context.Context, funcDef *db.Functio
 	case "MCP":
 		log.Printf("🔍 [ROUTING_DEBUG] Routing %s to executeMCPFunction", funcDef.Name)
 		return c.executeMCPFunction(ctx, funcDef, args)
-	case "GET", "POST", "PUT", "PATCH", "DELETE":
-		log.Printf("🔍 [ROUTING_DEBUG] Routing %s to executeAPIFunction (HTTP method: %s)", funcDef.Name, funcDef.HTTPMethod.String)
+	case HTTPMethodGET, HTTPMethodPOST, HTTPMethodPUT, HTTPMethodPATCH, HTTPMethodDELETE:
+		log.Printf("🔍 [ROUTING_DEBUG] Routing %s to executeAPIFunction (HTTP method: %s)",
+			funcDef.Name, funcDef.HTTPMethod.String)
 		return c.executeAPIFunction(ctx, funcDef, args)
 	default:
 		return nil, fmt.Errorf("unsupported execution method: %s", funcDef.HTTPMethod.String)
@@ -1954,7 +1975,7 @@ func (c *Client) executeIntegrationFunction(ctx context.Context, funcDef *db.Fun
 	}
 
 	// For Slack functions, create a new integration with current user context if available
-	if funcDef.FunctionGroup == "slack" && c.currentUserID != "" {
+	if funcDef.FunctionGroup == ServiceSlack && c.currentUserID != "" {
 		log.Printf("🔑 [SLACK_DEBUG] Creating Slack integration with current user context: %s", c.currentUserID)
 
 		// Create auth service for current user
@@ -1971,7 +1992,7 @@ func (c *Client) executeIntegrationFunction(ctx context.Context, funcDef *db.Fun
 	}
 
 	// For GitHub functions, create a new integration with current user context if available
-	if funcDef.FunctionGroup == "github" && c.currentUserID != "" {
+	if funcDef.FunctionGroup == ServiceGitHub && c.currentUserID != "" {
 		log.Printf("🔑 [GITHUB_DEBUG] Creating GitHub integration with current user context: %s", c.currentUserID)
 
 		// Create auth service for current user

@@ -46,7 +46,13 @@ func (e *Engine) ExecuteSingle(ctx context.Context, userID string, executionRunI
 	}
 
 	resp, err := e.Provider.Generate(ctx, cfg, req)
-	durationMs := int32(time.Since(start).Milliseconds())
+	// Guard against int64 -> int32 overflow
+	var durationMs int32
+	if time.Since(start).Milliseconds() > int64(^uint32(0)>>1) {
+		durationMs = int32(^uint32(0) >> 1) // MaxInt32
+	} else {
+		durationMs = int32(time.Since(start).Milliseconds())
+	}
 
 	if err != nil {
 		// Synthesize an error response for consistent logging

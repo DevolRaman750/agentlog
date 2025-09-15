@@ -377,17 +377,23 @@ func (c *Client) ListComparisonResults(ctx context.Context, executionRunID strin
 		// Parse JSON fields
 		var configurationScores map[string]interface{}
 		if len(row.ConfigurationScores) > 0 {
-			json.Unmarshal(row.ConfigurationScores, &configurationScores)
+			if err := json.Unmarshal(row.ConfigurationScores, &configurationScores); err != nil {
+				log.Printf("⚠️ Failed to parse configuration scores JSON: %v", err)
+			}
 		}
 
 		var bestConfiguration *types.APIConfiguration
 		if bestConfigData, ok := row.BestConfigurationData.(string); ok && len(bestConfigData) > 0 {
-			json.Unmarshal([]byte(bestConfigData), &bestConfiguration)
+			if err := json.Unmarshal([]byte(bestConfigData), &bestConfiguration); err != nil {
+				log.Printf("⚠️ Failed to parse best configuration JSON: %v", err)
+			}
 		}
 
 		var allConfigurations []types.APIConfiguration
 		if allConfigData, ok := row.AllConfigurationsData.(string); ok && len(allConfigData) > 0 {
-			json.Unmarshal([]byte(allConfigData), &allConfigurations)
+			if err := json.Unmarshal([]byte(allConfigData), &allConfigurations); err != nil {
+				log.Printf("⚠️ Failed to parse all configurations JSON: %v", err)
+			}
 		}
 
 		result := &types.ComparisonResult{
