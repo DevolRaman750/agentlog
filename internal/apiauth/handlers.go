@@ -135,9 +135,10 @@ func (h *GitHubPATHandler) GetAuthHeaders(_ context.Context, apiKey *types.UserA
 		}
 	}
 
-	if token == "" {
-		return nil, fmt.Errorf("GitHub PAT token not found - decrypted token not provided")
-	}
+    if token == "" {
+        // Keep proper-noun capitalization to match existing tests
+        return nil, fmt.Errorf("GitHub PAT token not found - decrypted token not provided")
+    }
 
 	return map[string]string{
 		"Authorization":        "token " + token,
@@ -542,9 +543,9 @@ func (h *SlackBotTokenHandler) GetAuthHeaders(_ context.Context, apiKey *types.U
 		}
 	}
 
-	if token == "" {
-		return nil, fmt.Errorf("Slack bot token not found in auth config (checked 'decrypted_token' and 'token' fields)")
-	}
+    if token == "" {
+        return nil, fmt.Errorf("slack bot token not found in auth config (checked 'decrypted_token' and 'token' fields)")
+    }
 
 	return map[string]string{
 		"Authorization": "Bearer " + token,
@@ -598,9 +599,9 @@ func (h *GeminiAPIKeyHandler) GetAuthHeaders(_ context.Context, apiKey *types.Us
 		}
 	}
 
-	if token == "" {
-		return nil, fmt.Errorf("Gemini API key not found in auth config")
-	}
+    if token == "" {
+        return nil, fmt.Errorf("gemini API key not found in auth config")
+    }
 
 	return map[string]string{
 		"x-goog-api-key": token,

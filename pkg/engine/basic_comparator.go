@@ -1,8 +1,8 @@
 package engine
 
 import (
-	"context"
-	"time"
+    "context"
+    "time"
 
 	"github.com/google/uuid"
 
@@ -12,6 +12,16 @@ import (
 // BasicComparator implements Comparator using engine helper scores.
 // Note: Storage is left to the caller; this comparator returns a comparison result only.
 type BasicComparator struct{}
+
+// Weight constants for overall scoring to avoid magic numbers.
+const (
+    weightResponseTime    = 0.20
+    weightCreativity      = 0.25
+    weightCoherence       = 0.25
+    weightTokenEfficiency = 0.15
+    weightSafety          = 0.10
+    weightCostEffect      = 0.05
+)
 
 func (bc *BasicComparator) Compare(_ context.Context, result *types.ExecutionResult) (*types.ComparisonResult, error) {
 	comp := &types.ComparisonResult{
@@ -51,9 +61,9 @@ func (bc *BasicComparator) Compare(_ context.Context, result *types.ExecutionRes
 		totalTokens += tt
 		totalCost += est
 
-		// Weighted overall score aligned with legacy implementation
-		// Legacy weights: RT 0.20, Creativity 0.25, Coherence 0.25, TokenEff 0.15, Safety 0.10, CostEff 0.05
-		overall := 0.20*rts + 0.25*crs + 0.25*chs + 0.15*tes + 0.10*sfs + 0.05*ces
+        // Weighted overall score aligned with legacy implementation
+        overall := weightResponseTime*rts + weightCreativity*crs + weightCoherence*chs +
+            weightTokenEfficiency*tes + weightSafety*sfs + weightCostEffect*ces
 
 		comp.ConfigurationScores[cfg.ID] = map[string]interface{}{
 			"response_time_score": rts,

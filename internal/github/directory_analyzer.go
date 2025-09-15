@@ -1,10 +1,11 @@
 package github
 
 import (
-	"fmt"
-	"log"
+    "context"
+    "fmt"
+    "log"
 
-	"gogent/internal/code_analysis"
+    "gogent/internal/code_analysis"
 )
 
 // DirectoryAnalyzer handles analysis of GitHub directory contents
@@ -22,8 +23,15 @@ func NewDirectoryAnalyzer(config *code_analysis.Config) *DirectoryAnalyzer {
 }
 
 // ProcessDirectoryListing processes a GitHub directory listing with enhanced analysis
-func (da *DirectoryAnalyzer) ProcessDirectoryListing(result map[string]interface{}, githubArray []interface{}) map[string]interface{} {
-	log.Printf("🔧 Processing GitHub directory listing with %d items", len(githubArray))
+func (da *DirectoryAnalyzer) ProcessDirectoryListing(
+    ctx context.Context,
+    result map[string]interface{},
+    githubArray []interface{},
+) map[string]interface{} {
+    log.Printf(
+        "🔧 Processing GitHub directory listing with %d items",
+        len(githubArray),
+    )
 
 	files := make([]map[string]interface{}, 0)
 	directories := make([]map[string]interface{}, 0)
@@ -39,18 +47,22 @@ func (da *DirectoryAnalyzer) ProcessDirectoryListing(result map[string]interface
 				"size": getIntFromResult(itemMap, "size"),
 			}
 
-			if itemType == "file" {
-				files = append(files, itemInfo)
+            if itemType == "file" {
+                files = append(files, itemInfo)
 
-				// Auto-fetch and analyze content for qualifying files
-				fileSize := getIntFromResult(itemMap, "size")
-				fileName := getStringFromResult(itemMap, "name")
+                // Auto-fetch and analyze content for qualifying files
+                fileSize := getIntFromResult(itemMap, "size")
+                fileName := getStringFromResult(itemMap, "name")
 
-				if da.analyzer.ShouldAnalyzeFile(fileName, fileSize) {
-					log.Printf("🔧 Auto-fetching content for file: %s (%d bytes)", fileName, fileSize)
-					if fileContent := da.fetcher.FetchFileContent(itemMap); fileContent != nil {
-						content := fileContent["content"].(string)
-						analysis := da.analyzer.AnalyzeContent(content, fileName)
+                if da.analyzer.ShouldAnalyzeFile(fileName, fileSize) {
+                    log.Printf(
+                        "🔧 Auto-fetching content for file: %s (%d bytes)",
+                        fileName,
+                        fileSize,
+                    )
+                    if fileContent := da.fetcher.FetchFileContent(ctx, itemMap); fileContent != nil {
+                        content := fileContent["content"].(string)
+                        analysis := da.analyzer.AnalyzeContent(content, fileName)
 
 						itemInfo["content"] = content
 						itemInfo["analysis"] = analysis
@@ -74,25 +86,36 @@ func (da *DirectoryAnalyzer) ProcessDirectoryListing(result map[string]interface
 		},
 		"raw_response": result["response"],
 		"_metadata":    result["_metadata"],
-		"analysis": map[string]interface{}{
-			"summary":             fmt.Sprintf("Directory contains %d files and %d subdirectories", len(files), len(directories)),
-			"file_types":          da.analyzer.AnalyzeFileTypes(files),
-			"files_with_content":  len(filesWithContent),
-			"total_lines_of_code": da.analyzer.CountTotalLinesOfCode(filesWithContent),
-			"code_files_analyzed": da.analyzer.SummarizeCodeFiles(filesWithContent),
-		},
-	}
+        "analysis": map[string]interface{}{
+            "summary": fmt.Sprintf(
+                "Directory contains %d files and %d subdirectories",
+                len(files),
+                len(directories),
+            ),
+            "file_types":          da.analyzer.AnalyzeFileTypes(files),
+            "files_with_content":  len(filesWithContent),
+            "total_lines_of_code": da.analyzer.CountTotalLinesOfCode(filesWithContent),
+            "code_files_analyzed": da.analyzer.SummarizeCodeFiles(filesWithContent),
+        },
+    }
 
 	// Add detailed code analysis if files were processed
-	if len(filesWithContent) > 0 {
-		enhanced["detailed_code_analysis"] = map[string]interface{}{
-			"files_analyzed": filesWithContent,
-			"overview":       da.analyzer.GenerateCodeOverview(filesWithContent),
-		}
-		log.Printf("✅ Enhanced directory listing with code analysis: %d files analyzed", len(filesWithContent))
-	} else {
-		log.Printf("✅ Enhanced directory listing: %d files, %d directories (no code content fetched)", len(files), len(directories))
-	}
+    if len(filesWithContent) > 0 {
+        enhanced["detailed_code_analysis"] = map[string]interface{}{
+            "files_analyzed": filesWithContent,
+            "overview":       da.analyzer.GenerateCodeOverview(filesWithContent),
+        }
+        log.Printf(
+            "✅ Enhanced directory listing with code analysis: %d files analyzed",
+            len(filesWithContent),
+        )
+    } else {
+        log.Printf(
+            "✅ Enhanced directory listing: %d files, %d directories (no code content fetched)",
+            len(files),
+            len(directories),
+        )
+    }
 
 	return enhanced
 }

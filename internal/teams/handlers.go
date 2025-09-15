@@ -130,7 +130,7 @@ func (h *Handler) createTeam(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create new team
-	team := types.Team{
+        team := types.Team{
 		ID:              uuid.New().String(),
 		UserID:          user.ID,
 		Name:            req.Name,
@@ -201,7 +201,14 @@ func (h *Handler) createTeamWithAgents(w http.ResponseWriter, r *http.Request) {
 		MaxTokensPerDay:  req.MaxTokensPerDay,
 		TokensUsedToday:  0,
 		TokensResetDate:  time.Now().Format("2006-01-02"),
-		AgentCount:       int32(len(req.Agents)),
+            AgentCount: func() int32 {
+                n := len(req.Agents)
+                // Clamp to MaxInt32 to avoid overflow (gosec G115)
+                if n > int(^uint32(0)>>1) {
+                    return int32(^uint32(0) >> 1)
+                }
+                return int32(n)
+            }(),
 		ActiveAgentCount: 0, // Will be updated based on agent lifecycle status
 		CreatedAt:        time.Now(),
 		UpdatedAt:        time.Now(),
@@ -384,8 +391,10 @@ func (h *Handler) deleteTeam(w http.ResponseWriter, r *http.Request, teamID stri
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"message": "Team deleted successfully"})
+    w.Header().Set("Content-Type", "application/json")
+    if err := json.NewEncoder(w).Encode(map[string]string{"message": "Team deleted successfully"}); err != nil {
+        log.Printf("Failed to encode delete response: %v", err)
+    }
 }
 
 // handleTeamAgents handles /api/teams/{id}/agents
@@ -409,8 +418,10 @@ func (h *Handler) handleTeamAgents(w http.ResponseWriter, r *http.Request, teamI
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(teamWithAgents)
+            w.Header().Set("Content-Type", "application/json")
+            if err := json.NewEncoder(w).Encode(teamWithAgents); err != nil {
+                log.Printf("Failed to encode team-with-agents response: %v", err)
+            }
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -437,8 +448,10 @@ func (h *Handler) handleTeamAgentAssignment(w http.ResponseWriter, r *http.Reque
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(agent)
+            w.Header().Set("Content-Type", "application/json")
+            if err := json.NewEncoder(w).Encode(agent); err != nil {
+                log.Printf("Failed to encode agent response: %v", err)
+            }
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -463,11 +476,13 @@ func (h *Handler) pauseAllTeamAgents(w http.ResponseWriter, r *http.Request, tea
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"message":       "Team agents paused successfully",
-		"affectedCount": affectedCount,
-	})
+    w.Header().Set("Content-Type", "application/json")
+    if err := json.NewEncoder(w).Encode(map[string]interface{}{
+        "message":       "Team agents paused successfully",
+        "affectedCount": affectedCount,
+    }); err != nil {
+        log.Printf("Failed to encode pause response: %v", err)
+    }
 }
 
 // resumeAllTeamAgents resumes all paused agents in a team
@@ -489,11 +504,13 @@ func (h *Handler) resumeAllTeamAgents(w http.ResponseWriter, r *http.Request, te
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"message":       "Team agents resumed successfully",
-		"affectedCount": affectedCount,
-	})
+    w.Header().Set("Content-Type", "application/json")
+    if err := json.NewEncoder(w).Encode(map[string]interface{}{
+        "message":       "Team agents resumed successfully",
+        "affectedCount": affectedCount,
+    }); err != nil {
+        log.Printf("Failed to encode resume response: %v", err)
+    }
 }
 
 // getTeamStats retrieves statistics for a team
@@ -519,8 +536,10 @@ func (h *Handler) getTeamStats(w http.ResponseWriter, r *http.Request, teamID st
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(stats)
+    w.Header().Set("Content-Type", "application/json")
+    if err := json.NewEncoder(w).Encode(stats); err != nil {
+        log.Printf("Failed to encode stats response: %v", err)
+    }
 }
 
 // handleTeamMemory handles team memory operations
@@ -744,8 +763,10 @@ func (h *Handler) handleTeamContextOperations(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"message": "Team context updated successfully"})
+    w.Header().Set("Content-Type", "application/json")
+    if err := json.NewEncoder(w).Encode(map[string]string{"message": "Team context updated successfully"}); err != nil {
+        log.Printf("Failed to encode context update response: %v", err)
+    }
 }
 
 // updateTeamContextForAllAgents updates the effective context for all agents in a team
