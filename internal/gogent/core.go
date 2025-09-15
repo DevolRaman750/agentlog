@@ -5,6 +5,14 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"net/url"
+	"strings"
+	"sync"
+	"time"
+
 	"gogent/internal/agents"
 	"gogent/internal/apiauth"
 	"gogent/internal/apikeys"
@@ -19,13 +27,6 @@ import (
 	"gogent/internal/providers"
 	"gogent/internal/teams"
 	"gogent/internal/types"
-	"io"
-	"log"
-	"net/http"
-	"net/url"
-	"strings"
-	"sync"
-	"time"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/mysql"
@@ -2987,7 +2988,7 @@ func (c *Client) GetExecutionResult(ctx context.Context, userID string, executio
 			ResponseText:   respRow.ResponseText.String,
 			FinishReason:   respRow.FinishReason.String,
 			ErrorMessage:   respRow.ErrorMessage.String,
-			ResponseTimeMs: respRow.ResponseTimeMs.Int32,
+			ResponseTimeMs: respRow.ResponseTimeMs.Int64,
 			CreatedAt:      respRow.CreatedAt.Time,
 		}
 

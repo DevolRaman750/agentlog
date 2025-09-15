@@ -279,7 +279,7 @@ func (p *KimiProvider) parseKimiResponse(response map[string]interface{}, durati
 	}
 
 	result := &ModelResponse{
-		ResponseTimeMs: int32(duration.Milliseconds()),
+		ResponseTimeMs: duration.Milliseconds(),
 		FunctionCalls:  []FunctionCall{},
 	}
 

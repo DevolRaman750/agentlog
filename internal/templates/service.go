@@ -389,7 +389,6 @@ func (ts *TemplateService) ListTemplates(userID string, limit, offset int, categ
 
 // UpdateTemplate updates an existing template and creates a new version
 func (ts *TemplateService) UpdateTemplate(templateID string, template *types.ExecutionTemplate, parameters []types.ExecutionTemplateParameter, functionIds []string, changeSummary string) (*types.ExecutionTemplate, *types.ExecutionTemplateVersion, error) {
-
 	tx, err := ts.db.Begin()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to begin transaction: %w", err)

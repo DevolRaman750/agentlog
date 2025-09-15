@@ -644,7 +644,7 @@ func (s *GRPCServer) convertExecutionResultToProto(result *types.ExecutionResult
 			ResponseText:   vr.Response.ResponseText,
 			FinishReason:   vr.Response.FinishReason,
 			ErrorMessage:   vr.Response.ErrorMessage,
-			ResponseTimeMs: vr.Response.ResponseTimeMs,
+			ResponseTimeMs: int32(vr.Response.ResponseTimeMs),
 			UsageMetadata:  usageStruct,
 			CreatedAt:      timestamppb.New(vr.Response.CreatedAt),
 		}

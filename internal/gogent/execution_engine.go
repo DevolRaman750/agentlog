@@ -42,7 +42,6 @@ func (c *Client) ExecuteMultiVariationWithExistingRun(ctx context.Context, userI
 
 // executeMultiVariationWithRun is the shared implementation for both methods
 func (c *Client) executeMultiVariationWithRun(ctx context.Context, userID string, executionRun *types.ExecutionRun, request *types.MultiExecutionRequest) (*types.ExecutionResult, error) {
-
 	// Set execution context for logging
 	c.setExecutionContext(&executionRun.ID, nil, nil)
 	defer c.clearExecutionContext()
@@ -251,7 +250,7 @@ func (c *Client) executeSingleVariation(ctx context.Context, userID string, exec
 // Legacy comparison helpers removed; engine handles comparison and storage via adapters.
 
 // Helper functions for calculating different metrics
-func (c *Client) calculateResponseTimeScore(responseTimeMs int32) float64 {
+func (c *Client) calculateResponseTimeScore(responseTimeMs int64) float64 {
 	return engine.ResponseTimeScore(responseTimeMs)
 }
 

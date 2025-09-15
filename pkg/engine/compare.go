@@ -8,7 +8,7 @@ import (
 )
 
 // ResponseTimeScore: lower response time => higher score (cap at 1.0)
-func ResponseTimeScore(responseTimeMs int32) float64 {
+func ResponseTimeScore(responseTimeMs int64) float64 {
 	if responseTimeMs <= 0 {
 		return 0.0
 	}

@@ -137,7 +137,7 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 		return &types.APIResponse{
 			ResponseStatus: types.ResponseStatusError,
 			ErrorMessage:   fmt.Sprintf("Failed to marshal request: %v", err),
-			ResponseTimeMs: int32(time.Since(startTime).Milliseconds()),
+			ResponseTimeMs: time.Since(startTime).Milliseconds(),
 		}, nil
 	}
 
@@ -149,7 +149,7 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 		return &types.APIResponse{
 			ResponseStatus: types.ResponseStatusError,
 			ErrorMessage:   fmt.Sprintf("Failed to create request: %v", err),
-			ResponseTimeMs: int32(time.Since(startTime).Milliseconds()),
+			ResponseTimeMs: time.Since(startTime).Milliseconds(),
 		}, nil
 	}
 
@@ -162,7 +162,7 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 		return &types.APIResponse{
 			ResponseStatus: types.ResponseStatusError,
 			ErrorMessage:   fmt.Sprintf("Failed to make request: %v", err),
-			ResponseTimeMs: int32(time.Since(startTime).Milliseconds()),
+			ResponseTimeMs: time.Since(startTime).Milliseconds(),
 		}, nil
 	}
 	defer resp.Body.Close()
@@ -174,7 +174,7 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 		return &types.APIResponse{
 			ResponseStatus: types.ResponseStatusError,
 			ErrorMessage:   fmt.Sprintf("Failed to read response: %v", err),
-			ResponseTimeMs: int32(time.Since(startTime).Milliseconds()),
+			ResponseTimeMs: time.Since(startTime).Milliseconds(),
 		}, nil
 	}
 
@@ -186,7 +186,7 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 		return &types.APIResponse{
 			ResponseStatus: types.ResponseStatusError,
 			ErrorMessage:   fmt.Sprintf("API error %d: %s", resp.StatusCode, string(body)),
-			ResponseTimeMs: int32(responseTime.Milliseconds()),
+			ResponseTimeMs: responseTime.Milliseconds(),
 		}, nil
 	}
 
@@ -216,7 +216,7 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 		return &types.APIResponse{
 			ResponseStatus: types.ResponseStatusError,
 			ErrorMessage:   fmt.Sprintf("Failed to parse response: %v", err),
-			ResponseTimeMs: int32(responseTime.Milliseconds()),
+			ResponseTimeMs: responseTime.Milliseconds(),
 		}, nil
 	}
 
@@ -292,7 +292,7 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 		ResponseText:   responseText,
 		UsageMetadata:  usageMetadata,
 		FinishReason:   finishReason,
-		ResponseTimeMs: int32(responseTime.Milliseconds()),
+		ResponseTimeMs: responseTime.Milliseconds(),
 	}
 
 	// Add function calls to response body if present

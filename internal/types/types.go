@@ -218,7 +218,7 @@ type APIResponse struct {
 	SafetyRatings        map[string]interface{} `json:"safetyRatings,omitempty"`
 	FinishReason         string                 `json:"finishReason,omitempty"`
 	ErrorMessage         string                 `json:"errorMessage,omitempty"`
-	ResponseTimeMs       int32                  `json:"responseTimeMs"`
+	ResponseTimeMs       int64                  `json:"responseTimeMs"`
 	ResponseHeaders      map[string]interface{} `json:"responseHeaders,omitempty"`
 	ResponseBody         map[string]interface{} `json:"responseBody,omitempty"`
 	CreatedAt            time.Time              `json:"createdAt"`
@@ -919,7 +919,7 @@ const (
 	TaskStatusCompleted  TeamTaskStatus = "completed"
 	TaskStatusFailed     TeamTaskStatus = "failed"
 	TaskStatusBlocked    TeamTaskStatus = "blocked"
-	TaskStatusCancelled  TeamTaskStatus = "cancelled"
+	TaskStatusCancelled  TeamTaskStatus = "canceled"
 )
 
 // TeamTaskPriority represents task priority levels

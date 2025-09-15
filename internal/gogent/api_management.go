@@ -221,7 +221,7 @@ func (c *Client) LogAPIResponse(ctx context.Context, userID string, response *ty
 		SafetyRatings:        convertStringToRawMessage(safetyRatingsJSON),
 		FinishReason:         sql.NullString{String: response.FinishReason, Valid: response.FinishReason != ""},
 		ErrorMessage:         sql.NullString{String: response.ErrorMessage, Valid: response.ErrorMessage != ""},
-		ResponseTimeMs:       sql.NullInt32{Int32: response.ResponseTimeMs, Valid: true},
+		ResponseTimeMs:       sql.NullInt64{Int64: response.ResponseTimeMs, Valid: true},
 		ResponseHeaders:      convertStringToRawMessage(responseHeadersJSON),
 		ResponseBody:         convertStringToRawMessage(responseBodyJSON),
 	})

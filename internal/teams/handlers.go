@@ -108,7 +108,10 @@ func (h *TeamsHandler) listTeams(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(teams)
+	if err := json.NewEncoder(w).Encode(teams); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to encode response: %v", err), http.StatusInternalServerError)
+		return
+	}
 }
 
 // createTeam creates a new team
@@ -150,7 +153,10 @@ func (h *TeamsHandler) createTeam(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(team)
+	if err := json.NewEncoder(w).Encode(team); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to encode response: %v", err), http.StatusInternalServerError)
+		return
+	}
 }
 
 // createTeamWithAgents creates a new team with associated agents

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"gogent/internal/types"
 )
 
@@ -12,7 +13,7 @@ import (
 // Note: Storage is left to the caller; this comparator returns a comparison result only.
 type BasicComparator struct{}
 
-func (bc *BasicComparator) Compare(ctx context.Context, result *types.ExecutionResult) (*types.ComparisonResult, error) {
+func (bc *BasicComparator) Compare(_ context.Context, result *types.ExecutionResult) (*types.ComparisonResult, error) {
 	comp := &types.ComparisonResult{
 		ID:                  uuid.New().String(),
 		ExecutionRunID:      result.ExecutionRun.ID,
@@ -107,7 +108,7 @@ func (bc *BasicComparator) Compare(ctx context.Context, result *types.ExecutionR
 	return comp, nil
 }
 
-func (bc *BasicComparator) Store(ctx context.Context, userID string, comp *types.ComparisonResult) error {
+func (bc *BasicComparator) Store(_ context.Context, userID string, comp *types.ComparisonResult) error {
 	// Intentionally not implemented; storage should be handled by adapter or caller.
 	return nil
 }

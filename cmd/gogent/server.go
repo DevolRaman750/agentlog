@@ -847,7 +847,7 @@ func (s *Server) executeMockVariation(ctx context.Context, request *types.MultiE
 			ResponseStatus: "success",
 			ResponseText:   responseText,
 			FinishReason:   "stop",
-			ResponseTimeMs: responseTime,
+			ResponseTimeMs: int64(responseTime),
 			UsageMetadata: map[string]interface{}{
 				"prompt_tokens":     int32(len(request.BasePrompt) / 4),
 				"completion_tokens": int32(len(responseText) / 4),

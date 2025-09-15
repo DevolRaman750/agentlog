@@ -137,7 +137,7 @@ func (h *GitHubPATHandler) ValidateCredentials(ctx context.Context, apiKey *type
 	}
 
 	// Make a test request to GitHub API
-	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/user", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/user", http.NoBody)
 	if err != nil {
 		return fmt.Errorf("failed to create validation request: %w", err)
 	}
@@ -346,7 +346,7 @@ func (h *GitHubAppHandler) generateJWT(config *types.GitHubAppConfig) (string, e
 func (h *GitHubAppHandler) requestInstallationToken(ctx context.Context, installationID int64, jwtToken string) (*types.InstallationToken, error) {
 	url := fmt.Sprintf("https://api.github.com/app/installations/%d/access_tokens", installationID)
 
-	req, err := http.NewRequestWithContext(ctx, "POST", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "POST", url, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -435,7 +435,7 @@ func (h *GitHubAppHandler) ValidateCredentials(ctx context.Context, apiKey *type
 
 	// Make a test request to validate the installation
 	url := fmt.Sprintf("https://api.github.com/app/installations/%d", appConfig.InstallationID)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, http.NoBody)
 	if err != nil {
 		return fmt.Errorf("failed to create validation request: %w", err)
 	}

@@ -5,7 +5,7 @@ package engine
 //
 // Current behavior: if "channel" arg is missing and previous results contain
 // channels[0].id, set args["channel"] to that id.
-func AutoFillMissingArgs(functionName string, args map[string]interface{}, previousResults []map[string]interface{}) bool {
+func AutoFillMissingArgs(_ string, args map[string]interface{}, previousResults []map[string]interface{}) bool {
 	if args == nil {
 		return false
 	}

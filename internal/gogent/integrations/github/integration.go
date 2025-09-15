@@ -594,7 +594,7 @@ func (g *Integration) getFileSHAFromBranch(ctx context.Context, owner, repo, pat
 	url := fmt.Sprintf("%s/repos/%s/%s/contents/%s?ref=%s", g.baseURL, owner, repo, path, branch)
 
 	// Create GET request
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, http.NoBody)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
@@ -647,7 +647,7 @@ func (g *Integration) getFileSHAFromBranch(ctx context.Context, owner, repo, pat
 func (g *Integration) GetBranchSHA(ctx context.Context, owner, repo, branch string) (string, error) {
 	url := fmt.Sprintf("%s/repos/%s/%s/git/refs/heads/%s", g.baseURL, owner, repo, branch)
 
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, http.NoBody)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}

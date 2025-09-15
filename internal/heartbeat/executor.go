@@ -140,7 +140,7 @@ func (he *HeartbeatExecutor) run() {
 	for {
 		select {
 		case <-he.ctx.Done():
-			log.Printf("🔇 HeartbeatExecutor context cancelled, stopping...")
+			log.Printf("🔇 HeartbeatExecutor context canceled, stopping...")
 			return
 		case <-ticker.C:
 			he.checkAndExecuteAgents()
@@ -176,7 +176,7 @@ func (he *HeartbeatExecutor) checkAndExecuteAgents() {
 	for _, agent := range overdueAgents {
 		select {
 		case <-he.ctx.Done():
-			log.Printf("🔇 Context cancelled during agent processing")
+			log.Printf("🔇 Context canceled during agent processing")
 			return
 		default:
 			he.processAgent(agent)

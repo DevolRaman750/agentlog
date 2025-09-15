@@ -51,7 +51,7 @@ CREATE TABLE `api_responses` (
   `safety_ratings` json,
   `finish_reason` varchar(50) DEFAULT NULL,
   `error_message` text,
-  `response_time_ms` int DEFAULT NULL,
+  `response_time_ms` bigint DEFAULT NULL,
   `response_headers` json,
   `response_body` json,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,

@@ -2,6 +2,7 @@ package providers
 
 import (
 	"context"
+
 	"gogent/internal/types"
 )
 
@@ -39,7 +40,7 @@ type ModelResponse struct {
 	FunctionCalls     []FunctionCall         `json:"functionCalls,omitempty"`
 	UsageMetadata     map[string]interface{} `json:"usageMetadata,omitempty"`
 	FinishReason      string                 `json:"finishReason,omitempty"`
-	ResponseTimeMs    int32                  `json:"responseTimeMs"`
+	ResponseTimeMs    int64                  `json:"responseTimeMs"`
 	ConversationState []ConversationMessage  `json:"conversationState,omitempty"` // For iterative calling
 }
 

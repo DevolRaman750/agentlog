@@ -1271,9 +1271,9 @@ func (h *TeamsHandler) ClearTeamTasks(ctx context.Context, teamID, agentID, user
 			}
 		}
 
-	case "clear_cancelled":
+	case "clear_canceled":
 		for _, task := range tasks {
-			if string(task.Status) == "cancelled" {
+			if string(task.Status) == "canceled" {
 				tasksRemoved = append(tasksRemoved, task)
 			} else {
 				tasksKept = append(tasksKept, task)

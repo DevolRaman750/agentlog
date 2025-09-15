@@ -2,10 +2,11 @@ package gogent
 
 import (
 	"context"
-	"gogent/internal/types"
-	eng "gogent/pkg/engine"
 	"os"
 	"strconv"
+
+	"gogent/internal/types"
+	eng "gogent/pkg/engine"
 )
 
 // engineProvider adapts Client.callGeminiAPI to engine.Provider

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"gogent/internal/types"
 )
 
@@ -49,7 +50,7 @@ func (e *Engine) ExecuteSingle(ctx context.Context, userID string, executionRunI
 
 	if err != nil {
 		// Synthesize an error response for consistent logging
-		resp = &types.APIResponse{ID: uuid.New().String(), RequestID: req.ID, ResponseStatus: types.ResponseStatusError, ErrorMessage: err.Error(), ResponseTimeMs: durationMs, CreatedAt: time.Now()}
+		resp = &types.APIResponse{ID: uuid.New().String(), RequestID: req.ID, ResponseStatus: types.ResponseStatusError, ErrorMessage: err.Error(), ResponseTimeMs: int64(durationMs), CreatedAt: time.Now()}
 	}
 
 	if e.Store != nil {

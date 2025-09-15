@@ -12,11 +12,11 @@ type fakeComparator struct {
 	stored   bool
 }
 
-func (f *fakeComparator) Compare(ctx context.Context, res *types.ExecutionResult) (*types.ComparisonResult, error) {
+func (f *fakeComparator) Compare(_ context.Context, res *types.ExecutionResult) (*types.ComparisonResult, error) {
 	f.compared = true
 	return &types.ComparisonResult{ID: "cmp1", ExecutionRunID: res.ExecutionRun.ID}, nil
 }
-func (f *fakeComparator) Store(ctx context.Context, userID string, comp *types.ComparisonResult) error {
+func (f *fakeComparator) Store(_ context.Context, userID string, comp *types.ComparisonResult) error {
 	f.stored = true
 	return nil
 }

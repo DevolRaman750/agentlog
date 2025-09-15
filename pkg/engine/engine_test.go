@@ -14,7 +14,7 @@ type fakeProvider struct {
 	err  error
 }
 
-func (f *fakeProvider) Generate(ctx context.Context, cfg *types.APIConfiguration, req *types.APIRequest) (*types.APIResponse, error) {
+func (f *fakeProvider) Generate(_ context.Context, cfg *types.APIConfiguration, req *types.APIRequest) (*types.APIResponse, error) {
 	// include a nominal response time for assertions
 	r := f.resp
 	if r == nil {
@@ -32,18 +32,18 @@ type fakeStore struct {
 	loggedResp bool
 }
 
-func (s *fakeStore) LogAPIRequest(ctx context.Context, userID string, req *types.APIRequest) error {
+func (s *fakeStore) LogAPIRequest(_ context.Context, userID string, req *types.APIRequest) error {
 	s.loggedReq = true
 	return nil
 }
-func (s *fakeStore) LogAPIResponse(ctx context.Context, userID string, resp *types.APIResponse) error {
+func (s *fakeStore) LogAPIResponse(_ context.Context, userID string, resp *types.APIResponse) error {
 	s.loggedResp = true
 	return nil
 }
 
 type fakeLogger struct{ events []string }
 
-func (l *fakeLogger) FlowEvent(name string, seq int, status string, payload map[string]interface{}) {
+func (l *fakeLogger) FlowEvent(name string, _ int, status string, payload map[string]interface{}) {
 	l.events = append(l.events, name+":"+status)
 }
 

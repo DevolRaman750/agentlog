@@ -10,7 +10,7 @@ import (
 // - If result is nil: "No data returned"
 // - If status is failed/validation_failed: return "FAILED: <error>" if present
 // - Otherwise: return full JSON for maximal context preservation
-func SummarizeResult(functionName string, result map[string]interface{}) string {
+func SummarizeResult(_ string, result map[string]interface{}) string {
 	if result == nil {
 		return "No data returned"
 	}

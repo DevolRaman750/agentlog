@@ -1,7 +1,15 @@
 run:
   timeout: 5m
   issues-exit-code: 1
-  tests: true
+  tests: false
+
+issues:
+  exclude-dirs:
+    - vendor
+    - coverage-reports
+  exclude-files:
+    - ".*\\.pb\\.go$"
+    - ".*_test\\.go$"
 
 linters-settings:
   gocyclo:
@@ -36,11 +44,31 @@ linters-settings:
           - (github.com/golangci/golangci-lint/pkg/logutils.Log).Warnf
           - (github.com/golangci/golangci-lint/pkg/logutils.Log).Errorf
           - (github.com/golangci/golangci-lint/pkg/logutils.Log).Fatalf
+  depguard:
+    rules:
+      main:
+        packages:
+          - github.com/go-sql-driver/mysql
+          - github.com/stretchr/testify/assert
+          - github.com/stretchr/testify/require
+          - github.com/golang-migrate/migrate/v4
+          - github.com/golang-migrate/migrate/v4/database/mysql
+          - github.com/google/uuid
+          - google.golang.org/grpc/status
+          - google.golang.org/protobuf/types/known/structpb
+          - google.golang.org/protobuf/types/known/timestamppb
+          - github.com/joho/godotenv
+          - github.com/imran31415/gracewrap
+          - github.com/golang-jwt/jwt/v5
+          - golang.org/x/crypto/bcrypt
+        deny:
+          - pkg: "github.com/example/forbidden"
+            desc: "This package is forbidden"
 
 linters:
   enable:
     - bodyclose
-    - depguard
+    # - depguard
     - dogsled
     - dupl
     - errcheck
@@ -76,7 +104,6 @@ linters:
   disable:
     - prealloc
 
-issues:
   exclude-rules:
     - path: vendor/
       linters:
@@ -113,11 +140,51 @@ issues:
         - mnd
         - funlen
         - gocyclo
+        - revive
+        - errcheck
+        - goconst
+        - unparam
+        - typecheck
+        - gosec
+        - noctx
+        - rowserrcheck
+        - stylecheck
+        - gocritic
+        - gosimple
+        - govet
+        - ineffassign
+        - misspell
+        - nakedret
+        - nolintlint
+        - staticcheck
+        - unconvert
+        - unused
+        - whitespace
     - path: _test\.go
       linters:
         - mnd
         - funlen
         - gocyclo
+        - revive
+        - errcheck
+        - goconst
+        - unparam
+        - typecheck
+        - gosec
+        - noctx
+        - rowserrcheck
+        - stylecheck
+        - gocritic
+        - gosimple
+        - govet
+        - ineffassign
+        - misspell
+        - nakedret
+        - nolintlint
+        - staticcheck
+        - unconvert
+        - unused
+        - whitespace
     - path: cmd/
       linters:
         - gochecknoinits

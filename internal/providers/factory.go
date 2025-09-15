@@ -10,6 +10,13 @@ import (
 	"gogent/internal/types"
 )
 
+const (
+	ProviderTypeGemini = "gemini"
+	ProviderTypeKimi   = "kimi"
+	EmptyResponse      = "EMPTY"
+	OpenRouterBaseURL  = "https://openrouter.ai/api/v1"
+)
+
 // ProviderFactory creates and manages model providers
 type ProviderFactory struct {
 	providers map[string]ModelProvider
@@ -48,10 +55,10 @@ func (f *ProviderFactory) CreateProvider(ctx context.Context, modelName string, 
 	var err error
 
 	switch providerType {
-	case "gemini":
+	case ProviderTypeGemini:
 		provider, err = f.createGeminiProvider(ctx, sessionKeys)
 
-	case "kimi":
+	case ProviderTypeKimi:
 		provider, err = f.createKimiProvider(sessionKeys)
 
 	default:
@@ -91,7 +98,7 @@ func (f *ProviderFactory) createKimiProvider(sessionKeys *types.SessionApiKeys) 
 				if len(key) > 10 {
 					return key[:10] + "..."
 				} else if key == "" {
-					return "EMPTY"
+					return EmptyResponse
 				} else {
 					return key
 				}
@@ -100,7 +107,7 @@ func (f *ProviderFactory) createKimiProvider(sessionKeys *types.SessionApiKeys) 
 				if len(key) > 10 {
 					return key[:10] + "..."
 				} else if key == "" {
-					return "EMPTY"
+					return EmptyResponse
 				} else {
 					return key
 				}
@@ -109,12 +116,12 @@ func (f *ProviderFactory) createKimiProvider(sessionKeys *types.SessionApiKeys) 
 		// Try OpenRouter API key first
 		if sessionKeys.OpenRouterApiKey != "" {
 			apiKey = sessionKeys.OpenRouterApiKey
-			baseURL = "https://openrouter.ai/api/v1"
+			baseURL = OpenRouterBaseURL
 			log.Printf("✅ Using OpenRouter API key for Kimi provider")
 		} else if strings.HasPrefix(sessionKeys.GeminiApiKey, "sk-or-") {
 			// Fallback: Use Gemini key field if it's actually an OpenRouter key
 			apiKey = sessionKeys.GeminiApiKey
-			baseURL = "https://openrouter.ai/api/v1"
+			baseURL = OpenRouterBaseURL
 			log.Printf("✅ Using Gemini field with OpenRouter prefix for Kimi provider")
 		}
 	}

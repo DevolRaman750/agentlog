@@ -301,7 +301,6 @@ func (pah *PublicAPIHandler) GetTemplateExecutionStatus(w http.ResponseWriter, r
 	var executionResult *types.ExecutionResult
 	if templateExecution.ExecutionRunID != nil &&
 		(templateExecution.Status == "completed" || templateExecution.Status == "failed") {
-
 		_, _, _, _, result, err := pah.executionEngine.GetExecutionStatus(*templateExecution.ExecutionRunID)
 		if err == nil {
 			executionResult = result
