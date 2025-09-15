@@ -117,7 +117,9 @@ func (g *GRPCGateway) healthHandler(w http.ResponseWriter, _ *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+	}
 }
 
 // Execute multi-variation endpoint
@@ -250,7 +252,9 @@ func (g *GRPCGateway) executeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+	}
 }
 
 // Get execution status endpoint
@@ -300,7 +304,9 @@ func (g *GRPCGateway) executionStatusHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+	}
 }
 
 // List execution runs endpoint
@@ -356,7 +362,9 @@ func (g *GRPCGateway) executionRunsHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(runs)
+	if err := json.NewEncoder(w).Encode(runs); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+	}
 }
 
 // List configurations endpoint
@@ -411,7 +419,9 @@ func (g *GRPCGateway) listConfigurations(w http.ResponseWriter, _ *http.Request)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(configs)
+	if err := json.NewEncoder(w).Encode(configs); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+	}
 }
 
 func (g *GRPCGateway) createConfiguration(w http.ResponseWriter, r *http.Request) {
@@ -458,7 +468,9 @@ func (g *GRPCGateway) createConfiguration(w http.ResponseWriter, r *http.Request
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(resultConfig)
+	if err := json.NewEncoder(w).Encode(resultConfig); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+	}
 }
 
 func (g *GRPCGateway) updateConfiguration(w http.ResponseWriter, r *http.Request) {
@@ -516,7 +528,9 @@ func (g *GRPCGateway) updateConfiguration(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resultConfig)
+	if err := json.NewEncoder(w).Encode(resultConfig); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+	}
 }
 
 func (g *GRPCGateway) deleteConfiguration(w http.ResponseWriter, r *http.Request) {
@@ -546,7 +560,9 @@ func (g *GRPCGateway) deleteConfiguration(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	if err := json.NewEncoder(w).Encode(result); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+	}
 }
 
 // Database stats endpoint
@@ -577,7 +593,9 @@ func (g *GRPCGateway) databaseStatsHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+	}
 }
 
 // CORS middleware

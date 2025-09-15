@@ -67,11 +67,13 @@ func (h *Handler) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"data":    apiKey,
 		"message": "API key created successfully",
-	})
+	}); err != nil {
+		log.Printf("❌ Failed to write response: %v", err)
+	}
 }
 
 // GetAPIKeys handles GET /api/user/api-keys
@@ -106,11 +108,13 @@ func (h *Handler) GetAPIKeys(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"data":    apiKeys,
 		"count":   len(apiKeys),
-	})
+	}); err != nil {
+		log.Printf("❌ Failed to write response: %v", err)
+	}
 }
 
 // HandleKeyRoutes is a generic handler for /api/user/api-keys/ and /api/user/api-keys/{id}
@@ -174,7 +178,9 @@ func (h *Handler) GetAPIKey(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	json.NewEncoder(w).Encode(apiKey)
+	if err := json.NewEncoder(w).Encode(apiKey); err != nil {
+		log.Printf("❌ Failed to write response: %v", err)
+	}
 }
 func (h *Handler) UpdateAPIKey(w http.ResponseWriter, r *http.Request) {
 	userID, err := h.getUserIDFromContext(r)
@@ -193,7 +199,9 @@ func (h *Handler) UpdateAPIKey(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	json.NewEncoder(w).Encode(apiKey)
+	if err := json.NewEncoder(w).Encode(apiKey); err != nil {
+		log.Printf("❌ Failed to write response: %v", err)
+	}
 }
 func (h *Handler) DeleteAPIKey(w http.ResponseWriter, r *http.Request) {
 	userID, err := h.getUserIDFromContext(r)
@@ -220,7 +228,9 @@ func (h *Handler) TestAPIKey(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	json.NewEncoder(w).Encode(result)
+	if err := json.NewEncoder(w).Encode(result); err != nil {
+		log.Printf("❌ Failed to write response: %v", err)
+	}
 }
 func (h *Handler) GetFunctionAPIKeyRequirements(w http.ResponseWriter, r *http.Request) {
 	userID, err := h.getUserIDFromContext(r)
@@ -234,7 +244,9 @@ func (h *Handler) GetFunctionAPIKeyRequirements(w http.ResponseWriter, r *http.R
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	json.NewEncoder(w).Encode(requirements)
+	if err := json.NewEncoder(w).Encode(requirements); err != nil {
+		log.Printf("❌ Failed to write response: %v", err)
+	}
 }
 func (h *Handler) GetFunctionGroupAPIKeyStatus(w http.ResponseWriter, r *http.Request) {
 	userID, err := h.getUserIDFromContext(r)
@@ -247,7 +259,9 @@ func (h *Handler) GetFunctionGroupAPIKeyStatus(w http.ResponseWriter, r *http.Re
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	json.NewEncoder(w).Encode(status)
+	if err := json.NewEncoder(w).Encode(status); err != nil {
+		log.Printf("❌ Failed to write response: %v", err)
+	}
 }
 func (h *Handler) GetAPIKeyStatistics(w http.ResponseWriter, r *http.Request) {
 	userID, err := h.getUserIDFromContext(r)
@@ -260,7 +274,9 @@ func (h *Handler) GetAPIKeyStatistics(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	json.NewEncoder(w).Encode(stats)
+	if err := json.NewEncoder(w).Encode(stats); err != nil {
+		log.Printf("❌ Failed to write response: %v", err)
+	}
 }
 
 // RegisterRoutes registers all API key routes with the HTTP server
