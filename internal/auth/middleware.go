@@ -9,8 +9,8 @@ import (
 // UserContextKey is the key used to store user in request context
 type UserContextKey struct{}
 
-// AuthMiddleware creates middleware that validates JWT tokens and adds user to context
-func AuthMiddleware(authService *AuthService) func(http.HandlerFunc) http.HandlerFunc {
+// Middleware creates middleware that validates JWT tokens and adds user to context
+func Middleware(authService *Service) func(http.HandlerFunc) http.HandlerFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			// Skip authentication for certain endpoints

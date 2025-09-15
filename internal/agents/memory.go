@@ -12,7 +12,7 @@ import (
 )
 
 // InitializeMemory creates a new empty memory structure for an agent
-func (h *AgentsHandler) InitializeMemory(agentID string) (*types.AgentMemory, error) {
+func (h *Handler) InitializeMemory(_ string) (*types.AgentMemory, error) {
 	now := time.Now()
 	memory := &types.AgentMemory{
 		Version: "1.0",
@@ -34,7 +34,7 @@ func (h *AgentsHandler) InitializeMemory(agentID string) (*types.AgentMemory, er
 }
 
 // ReadMemory retrieves memory data for an agent with optional filtering
-func (h *AgentsHandler) ReadMemory(ctx context.Context, agentID, userID string, request *types.AgentMemoryRequest) (*types.AgentMemoryResponse, error) {
+func (h *Handler) ReadMemory(ctx context.Context, agentID, userID string, request *types.AgentMemoryRequest) (*types.AgentMemoryResponse, error) {
 	// Get agent memory from database
 	agent, err := h.getAgentByID(userID, agentID)
 	if err != nil {
@@ -109,7 +109,7 @@ func (h *AgentsHandler) ReadMemory(ctx context.Context, agentID, userID string, 
 }
 
 // WriteMemory stores or updates memory data for an agent
-func (h *AgentsHandler) WriteMemory(ctx context.Context, agentID, userID string, request *types.AgentMemoryRequest) (*types.AgentMemoryResponse, error) {
+func (h *Handler) WriteMemory(ctx context.Context, agentID, userID string, request *types.AgentMemoryRequest) (*types.AgentMemoryResponse, error) {
 	// Get agent memory from database
 	agent, err := h.getAgentByID(userID, agentID)
 	if err != nil {
@@ -188,7 +188,7 @@ func (h *AgentsHandler) WriteMemory(ctx context.Context, agentID, userID string,
 }
 
 // SearchMemory searches through agent memory using various strategies
-func (h *AgentsHandler) SearchMemory(ctx context.Context, agentID, userID string, request *types.AgentMemoryRequest) (*types.AgentMemoryResponse, error) {
+func (h *Handler) SearchMemory(ctx context.Context, agentID, userID string, request *types.AgentMemoryRequest) (*types.AgentMemoryResponse, error) {
 	// Get agent memory from database
 	agent, err := h.getAgentByID(userID, agentID)
 	if err != nil {
@@ -227,7 +227,7 @@ func (h *AgentsHandler) SearchMemory(ctx context.Context, agentID, userID string
 }
 
 // ClearMemory clears or manages agent memory based on the request
-func (h *AgentsHandler) ClearMemory(ctx context.Context, agentID, userID string, request *types.AgentMemoryRequest) (*types.AgentMemoryResponse, error) {
+func (h *Handler) ClearMemory(ctx context.Context, agentID, userID string, request *types.AgentMemoryRequest) (*types.AgentMemoryResponse, error) {
 	// Get agent memory from database
 	agent, err := h.getAgentByID(userID, agentID)
 	if err != nil {
@@ -291,7 +291,7 @@ func (h *AgentsHandler) ClearMemory(ctx context.Context, agentID, userID string,
 
 // Helper functions
 
-func (h *AgentsHandler) getValueByPath(data map[string]interface{}, path string) (interface{}, error) {
+func (h *Handler) getValueByPath(data map[string]interface{}, path string) (interface{}, error) {
 	parts := strings.Split(path, ".")
 	current := data
 
@@ -312,7 +312,7 @@ func (h *AgentsHandler) getValueByPath(data map[string]interface{}, path string)
 	return current, nil
 }
 
-func (h *AgentsHandler) writeToContext(context map[string]interface{}, path string, data map[string]interface{}, strategy string) error {
+func (h *Handler) writeToContext(context map[string]interface{}, path string, data map[string]interface{}, strategy string) error {
 	if path == "" {
 		// Write to context root
 		switch strings.ToLower(strategy) {
@@ -360,7 +360,7 @@ func (h *AgentsHandler) writeToContext(context map[string]interface{}, path stri
 	return nil
 }
 
-func (h *AgentsHandler) performMemorySearch(memory *types.AgentMemory, query string, limit int) []types.MemorySearchResult {
+func (h *Handler) performMemorySearch(memory *types.AgentMemory, query string, limit int) []types.MemorySearchResult {
 	results := []types.MemorySearchResult{}
 	searchLower := strings.ToLower(query)
 
@@ -385,7 +385,7 @@ func (h *AgentsHandler) performMemorySearch(memory *types.AgentMemory, query str
 	return results
 }
 
-func (h *AgentsHandler) searchInContext(context map[string]interface{}, contextName, query string, results *[]types.MemorySearchResult) {
+func (h *Handler) searchInContext(context map[string]interface{}, contextName, query string, results *[]types.MemorySearchResult) {
 	for key, value := range context {
 		// Convert value to string for searching
 		valueStr := fmt.Sprintf("%v", value)
@@ -401,7 +401,7 @@ func (h *AgentsHandler) searchInContext(context map[string]interface{}, contextN
 	}
 }
 
-func (h *AgentsHandler) calculateRelevance(key, value, query string) float64 {
+func (h *Handler) calculateRelevance(key, value, query string) float64 {
 	// Simple relevance calculation
 	keyMatch := strings.Contains(strings.ToLower(key), query)
 	valueMatch := strings.Contains(strings.ToLower(value), query)
@@ -416,7 +416,7 @@ func (h *AgentsHandler) calculateRelevance(key, value, query string) float64 {
 	return 0.5
 }
 
-func (h *AgentsHandler) clearContext(memory *types.AgentMemory, contextName string) error {
+func (h *Handler) clearContext(memory *types.AgentMemory, contextName string) error {
 	switch strings.ToLower(contextName) {
 	case "workflow":
 		memory.Contexts.Workflow = make(map[string]interface{})
@@ -430,7 +430,7 @@ func (h *AgentsHandler) clearContext(memory *types.AgentMemory, contextName stri
 	return nil
 }
 
-func (h *AgentsHandler) clearPath(memory *types.AgentMemory, path string) error {
+func (h *Handler) clearPath(memory *types.AgentMemory, path string) error {
 	// Simple path clearing - can be enhanced
 	parts := strings.Split(path, ".")
 	if len(parts) < 2 {
@@ -455,7 +455,7 @@ func (h *AgentsHandler) clearPath(memory *types.AgentMemory, path string) error 
 	return nil
 }
 
-func (h *AgentsHandler) compactMemory(memory *types.AgentMemory) {
+func (h *Handler) compactMemory(memory *types.AgentMemory) {
 	// Remove empty contexts and optimize structure
 	if len(memory.Contexts.Workflow) == 0 {
 		memory.Contexts.Workflow = nil
@@ -477,7 +477,7 @@ func (h *AgentsHandler) compactMemory(memory *types.AgentMemory) {
 	memory.Relationships = activeRelationships
 }
 
-func (h *AgentsHandler) saveAgentMemory(ctx context.Context, agentID, userID string, memory *types.AgentMemory) error {
+func (h *Handler) saveAgentMemory(ctx context.Context, agentID, userID string, memory *types.AgentMemory) error {
 	// Convert memory to JSON
 	memoryJSON, err := json.Marshal(memory)
 	if err != nil {
@@ -504,7 +504,7 @@ func (h *AgentsHandler) saveAgentMemory(ctx context.Context, agentID, userID str
 }
 
 // UpdateAgentTaskProgress stores progress tracking data for a task the agent is working on in agent memory
-func (h *AgentsHandler) UpdateAgentTaskProgress(ctx context.Context, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+func (h *Handler) UpdateAgentTaskProgress(ctx context.Context, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
 	log.Printf("🔍 UpdateAgentTaskProgress called with agentID: %s, userID: %s, taskID: %s", agentID, userID, request.TaskID)
 
 	// Validate required parameters
@@ -596,7 +596,7 @@ func (h *AgentsHandler) UpdateAgentTaskProgress(ctx context.Context, agentID, us
 }
 
 // ReadAgentTaskProgress retrieves saved progress data for tasks the agent is working on from agent memory
-func (h *AgentsHandler) ReadAgentTaskProgress(ctx context.Context, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+func (h *Handler) ReadAgentTaskProgress(_ context.Context, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
 	log.Printf("🔍 ReadAgentTaskProgress called with agentID: %s, userID: %s", agentID, userID)
 
 	// Get agent memory from database
@@ -684,7 +684,7 @@ func (h *AgentsHandler) ReadAgentTaskProgress(ctx context.Context, agentID, user
 }
 
 // ClearAgentTaskProgress clears progress data for tasks the agent is working on from agent memory
-func (h *AgentsHandler) ClearAgentTaskProgress(ctx context.Context, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+func (h *Handler) ClearAgentTaskProgress(ctx context.Context, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
 	log.Printf("🔍 ClearAgentTaskProgress called with agentID: %s, userID: %s", agentID, userID)
 
 	// Get agent memory from database
@@ -751,7 +751,7 @@ func (h *AgentsHandler) ClearAgentTaskProgress(ctx context.Context, agentID, use
 }
 
 // ListAgentTasks retrieves agent-specific tasks from agent memory
-func (h *AgentsHandler) ListAgentTasks(ctx context.Context, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+func (h *Handler) ListAgentTasks(_ context.Context, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
 	log.Printf("🔍 ListAgentTasks called with agentID: %s, userID: %s", agentID, userID)
 
 	// Get agent memory from database
@@ -839,7 +839,7 @@ func (h *AgentsHandler) ListAgentTasks(ctx context.Context, agentID, userID stri
 }
 
 // StoreAgentTask stores an agent-specific task in agent memory
-func (h *AgentsHandler) StoreAgentTask(ctx context.Context, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+func (h *Handler) StoreAgentTask(ctx context.Context, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
 	log.Printf("🔍 StoreAgentTask called with agentID: %s, userID: %s", agentID, userID)
 
 	// Get agent memory from database
@@ -927,7 +927,7 @@ func (h *AgentsHandler) StoreAgentTask(ctx context.Context, agentID, userID stri
 }
 
 // DeleteAgentTask deletes an agent-specific task from agent memory
-func (h *AgentsHandler) DeleteAgentTask(ctx context.Context, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+func (h *Handler) DeleteAgentTask(ctx context.Context, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
 	log.Printf("🔍 DeleteAgentTask called with agentID: %s, userID: %s", agentID, userID)
 
 	// Get agent memory from database
@@ -992,7 +992,7 @@ func (h *AgentsHandler) DeleteAgentTask(ctx context.Context, agentID, userID str
 }
 
 // StoreAgentTaskData stores task-specific data in agent memory with strict validation
-func (h *AgentsHandler) StoreAgentTaskData(ctx context.Context, agentID, userID string, request *types.AgentTaskDataRequest) (*types.AgentTaskDataResponse, error) {
+func (h *Handler) StoreAgentTaskData(ctx context.Context, agentID, userID string, request *types.AgentTaskDataRequest) (*types.AgentTaskDataResponse, error) {
 	log.Printf("🔍 StoreAgentTaskData called with agentID: %s, userID: %s, taskID: %s", agentID, userID, request.TaskID)
 
 	// Validate required parameters
@@ -1129,7 +1129,7 @@ func (h *AgentsHandler) StoreAgentTaskData(ctx context.Context, agentID, userID 
 }
 
 // RetrieveAgentTaskData retrieves task-specific data from agent memory with filtering
-func (h *AgentsHandler) RetrieveAgentTaskData(ctx context.Context, agentID, userID string, request *types.AgentTaskDataRequest) (*types.AgentTaskDataResponse, error) {
+func (h *Handler) RetrieveAgentTaskData(_ context.Context, agentID, userID string, request *types.AgentTaskDataRequest) (*types.AgentTaskDataResponse, error) {
 	log.Printf("🔍 RetrieveAgentTaskData called with agentID: %s, userID: %s, taskID: %s", agentID, userID, request.TaskID)
 
 	// Validate required parameters
@@ -1250,7 +1250,7 @@ func (h *AgentsHandler) RetrieveAgentTaskData(ctx context.Context, agentID, user
 }
 
 // ClearAgentTaskData clears task-specific data from agent memory with optional filtering
-func (h *AgentsHandler) ClearAgentTaskData(ctx context.Context, agentID, userID string, request *types.AgentTaskDataRequest) (*types.AgentTaskDataResponse, error) {
+func (h *Handler) ClearAgentTaskData(ctx context.Context, agentID, userID string, request *types.AgentTaskDataRequest) (*types.AgentTaskDataResponse, error) {
 	log.Printf("🔍 ClearAgentTaskData called with agentID: %s, userID: %s, taskID: %s", agentID, userID, request.TaskID)
 
 	// Validate required parameters

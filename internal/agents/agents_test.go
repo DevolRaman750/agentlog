@@ -103,7 +103,7 @@ func runMigrations(db *sql.DB) error {
 }
 
 // createTestUser creates a test user and returns the user and auth token
-func createTestUser(t *testing.T, authService *auth.AuthService) (*auth.User, string) {
+func createTestUser(t *testing.T, authService *auth.Service) (*auth.User, string) {
 	user, _, token, err := authService.CreateTemporaryUser("test-session")
 	require.NoError(t, err)
 	require.NotNil(t, user)
@@ -131,19 +131,19 @@ func createTestTemplate(t *testing.T, db *sql.DB, userID string) string {
 	return templateID
 }
 
-// TestAgentsHandler_CreateAgent tests agent creation
-func TestAgentsHandler_CreateAgent(t *testing.T) {
+// TestHandler_CreateAgent tests agent creation
+func TestHandler_CreateAgent(t *testing.T) {
 	db := setupTestDB(t)
 	if db == nil {
 		return
 	}
 	defer db.Close()
 
-	authService := auth.NewAuthService(db, "test-secret")
+	authService := auth.NewService(db, "test-secret")
 	user, token := createTestUser(t, authService)
 	templateID := createTestTemplate(t, db, user.ID)
 
-	handler := NewAgentsHandler(db)
+	handler := NewHandler(db)
 
 	tests := []struct {
 		name           string
@@ -265,19 +265,19 @@ func TestAgentsHandler_CreateAgent(t *testing.T) {
 	}
 }
 
-// TestAgentsHandler_ListAgents tests listing agents
-func TestAgentsHandler_ListAgents(t *testing.T) {
+// TestHandler_ListAgents tests listing agents
+func TestHandler_ListAgents(t *testing.T) {
 	db := setupTestDB(t)
 	if db == nil {
 		return
 	}
 	defer db.Close()
 
-	authService := auth.NewAuthService(db, "test-secret")
+	authService := auth.NewService(db, "test-secret")
 	user, token := createTestUser(t, authService)
 	templateID := createTestTemplate(t, db, user.ID)
 
-	handler := NewAgentsHandler(db)
+	handler := NewHandler(db)
 
 	// Create test agents
 	agent1 := &types.Agent{
@@ -372,19 +372,19 @@ func TestAgentsHandler_ListAgents(t *testing.T) {
 	}
 }
 
-// TestAgentsHandler_GetAgent tests getting a specific agent
-func TestAgentsHandler_GetAgent(t *testing.T) {
+// TestHandler_GetAgent tests getting a specific agent
+func TestHandler_GetAgent(t *testing.T) {
 	db := setupTestDB(t)
 	if db == nil {
 		return
 	}
 	defer db.Close()
 
-	authService := auth.NewAuthService(db, "test-secret")
+	authService := auth.NewService(db, "test-secret")
 	user, token := createTestUser(t, authService)
 	templateID := createTestTemplate(t, db, user.ID)
 
-	handler := NewAgentsHandler(db)
+	handler := NewHandler(db)
 
 	// Create test agent
 	agent := &types.Agent{
@@ -457,19 +457,19 @@ func TestAgentsHandler_GetAgent(t *testing.T) {
 	}
 }
 
-// TestAgentsHandler_UpdateAgent tests updating an agent
-func TestAgentsHandler_UpdateAgent(t *testing.T) {
+// TestHandler_UpdateAgent tests updating an agent
+func TestHandler_UpdateAgent(t *testing.T) {
 	db := setupTestDB(t)
 	if db == nil {
 		return
 	}
 	defer db.Close()
 
-	authService := auth.NewAuthService(db, "test-secret")
+	authService := auth.NewService(db, "test-secret")
 	user, token := createTestUser(t, authService)
 	templateID := createTestTemplate(t, db, user.ID)
 
-	handler := NewAgentsHandler(db)
+	handler := NewHandler(db)
 
 	// Create test agent
 	agent := &types.Agent{
@@ -585,19 +585,19 @@ func TestAgentsHandler_UpdateAgent(t *testing.T) {
 	}
 }
 
-// TestAgentsHandler_DeleteAgent tests deleting an agent
-func TestAgentsHandler_DeleteAgent(t *testing.T) {
+// TestHandler_DeleteAgent tests deleting an agent
+func TestHandler_DeleteAgent(t *testing.T) {
 	db := setupTestDB(t)
 	if db == nil {
 		return
 	}
 	defer db.Close()
 
-	authService := auth.NewAuthService(db, "test-secret")
+	authService := auth.NewService(db, "test-secret")
 	user, token := createTestUser(t, authService)
 	templateID := createTestTemplate(t, db, user.ID)
 
-	handler := NewAgentsHandler(db)
+	handler := NewHandler(db)
 
 	// Create test agent
 	agent := &types.Agent{
@@ -666,19 +666,19 @@ func TestAgentsHandler_DeleteAgent(t *testing.T) {
 	}
 }
 
-// TestAgentsHandler_GetAgentExecutions tests getting executions for an agent
-func TestAgentsHandler_GetAgentExecutions(t *testing.T) {
+// TestHandler_GetAgentExecutions tests getting executions for an agent
+func TestHandler_GetAgentExecutions(t *testing.T) {
 	db := setupTestDB(t)
 	if db == nil {
 		return
 	}
 	defer db.Close()
 
-	authService := auth.NewAuthService(db, "test-secret")
+	authService := auth.NewService(db, "test-secret")
 	user, token := createTestUser(t, authService)
 	templateID := createTestTemplate(t, db, user.ID)
 
-	handler := NewAgentsHandler(db)
+	handler := NewHandler(db)
 
 	// Create test agent
 	agent := &types.Agent{
@@ -749,15 +749,15 @@ func TestAgentsHandler_GetAgentExecutions(t *testing.T) {
 	}
 }
 
-// TestAgentsHandler_ValidationErrors tests various validation scenarios
-func TestAgentsHandler_ValidationErrors(t *testing.T) {
+// TestHandler_ValidationErrors tests various validation scenarios
+func TestHandler_ValidationErrors(t *testing.T) {
 	db := setupTestDB(t)
 	if db == nil {
 		return
 	}
 	defer db.Close()
 
-	handler := NewAgentsHandler(db)
+	handler := NewHandler(db)
 
 	tests := []struct {
 		name    string
@@ -877,19 +877,19 @@ func TestAgentsHandler_ValidationErrors(t *testing.T) {
 	}
 }
 
-// TestAgentsHandler_DatabaseOperations tests the database operations directly
-func TestAgentsHandler_DatabaseOperations(t *testing.T) {
+// TestHandler_DatabaseOperations tests the database operations directly
+func TestHandler_DatabaseOperations(t *testing.T) {
 	db := setupTestDB(t)
 	if db == nil {
 		return
 	}
 	defer db.Close()
 
-	authService := auth.NewAuthService(db, "test-secret")
+	authService := auth.NewService(db, "test-secret")
 	user, _ := createTestUser(t, authService)
 	templateID := createTestTemplate(t, db, user.ID)
 
-	handler := NewAgentsHandler(db)
+	handler := NewHandler(db)
 
 	// Test insertAgent
 	agent := &types.Agent{
@@ -948,18 +948,18 @@ func TestAgentsHandler_DatabaseOperations(t *testing.T) {
 }
 
 // Benchmark tests for performance
-func BenchmarkAgentsHandler_CreateAgent(b *testing.B) {
+func BenchmarkHandler_CreateAgent(b *testing.B) {
 	db := setupTestDB(&testing.T{})
 	if db == nil {
 		b.Skip("Database not available")
 	}
 	defer db.Close()
 
-	authService := auth.NewAuthService(db, "test-secret")
+	authService := auth.NewService(db, "test-secret")
 	user, _ := createTestUser(&testing.T{}, authService)
 	templateID := createTestTemplate(&testing.T{}, db, user.ID)
 
-	handler := NewAgentsHandler(db)
+	handler := NewHandler(db)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -982,18 +982,18 @@ func BenchmarkAgentsHandler_CreateAgent(b *testing.B) {
 	}
 }
 
-func BenchmarkAgentsHandler_GetAgent(b *testing.B) {
+func BenchmarkHandler_GetAgent(b *testing.B) {
 	db := setupTestDB(&testing.T{})
 	if db == nil {
 		b.Skip("Database not available")
 	}
 	defer db.Close()
 
-	authService := auth.NewAuthService(db, "test-secret")
+	authService := auth.NewService(db, "test-secret")
 	user, _ := createTestUser(&testing.T{}, authService)
 	templateID := createTestTemplate(&testing.T{}, db, user.ID)
 
-	handler := NewAgentsHandler(db)
+	handler := NewHandler(db)
 
 	// Create test agent
 	agent := &types.Agent{

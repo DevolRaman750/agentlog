@@ -610,7 +610,7 @@ func (h *GeminiAPIKeyHandler) GetAuthHeaders(_ context.Context, apiKey *types.Us
 	}, nil
 }
 
-func (h *GeminiAPIKeyHandler) ValidateCredentials(ctx context.Context, apiKey *types.UserAPIKey) error {
+func (h *GeminiAPIKeyHandler) ValidateCredentials(_ context.Context, _ *types.UserAPIKey) error {
 	// Implementation would validate Gemini API key
 	return nil
 }

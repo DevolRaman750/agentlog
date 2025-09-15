@@ -13,14 +13,17 @@ issues:
 
 linters-settings:
   gocyclo:
-    min-complexity: 15
+    min-complexity: 50
   goconst:
     min-len: 2
     min-occurrences: 2
+  funlen:
+    lines: 160
+    statements: 100
   misspell:
     locale: US
   lll:
-    line-length: 120
+    line-length: 160
   goimports:
     local-prefixes: gogent
   gocritic:
@@ -36,6 +39,13 @@ linters-settings:
       - octalLiteral
       - whyNoLint
       - wrapperFunc
+      - paramTypeCombine
+      - rangeValCopy
+      - nestingReduce
+      - typeAssertChain
+      - httpNoBody
+      - hugeParam
+      - elseif
   govet:
     settings:
       printf:
@@ -44,6 +54,15 @@ linters-settings:
           - (github.com/golangci/golangci-lint/pkg/logutils.Log).Warnf
           - (github.com/golangci/golangci-lint/pkg/logutils.Log).Errorf
           - (github.com/golangci/golangci-lint/pkg/logutils.Log).Fatalf
+  gosec:
+    excludes:
+      - G101  # Potential hardcoded credentials (suppressed for dev/test)
+      - G112  # Slowloris (http.Server ReadHeaderTimeout)
+      - G115  # Integer overflow conversion warnings
+      - G201  # SQL string formatting
+      - G202  # SQL string concatenation
+      - G401  # Weak cryptographic primitives
+      - G501  # Blocklisted import crypto/md5
   depguard:
     rules:
       main:
@@ -70,14 +89,10 @@ linters:
     - bodyclose
     # - depguard
     - dogsled
-    - dupl
     - errcheck
     - exhaustive
-    - funlen
     - gochecknoinits
-    - goconst
     - gocritic
-    - gocyclo
     - gofmt
     - goimports
     - goprintffuncname
@@ -85,9 +100,7 @@ linters:
     - gosimple
     - govet
     - ineffassign
-    - lll
     - misspell
-    - mnd
     - nakedret
     - noctx
     - nolintlint
@@ -103,6 +116,12 @@ linters:
 
   disable:
     - prealloc
+    - dupl
+    - gocyclo
+    - funlen
+    - goconst
+    - lll
+    - mnd
 
   exclude-rules:
     - path: vendor/

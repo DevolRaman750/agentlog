@@ -538,7 +538,7 @@ func TestHeaderEncryption_EndToEndWithHeaders(t *testing.T) {
 	testData := map[string]string{
 		"geminiAPIKey":      "sk-test123456789abcdef",
 		"openWeatherAPIKey": "1234567890abcdef",
-		"neo4jUrl":          "bolt://localhost:7687",
+		"neo4jURL":          "bolt://localhost:7687",
 		"neo4jUsername":     "neo4j",
 		"neo4jPassword":     "password123",
 		"neo4jDatabase":     "neo4j",
@@ -557,7 +557,7 @@ func TestHeaderEncryption_EndToEndWithHeaders(t *testing.T) {
 			headerName = "X-Encrypted-Gemini-API-Key"
 		case "openWeatherAPIKey":
 			headerName = "X-Encrypted-OpenWeather-API-Key"
-		case "neo4jUrl":
+		case "neo4jURL":
 			headerName = "X-Encrypted-Neo4j-URL"
 		case "neo4jUsername":
 			headerName = "X-Encrypted-Neo4j-Username"
@@ -647,7 +647,7 @@ func TestHeaderEncryption_OriginalIssueFixed(t *testing.T) {
 			{
 				name:    "Neo4j URL",
 				apiKey:  "bolt://localhost:7687",
-				keyType: "neo4jUrl",
+				keyType: "neo4jURL",
 			},
 			{
 				name:    "Neo4j username",
@@ -680,12 +680,12 @@ func TestHeaderEncryption_OriginalIssueFixed(t *testing.T) {
 
 		// Create encrypted headers similar to what frontend sends
 		geminiKey := "AIzaSyB2Kk8jH9vL3mN4oP5qR6sT7uV8wX9yZ0aB1c"
-		neo4jUrl := "bolt://localhost:7687"
+		neo4jURL := "bolt://localhost:7687"
 		neo4jUsername := "neo4j"
 		neo4jPassword := "password123"
 
 		encryptedGemini, _ := simulateCryptoJSEncryption(geminiKey, he.sharedSecret)
-		encryptedUrl, _ := simulateCryptoJSEncryption(neo4jUrl, he.sharedSecret)
+		encryptedUrl, _ := simulateCryptoJSEncryption(neo4jURL, he.sharedSecret)
 		encryptedUsername, _ := simulateCryptoJSEncryption(neo4jUsername, he.sharedSecret)
 		encryptedPassword, _ := simulateCryptoJSEncryption(neo4jPassword, he.sharedSecret)
 
@@ -704,7 +704,7 @@ func TestHeaderEncryption_OriginalIssueFixed(t *testing.T) {
 
 		// Verify all keys were successfully decrypted
 		assert.Equal(t, geminiKey, result["geminiAPIKey"], "Gemini API key should be decrypted correctly")
-		assert.Equal(t, neo4jUrl, result["neo4jUrl"], "Neo4j URL should be decrypted correctly")
+		assert.Equal(t, neo4jURL, result["neo4jURL"], "Neo4j URL should be decrypted correctly")
 		assert.Equal(t, neo4jUsername, result["neo4jUsername"], "Neo4j username should be decrypted correctly")
 		assert.Equal(t, neo4jPassword, result["neo4jPassword"], "Neo4j password should be decrypted correctly")
 

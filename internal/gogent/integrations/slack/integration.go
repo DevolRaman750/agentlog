@@ -74,7 +74,7 @@ func (s *Integration) BuildURL(funcDef *db.FunctionDefinition, args map[string]i
 		httpMethod = funcDef.HTTPMethod.String
 	}
 
-	if httpMethod == "GET" {
+	if httpMethod == httpMethodGET {
 		// Replace any {parameter} placeholders in the URL with actual values
 		finalURL := baseURL
 		usedParams := make(map[string]bool)
@@ -121,7 +121,12 @@ func (s *Integration) BuildURL(funcDef *db.FunctionDefinition, args map[string]i
 }
 
 // PrepareRequest prepares the HTTP request with Slack authentication and headers
-func (s *Integration) PrepareRequest(ctx context.Context, req *http.Request, funcDef *db.FunctionDefinition, args map[string]interface{}) error {
+func (s *Integration) PrepareRequest(
+	ctx context.Context,
+	req *http.Request,
+	funcDef *db.FunctionDefinition,
+	args map[string]interface{},
+) error {
 	log.Printf("🔍 [SLACK_DEBUG] Preparing request for function: %s", funcDef.Name)
 	log.Printf("🔍 [SLACK_DEBUG] Request URL: %s", req.URL.String())
 	log.Printf("🔍 [SLACK_DEBUG] Request method: %s", req.Method)
@@ -270,7 +275,11 @@ func getMapKeys(m map[string]interface{}) []string {
 }
 
 // filterChannelsByName filters channels by the channel_name parameter
-func (s *Integration) filterChannelsByName(slackResponse map[string]interface{}, _ *db.FunctionDefinition, channelName string) (map[string]interface{}, error) {
+func (s *Integration) filterChannelsByName(
+	slackResponse map[string]interface{},
+	_ *db.FunctionDefinition,
+	channelName string,
+) (map[string]interface{}, error) {
 	channels, ok := slackResponse["channels"].([]interface{})
 	if !ok {
 		log.Printf("❌ [SLACK_DEBUG] No channels array found in response")

@@ -8,9 +8,9 @@ import (
 )
 
 func TestCalculateTokenUsage(t *testing.T) {
-	// Create a basic HeartbeatExecutor for testing
+	// Create a basic Executor for testing
 	config := DefaultConfig()
-	executor := &HeartbeatExecutor{
+	executor := &Executor{
 		config:  config,
 		metrics: &ExecutorMetrics{},
 	}
@@ -120,7 +120,7 @@ func TestCalculateTokenUsage(t *testing.T) {
 
 func TestIncrementMetrics(t *testing.T) {
 	config := DefaultConfig()
-	executor := &HeartbeatExecutor{
+	executor := &Executor{
 		config:  config,
 		metrics: &ExecutorMetrics{},
 	}
@@ -156,7 +156,7 @@ func TestIncrementMetrics(t *testing.T) {
 
 func TestGetSuccessRate(t *testing.T) {
 	config := DefaultConfig()
-	executor := &HeartbeatExecutor{
+	executor := &Executor{
 		config:  config,
 		metrics: &ExecutorMetrics{},
 	}
@@ -188,7 +188,7 @@ func TestGetSuccessRate(t *testing.T) {
 
 func TestGetMetrics(t *testing.T) {
 	config := DefaultConfig()
-	executor := &HeartbeatExecutor{
+	executor := &Executor{
 		config: config,
 		metrics: &ExecutorMetrics{
 			TotalExecutions:      10,

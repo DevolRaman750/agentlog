@@ -323,7 +323,9 @@ func (c *Client) GetSystemConfigurations(ctx context.Context) ([]types.APIConfig
 }
 
 // storeFunctionExecutionConfigs stores function tools for replay functionality
-func (c *Client) storeFunctionExecutionConfigs(_ context.Context, userID string, executionRunID string, functionTools []types.Tool) error {
+//
+//nolint:unparam // error return kept for interface compatibility
+func (c *Client) storeFunctionExecutionConfigs(_ context.Context, _ string, executionRunID string, functionTools []types.Tool) error {
 	// TODO: Implement function execution config storage
 	// This would require a new database table and corresponding queries
 	log.Printf("🔧 Storing %d function tools for execution run %s", len(functionTools), executionRunID)

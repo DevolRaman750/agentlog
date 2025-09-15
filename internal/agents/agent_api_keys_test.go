@@ -110,7 +110,7 @@ func TestAgentAPIKeyConfiguration(t *testing.T) {
 func TestAgentAPIKeyHandlerMethods(t *testing.T) {
 	t.Run("HandlerMethodExists", func(t *testing.T) {
 		// Create handler with nil db (this will work for method signature testing)
-		handler := &AgentsHandler{db: nil}
+		handler := &Handler{db: nil}
 
 		// Test that the GetAgentAPIKeyConfiguration method exists and has correct signature
 		ctx := context.Background()

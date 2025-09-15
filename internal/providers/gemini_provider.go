@@ -69,7 +69,11 @@ func (p *GeminiProvider) ValidateConfig(config *types.APIConfiguration) error {
 }
 
 // GenerateContent generates content using Gemini with function calling support
-func (p *GeminiProvider) GenerateContent(ctx context.Context, config *types.APIConfiguration, request *ModelRequest) (*ModelResponse, error) {
+func (p *GeminiProvider) GenerateContent(
+	ctx context.Context,
+	config *types.APIConfiguration,
+	request *ModelRequest,
+) (*ModelResponse, error) {
 	log.Printf("🤖 Gemini request - Model: %s, Tools: %d, Prompt length: %d",
 		config.ModelName, len(request.Tools), len(request.Prompt))
 
@@ -77,7 +81,7 @@ func (p *GeminiProvider) GenerateContent(ctx context.Context, config *types.APIC
 	if len(request.Tools) == 0 {
 		response, err := p.generateSimpleContent(ctx, config, request)
 		if err != nil {
-			return nil, fmt.Errorf("Gemini simple generation failed: %w", err)
+			return nil, fmt.Errorf("gemini simple generation failed: %w", err)
 		}
 		return response, nil
 	}
@@ -128,7 +132,7 @@ func (p *GeminiProvider) generateWithFunctionCalling(ctx context.Context, config
 	// Use existing Gemini client for function calling
 	response, err := p.callGeminiWithTools(ctx, &configWithTools, request, conversationHistory)
 	if err != nil {
-		return nil, fmt.Errorf("Gemini function calling failed: %w", err)
+		return nil, fmt.Errorf("gemini function calling failed: %w", err)
 	}
 
 	return response, nil

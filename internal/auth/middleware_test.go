@@ -10,16 +10,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAuthMiddleware(t *testing.T) {
+func TestMiddleware(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	authService := NewAuthService(db, "test-secret")
+	authService := NewService(db, "test-secret")
 
 	// Create a test user and get a token
 	user, token, err := authService.Register("middlewaretest", "middleware@example.com", "password123")
 	require.NoError(t, err)
 
-	middleware := AuthMiddleware(authService)
+	middleware := Middleware(authService)
 
 	// Mock handler that checks if user is in context
 	mockHandler := func(w http.ResponseWriter, r *http.Request) {
@@ -327,7 +327,7 @@ func TestRequiresAuth(t *testing.T) {
 func TestMiddleware_Integration(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	authService := NewAuthService(db, "test-secret")
+	authService := NewService(db, "test-secret")
 
 	// Create test users
 	normalUser, normalToken, err := authService.Register("normal", "normal@example.com", "password123")
@@ -336,7 +336,7 @@ func TestMiddleware_Integration(t *testing.T) {
 	tempUser, _, tempToken, err := authService.CreateTemporaryUser("test-session")
 	require.NoError(t, err)
 
-	middleware := AuthMiddleware(authService)
+	middleware := Middleware(authService)
 
 	// Handler that captures user info
 	handler := func(w http.ResponseWriter, r *http.Request) {
@@ -409,7 +409,7 @@ func TestMiddleware_Integration(t *testing.T) {
 func TestMiddleware_ErrorHandling(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	authService := NewAuthService(db, "test-secret")
+	authService := NewService(db, "test-secret")
 
 	// Create and then delete a user to test token validation with non-existent user
 	user, token, err := authService.Register("deleteme", "delete@example.com", "password123")
@@ -419,7 +419,7 @@ func TestMiddleware_ErrorHandling(t *testing.T) {
 	_, err = db.Exec("DELETE FROM users WHERE id = ?", user.ID)
 	require.NoError(t, err)
 
-	middleware := AuthMiddleware(authService)
+	middleware := Middleware(authService)
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}
@@ -436,10 +436,10 @@ func TestMiddleware_ErrorHandling(t *testing.T) {
 }
 
 // Benchmark tests for middleware
-func BenchmarkAuthMiddleware_ValidToken(b *testing.B) {
+func BenchmarkMiddleware_ValidToken(b *testing.B) {
 	db := setupTestDB(&testing.T{})
 	defer db.Close()
-	authService := NewAuthService(db, "test-secret")
+	authService := NewService(db, "test-secret")
 
 	// Create test user
 	_, token, err := authService.Register("benchuser", "bench@example.com", "password123")
@@ -447,7 +447,7 @@ func BenchmarkAuthMiddleware_ValidToken(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	middleware := AuthMiddleware(authService)
+	middleware := Middleware(authService)
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}
@@ -463,12 +463,12 @@ func BenchmarkAuthMiddleware_ValidToken(b *testing.B) {
 	}
 }
 
-func BenchmarkAuthMiddleware_SkipAuth(b *testing.B) {
+func BenchmarkMiddleware_SkipAuth(b *testing.B) {
 	db := setupTestDB(&testing.T{})
 	defer db.Close()
-	authService := NewAuthService(db, "test-secret")
+	authService := NewService(db, "test-secret")
 
-	middleware := AuthMiddleware(authService)
+	middleware := Middleware(authService)
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}

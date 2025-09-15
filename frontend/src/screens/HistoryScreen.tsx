@@ -318,7 +318,7 @@ const HistoryScreen: React.FC = () => {
         enableFunctionCalling: run.enableFunctionCalling || false,
         tags: ['generated', 'from-execution'],
         configurationId: '', // Will be set from execution configuration or default
-        functionIds: [] as string[], // Changed to functionIds array for proper mapping
+        functionIDs: [] as string[], // Changed to functionIDs array for proper mapping
       };
 
       // Extract model and functions from execution results if available
@@ -358,7 +358,7 @@ const HistoryScreen: React.FC = () => {
           }
         });
         
-        templateData.functionIds = mappedFunctionIds;
+        templateData.functionIDs = mappedFunctionIds;
       } else {
         console.warn('⚠️ Failed to get execution data:', response.error);
       }
@@ -370,8 +370,8 @@ const HistoryScreen: React.FC = () => {
       }
 
       console.log('📊 Template data prepared:', { 
-        functionIdsCount: templateData.functionIds.length,
-        functionIds: templateData.functionIds,
+        functionIDsCount: templateData.functionIDs.length,
+        functionIDs: templateData.functionIDs,
         configurationId: templateData.configurationId,
         hasPrompt: !!templateData.prompt,
         hasContext: !!templateData.context

@@ -13,27 +13,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupHandlersTest(t *testing.T) (*AuthHandlers, *AuthService) {
+func setupHandlersTest(t *testing.T) (*Handlers, *Service) {
 	db := setupTestDB(t)
 	t.Cleanup(func() { db.Close() })
 
-	authService := NewAuthService(db, "test-secret")
-	handlers := NewAuthHandlers(authService)
+	authService := NewService(db, "test-secret")
+	handlers := NewHandlers(authService)
 
 	return handlers, authService
 }
 
-func TestNewAuthHandlers(t *testing.T) {
+func TestNewHandlers(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	authService := NewAuthService(db, "test-secret")
+	authService := NewService(db, "test-secret")
 
-	handlers := NewAuthHandlers(authService)
+	handlers := NewHandlers(authService)
 	assert.NotNil(t, handlers)
 	assert.Equal(t, authService, handlers.authService)
 }
 
-func TestAuthHandlers_LoginHandler(t *testing.T) {
+func TestHandlers_LoginHandler(t *testing.T) {
 	handlers, authService := setupHandlersTest(t)
 
 	// Create a test user
@@ -125,7 +125,7 @@ func TestAuthHandlers_LoginHandler(t *testing.T) {
 	}
 }
 
-func TestAuthHandlers_RegisterHandler(t *testing.T) {
+func TestHandlers_RegisterHandler(t *testing.T) {
 	handlers, authService := setupHandlersTest(t)
 
 	// Create a user to test conflicts
@@ -230,7 +230,7 @@ func TestAuthHandlers_RegisterHandler(t *testing.T) {
 	}
 }
 
-func TestAuthHandlers_CreateTemporaryUserHandler(t *testing.T) {
+func TestHandlers_CreateTemporaryUserHandler(t *testing.T) {
 	handlers, _ := setupHandlersTest(t)
 
 	tests := []struct {
@@ -307,7 +307,7 @@ func TestAuthHandlers_CreateTemporaryUserHandler(t *testing.T) {
 	}
 }
 
-func TestAuthHandlers_SaveTemporaryAccountHandler(t *testing.T) {
+func TestHandlers_SaveTemporaryAccountHandler(t *testing.T) {
 	handlers, authService := setupHandlersTest(t)
 
 	// Create a temporary user
@@ -410,7 +410,7 @@ func TestAuthHandlers_SaveTemporaryAccountHandler(t *testing.T) {
 	}
 }
 
-func TestAuthHandlers_VerifyEmailHandler(t *testing.T) {
+func TestHandlers_VerifyEmailHandler(t *testing.T) {
 	handlers, authService := setupHandlersTest(t)
 
 	// Create a user and set up verification token
@@ -499,7 +499,7 @@ func TestAuthHandlers_VerifyEmailHandler(t *testing.T) {
 	}
 }
 
-func TestAuthHandlers_GetCurrentUserHandler(t *testing.T) {
+func TestHandlers_GetCurrentUserHandler(t *testing.T) {
 	handlers, authService := setupHandlersTest(t)
 
 	// Create a test user
@@ -567,8 +567,8 @@ func TestAuthHandlers_GetCurrentUserHandler(t *testing.T) {
 func BenchmarkLoginHandler(b *testing.B) {
 	db := setupTestDB(&testing.T{})
 	defer db.Close()
-	authService := NewAuthService(db, "test-secret")
-	handlers := NewAuthHandlers(authService)
+	authService := NewService(db, "test-secret")
+	handlers := NewHandlers(authService)
 
 	// Create test user
 	_, _, err := authService.Register("benchuser", "bench@example.com", "password123")
@@ -595,8 +595,8 @@ func BenchmarkLoginHandler(b *testing.B) {
 func BenchmarkCreateTemporaryUserHandler(b *testing.B) {
 	db := setupTestDB(&testing.T{})
 	defer db.Close()
-	authService := NewAuthService(db, "test-secret")
-	handlers := NewAuthHandlers(authService)
+	authService := NewService(db, "test-secret")
+	handlers := NewHandlers(authService)
 
 	body := CreateTemporaryUserRequest{
 		SessionID: "bench-session",

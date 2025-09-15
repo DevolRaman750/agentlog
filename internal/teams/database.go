@@ -332,7 +332,7 @@ func (h *Handler) assignAgentToTeam(agentID, teamID, userID string) (types.Agent
 }
 
 // removeAgentFromTeam removes an agent from its team
-// removeAgentFromTeam is implemented in internal/agents/database.go for the AgentsHandler type.
+// removeAgentFromTeam is implemented in internal/agents/database.go for the Handler type.
 
 // getAgentWithTeamInfo retrieves an agent with team information
 func (h *Handler) getAgentWithTeamInfo(agentID, userID string) (types.Agent, error) {

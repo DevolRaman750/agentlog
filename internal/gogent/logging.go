@@ -54,6 +54,8 @@ func (c *Client) logExecutionEvent(level types.LogLevel, category types.LogCateg
 }
 
 // logExecutionFlowEvent logs a flow event for execution tracking
+//
+//nolint:unparam // parentEventID parameter kept for future hierarchical event support
 func (c *Client) logExecutionFlowEvent(eventType string, sequenceNumber int, status string, parentEventID *string, eventData map[string]interface{}, durationMs *int32, errorMessage *string) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -181,6 +183,10 @@ func (c *Client) getLogEmoji(level types.LogLevel, category types.LogCategory) s
 			return "🌐"
 		case types.LogCategoryCompletion:
 			return CheckmarkEmoji
+		case types.LogCategoryIntegration:
+			return "🔌"
+		case types.LogCategoryError:
+			return "⚠️"
 		default:
 			return "ℹ️"
 		}

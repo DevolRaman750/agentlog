@@ -152,10 +152,12 @@ func (pah *PublicAPIHandler) ExecuteTemplate(w http.ResponseWriter, r *http.Requ
 	if len(validationErrors) > 0 {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		if err := json.NewEncoder(w).Encode(map[string]interface{}{
 			"error":  "Parameter validation failed",
 			"errors": validationErrors,
-		})
+		}); err != nil {
+			log.Printf("Failed to encode JSON response: %v", err)
+		}
 		return
 	}
 
@@ -254,7 +256,9 @@ func (pah *PublicAPIHandler) ExecuteTemplate(w http.ResponseWriter, r *http.Requ
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted) // 202 for async operation
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // GetTemplateExecutionStatus handles GET /api/public/templates/executions/{id}/status
@@ -317,7 +321,9 @@ func (pah *PublicAPIHandler) GetTemplateExecutionStatus(w http.ResponseWriter, r
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // GetTemplateInfo handles GET /api/public/templates/{id}/info (minimal template info for public use)
@@ -365,7 +371,9 @@ func (pah *PublicAPIHandler) GetTemplateInfo(w http.ResponseWriter, r *http.Requ
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(publicInfo)
+	if err := json.NewEncoder(w).Encode(publicInfo); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // =============================================================================

@@ -100,7 +100,7 @@ func runMigrations(db *sql.DB) error {
 	return nil
 }
 
-func TestNewAuthService(t *testing.T) {
+func TestNewService(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
@@ -123,7 +123,7 @@ func TestNewAuthService(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			authService := NewAuthService(db, tt.jwtSecret)
+			authService := NewService(db, tt.jwtSecret)
 
 			assert.NotNil(t, authService)
 			assert.Equal(t, db, authService.db)
@@ -133,10 +133,10 @@ func TestNewAuthService(t *testing.T) {
 	}
 }
 
-func TestAuthService_CreateTemporaryUser(t *testing.T) {
+func TestService_CreateTemporaryUser(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	authService := NewAuthService(db, "test-secret")
+	authService := NewService(db, "test-secret")
 
 	tests := []struct {
 		name      string
@@ -186,10 +186,10 @@ func TestAuthService_CreateTemporaryUser(t *testing.T) {
 	}
 }
 
-func TestAuthService_Register(t *testing.T) {
+func TestService_Register(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	authService := NewAuthService(db, "test-secret")
+	authService := NewService(db, "test-secret")
 
 	tests := []struct {
 		name     string
@@ -263,10 +263,10 @@ func TestAuthService_Register(t *testing.T) {
 	}
 }
 
-func TestAuthService_Login(t *testing.T) {
+func TestService_Login(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	authService := NewAuthService(db, "test-secret")
+	authService := NewService(db, "test-secret")
 
 	// Create a test user first
 	testUser, _, err := authService.Register("logintest", "login@example.com", "password123")
@@ -325,10 +325,10 @@ func TestAuthService_Login(t *testing.T) {
 	}
 }
 
-func TestAuthService_SaveTemporaryAccount(t *testing.T) {
+func TestService_SaveTemporaryAccount(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	authService := NewAuthService(db, "test-secret")
+	authService := NewService(db, "test-secret")
 
 	tests := []struct {
 		name      string
@@ -398,10 +398,10 @@ func TestAuthService_SaveTemporaryAccount(t *testing.T) {
 	}
 }
 
-func TestAuthService_GetUserByID(t *testing.T) {
+func TestService_GetUserByID(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	authService := NewAuthService(db, "test-secret")
+	authService := NewService(db, "test-secret")
 
 	// Create a test user
 	testUser, _, err := authService.Register("gettest", "get@example.com", "password123")
@@ -447,18 +447,18 @@ func TestAuthService_GetUserByID(t *testing.T) {
 	}
 }
 
-func TestAuthService_ValidateToken(t *testing.T) {
+func TestService_ValidateToken(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	authService := NewAuthService(db, "test-secret")
+	authService := NewService(db, "test-secret")
 
 	// Create a test user and get a token
 	testUser, token, err := authService.Register("tokentest", "token@example.com", "password123")
 	require.NoError(t, err)
 
 	// Create an invalid token with wrong secret
-	invalidAuthService := NewAuthService(db, "wrong-secret")
-	invalidToken, err := invalidAuthService.generateToken(testUser)
+	invalidService := NewService(db, "wrong-secret")
+	invalidToken, err := invalidService.generateToken(testUser)
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -509,10 +509,10 @@ func TestAuthService_ValidateToken(t *testing.T) {
 	}
 }
 
-func TestAuthService_generateToken(t *testing.T) {
+func TestService_generateToken(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	authService := NewAuthService(db, "test-secret")
+	authService := NewService(db, "test-secret")
 
 	user := &User{
 		ID:          "test-id",
@@ -644,10 +644,10 @@ func TestGenerateRandomSecret(t *testing.T) {
 	}
 }
 
-func TestAuthService_VerifyEmail(t *testing.T) {
+func TestService_VerifyEmail(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	authService := NewAuthService(db, "test-secret")
+	authService := NewService(db, "test-secret")
 
 	// Create a user and set up email verification token
 	user, _, err := authService.Register("verifytest", "verify@example.com", "password123")

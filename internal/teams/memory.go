@@ -242,7 +242,7 @@ func (h *Handler) WriteTeamMemory(_ context.Context, teamID, agentID, userID str
 }
 
 // SearchTeamMemory searches through team memory using various strategies
-func (h *Handler) SearchTeamMemory(ctx context.Context, teamID, agentID, userID string, request *types.TeamMemoryRequest) (*types.TeamMemoryResponse, error) {
+func (h *Handler) SearchTeamMemory(_ context.Context, teamID, agentID, userID string, request *types.TeamMemoryRequest) (*types.TeamMemoryResponse, error) {
 	// Validate access - either agent membership or team ownership
 	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
 	if err != nil {
@@ -290,7 +290,7 @@ func (h *Handler) SearchTeamMemory(ctx context.Context, teamID, agentID, userID 
 }
 
 // ClearTeamMemory clears or manages team memory based on the request
-func (h *Handler) ClearTeamMemory(ctx context.Context, teamID, agentID, userID string, request *types.TeamMemoryRequest) (*types.TeamMemoryResponse, error) {
+func (h *Handler) ClearTeamMemory(_ context.Context, teamID, agentID, userID string, request *types.TeamMemoryRequest) (*types.TeamMemoryResponse, error) {
 	// Validate access - either agent membership or team ownership
 	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
 	if err != nil {
@@ -389,6 +389,7 @@ func (h *Handler) getValueByPath(data map[string]interface{}, path string) (inte
 	return nil, fmt.Errorf("path not found: %s", path)
 }
 
+//nolint:unparam // error return kept for interface compatibility
 func (h *Handler) writeToContext(context map[string]interface{}, path string, data interface{}, mergeStrategy string) error {
 	if path == "" {
 		// Write to context root
@@ -593,7 +594,7 @@ func (h *Handler) compactMemory(_ *types.TeamMemory) error {
 }
 
 // StoreTeamTask stores a new task in the team's task memory
-func (h *Handler) StoreTeamTask(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+func (h *Handler) StoreTeamTask(_ context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
 	log.Printf("🔍 StoreTeamTask called with teamID: %s, agentID: %s, userID: %s", teamID, agentID, userID)
 
 	// Validate access
@@ -686,7 +687,7 @@ func (h *Handler) StoreTeamTask(ctx context.Context, teamID, agentID, userID str
 }
 
 // ClaimTeamTask allows an agent to claim a pending task
-func (h *Handler) ClaimTeamTask(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+func (h *Handler) ClaimTeamTask(_ context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
 	// Validate access
 	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
 	if err != nil {
@@ -866,7 +867,7 @@ func (h *Handler) ClaimTeamTask(ctx context.Context, teamID, agentID, userID str
 }
 
 // CompleteTeamTask marks a task as completed
-func (h *Handler) CompleteTeamTask(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+func (h *Handler) CompleteTeamTask(_ context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
 	// Validate access
 	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
 	if err != nil {
@@ -990,7 +991,7 @@ func (h *Handler) CompleteTeamTask(ctx context.Context, teamID, agentID, userID 
 }
 
 // ListTeamTasks retrieves tasks based on filter criteria
-func (h *Handler) ListTeamTasks(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+func (h *Handler) ListTeamTasks(_ context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
 	// Validate access
 	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
 	if err != nil {
@@ -1114,7 +1115,7 @@ func (h *Handler) ListTeamTasks(ctx context.Context, teamID, agentID, userID str
 }
 
 // ErrorTeamTask marks a task as having an error
-func (h *Handler) ErrorTeamTask(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+func (h *Handler) ErrorTeamTask(_ context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
 	// Validate access
 	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
 	if err != nil {
@@ -1215,7 +1216,7 @@ func (h *Handler) ErrorTeamTask(ctx context.Context, teamID, agentID, userID str
 }
 
 // ClearTeamTasks clears, deletes, or manages team tasks for consolidation
-func (h *Handler) ClearTeamTasks(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+func (h *Handler) ClearTeamTasks(_ context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
 	// Validate access
 	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
 	if err != nil {
@@ -1508,7 +1509,7 @@ func (h *Handler) ClearTeamTasks(ctx context.Context, teamID, agentID, userID st
 }
 
 // DeleteTeamTask deletes a specific task from the team's task memory by task ID
-func (h *Handler) DeleteTeamTask(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+func (h *Handler) DeleteTeamTask(_ context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
 	// Validate access
 	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
 	if err != nil {
@@ -1644,7 +1645,7 @@ func generateTaskID() string {
 }
 
 // UpdateTeamTask updates an existing task in the team's task memory
-func (h *Handler) UpdateTeamTask(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+func (h *Handler) UpdateTeamTask(_ context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
 	log.Printf("🔍 UpdateTeamTask called with teamID: %s, agentID: %s, userID: %s, taskID: %s", teamID, agentID, userID, request.TaskID)
 
 	// Validate access
@@ -1819,7 +1820,7 @@ func (h *Handler) UpdateTeamTask(ctx context.Context, teamID, agentID, userID st
 }
 
 // StoreAgentTask stores a task record in the agent's task memory
-func (h *Handler) StoreAgentTask(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+func (h *Handler) StoreAgentTask(_ context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
 	log.Printf("🔍 StoreAgentTask called with teamID: %s, agentID: %s, userID: %s", teamID, agentID, userID)
 
 	// Validate access
@@ -1927,7 +1928,7 @@ func (h *Handler) StoreAgentTask(ctx context.Context, teamID, agentID, userID st
 }
 
 // ListAgentTasks retrieves tasks from the agent's task memory
-func (h *Handler) ListAgentTasks(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+func (h *Handler) ListAgentTasks(_ context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
 	log.Printf("🔍 ListAgentTasks called with teamID: %s, agentID: %s, userID: %s", teamID, agentID, userID)
 
 	// Validate access
@@ -2048,7 +2049,7 @@ func (h *Handler) ListAgentTasks(ctx context.Context, teamID, agentID, userID st
 }
 
 // DeleteAgentTask removes a task from the agent's task memory
-func (h *Handler) DeleteAgentTask(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+func (h *Handler) DeleteAgentTask(_ context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
 	log.Printf("🔍 DeleteAgentTask called with teamID: %s, agentID: %s, userID: %s, taskID: %s", teamID, agentID, userID, request.TaskID)
 
 	// Validate access
@@ -2172,7 +2173,7 @@ func (h *Handler) DeleteAgentTask(ctx context.Context, teamID, agentID, userID s
 }
 
 // UpdateAgentTaskProgress stores progress tracking data for a task the agent is working on
-func (h *Handler) UpdateAgentTaskProgress(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+func (h *Handler) UpdateAgentTaskProgress(_ context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
 	log.Printf("🔍 UpdateAgentTaskProgress called with teamID: %s, agentID: %s, userID: %s, taskID: %s", teamID, agentID, userID, request.TaskID)
 
 	// Validate access
@@ -2281,7 +2282,7 @@ func (h *Handler) UpdateAgentTaskProgress(ctx context.Context, teamID, agentID, 
 }
 
 // ReadAgentTaskProgress retrieves saved progress data for tasks the agent is working on
-func (h *Handler) ReadAgentTaskProgress(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+func (h *Handler) ReadAgentTaskProgress(_ context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
 	log.Printf("🔍 ReadAgentTaskProgress called with teamID: %s, agentID: %s, userID: %s", teamID, agentID, userID)
 
 	// Validate access
@@ -2407,7 +2408,7 @@ func (h *Handler) ReadAgentTaskProgress(ctx context.Context, teamID, agentID, us
 }
 
 // ClearAgentTaskProgress clears saved progress data for tasks
-func (h *Handler) ClearAgentTaskProgress(ctx context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+func (h *Handler) ClearAgentTaskProgress(_ context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
 	log.Printf("🔍 ClearAgentTaskProgress called with teamID: %s, agentID: %s, userID: %s", teamID, agentID, userID)
 
 	// Validate access

@@ -100,27 +100,31 @@ type APIConfiguration struct {
 
 // FunctionDefinition represents a reusable function definition
 type FunctionDefinition struct {
-	ID                string                 `json:"id"`
-	UserID            string                 `json:"userId,omitempty"`       // User who owns this function
-	Name              string                 `json:"name"`                   // Unique function name for API calls
-	DisplayName       string                 `json:"displayName"`            // Human-readable name
-	Description       string                 `json:"description"`            // Function description
-	FunctionGroup     string                 `json:"functionGroup"`          // Group functions by category (e.g., "graph", "weather", "github")
-	ParametersSchema  map[string]interface{} `json:"parametersSchema"`       // JSON schema for parameters
-	MockResponse      map[string]interface{} `json:"mockResponse,omitempty"` // Mock response for testing
-	EndpointURL       string                 `json:"endpointUrl,omitempty"`  // Real API endpoint
-	HTTPMethod        string                 `json:"httpMethod"`             // HTTP method (GET, POST, etc.)
-	Headers           map[string]interface{} `json:"headers,omitempty"`      // HTTP headers
-	AuthConfig        map[string]interface{} `json:"authConfig,omitempty"`   // Authentication config
-	IsActive          bool                   `json:"isActive"`
-	IsSystemResource  bool                   `json:"isSystemResource"`            // Mark as system-provided resource
-	RequiredAPIKeys   []string               `json:"requiredAPIKeys,omitempty"`   // API keys required for this function
-	APIKeyValidation  map[string]interface{} `json:"apiKeyValidation,omitempty"`  // Validation rules for each API key
-	QueryTemplate     string                 `json:"queryTemplate,omitempty"`     // Cypher query template with {{parameter}} placeholders
-	ResultTransformer string                 `json:"resultTransformer,omitempty"` // How to transform the raw results (e.g., 'sales_summary', 'normalize_attributes')
-	FallbackData      map[string]interface{} `json:"fallbackData,omitempty"`      // Fallback data when external services are unavailable
-	CreatedAt         time.Time              `json:"createdAt"`
-	UpdatedAt         time.Time              `json:"updatedAt"`
+	ID            string `json:"id"`
+	UserID        string `json:"userId,omitempty"` // User who owns this function
+	Name          string `json:"name"`             // Unique function name for API calls
+	DisplayName   string `json:"displayName"`      // Human-readable name
+	Description   string `json:"description"`      // Function description
+	FunctionGroup string `json:"functionGroup"`
+	// Group functions by category (e.g., "graph", "weather", "github")
+	ParametersSchema map[string]interface{} `json:"parametersSchema"`       // JSON schema for parameters
+	MockResponse     map[string]interface{} `json:"mockResponse,omitempty"` // Mock response for testing
+	EndpointURL      string                 `json:"endpointUrl,omitempty"`  // Real API endpoint
+	HTTPMethod       string                 `json:"httpMethod"`             // HTTP method (GET, POST, etc.)
+	Headers          map[string]interface{} `json:"headers,omitempty"`      // HTTP headers
+	AuthConfig       map[string]interface{} `json:"authConfig,omitempty"`   // Authentication config
+	IsActive         bool                   `json:"isActive"`
+	IsSystemResource bool                   `json:"isSystemResource"`           // Mark as system-provided resource
+	RequiredAPIKeys  []string               `json:"requiredAPIKeys,omitempty"`  // API keys required for this function
+	APIKeyValidation map[string]interface{} `json:"apiKeyValidation,omitempty"` // Validation rules for each API key
+	QueryTemplate    string                 `json:"queryTemplate,omitempty"`
+	// Cypher query template with {{parameter}} placeholders
+	ResultTransformer string `json:"resultTransformer,omitempty"`
+	// How to transform the raw results (e.g., 'sales_summary', 'normalize_attributes')
+	FallbackData map[string]interface{} `json:"fallbackData,omitempty"`
+	// Fallback data when external services are unavailable
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // ExecutionFunctionConfig represents function configuration for a specific execution
@@ -245,7 +249,7 @@ type SessionAPIKeys struct {
 	GeminiAPIKey        string `json:"geminiAPIKey,omitempty"`
 	OpenRouterAPIKey    string `json:"openRouterAPIKey,omitempty"` // For Kimi K2 and other models via OpenRouter
 	OpenWeatherAPIKey   string `json:"openWeatherAPIKey,omitempty"`
-	Neo4jURL            string `json:"neo4jUrl,omitempty"`
+	Neo4jURL            string `json:"neo4jURL,omitempty"`
 	Neo4jUsername       string `json:"neo4jUsername,omitempty"`
 	Neo4jPassword       string `json:"neo4jPassword,omitempty"`
 	Neo4jDatabase       string `json:"neo4jDatabase,omitempty"`
@@ -459,7 +463,7 @@ type ExecutionTemplate struct {
 	UpdatedAt                time.Time                    `json:"updatedAt"`
 	Parameters               []ExecutionTemplateParameter `json:"parameters,omitempty"`
 	AuthTokens               []ExecutionTemplateAuthToken `json:"authTokens,omitempty"`
-	FunctionIDs              []string                     `json:"functionIds,omitempty"` // Associated function IDs
+	FunctionIDs              []string                     `json:"functionIDs,omitempty"` // Associated function IDs
 }
 
 // ExecutionTemplateParameter represents a parameter definition for templates
@@ -823,14 +827,15 @@ type TeamMemoryContexts struct {
 
 // TeamMemoryRequest represents requests for team memory operations
 type TeamMemoryRequest struct {
-	TeamID        string                 `json:"teamId" validate:"required"`
-	AgentID       string                 `json:"agentId" validate:"required"` // Agent making the request (must be team member)
-	Context       string                 `json:"context,omitempty"`           // workflow, session, persistent, shared, all
-	Path          string                 `json:"path,omitempty"`              // JSON path for specific access
-	Data          map[string]interface{} `json:"data,omitempty"`              // Data to write
-	SearchQuery   string                 `json:"searchQuery,omitempty"`       // Search query
-	MergeStrategy string                 `json:"mergeStrategy,omitempty"`     // merge, replace, append
-	Limit         int                    `json:"limit,omitempty"`             // Result limit
+	TeamID  string `json:"teamId" validate:"required"`
+	AgentID string `json:"agentId" validate:"required"`
+	// Agent making the request (must be team member)
+	Context       string                 `json:"context,omitempty"`       // workflow, session, persistent, shared, all
+	Path          string                 `json:"path,omitempty"`          // JSON path for specific access
+	Data          map[string]interface{} `json:"data,omitempty"`          // Data to write
+	SearchQuery   string                 `json:"searchQuery,omitempty"`   // Search query
+	MergeStrategy string                 `json:"mergeStrategy,omitempty"` // merge, replace, append
+	Limit         int                    `json:"limit,omitempty"`         // Result limit
 }
 
 // TeamMemoryResponse represents responses for team memory operations

@@ -54,7 +54,7 @@ func NewTemplateService(db *sql.DB) *TemplateService {
 // =============================================================================
 
 // CreateTemplate creates a new execution template with parameters
-func (ts *TemplateService) CreateTemplate(template *types.ExecutionTemplate, parameters []types.ExecutionTemplateParameter, functionIds []string) (*types.ExecutionTemplate, error) {
+func (ts *TemplateService) CreateTemplate(template *types.ExecutionTemplate, parameters []types.ExecutionTemplateParameter, functionIDs []string) (*types.ExecutionTemplate, error) {
 	tx, err := ts.db.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
@@ -105,7 +105,7 @@ func (ts *TemplateService) CreateTemplate(template *types.ExecutionTemplate, par
 		description = template.Description
 	}
 
-	log.Printf("🔧 Creating template with values: ID=%s, UserID=%s, Name=%s, FunctionIDs=%v", template.ID, template.UserID, template.Name, functionIds)
+	log.Printf("🔧 Creating template with values: ID=%s, UserID=%s, Name=%s, FunctionIDs=%v", template.ID, template.UserID, template.Name, functionIDs)
 	_, err = tx.Exec(query,
 		template.ID, template.UserID, template.Name, description,
 		template.TemplatePrompt, contextTemplate, template.EnableFunctionCalling,
@@ -137,7 +137,7 @@ func (ts *TemplateService) CreateTemplate(template *types.ExecutionTemplate, par
 	}
 
 	// Insert function associations
-	for i, functionID := range functionIds {
+	for i, functionID := range functionIDs {
 		if functionID == "" {
 			continue // Skip empty function IDs
 		}
@@ -414,7 +414,7 @@ func (ts *TemplateService) ListTemplates(userID string, limit, offset int, categ
 }
 
 // UpdateTemplate updates an existing template and creates a new version
-func (ts *TemplateService) UpdateTemplate(templateID string, template *types.ExecutionTemplate, parameters []types.ExecutionTemplateParameter, functionIds []string, changeSummary string) (*types.ExecutionTemplate, *types.ExecutionTemplateVersion, error) {
+func (ts *TemplateService) UpdateTemplate(_ string, template *types.ExecutionTemplate, parameters []types.ExecutionTemplateParameter, functionIDs []string, changeSummary string) (*types.ExecutionTemplate, *types.ExecutionTemplateVersion, error) {
 	tx, err := ts.db.Begin()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to begin transaction: %w", err)
@@ -521,8 +521,8 @@ func (ts *TemplateService) UpdateTemplate(templateID string, template *types.Exe
 	}
 
 	// Insert new function associations
-	log.Printf("🔥 SERVICE: UpdateTemplate processing %d functions for template %s", len(functionIds), template.ID)
-	for i, functionID := range functionIds {
+	log.Printf("🔥 SERVICE: UpdateTemplate processing %d functions for template %s", len(functionIDs), template.ID)
+	for i, functionID := range functionIDs {
 		if functionID == "" {
 			log.Printf("🔥 SERVICE: Skipping empty function ID at index %d", i)
 			continue
@@ -611,6 +611,8 @@ func (ts *TemplateService) ValidateParameters(templateID string, providedParams 
 }
 
 // SubstituteTemplateParameters substitutes parameters in template prompt and context
+//
+//nolint:gocritic // unnamedResult - clear from context
 func (ts *TemplateService) SubstituteTemplateParameters(template *types.ExecutionTemplate, providedParams map[string]interface{}) (string, string, error) {
 	parameters, err := ts.getTemplateParameters(template.ID)
 	if err != nil {
@@ -651,10 +653,10 @@ func (ts *TemplateService) SubstituteTemplateParameters(template *types.Executio
 	}
 
 	// Substitute in template prompt
-	resolvedPrompt := ts.substituteString(template.TemplatePrompt, finalParams)
-	resolvedContext := ts.substituteString(template.ContextTemplate, finalParams)
+	prompt := ts.substituteString(template.TemplatePrompt, finalParams)
+	context := ts.substituteString(template.ContextTemplate, finalParams)
 
-	return resolvedPrompt, resolvedContext, nil
+	return prompt, context, nil
 }
 
 // =============================================================================

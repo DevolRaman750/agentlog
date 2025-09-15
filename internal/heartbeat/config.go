@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// Config holds configuration for the HeartbeatExecutor
+// Config holds configuration for the Executor
 type Config struct {
 	// CheckInterval is how often to check for overdue agents (default: 5 minutes)
 	CheckInterval time.Duration

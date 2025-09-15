@@ -16,7 +16,7 @@ import (
 	"gogent/internal/agents"
 	"gogent/internal/apiauth"
 	"gogent/internal/apikeys"
-	"gogent/internal/code_analysis"
+	"gogent/internal/codeanalysis"
 	"gogent/internal/db"
 	"gogent/internal/gemini"
 	"gogent/internal/github"
@@ -98,12 +98,16 @@ const (
 
 	// Function names
 	FunctionTeamTaskClaim          = "team_task_claim"
+	FunctionTeamTaskComplete       = "team_task_complete"
 	FunctionTeamMemoryWrite        = "team_memory_write"
+	FunctionTeamMemoryClear        = "team_memory_clear"
 	FunctionAgentMemoryRead        = "agent_memory_read"
 	FunctionAgentMemoryWrite       = "agent_memory_write"
 	FunctionAgentMemoryClear       = "agent_memory_clear"
 	FunctionSlackReadMessages      = "slack_read_messages"
+	FunctionSlackFindChannel       = "slack_find_channel"
 	FunctionCreateBranch           = "create_branch"
+	FunctionGitHubSearchCode       = "github_search_code"
 	FunctionGoogleDriveSearchFiles = "googledrive_search_files"
 
 	// Status constants
@@ -112,7 +116,12 @@ const (
 	StatusMissing = "MISSING"
 
 	// Response constants
-	ResponseNoData = "No data returned"
+	ResponseNoData   = "No data returned"
+	ValidationFailed = "validation_failed"
+
+	// Common strings
+	WeatherGroup    = "weather"
+	WhatsAppService = "whatsapp"
 
 	// File type constants
 	FileTypeDir = "dir"
@@ -142,7 +151,7 @@ type Client struct {
 	functionCallMutex   sync.RWMutex
 
 	// Refactored components
-	codeAnalyzer      *code_analysis.Analyzer
+	codeAnalyzer      *codeanalysis.Analyzer
 	directoryAnalyzer *github.DirectoryAnalyzer
 
 	// Integration framework
@@ -335,8 +344,8 @@ func NewClient(dbURL string, config *types.GeminiClientConfig, sessionAPIKeys *t
 	}
 
 	// Initialize refactored components
-	client.codeAnalyzer = code_analysis.NewAnalyzer(code_analysis.DefaultConfig())
-	client.directoryAnalyzer = github.NewDirectoryAnalyzer(code_analysis.DefaultConfig())
+	client.codeAnalyzer = codeanalysis.NewAnalyzer(codeanalysis.DefaultConfig())
+	client.directoryAnalyzer = github.NewDirectoryAnalyzer(codeanalysis.DefaultConfig())
 
 	// Initialize integration framework
 	client.httpClient = base.NewHTTPClient(base.HTTPClientConfig{
@@ -474,7 +483,7 @@ func (c *Client) LoadDatabaseAPIKeys(ctx context.Context, userID string) error {
 				func() string {
 					if len(decryptedKey) >= 10 {
 						return decryptedKey[:10] + "..."
-					} else if len(decryptedKey) > 0 {
+					} else if decryptedKey != "" {
 						return decryptedKey + "..."
 					}
 					return StatusEmpty
@@ -495,7 +504,7 @@ func (c *Client) LoadDatabaseAPIKeys(ctx context.Context, userID string) error {
 				func() string {
 					if len(decryptedKey) >= 10 {
 						return decryptedKey[:10] + "..."
-					} else if len(decryptedKey) > 0 {
+					} else if decryptedKey != "" {
 						return decryptedKey + "..."
 					}
 					return StatusEmpty
@@ -508,7 +517,7 @@ func (c *Client) LoadDatabaseAPIKeys(ctx context.Context, userID string) error {
 				func() string {
 					if len(decryptedKey) >= 10 {
 						return decryptedKey[:10] + "..."
-					} else if len(decryptedKey) > 0 {
+					} else if decryptedKey != "" {
 						return decryptedKey + "..."
 					}
 					return StatusEmpty
@@ -520,7 +529,7 @@ func (c *Client) LoadDatabaseAPIKeys(ctx context.Context, userID string) error {
 				func() string {
 					if len(decryptedKey) >= 10 {
 						return decryptedKey[:10] + "..."
-					} else if len(decryptedKey) > 0 {
+					} else if decryptedKey != "" {
 						return decryptedKey + "..."
 					}
 					return StatusEmpty
@@ -559,12 +568,12 @@ func (c *Client) LoadAgentAPIKeys(ctx context.Context, agentID string) error {
 	defer c.mutex.Unlock()
 
 	// Create agents service to get agent API key configuration
-	agentHandler := agents.NewAgentsHandler(c.db)
+	agentHandler := agents.NewHandler(c.db)
 	agentConfig, err := agentHandler.GetAgentAPIKeyConfiguration(ctx, agentID)
 	if err != nil {
 		log.Printf("⚠️ Failed to get agent API key configuration for %s: %v", agentID, err)
 		// Fallback to loading user keys directly
-		if len(agentID) > 0 {
+		if agentID != "" {
 			// Try to extract user ID from agent and use global keys
 			var userID string
 			err := c.db.QueryRowContext(ctx, "SELECT user_id FROM agents WHERE id = ?", agentID).Scan(&userID)
@@ -763,7 +772,7 @@ func (c *Client) RunMigrations() error {
 }
 
 // executeMySQLFunction executes a MySQL function with security validation
-func (c *Client) executeMySQLFunction(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+func (c *Client) executeMySQLFunction(_ context.Context, _ *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
 	// Validate required parameters
 	query, ok := args["query"].(string)
 	if !ok || query == "" {
@@ -824,7 +833,7 @@ func (c *Client) executeMySQLFunction(ctx context.Context, funcDef *db.FunctionD
 }
 
 // executeMCPFunction executes an MCP function
-func (c *Client) executeMCPFunction(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+func (c *Client) executeMCPFunction(_ context.Context, _ *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
 	// Validate required parameters
 	operation, ok := args["operation"].(string)
 	if !ok || operation == "" {
@@ -994,7 +1003,7 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 	}
 
 	// Create handlers
-	agentsHandler := agents.NewAgentsHandler(c.db)
+	agentsHandler := agents.NewHandler(c.db)
 	teamsHandler := teams.NewTeamsHandler(c.db)
 
 	// Check if this is a team memory or team task function
@@ -1013,9 +1022,8 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 				log.Printf("🔍 Failed to get team_id from agent lookup: %v", queryErr)
 				if queryErr != nil {
 					return nil, fmt.Errorf("TEAM FUNCTION ERROR: %s failed to lookup team membership for agent %s: %v", functionName, agentID, queryErr)
-				} else {
-					return nil, fmt.Errorf("TEAM FUNCTION ERROR: %s requires agent to be assigned to a team (agent: %s not found in any team)", functionName, agentID)
 				}
+				return nil, fmt.Errorf("TEAM FUNCTION ERROR: %s requires agent to be assigned to a team (agent: %s not found in any team)", functionName, agentID)
 			}
 		} else {
 			return nil, fmt.Errorf("TEAM FUNCTION ERROR: %s requires valid agent context - no agent ID provided", functionName)
@@ -1509,9 +1517,8 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 
 			log.Printf("✅ Team task function %s completed successfully", functionName)
 			return result, nil
-		} else {
-			return nil, fmt.Errorf("unsupported team function: %s", functionName)
 		}
+		return nil, fmt.Errorf("unsupported team function: %s", functionName)
 	}
 
 	// Check if this is an agent task function
@@ -2075,9 +2082,8 @@ func (c *Client) createIntegrationResultSummary(functionName string, result map[
 				}
 			}
 			return "API success"
-		} else {
-			return fmt.Sprintf("API status: %s", status)
 		}
+		return fmt.Sprintf("API status: %s", status)
 	}
 
 	return fmt.Sprintf("Result with %d fields", len(result))
@@ -3410,7 +3416,7 @@ func (c *Client) GetExecutionLogsByConfiguration(ctx context.Context, executionR
 			log.RequestID = &requestID.String
 		}
 		if sequenceNumber.Valid {
-			seqNum := int32(sequenceNumber.Int32)
+			seqNum := sequenceNumber.Int32
 			log.SequenceNumber = &seqNum
 		}
 		if durationMs.Valid {
@@ -3489,7 +3495,7 @@ func (c *Client) GetExecutionLogsByRun(ctx context.Context, executionRunID strin
 			log.RequestID = &requestID.String
 		}
 		if sequenceNumber.Valid {
-			seqNum := int32(sequenceNumber.Int32)
+			seqNum := sequenceNumber.Int32
 			log.SequenceNumber = &seqNum
 		}
 		if durationMs.Valid {

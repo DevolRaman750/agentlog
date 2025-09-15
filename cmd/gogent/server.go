@@ -33,14 +33,14 @@ type Server struct {
 	client *gogent.Client
 	config *types.GeminiClientConfig
 	// Removed executions map and mutex - now using database for status tracking
-	authService         *auth.AuthService
-	authHandlers        *auth.AuthHandlers
+	authService         *auth.Service
+	authHandlers        *auth.Handlers
 	templateIntegration *templates.TemplateIntegration
-	agentsHandler       *agents.AgentsHandler
+	agentsHandler       *agents.Handler
 	teamsHandler        *teams.Handler
 	apiKeysService      *apikeys.Service
 	apiKeysHandler      *apikeys.Handler
-	heartbeatExecutor   *heartbeat.HeartbeatExecutor
+	heartbeatExecutor   *heartbeat.Executor
 }
 
 // ExecutionStatus tracks the status of an async execution (used by gRPC/BusinessLogic)
@@ -60,7 +60,7 @@ type ExecutionEngineAdapter struct {
 }
 
 // StartExecution implements the ExecutionEngine interface for templates
-func (e *ExecutionEngineAdapter) StartExecution(request *types.MultiExecutionRequest, useMock bool, sessionAPIKeys map[string]string) (string, *types.ExecutionRun, error) {
+func (e *ExecutionEngineAdapter) StartExecution(request *types.MultiExecutionRequest, _ bool, _ map[string]string) (string, *types.ExecutionRun, error) {
 	ctx := context.Background()
 
 	// For template execution, we use a system user ID
@@ -78,6 +78,8 @@ func (e *ExecutionEngineAdapter) StartExecution(request *types.MultiExecutionReq
 }
 
 // GetExecutionStatus implements the ExecutionEngine interface
+//
+//nolint:gocritic // tooManyResultsChecker - required for interface
 func (e *ExecutionEngineAdapter) GetExecutionStatus(executionID string) (string, string, *time.Time, *time.Time, *types.ExecutionResult, error) {
 	// This is a simplified implementation
 	// In a real implementation, you might query the database for execution status
@@ -118,8 +120,8 @@ func NewServer() (*Server, error) {
 	}
 
 	// Create auth service and handlers
-	authService := auth.NewAuthService(client.GetDB(), jwtSecret)
-	authHandlers := auth.NewAuthHandlers(authService)
+	authService := auth.NewService(client.GetDB(), jwtSecret)
+	authHandlers := auth.NewHandlers(authService)
 
 	// Create execution engine adapter
 	executionEngine := &ExecutionEngineAdapter{client: client}
@@ -128,7 +130,7 @@ func NewServer() (*Server, error) {
 	templateIntegration := templates.NewTemplateIntegration(client.GetDB(), authService, executionEngine)
 
 	// Create agents handler
-	agentsHandler := agents.NewAgentsHandler(client.GetDB())
+	agentsHandler := agents.NewHandler(client.GetDB())
 
 	// Create teams handler
 	teamsHandler := teams.NewTeamsHandler(client.GetDB())
@@ -140,9 +142,9 @@ func NewServer() (*Server, error) {
 	}
 	apiKeysHandler := apikeys.NewHandler(apiKeysService)
 
-	// Create HeartbeatExecutor
+	// Create Executor
 	heartbeatConfig := heartbeat.LoadConfigFromEnv()
-	heartbeatExecutor := heartbeat.NewHeartbeatExecutor(client, heartbeatConfig)
+	heartbeatExecutor := heartbeat.NewExecutor(client, heartbeatConfig)
 
 	return &Server{
 		client: client,
@@ -161,10 +163,10 @@ func NewServer() (*Server, error) {
 
 // Close closes the server resources
 func (s *Server) Close() error {
-	// Stop HeartbeatExecutor first
+	// Stop Executor first
 	if s.heartbeatExecutor != nil {
 		if err := s.heartbeatExecutor.Stop(); err != nil {
-			log.Printf("⚠️ Error stopping HeartbeatExecutor: %v", err)
+			log.Printf("⚠️ Error stopping Executor: %v", err)
 		}
 	}
 
@@ -183,7 +185,7 @@ func (s *Server) healthHandler(w http.ResponseWriter, _ *http.Request) {
 		"database":  s.client != nil,
 	}
 
-	// Add HeartbeatExecutor status
+	// Add Executor status
 	if s.heartbeatExecutor != nil {
 		response["heartbeat_executor"] = map[string]interface{}{
 			"status":  s.heartbeatExecutor.GetStatus(),
@@ -192,10 +194,12 @@ func (s *Server) healthHandler(w http.ResponseWriter, _ *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
-// HeartbeatExecutor status endpoint
+// Executor status endpoint
 func (s *Server) heartbeatStatusHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -221,15 +225,17 @@ func (s *Server) heartbeatStatusHandler(w http.ResponseWriter, r *http.Request) 
 		}
 	} else {
 		response["status"] = "not_initialized"
-		response["error"] = "HeartbeatExecutor not available"
+		response["error"] = "Executor not available"
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // Test connection endpoint
-func (s *Server) testHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) testHandler(w http.ResponseWriter, _ *http.Request) {
 	response := map[string]interface{}{
 		"message":   "Connection successful",
 		"timestamp": time.Now().Format(time.RFC3339),
@@ -237,7 +243,9 @@ func (s *Server) testHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // Execute multi-variation endpoint (async)
@@ -335,7 +343,9 @@ func (s *Server) executeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // Helper function to extract user ID from request context
@@ -348,7 +358,7 @@ func (s *Server) getUserID(r *http.Request) (string, error) {
 }
 
 // runAsyncExecution runs the execution in a goroutine
-func (s *Server) runAsyncExecution(executionID string, request *types.MultiExecutionRequest, useMock bool, headers http.Header, userID string) {
+func (s *Server) runAsyncExecution(executionID string, request *types.MultiExecutionRequest, _ bool, headers http.Header, userID string) {
 	// Update status to running in database
 	ctx := context.Background()
 	runningErr := s.client.UpdateExecutionRunStatus(ctx, userID, executionID, "running", "")
@@ -400,50 +410,35 @@ func (s *Server) runAsyncExecution(executionID string, request *types.MultiExecu
 	}
 
 	// Get Neo4j configuration from encrypted headers first, then fallback to plain text
-	var neo4jURL, neo4jUsername, neo4jPassword, neo4jDatabase string
+	// Neo4j integration will be implemented in a future release
+	// Currently we just log when Neo4j credentials are provided
 
-	if decryptedURL, exists := encryptedKeys["neo4jUrl"]; exists && decryptedURL != "" {
-		neo4jURL = decryptedURL
+	if _, exists := encryptedKeys["neo4jURL"]; exists {
 		log.Printf("🔗 Using decrypted Neo4j URL from frontend")
-	} else {
-		neo4jURL = headers.Get("X-Neo4j-URL")
-		if neo4jURL != "" {
-			log.Printf("🔗 Using plain-text Neo4j URL from frontend")
-			log.Printf("⚠️ Warning: Neo4j URL transmitted in plain text")
-		}
+	} else if headers.Get("X-Neo4j-URL") != "" {
+		log.Printf("🔗 Using plain-text Neo4j URL from frontend")
+		log.Printf("⚠️ Warning: Neo4j URL transmitted in plain text")
 	}
 
-	if decryptedUsername, exists := encryptedKeys["neo4jUsername"]; exists && decryptedUsername != "" {
-		neo4jUsername = decryptedUsername
+	if _, exists := encryptedKeys["neo4jUsername"]; exists {
 		log.Printf("🔗 Using decrypted Neo4j username from frontend")
-	} else {
-		neo4jUsername = headers.Get("X-Neo4j-Username")
-		if neo4jUsername != "" {
-			log.Printf("🔗 Using plain-text Neo4j username from frontend")
-			log.Printf("⚠️ Warning: Neo4j username transmitted in plain text")
-		}
+	} else if headers.Get("X-Neo4j-Username") != "" {
+		log.Printf("🔗 Using plain-text Neo4j username from frontend")
+		log.Printf("⚠️ Warning: Neo4j username transmitted in plain text")
 	}
 
-	if decryptedPassword, exists := encryptedKeys["neo4jPassword"]; exists && decryptedPassword != "" {
-		neo4jPassword = decryptedPassword
+	if _, exists := encryptedKeys["neo4jPassword"]; exists {
 		log.Printf("🔗 Using decrypted Neo4j password from frontend")
-	} else {
-		neo4jPassword = headers.Get("X-Neo4j-Password")
-		if neo4jPassword != "" {
-			log.Printf("🔗 Using plain-text Neo4j password from frontend")
-			log.Printf("⚠️ Warning: Neo4j password transmitted in plain text")
-		}
+	} else if headers.Get("X-Neo4j-Password") != "" {
+		log.Printf("🔗 Using plain-text Neo4j password from frontend")
+		log.Printf("⚠️ Warning: Neo4j password transmitted in plain text")
 	}
 
-	if decryptedDatabase, exists := encryptedKeys["neo4jDatabase"]; exists && decryptedDatabase != "" {
-		neo4jDatabase = decryptedDatabase
+	if _, exists := encryptedKeys["neo4jDatabase"]; exists {
 		log.Printf("🔗 Using decrypted Neo4j database from frontend")
-	} else {
-		neo4jDatabase = headers.Get("X-Neo4j-Database")
-		if neo4jDatabase != "" {
-			log.Printf("🔗 Using plain-text Neo4j database from frontend")
-			log.Printf("⚠️ Warning: Neo4j database transmitted in plain text")
-		}
+	} else if headers.Get("X-Neo4j-Database") != "" {
+		log.Printf("🔗 Using plain-text Neo4j database from frontend")
+		log.Printf("⚠️ Warning: Neo4j database transmitted in plain text")
 	}
 
 	// Get GitHub API key from encrypted headers
@@ -496,7 +491,9 @@ func (s *Server) runAsyncExecution(executionID string, request *types.MultiExecu
 
 	// Since we already created the execution run, we need to use the existing ID
 	// Execute the variations for the existing execution run
-	ctx = context.WithValue(ctx, "execution_run_id", executionID)
+	type contextKey string
+	const executionRunIDKey contextKey = "execution_run_id"
+	ctx = context.WithValue(ctx, executionRunIDKey, executionID)
 	_, err = tempClient.ExecuteMultiVariationWithExistingRun(ctx, userID, executionID, request)
 	if err != nil {
 		log.Printf("Execution failed: %v", err)
@@ -588,7 +585,9 @@ func (s *Server) executionStatusHandler(w http.ResponseWriter, r *http.Request) 
 			"error":  "Execution not found",
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			log.Printf("Failed to encode JSON response: %v", err)
+		}
 		return
 	}
 
@@ -620,7 +619,9 @@ func (s *Server) executionStatusHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // configurationsHandler handles API configuration requests
@@ -674,13 +675,17 @@ func (s *Server) listConfigurations(w http.ResponseWriter, r *http.Request) {
 
 	// With the new schema, configurations are already unique - no deduplication needed
 	// Simply combine user and system configurations
-	allConfigs := append(userConfigs, systemConfigs...)
+	allConfigs := make([]types.APIConfiguration, 0, len(userConfigs)+len(systemConfigs))
+	allConfigs = append(allConfigs, userConfigs...)
+	allConfigs = append(allConfigs, systemConfigs...)
 
 	log.Printf("📋 Returning configurations for user %s: %d user configs, %d system configs, %d total",
 		userID, len(userConfigs), len(systemConfigs), len(allConfigs))
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(allConfigs)
+	if err := json.NewEncoder(w).Encode(allConfigs); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 func (s *Server) createConfiguration(w http.ResponseWriter, r *http.Request) {
@@ -723,7 +728,9 @@ func (s *Server) createConfiguration(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(config)
+	if err := json.NewEncoder(w).Encode(config); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 func (s *Server) updateConfiguration(w http.ResponseWriter, r *http.Request) {
@@ -774,7 +781,9 @@ func (s *Server) updateConfiguration(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(config)
+	if err := json.NewEncoder(w).Encode(config); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 func (s *Server) deleteConfiguration(w http.ResponseWriter, r *http.Request) {
@@ -808,11 +817,15 @@ func (s *Server) deleteConfiguration(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	if err := json.NewEncoder(w).Encode(result); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // Mock execution for when API key is not available
-func (s *Server) executeMockVariation(ctx context.Context, request *types.MultiExecutionRequest) *types.ExecutionResult {
+// executeMockVariation is kept for potential mock testing capabilities
+/*
+func (s *Server) executeMockVariation(_ context.Context, request *types.MultiExecutionRequest) *types.ExecutionResult {
 	executionRun := types.ExecutionRun{
 		ID:          fmt.Sprintf("mock-%d", time.Now().UnixNano()%1000000),
 		Name:        request.ExecutionRunName,
@@ -906,6 +919,7 @@ func (s *Server) executeMockVariation(ctx context.Context, request *types.MultiE
 
 	return result
 }
+*/
 
 // Get specific execution run endpoint
 func (s *Server) getSpecificExecutionRun(w http.ResponseWriter, r *http.Request, runID string) {
@@ -943,7 +957,9 @@ func (s *Server) getSpecificExecutionRun(w http.ResponseWriter, r *http.Request,
 		if err == nil && executionResult != nil {
 			log.Printf("✅ Found REAL execution data with %d results", len(executionResult.Results))
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(executionResult)
+			if err := json.NewEncoder(w).Encode(executionResult); err != nil {
+				log.Printf("Failed to encode JSON response: %v", err)
+			}
 			return
 		}
 		log.Printf("⚠️ Failed to get real execution result for %s (real ID: %s): %v", runID, realExecutionRunID, err)
@@ -962,7 +978,9 @@ func (s *Server) getSpecificExecutionRun(w http.ResponseWriter, r *http.Request,
 			log.Printf("📋 Found execution run but no detailed results, creating mock data based on real run")
 			mockResult := s.createMockExecutionResult(executionRun)
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(mockResult)
+			if err := json.NewEncoder(w).Encode(mockResult); err != nil {
+				log.Printf("Failed to encode JSON response: %v", err)
+			}
 			return
 		}
 		log.Printf("❌ Execution run %s not found in database: %v", runID, err)
@@ -972,7 +990,9 @@ func (s *Server) getSpecificExecutionRun(w http.ResponseWriter, r *http.Request,
 	// Last resort: Create generic mock data
 	mockResult := s.createGenericMockExecutionResult(runID)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(mockResult)
+	if err := json.NewEncoder(w).Encode(mockResult); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // Delete execution run endpoint
@@ -988,7 +1008,9 @@ func (s *Server) deleteExecutionRun(w http.ResponseWriter, r *http.Request, runI
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // Handle execution runs with different HTTP methods
@@ -1064,7 +1086,9 @@ func (s *Server) executionRunsHandler(w http.ResponseWriter, r *http.Request) {
 			},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(mockRuns)
+		if err := json.NewEncoder(w).Encode(mockRuns); err != nil {
+			log.Printf("Failed to encode JSON response: %v", err)
+		}
 		return
 	}
 
@@ -1075,7 +1099,9 @@ func (s *Server) executionRunsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(runs)
+	if err := json.NewEncoder(w).Encode(runs); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // Database table data endpoint
@@ -1210,6 +1236,11 @@ func (s *Server) databaseTableDataHandler(w http.ResponseWriter, r *http.Request
 				}
 				rows = append(rows, row)
 			}
+			if err := dbRows.Err(); err != nil {
+				log.Printf("Error iterating api_configurations rows: %v", err)
+				http.Error(w, "Database query failed", http.StatusInternalServerError)
+				return
+			}
 
 			tableData = map[string]interface{}{
 				"tableName": "api_configurations",
@@ -1275,6 +1306,11 @@ func (s *Server) databaseTableDataHandler(w http.ResponseWriter, r *http.Request
 					promptDisplay, contextStr, functionNameStr, createdAt.Format(time.RFC3339),
 				}
 				rows = append(rows, row)
+			}
+			if err := dbRows.Err(); err != nil {
+				log.Printf("Error iterating api_requests rows: %v", err)
+				http.Error(w, "Database query failed", http.StatusInternalServerError)
+				return
 			}
 
 			tableData = map[string]interface{}{
@@ -1353,6 +1389,11 @@ func (s *Server) databaseTableDataHandler(w http.ResponseWriter, r *http.Request
 				}
 				rows = append(rows, row)
 			}
+			if err := dbRows.Err(); err != nil {
+				log.Printf("Error iterating api_responses rows: %v", err)
+				http.Error(w, "Database query failed", http.StatusInternalServerError)
+				return
+			}
 
 			tableData = map[string]interface{}{
 				"tableName": "api_responses",
@@ -1398,6 +1439,11 @@ func (s *Server) databaseTableDataHandler(w http.ResponseWriter, r *http.Request
 					bestConfigurationID, createdAt.Format(time.RFC3339),
 				}
 				rows = append(rows, row)
+			}
+			if err := dbRows.Err(); err != nil {
+				log.Printf("Error iterating comparison_results rows: %v", err)
+				http.Error(w, "Database query failed", http.StatusInternalServerError)
+				return
 			}
 
 			tableData = map[string]interface{}{
@@ -1482,6 +1528,11 @@ func (s *Server) databaseTableDataHandler(w http.ResponseWriter, r *http.Request
 					createdAt.Format(time.RFC3339),
 				}
 				rows = append(rows, row)
+			}
+			if err := dbRows.Err(); err != nil {
+				log.Printf("Error iterating function_calls rows: %v", err)
+				http.Error(w, "Database query failed", http.StatusInternalServerError)
+				return
 			}
 
 			tableData = map[string]interface{}{
@@ -1570,6 +1621,11 @@ func (s *Server) databaseTableDataHandler(w http.ResponseWriter, r *http.Request
 				}
 				rows = append(rows, row)
 			}
+			if err := dbRows.Err(); err != nil {
+				log.Printf("Error iterating execution_logs rows: %v", err)
+				http.Error(w, "Database query failed", http.StatusInternalServerError)
+				return
+			}
 
 			tableData = map[string]interface{}{
 				"tableName": "execution_logs",
@@ -1654,6 +1710,11 @@ func (s *Server) databaseTableDataHandler(w http.ResponseWriter, r *http.Request
 				}
 				rows = append(rows, row)
 			}
+			if err := dbRows.Err(); err != nil {
+				log.Printf("Error iterating function_definitions rows: %v", err)
+				http.Error(w, "Database query failed", http.StatusInternalServerError)
+				return
+			}
 
 			tableData = map[string]interface{}{
 				"tableName": "function_definitions",
@@ -1702,7 +1763,9 @@ func (s *Server) databaseTableDataHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(tableData)
+	if err := json.NewEncoder(w).Encode(tableData); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // Database stats endpoint
@@ -1728,8 +1791,8 @@ func (s *Server) databaseStatsHandler(w http.ResponseWriter, r *http.Request) {
 		// Fallback to empty stats if database query fails
 		stats = map[string]interface{}{
 			"totalExecutionRuns": 0,
-			"totalApiRequests":   0,
-			"totalApiResponses":  0,
+			"totalAPIRequests":   0,
+			"totalAPIResponses":  0,
 			"totalFunctionCalls": 0,
 			"avgResponseTime":    0.0,
 			"successRate":        0.0,
@@ -1737,7 +1800,9 @@ func (s *Server) databaseStatsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(stats)
+	if err := json.NewEncoder(w).Encode(stats); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // getUserDatabaseStats gets user-specific database statistics
@@ -1755,24 +1820,24 @@ func (s *Server) getUserDatabaseStats(ctx context.Context, userID string) (map[s
 	}
 
 	// Count API requests for this user's execution runs
-	var totalApiRequests int32
+	var totalAPIRequests int32
 	err = db.QueryRowContext(ctx, `
 		SELECT COALESCE(COUNT(*), 0) FROM api_requests ar 
 		INNER JOIN execution_runs er ON ar.execution_run_id = er.id 
 		WHERE er.user_id = ?
-	`, userID).Scan(&totalApiRequests)
+	`, userID).Scan(&totalAPIRequests)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, fmt.Errorf("failed to count API requests: %w", err)
 	}
 
 	// Count API responses for this user's requests
-	var totalApiResponses int32
+	var totalAPIResponses int32
 	err = db.QueryRowContext(ctx, `
 		SELECT COALESCE(COUNT(*), 0) FROM api_responses resp 
 		INNER JOIN api_requests req ON resp.request_id = req.id 
 		INNER JOIN execution_runs er ON req.execution_run_id = er.id 
 		WHERE er.user_id = ?
-	`, userID).Scan(&totalApiResponses)
+	`, userID).Scan(&totalAPIResponses)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, fmt.Errorf("failed to count API responses: %w", err)
 	}
@@ -1824,8 +1889,8 @@ func (s *Server) getUserDatabaseStats(ctx context.Context, userID string) (map[s
 
 	return map[string]interface{}{
 		"totalExecutionRuns": totalExecutionRuns,
-		"totalApiRequests":   totalApiRequests,
-		"totalApiResponses":  totalApiResponses,
+		"totalAPIRequests":   totalAPIRequests,
+		"totalAPIResponses":  totalAPIResponses,
 		"totalFunctionCalls": totalFunctionCalls,
 		"avgResponseTime":    avgResponseTime,
 		"successRate":        successRate,
@@ -1852,7 +1917,9 @@ func (s *Server) databaseTablesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(tables)
+	if err := json.NewEncoder(w).Encode(tables); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // CORS middleware
@@ -1882,7 +1949,7 @@ func (s *Server) enableCORS(next http.Handler) http.Handler {
 }
 
 // Auth middleware for API key endpoints that sets X-User-ID header
-func (s *Server) apiKeyAuthMiddleware(next http.Handler) http.Handler {
+func (s *Server) apiKeyMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Extract token from Authorization header
 		authHeader := r.Header.Get("Authorization")
@@ -1921,16 +1988,17 @@ func runServer() {
 	}
 	defer server.Close()
 
-	// Start HeartbeatExecutor
+	// Start Executor
 	if err := server.heartbeatExecutor.Start(); err != nil {
-		log.Fatalf("Failed to start HeartbeatExecutor: %v", err)
+		server.Close()
+		log.Fatalf("Failed to start Executor: %v", err) //nolint:gocritic // exitAfterDefer - cleanup before exit
 	}
 
 	// Create a new ServeMux
 	mux := http.NewServeMux()
 
 	// Auth middleware for protected routes
-	authMiddleware := auth.AuthMiddleware(server.authService)
+	authMiddleware := auth.Middleware(server.authService)
 
 	// Set up routes - public endpoints
 	mux.HandleFunc("/health", server.healthHandler)
@@ -1955,7 +2023,7 @@ func runServer() {
 	mux.Handle("/api/execution-runs/status/", authMiddleware(http.HandlerFunc(server.executionStatusHandler))) // Status endpoint
 	mux.Handle("/api/execution-runs", authMiddleware(http.HandlerFunc(server.executionRunsHandler)))
 
-	// HeartbeatExecutor monitoring endpoint
+	// Executor monitoring endpoint
 	mux.Handle("/api/heartbeat/status", authMiddleware(http.HandlerFunc(server.heartbeatStatusHandler)))
 
 	// Protected function management endpoints
@@ -1989,7 +2057,7 @@ func runServer() {
 
 	// Protected API key management endpoints
 	apiKeyMux := http.NewServeMux()
-	apiKeyAuthMiddleware := server.apiKeyAuthMiddleware
+	apiKeyMiddleware := server.apiKeyMiddleware
 
 	apiKeyMux.HandleFunc("/api/user/api-keys", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -2007,7 +2075,7 @@ func runServer() {
 	apiKeyMux.HandleFunc("/api/user/api-keys/functions/", server.apiKeysHandler.HandleKeyRoutes)
 	apiKeyMux.HandleFunc("/api/user/api-keys/", server.apiKeysHandler.HandleKeyRoutes)
 
-	mux.Handle("/api/user/api-keys/", apiKeyAuthMiddleware(apiKeyMux))
+	mux.Handle("/api/user/api-keys/", apiKeyMiddleware(apiKeyMux))
 
 	// Register execution template routes
 	server.templateIntegration.RegisterRoutes(mux, func(h http.HandlerFunc) http.Handler {
@@ -2252,7 +2320,9 @@ func (s *Server) executionFlowGraphHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(flowGraph)
+	if err := json.NewEncoder(w).Encode(flowGraph); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // executionLogsHandler handles requests for execution logs filtered by configuration
@@ -2307,7 +2377,9 @@ func (s *Server) executionLogsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(logs)
+	if err := json.NewEncoder(w).Encode(logs); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // executionLogsAllHandler handles requests for ALL execution logs for a specific execution run ID
@@ -2366,7 +2438,9 @@ func (s *Server) executionLogsAllHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(logs)
+	if err := json.NewEncoder(w).Encode(logs); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // executionFlowByConfigHandler handles requests for execution flow graph data filtered by configuration
@@ -2426,7 +2500,9 @@ func (s *Server) executionFlowByConfigHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(flowGraph)
+	if err := json.NewEncoder(w).Encode(flowGraph); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // Function management handlers
@@ -2612,7 +2688,7 @@ func (s *Server) listFunctions(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Handle FallbackData - check for NULL values first
-		if fallbackData.Valid && len(fallbackData.String) > 0 {
+		if fallbackData.Valid && fallbackData.String != "" {
 			if err := json.Unmarshal([]byte(fallbackData.String), &function.FallbackData); err != nil {
 				log.Printf("⚠️ Failed to parse fallback data for %s: %v", function.Name, err)
 			}
@@ -2641,10 +2717,12 @@ func (s *Server) listFunctions(w http.ResponseWriter, r *http.Request) {
 	log.Printf("✅ Successfully loaded %d function definitions from database", len(functions))
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"data":    functions,
-	})
+	}); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // createFunction creates a new function definition
@@ -2732,15 +2810,17 @@ func (s *Server) createFunction(w http.ResponseWriter, r *http.Request) {
 	log.Printf("✅ Function created and saved to database: %s (%s)", function.DisplayName, function.Name)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"data":    function,
 		"message": "Function created successfully",
-	})
+	}); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // getFunctionByID returns a specific function definition
-func (s *Server) getFunctionByID(w http.ResponseWriter, r *http.Request, functionID string) {
+func (s *Server) getFunctionByID(w http.ResponseWriter, _ *http.Request, functionID string) {
 	log.Printf("🔍 Getting function by ID: %s", functionID)
 
 	// TODO: Implement database lookup
@@ -2779,10 +2859,12 @@ func (s *Server) getFunctionByID(w http.ResponseWriter, r *http.Request, functio
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		if err := json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
 			"data":    function,
-		})
+		}); err != nil {
+			log.Printf("Failed to encode JSON response: %v", err)
+		}
 		return
 	}
 
@@ -2813,14 +2895,16 @@ func (s *Server) updateFunction(w http.ResponseWriter, r *http.Request, function
 	log.Printf("✅ Updated function: %s (%s)", function.DisplayName, function.Name)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"data":    function,
-	})
+	}); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // deleteFunction deletes a function definition
-func (s *Server) deleteFunction(w http.ResponseWriter, r *http.Request, functionID string) {
+func (s *Server) deleteFunction(w http.ResponseWriter, _ *http.Request, functionID string) {
 	log.Printf("🗑️ Deleting function: %s", functionID)
 
 	// Implement database deletion (soft delete by setting is_active = false)
@@ -2850,10 +2934,12 @@ func (s *Server) deleteFunction(w http.ResponseWriter, r *http.Request, function
 	log.Printf("✅ Successfully deleted function: %s", functionID)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"message": fmt.Sprintf("Function %s deleted successfully", functionID),
-	})
+	}); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // executeTestFunction tests a function with provided arguments
@@ -2921,7 +3007,9 @@ func (s *Server) executeTestFunction(w http.ResponseWriter, r *http.Request, fun
 	log.Printf("✅ Function test completed: %s", functionID)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	if err := json.NewEncoder(w).Encode(result); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // executeRealFunctionTest executes a function test using the actual Gemini API

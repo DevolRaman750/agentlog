@@ -318,7 +318,7 @@ func (c *Client) GenerateContent(ctx context.Context, config *types.APIConfigura
 // sanitizeToolParameters removes fields that are not supported by the Gemini API
 func (c *Client) sanitizeToolParameters(params map[string]interface{}) map[string]interface{} {
 	if params == nil {
-		return params
+		return nil
 	}
 
 	// Create a copy to avoid modifying the original

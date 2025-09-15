@@ -191,8 +191,8 @@ func (g *GRPCGateway) executeHandler(w http.ResponseWriter, r *http.Request) {
 		grpcReq.SessionApiKeys["openWeatherAPIKey"] = openWeatherKey
 		log.Printf("⚠️ Using legacy plain-text OpenWeather API key")
 	}
-	if neo4jUrl := r.Header.Get("X-Neo4j-URL"); neo4jUrl != "" {
-		grpcReq.SessionApiKeys["neo4jUrl"] = neo4jUrl
+	if neo4jURL := r.Header.Get("X-Neo4j-URL"); neo4jURL != "" {
+		grpcReq.SessionApiKeys["neo4jURL"] = neo4jURL
 		log.Printf("⚠️ Using legacy plain-text Neo4j URL")
 	}
 	if neo4jUsername := r.Header.Get("X-Neo4j-Username"); neo4jUsername != "" {
@@ -585,8 +585,8 @@ func (g *GRPCGateway) databaseStatsHandler(w http.ResponseWriter, r *http.Reques
 	// Convert gRPC response to HTTP response
 	response := map[string]interface{}{
 		"totalExecutionRuns": resp.TotalExecutionRuns,
-		"totalApiRequests":   resp.TotalApiRequests,
-		"totalApiResponses":  resp.TotalApiResponses,
+		"totalAPIRequests":   resp.TotalApiRequests,
+		"totalAPIResponses":  resp.TotalApiResponses,
 		"totalFunctionCalls": resp.TotalFunctionCalls,
 		"avgResponseTime":    resp.AvgResponseTime,
 		"successRate":        resp.SuccessRate,
@@ -834,7 +834,8 @@ func runGRPCGateway() {
 
 	// Wrap HTTP server with graceful shutdown
 	if err := graceful.WrapHTTP(httpServer); err != nil {
-		log.Fatalf("Failed to wrap HTTP server: %v", err)
+		gateway.Close()
+		log.Fatalf("Failed to wrap HTTP server: %v", err) //nolint:gocritic // exitAfterDefer - cleanup before exit
 	}
 
 	log.Printf("🚀 GoGent gRPC Gateway starting on port %s with graceful shutdown support", port)

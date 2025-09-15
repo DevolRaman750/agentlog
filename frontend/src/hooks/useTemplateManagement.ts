@@ -32,7 +32,7 @@ export const useTemplateManagement = () => {
           userId: t.userId,
           parametersCount: t.parameters?.length || 0,
           tokensCount: t.authTokens?.length || 0,
-          functionsCount: t.functionIds?.length || 0,
+          functionsCount: t.functionIDs?.length || 0,
           isActive: t.isActive,
           enableFunctionCalling: t.enableFunctionCalling
         })));
@@ -133,7 +133,7 @@ export const useTemplateManagement = () => {
           defaultValue: p.defaultValue || '',
           validationRules: p.validationRules || null,
         })),
-        functionIds: selectedFunctions,
+        functionIDs: selectedFunctions,
       };
 
       console.log('📋 Sending template data:', {
@@ -147,7 +147,7 @@ export const useTemplateManagement = () => {
           type: p.parameterType,
           required: p.isRequired
         })),
-        functionIdsCount: templateData.functionIds.length
+        functionIDsCount: templateData.functionIDs.length
       });
 
       const response = await goGentAPI.createTemplate(templateData);
@@ -235,7 +235,7 @@ export const useTemplateManagement = () => {
           defaultValue: p.defaultValue || '',
           validationRules: p.validationRules || null,
         })),
-        functionIds: selectedFunctions,
+        functionIDs: selectedFunctions,
         changeSummary: 'Template updated via UI', // Add required changeSummary field
       };
 
@@ -251,7 +251,7 @@ export const useTemplateManagement = () => {
           type: p.parameterType,
           required: p.isRequired
         })),
-        functionIdsCount: templateData.functionIds.length
+        functionIDsCount: templateData.functionIDs.length
       });
 
       console.log('🔥 DEBUGGING: About to call goGentAPI.updateTemplate with:', {

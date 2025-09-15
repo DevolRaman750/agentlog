@@ -1,4 +1,4 @@
-package code_analysis
+package codeanalysis
 
 import (
 	"path/filepath"
@@ -219,15 +219,17 @@ func (a *Analyzer) InferDirectoryPurpose(filesWithContent []map[string]interface
 
 	if hasMain && hasServer && hasGRPC {
 		return "Go gRPC server application with main entry point"
-	} else if hasMain && hasServer && hasHTTP {
-		return "Go HTTP server application with main entry point"
-	} else if hasMain {
-		return "Go application with main entry point"
-	} else if hasServer {
-		return "Server-related code module"
-	} else {
-		return "Go code module (purpose unclear from file analysis)"
 	}
+	if hasMain && hasServer && hasHTTP {
+		return "Go HTTP server application with main entry point"
+	}
+	if hasMain {
+		return "Go application with main entry point"
+	}
+	if hasServer {
+		return "Server-related code module"
+	}
+	return "Go code module (purpose unclear from file analysis)"
 }
 
 // detectLanguage detects programming language from filename

@@ -21,7 +21,7 @@ type ExecutionRunWithTokens struct {
 }
 
 // getAgents retrieves all agents for a user without statistics
-func (h *AgentsHandler) getAgents(userID string) ([]types.Agent, error) {
+func (h *Handler) getAgents(userID string) ([]types.Agent, error) {
 	query := `
 		SELECT a.id, a.user_id, a.first_name, a.last_name, a.template_id, a.team_id,
 		       a.max_tokens_per_day, a.heartbeat_minutes, a.lifecycle_status,
@@ -86,7 +86,7 @@ func (h *AgentsHandler) getAgents(userID string) ([]types.Agent, error) {
 }
 
 // getAgentsWithStats retrieves all agents for a user with execution statistics
-func (h *AgentsHandler) getAgentsWithStats(userID string) ([]types.Agent, error) {
+func (h *Handler) getAgentsWithStats(userID string) ([]types.Agent, error) {
 	query := `
 		SELECT 
 			a.id, a.user_id, a.first_name, a.last_name, a.template_id, a.team_id,
@@ -170,7 +170,7 @@ func (h *AgentsHandler) getAgentsWithStats(userID string) ([]types.Agent, error)
 }
 
 // getAgentByID retrieves a specific agent by ID for a user
-func (h *AgentsHandler) getAgentByID(userID, agentID string) (*types.Agent, error) {
+func (h *Handler) getAgentByID(userID, agentID string) (*types.Agent, error) {
 	query := `
 		SELECT a.id, a.user_id, a.first_name, a.last_name, a.template_id, a.team_id,
 		       a.max_tokens_per_day, a.heartbeat_minutes, a.lifecycle_status,
@@ -246,7 +246,7 @@ func (h *AgentsHandler) getAgentByID(userID, agentID string) (*types.Agent, erro
 }
 
 // insertAgent creates a new agent in the database
-func (h *AgentsHandler) insertAgent(agent *types.Agent) error {
+func (h *Handler) insertAgent(agent *types.Agent) error {
 	query := `
 		INSERT INTO agents (
 			id, user_id, first_name, last_name, template_id,
@@ -266,7 +266,7 @@ func (h *AgentsHandler) insertAgent(agent *types.Agent) error {
 }
 
 // updateAgentFields updates specific fields of an agent
-func (h *AgentsHandler) updateAgentFields(userID, agentID string, req *types.AgentUpdateRequest) error {
+func (h *Handler) updateAgentFields(userID, agentID string, req *types.AgentUpdateRequest) error {
 	var setParts []string
 	var args []interface{}
 
@@ -333,7 +333,7 @@ func (h *AgentsHandler) updateAgentFields(userID, agentID string, req *types.Age
 }
 
 // deleteAgentByID deletes an agent
-func (h *AgentsHandler) deleteAgentByID(userID, agentID string) error {
+func (h *Handler) deleteAgentByID(userID, agentID string) error {
 	query := `DELETE FROM agents WHERE user_id = ? AND id = ?`
 
 	result, err := h.db.Exec(query, userID, agentID)
@@ -354,7 +354,7 @@ func (h *AgentsHandler) deleteAgentByID(userID, agentID string) error {
 
 // verifyTemplateAccess checks if a template exists and is accessible to the user
 // Follows the same pattern as the templates endpoint
-func (h *AgentsHandler) verifyTemplateAccess(userID, templateID string) error {
+func (h *Handler) verifyTemplateAccess(userID, templateID string) error {
 	query := `
 		SELECT id, user_id, is_public FROM execution_templates 
 		WHERE id = ?
@@ -379,7 +379,7 @@ func (h *AgentsHandler) verifyTemplateAccess(userID, templateID string) error {
 }
 
 // getExecutionsByAgentID retrieves executions for an agent with pagination
-func (h *AgentsHandler) getExecutionsByAgentID(agentID string, limit, offset int) ([]ExecutionRunWithTokens, error) {
+func (h *Handler) getExecutionsByAgentID(agentID string, limit, offset int) ([]ExecutionRunWithTokens, error) {
 	query := `
 		SELECT 
 			er.id, er.name, er.description, er.base_prompt, er.context_prompt,
@@ -458,7 +458,7 @@ func (h *AgentsHandler) getExecutionsByAgentID(agentID string, limit, offset int
 }
 
 // removeAgentFromTeam removes an agent from its team
-func (h *AgentsHandler) removeAgentFromTeam(agentID, userID string) error {
+func (h *Handler) removeAgentFromTeam(agentID, userID string) error {
 	updateQuery := `UPDATE agents SET team_id = NULL, updated_at = ? WHERE id = ? AND user_id = ?`
 	result, err := h.db.Exec(updateQuery, time.Now(), agentID, userID)
 	if err != nil {
@@ -478,7 +478,7 @@ func (h *AgentsHandler) removeAgentFromTeam(agentID, userID string) error {
 }
 
 // getAgentAPIKeys retrieves all API keys for an agent
-func (h *AgentsHandler) getAgentAPIKeys(agentID string) ([]types.AgentAPIKey, error) {
+func (h *Handler) getAgentAPIKeys(agentID string) ([]types.AgentAPIKey, error) {
 	query := `
 		SELECT aak.id, aak.agent_id, aak.api_key_id, aak.is_default, aak.use_global_default,
 		       aak.priority, aak.created_at, aak.updated_at,
@@ -532,7 +532,7 @@ func (h *AgentsHandler) getAgentAPIKeys(agentID string) ([]types.AgentAPIKey, er
 }
 
 // insertAgentAPIKey creates a new agent API key mapping
-func (h *AgentsHandler) insertAgentAPIKey(agentAPIKey *types.AgentAPIKey) error {
+func (h *Handler) insertAgentAPIKey(agentAPIKey *types.AgentAPIKey) error {
 	query := `
 		INSERT INTO agent_api_keys (
 			id, agent_id, api_key_id, is_default, use_global_default,
@@ -549,7 +549,7 @@ func (h *AgentsHandler) insertAgentAPIKey(agentAPIKey *types.AgentAPIKey) error 
 }
 
 // updateAgentAPIKeyFields updates specific fields of an agent API key mapping
-func (h *AgentsHandler) updateAgentAPIKeyFields(agentID, mappingID string, req *types.AgentAPIKeyUpdateRequest) error {
+func (h *Handler) updateAgentAPIKeyFields(agentID, mappingID string, req *types.AgentAPIKeyUpdateRequest) error {
 	var setParts []string
 	var args []interface{}
 
@@ -600,7 +600,7 @@ func (h *AgentsHandler) updateAgentAPIKeyFields(agentID, mappingID string, req *
 }
 
 // deleteAgentAPIKey removes an agent API key mapping
-func (h *AgentsHandler) deleteAgentAPIKey(agentID, mappingID string) error {
+func (h *Handler) deleteAgentAPIKey(agentID, mappingID string) error {
 	query := `DELETE FROM agent_api_keys WHERE agent_id = ? AND id = ?`
 
 	result, err := h.db.Exec(query, agentID, mappingID)
@@ -620,7 +620,7 @@ func (h *AgentsHandler) deleteAgentAPIKey(agentID, mappingID string) error {
 }
 
 // verifyAPIKeyAccess checks if an API key exists and is accessible to the user who owns the agent
-func (h *AgentsHandler) verifyAPIKeyAccess(agentID, apiKeyID string) error {
+func (h *Handler) verifyAPIKeyAccess(agentID, apiKeyID string) error {
 	query := `
 		SELECT a.user_id, ak.user_id 
 		FROM agents a, user_api_keys ak 
@@ -646,7 +646,7 @@ func (h *AgentsHandler) verifyAPIKeyAccess(agentID, apiKeyID string) error {
 
 // getAgentAPIKeyConfiguration gets the complete API key configuration for an agent
 // Returns agent-specific keys where available, falling back to global user keys
-func (h *AgentsHandler) getAgentAPIKeyConfiguration(ctx context.Context, agentID string) (*types.AgentAPIKeyConfiguration, error) {
+func (h *Handler) getAgentAPIKeyConfiguration(ctx context.Context, agentID string) (*types.AgentAPIKeyConfiguration, error) {
 	// First get the agent to find the user ID
 	var userID string
 	err := h.db.QueryRowContext(ctx, "SELECT user_id FROM agents WHERE id = ?", agentID).Scan(&userID)
@@ -733,7 +733,7 @@ func (h *AgentsHandler) getAgentAPIKeyConfiguration(ctx context.Context, agentID
 }
 
 // getUserGlobalAPIKeys gets all active API keys for a user organized by service
-func (h *AgentsHandler) getUserGlobalAPIKeys(ctx context.Context, userID string) (map[string]types.UserAPIKey, error) {
+func (h *Handler) getUserGlobalAPIKeys(ctx context.Context, userID string) (map[string]types.UserAPIKey, error) {
 	query := `
 		SELECT id, user_id, key_name, service_name, key_type, auth_mode, auth_config,
 		       encrypted_key_value, encryption_algorithm, encryption_key_version,

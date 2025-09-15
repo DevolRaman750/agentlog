@@ -948,8 +948,7 @@ func (c *Client) executeFunctionCall(ctx context.Context, functionName string, a
 	}
 
 	// Normalize common argument aliases (e.g. node_label → label)
-	switch functionName {
-	case "neo4j_node_lookup":
+	if functionName == "neo4j_node_lookup" {
 		if _, ok := args["label"]; !ok {
 			if nodeLabel, hasNL := args["node_label"]; hasNL {
 				args["label"] = nodeLabel
@@ -2260,7 +2259,7 @@ func (c *Client) createIntelligentResultSummary(functionName string, result map[
 
 // autoExtractParameters automatically extracts missing parameters from previous function results
 // Following LLM function calling best practices - minimal intervention, let LLM handle parameter selection
-func (c *Client) autoExtractParameters(ctx context.Context, funcCall *ResponsePart, previousResults []map[string]interface{}) {
+func (c *Client) autoExtractParameters(_ context.Context, funcCall *ResponsePart, previousResults []map[string]interface{}) {
 	// Minimal parameter extraction - only for truly generic cases where the LLM clearly needs help
 	// Most parameter selection should be handled by the LLM itself using the function results
 
@@ -2343,7 +2342,9 @@ func (c *Client) detectTaskCompletion(functionCalls []ResponsePart, _ []map[stri
 }
 
 // autoExtractParametersFromContext extracts parameters for next iteration function calls using current results
-func (c *Client) autoExtractParametersFromContext(ctx context.Context, funcCall *ResponsePart, previousResults []map[string]interface{}) {
+// autoExtractParametersFromContext is kept for potential future use
+/*
+func (c *Client) autoExtractParametersFromContext(_ context.Context, funcCall *ResponsePart, previousResults []map[string]interface{}) {
 	if funcCall.FunctionCall.Args == nil {
 		funcCall.FunctionCall.Args = make(map[string]interface{})
 	}
@@ -2357,3 +2358,4 @@ func (c *Client) autoExtractParametersFromContext(ctx context.Context, funcCall 
 		log.Printf("✅ Auto-extraction: %s already has channel parameter", funcCall.FunctionCall.Name)
 	}
 }
+*/

@@ -89,7 +89,7 @@ func testBackendHealth() TestResult {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "GET", "http://localhost:8080/health", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", "http://localhost:8080/health", http.NoBody)
 	if err != nil {
 		return TestResult{
 			Name:    "Backend Health Check",
@@ -149,7 +149,7 @@ func testExecutionHistory() TestResult {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "GET", "http://localhost:8080/api/execution-runs?limit=5", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", "http://localhost:8080/api/execution-runs?limit=5", http.NoBody)
 	if err != nil {
 		return TestResult{
 			Name:    "Execution History API",

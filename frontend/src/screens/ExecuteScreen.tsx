@@ -456,10 +456,10 @@ const ExecuteScreen: React.FC = () => {
       }
       
       // Configure template functions if available
-      if (template.functionIds && template.functionIds.length > 0) {
-        console.log('🔧 Configuring template functions:', template.functionIds);
+      if (template.functionIDs && template.functionIDs.length > 0) {
+        console.log('🔧 Configuring template functions:', template.functionIDs);
         console.log('🔧 Available functions:', availableFunctions.map(f => ({ id: f.id, name: f.name })));
-        updateField('selectedFunctions', template.functionIds);
+        updateField('selectedFunctions', template.functionIDs);
         console.log('✅ Functions configured');
       } else {
         console.log('📝 No template functions to configure');
@@ -854,10 +854,10 @@ const ExecuteScreen: React.FC = () => {
       const templateResponse = await goGentAPI.getTemplates();
       if (templateResponse.success && templateResponse.data?.templates) {
         const template = templateResponse.data.templates.find(t => t.id === templateId);
-        if (template && template.functionIds && template.functionIds.length > 0) {
-          console.log('📋 Template has functions:', template.functionIds);
+        if (template && template.functionIDs && template.functionIDs.length > 0) {
+          console.log('📋 Template has functions:', template.functionIDs);
           // Set the selected functions from the template
-          updateField('selectedFunctions', template.functionIds);
+          updateField('selectedFunctions', template.functionIDs);
         }
       }
     } catch (error) {
@@ -1031,7 +1031,7 @@ const ExecuteScreen: React.FC = () => {
     
     // Set function selection if any
     if (reExecutionData.functionTools && reExecutionData.functionTools.length > 0) {
-      const functionIds = reExecutionData.functionTools
+      const functionIDs = reExecutionData.functionTools
         .map((tool: any) => {
           const foundFunc = availableFunctions.find(f => f.name === tool.name);
           console.log(`🔍 Mapping function "${tool.name}" -> ${foundFunc ? foundFunc.id : 'NOT FOUND'}`);
@@ -1039,8 +1039,8 @@ const ExecuteScreen: React.FC = () => {
         })
         .filter((id: string | undefined): id is string => !!id);
       
-      console.log('🎯 Final function IDs to select:', functionIds);
-      updateField('selectedFunctions', functionIds);
+      console.log('🎯 Final function IDs to select:', functionIDs);
+      updateField('selectedFunctions', functionIDs);
     } else {
       console.log('⚠️ No function tools in re-execution data');
     }
@@ -1788,7 +1788,7 @@ const ExecuteScreen: React.FC = () => {
         onClose={() => setShowFunctionsModal(false)}
         functions={availableFunctions}
         selectedFunctions={formState.selectedFunctions}
-        onSelectionChange={(functionIds) => updateField('selectedFunctions', functionIds)}
+        onSelectionChange={(functionIDs) => updateField('selectedFunctions', functionIDs)}
         isLoading={isLoadingFunctions.current}
       />
 

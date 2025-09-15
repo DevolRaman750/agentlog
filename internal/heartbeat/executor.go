@@ -13,8 +13,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// HeartbeatExecutor manages the continuous execution of agents based on their heartbeat
-type HeartbeatExecutor struct {
+// Executor manages the continuous execution of agents based on their heartbeat
+type Executor struct {
 	config  *Config
 	client  *gogent.Client
 	queries *AgentQueries
@@ -46,8 +46,8 @@ type ExecutorMetrics struct {
 	AgentsProcessed      int64
 }
 
-// NewHeartbeatExecutor creates a new HeartbeatExecutor instance
-func NewHeartbeatExecutor(client *gogent.Client, config *Config) *HeartbeatExecutor {
+// NewExecutor creates a new Executor instance
+func NewExecutor(client *gogent.Client, config *Config) *Executor {
 	if config == nil {
 		config = DefaultConfig()
 	}
@@ -59,7 +59,7 @@ func NewHeartbeatExecutor(client *gogent.Client, config *Config) *HeartbeatExecu
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	return &HeartbeatExecutor{
+	return &Executor{
 		config:             config,
 		client:             client,
 		queries:            NewAgentQueries(client.GetDB()),
@@ -75,13 +75,13 @@ func NewHeartbeatExecutor(client *gogent.Client, config *Config) *HeartbeatExecu
 }
 
 // Start begins the heartbeat executor goroutine
-func (he *HeartbeatExecutor) Start() error {
+func (he *Executor) Start() error {
 	if !he.config.Enabled {
-		log.Printf("🔇 HeartbeatExecutor is disabled via configuration")
+		log.Printf("🔇 Executor is disabled via configuration")
 		return nil
 	}
 
-	log.Printf("🚀 Starting HeartbeatExecutor with config: check_interval=%v, max_concurrent=%d, enabled=%v",
+	log.Printf("🚀 Starting Executor with config: check_interval=%v, max_concurrent=%d, enabled=%v",
 		he.config.CheckInterval, he.config.MaxConcurrentExecutions, he.config.Enabled)
 
 	he.wg.Add(1)
@@ -91,8 +91,8 @@ func (he *HeartbeatExecutor) Start() error {
 }
 
 // Stop gracefully stops the heartbeat executor
-func (he *HeartbeatExecutor) Stop() error {
-	log.Printf("🛑 Stopping HeartbeatExecutor...")
+func (he *Executor) Stop() error {
+	log.Printf("🛑 Stopping Executor...")
 
 	he.cancel()
 
@@ -123,18 +123,18 @@ func (he *HeartbeatExecutor) Stop() error {
 	}
 
 	close(he.done)
-	log.Printf("✅ HeartbeatExecutor stopped successfully")
+	log.Printf("✅ Executor stopped successfully")
 	return nil
 }
 
 // run is the main execution loop
-func (he *HeartbeatExecutor) run() {
+func (he *Executor) run() {
 	defer he.wg.Done()
 
 	ticker := time.NewTicker(he.config.CheckInterval)
 	defer ticker.Stop()
 
-	log.Printf("🔄 HeartbeatExecutor started - checking every %v", he.config.CheckInterval)
+	log.Printf("🔄 Executor started - checking every %v", he.config.CheckInterval)
 
 	// Run initial check immediately
 	he.checkAndExecuteAgents()
@@ -142,7 +142,7 @@ func (he *HeartbeatExecutor) run() {
 	for {
 		select {
 		case <-he.ctx.Done():
-			log.Printf("🔇 HeartbeatExecutor context canceled, stopping...")
+			log.Printf("🔇 Executor context canceled, stopping...")
 			return
 		case <-ticker.C:
 			he.checkAndExecuteAgents()
@@ -151,7 +151,7 @@ func (he *HeartbeatExecutor) run() {
 }
 
 // checkAndExecuteAgents finds overdue agents and executes them
-func (he *HeartbeatExecutor) checkAndExecuteAgents() {
+func (he *Executor) checkAndExecuteAgents() {
 	startTime := time.Now()
 	he.metrics.mutex.Lock()
 	he.metrics.LastCheckTime = startTime
@@ -186,12 +186,12 @@ func (he *HeartbeatExecutor) checkAndExecuteAgents() {
 	}
 
 	duration := time.Since(startTime)
-	log.Printf("📊 HeartbeatExecutor check completed in %v - processed %d agents",
+	log.Printf("📊 Executor check completed in %v - processed %d agents",
 		duration, len(overdueAgents))
 }
 
 // processAgent handles the execution of a single agent
-func (he *HeartbeatExecutor) processAgent(agent *OverdueAgent) {
+func (he *Executor) processAgent(agent *OverdueAgent) {
 	// Check if agent is already executing
 	he.executingMutex.Lock()
 	if he.executingAgents[agent.ID] {
@@ -227,7 +227,7 @@ func (he *HeartbeatExecutor) processAgent(agent *OverdueAgent) {
 }
 
 // executeAgent performs the actual execution of an agent
-func (he *HeartbeatExecutor) executeAgent(agent *OverdueAgent) {
+func (he *Executor) executeAgent(agent *OverdueAgent) {
 	startTime := time.Now()
 	agentName := fmt.Sprintf("%s %s", agent.FirstName, agent.LastName)
 
@@ -290,7 +290,7 @@ func (he *HeartbeatExecutor) executeAgent(agent *OverdueAgent) {
 }
 
 // executeAgentTemplate executes the agent's template using the gogent client
-func (he *HeartbeatExecutor) executeAgentTemplate(ctx context.Context, agent *OverdueAgent, template *types.ExecutionTemplate) bool {
+func (he *Executor) executeAgentTemplate(ctx context.Context, agent *OverdueAgent, template *types.ExecutionTemplate) bool {
 	// Get the preferred configuration for the template
 	var config types.APIConfiguration
 	if template.PreferredConfigurationID != nil && *template.PreferredConfigurationID != "" {
@@ -346,7 +346,7 @@ func (he *HeartbeatExecutor) executeAgentTemplate(ctx context.Context, agent *Ov
 	// Create execution request
 	executionRequest := &types.MultiExecutionRequest{
 		ExecutionRunName:      fmt.Sprintf("Agent: %s %s (Heartbeat)", agent.FirstName, agent.LastName),
-		Description:           fmt.Sprintf("Automated execution for agent %s via HeartbeatExecutor", agent.ID),
+		Description:           fmt.Sprintf("Automated execution for agent %s via Executor", agent.ID),
 		BasePrompt:            template.TemplatePrompt,
 		Context:               contextToUse,
 		EnableFunctionCalling: template.EnableFunctionCalling,
@@ -414,8 +414,8 @@ func (he *HeartbeatExecutor) executeAgentTemplate(ctx context.Context, agent *Ov
 }
 
 // calculateTokenUsage extracts token usage from execution result
-func (he *HeartbeatExecutor) calculateTokenUsage(result *types.ExecutionResult) int32 {
-	var totalTokens int32 = 0
+func (he *Executor) calculateTokenUsage(result *types.ExecutionResult) int32 {
+	var totalTokens int32
 
 	for _, res := range result.Results {
 		if res.Response.UsageMetadata != nil {
@@ -444,7 +444,7 @@ func (he *HeartbeatExecutor) calculateTokenUsage(result *types.ExecutionResult) 
 }
 
 // incrementSuccessfulExecutions safely increments the success counter
-func (he *HeartbeatExecutor) incrementSuccessfulExecutions() {
+func (he *Executor) incrementSuccessfulExecutions() {
 	he.metrics.mutex.Lock()
 	he.metrics.SuccessfulExecutions++
 	he.metrics.TotalExecutions++
@@ -452,7 +452,7 @@ func (he *HeartbeatExecutor) incrementSuccessfulExecutions() {
 }
 
 // incrementFailedExecutions safely increments the failure counter
-func (he *HeartbeatExecutor) incrementFailedExecutions() {
+func (he *Executor) incrementFailedExecutions() {
 	he.metrics.mutex.Lock()
 	he.metrics.FailedExecutions++
 	he.metrics.TotalExecutions++
@@ -460,7 +460,7 @@ func (he *HeartbeatExecutor) incrementFailedExecutions() {
 }
 
 // GetMetrics returns current execution metrics
-func (he *HeartbeatExecutor) GetMetrics() map[string]interface{} {
+func (he *Executor) GetMetrics() map[string]interface{} {
 	he.metrics.mutex.RLock()
 	defer he.metrics.mutex.RUnlock()
 
@@ -484,7 +484,7 @@ func (he *HeartbeatExecutor) GetMetrics() map[string]interface{} {
 }
 
 // getSuccessRate calculates the success rate percentage
-func (he *HeartbeatExecutor) getSuccessRate() float64 {
+func (he *Executor) getSuccessRate() float64 {
 	if he.metrics.TotalExecutions == 0 {
 		return 0.0
 	}
@@ -492,7 +492,7 @@ func (he *HeartbeatExecutor) getSuccessRate() float64 {
 }
 
 // GetStatus returns the current status of the heartbeat executor
-func (he *HeartbeatExecutor) GetStatus() string {
+func (he *Executor) GetStatus() string {
 	select {
 	case <-he.ctx.Done():
 		return "stopped"
@@ -505,6 +505,6 @@ func (he *HeartbeatExecutor) GetStatus() string {
 }
 
 // GetQueries returns the AgentQueries instance for external monitoring
-func (he *HeartbeatExecutor) GetQueries() *AgentQueries {
+func (he *Executor) GetQueries() *AgentQueries {
 	return he.queries
 }

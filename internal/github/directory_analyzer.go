@@ -5,20 +5,20 @@ import (
 	"fmt"
 	"log"
 
-	"gogent/internal/code_analysis"
+	"gogent/internal/codeanalysis"
 )
 
 // DirectoryAnalyzer handles analysis of GitHub directory contents
 type DirectoryAnalyzer struct {
 	fetcher  *Fetcher
-	analyzer *code_analysis.Analyzer
+	analyzer *codeanalysis.Analyzer
 }
 
 // NewDirectoryAnalyzer creates a new directory analyzer
-func NewDirectoryAnalyzer(config *code_analysis.Config) *DirectoryAnalyzer {
+func NewDirectoryAnalyzer(config *codeanalysis.Config) *DirectoryAnalyzer {
 	return &DirectoryAnalyzer{
 		fetcher:  NewFetcher(),
-		analyzer: code_analysis.NewAnalyzer(config),
+		analyzer: codeanalysis.NewAnalyzer(config),
 	}
 }
 
@@ -101,7 +101,7 @@ func (da *DirectoryAnalyzer) ProcessDirectoryListing(
 
 	// Add detailed code analysis if files were processed
 	if len(filesWithContent) > 0 {
-		enhanced["detailed_code_analysis"] = map[string]interface{}{
+		enhanced["detailed_codeanalysis"] = map[string]interface{}{
 			"files_analyzed": filesWithContent,
 			"overview":       da.analyzer.GenerateCodeOverview(filesWithContent),
 		}

@@ -752,12 +752,12 @@ func (s *Service) DeleteAPIKey(ctx context.Context, userID, keyID string) error 
 	return nil
 }
 
-func (s *Service) TestAPIKey(_ context.Context, _ string, keyID string) (*types.APIKeyValidationResult, error) {
+func (s *Service) TestAPIKey(_ context.Context, _ string, _ string) (*types.APIKeyValidationResult, error) {
 	// For now, return not implemented
 	return nil, fmt.Errorf("test API key not yet implemented")
 }
 
-func (s *Service) GetFunctionGroupAPIKeyStatus(_ context.Context, userID string) ([]*types.FunctionGroupAPIKeyStatus, error) {
+func (s *Service) GetFunctionGroupAPIKeyStatus(_ context.Context, _ string) ([]*types.FunctionGroupAPIKeyStatus, error) {
 	// For now, return not implemented
 	return nil, fmt.Errorf("get function group API key status not yet implemented")
 }

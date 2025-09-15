@@ -141,7 +141,7 @@ func (adapter *GoGentClientAdapter) DeleteConfiguration(ctx context.Context, id 
 
 // ResultComparator interface implementation
 
-func (adapter *GoGentClientAdapter) CompareResults(ctx context.Context, result *types.ExecutionResult, metrics []string) (*types.ComparisonResult, error) {
+func (adapter *GoGentClientAdapter) CompareResults(_ context.Context, result *types.ExecutionResult, metrics []string) (*types.ComparisonResult, error) {
 	// Basic comparison implementation - this could be enhanced later
 	comparison := &types.ComparisonResult{
 		ID:                  uuid.New().String(),

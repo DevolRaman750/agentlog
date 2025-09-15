@@ -19,7 +19,7 @@ interface FunctionsModalProps {
   onClose: () => void;
   functions: FunctionDefinition[];
   selectedFunctions: string[];
-  onSelectionChange: (functionIds: string[]) => void;
+  onSelectionChange: (functionIDs: string[]) => void;
   isLoading?: boolean;
 }
 

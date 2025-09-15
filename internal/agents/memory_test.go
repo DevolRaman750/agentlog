@@ -24,7 +24,7 @@ func TestAgentMemoryOperations(t *testing.T) {
 	}
 	defer db.Close()
 
-	handler := NewAgentsHandler(db)
+	handler := NewHandler(db)
 
 	// Create test user
 	testUserEmail := "memory@test.com"
@@ -197,7 +197,7 @@ func TestAgentMemoryHTTPHandlers(t *testing.T) {
 	}
 	defer db.Close()
 
-	handler := NewAgentsHandler(db)
+	handler := NewHandler(db)
 
 	// Create test user and agent
 	testUserEmail := "http@test.com"
@@ -301,7 +301,7 @@ func TestAgentMemoryIntegration(t *testing.T) {
 	}
 	defer db.Close()
 
-	handler := NewAgentsHandler(db)
+	handler := NewHandler(db)
 
 	// Create test user and agent
 	testUserEmail := "integration@test.com"
@@ -467,7 +467,7 @@ func TestMemoryErrorHandling(t *testing.T) {
 	}
 	defer db.Close()
 
-	handler := NewAgentsHandler(db)
+	handler := NewHandler(db)
 
 	t.Run("NonExistentAgent", func(t *testing.T) {
 		ctx := context.Background()
@@ -530,7 +530,7 @@ func BenchmarkMemoryOperations(b *testing.B) {
 	}
 	defer db.Close()
 
-	handler := NewAgentsHandler(db)
+	handler := NewHandler(db)
 
 	// Setup test data
 	testUserEmail := "bench@test.com"

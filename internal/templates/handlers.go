@@ -16,11 +16,11 @@ import (
 type TemplateHandler struct {
 	templateService *TemplateService
 	rateLimiter     *RateLimiter
-	authService     *auth.AuthService
+	authService     *auth.Service
 }
 
 // NewTemplateHandler creates a new template handler
-func NewTemplateHandler(templateService *TemplateService, rateLimiter *RateLimiter, authService *auth.AuthService) *TemplateHandler {
+func NewTemplateHandler(templateService *TemplateService, rateLimiter *RateLimiter, authService *auth.Service) *TemplateHandler {
 	return &TemplateHandler{
 		templateService: templateService,
 		rateLimiter:     rateLimiter,
@@ -78,7 +78,9 @@ func (th *TemplateHandler) ListTemplates(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // GetTemplate handles GET /api/templates/{id}
@@ -130,7 +132,9 @@ func (th *TemplateHandler) GetTemplate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(template)
+	if err := json.NewEncoder(w).Encode(template); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // CreateTemplate handles POST /api/templates
@@ -151,7 +155,7 @@ func (th *TemplateHandler) CreateTemplate(w http.ResponseWriter, r *http.Request
 	var request struct {
 		Template    types.ExecutionTemplate            `json:"template"`
 		Parameters  []types.ExecutionTemplateParameter `json:"parameters"`
-		FunctionIDs []string                           `json:"functionIds,omitempty"` // Function IDs to associate
+		FunctionIDs []string                           `json:"functionIDs,omitempty"` // Function IDs to associate
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -201,7 +205,9 @@ func (th *TemplateHandler) CreateTemplate(w http.ResponseWriter, r *http.Request
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(createdTemplate)
+	if err := json.NewEncoder(w).Encode(createdTemplate); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // UpdateTemplate handles PUT /api/templates/{id}
@@ -245,7 +251,7 @@ func (th *TemplateHandler) UpdateTemplate(w http.ResponseWriter, r *http.Request
 	var request struct {
 		Template      types.ExecutionTemplate            `json:"template"`
 		Parameters    []types.ExecutionTemplateParameter `json:"parameters"`
-		FunctionIDs   []string                           `json:"functionIds,omitempty"` // Function IDs to associate
+		FunctionIDs   []string                           `json:"functionIDs,omitempty"` // Function IDs to associate
 		ChangeSummary string                             `json:"changeSummary"`
 	}
 
@@ -301,7 +307,9 @@ func (th *TemplateHandler) UpdateTemplate(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // DeleteTemplate handles DELETE /api/templates/{id}
@@ -350,9 +358,11 @@ func (th *TemplateHandler) DeleteTemplate(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
+	if err := json.NewEncoder(w).Encode(map[string]string{
 		"message": "Template deleted successfully",
-	})
+	}); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // =============================================================================
@@ -424,7 +434,9 @@ func (th *TemplateHandler) CreateAuthToken(w http.ResponseWriter, r *http.Reques
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(createdToken)
+	if err := json.NewEncoder(w).Encode(createdToken); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // ListAuthTokens handles GET /api/templates/{id}/tokens
@@ -476,9 +488,11 @@ func (th *TemplateHandler) ListAuthTokens(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"tokens": tokens,
-	})
+	}); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // UpdateAuthToken handles PUT /api/templates/{id}/tokens/{tokenId}
@@ -533,7 +547,9 @@ func (th *TemplateHandler) UpdateAuthToken(w http.ResponseWriter, r *http.Reques
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(updatedToken)
+	if err := json.NewEncoder(w).Encode(updatedToken); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // DeleteAuthToken handles DELETE /api/templates/{id}/tokens/{tokenId}
@@ -581,9 +597,11 @@ func (th *TemplateHandler) DeleteAuthToken(w http.ResponseWriter, r *http.Reques
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
+	if err := json.NewEncoder(w).Encode(map[string]string{
 		"message": "Auth token deleted successfully",
-	})
+	}); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // =============================================================================

@@ -558,7 +558,7 @@ export interface ExecutionTemplate {
   authTokens?: any[];
   tags?: string[];
   enableFunctionCalling?: boolean;
-  functionIds?: string[];
+  functionIDs?: string[];
   createdAt?: string;
   updatedAt?: string;
 }

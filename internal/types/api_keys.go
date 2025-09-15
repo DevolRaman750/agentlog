@@ -128,7 +128,7 @@ type APIKeyUsageLog struct {
 	ResponseTimeMs    *int      `json:"responseTimeMs,omitempty"`
 	ErrorMessage      string    `json:"errorMessage,omitempty"`
 	RateLimited       bool      `json:"rateLimited"`
-	HttpStatusCode    *int      `json:"httpStatusCode,omitempty"`
+	HTTPStatusCode    *int      `json:"httpStatusCode,omitempty"`
 	ResponseSizeBytes *int      `json:"responseSizeBytes,omitempty"`
 }
 
@@ -136,7 +136,7 @@ type APIKeyUsageLog struct {
 type APIKeyValidationResult struct {
 	IsValid         bool                   `json:"isValid"`
 	ErrorMessage    string                 `json:"errorMessage,omitempty"`
-	HttpStatusCode  *int                   `json:"httpStatusCode,omitempty"`
+	HTTPStatusCode  *int                   `json:"httpStatusCode,omitempty"`
 	ResponseTimeMs  int                    `json:"responseTimeMs"`
 	ServiceResponse map[string]interface{} `json:"serviceResponse,omitempty"`
 	TestedAt        time.Time              `json:"testedAt"`

@@ -118,7 +118,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
         <View style={styles.metaItem}>
           <Ionicons name="code-outline" size={12} color="#8E8E93" />
           <Text style={styles.metaText}>
-            Functions: {template.functionIds?.length || 0}
+            Functions: {template.functionIDs?.length || 0}
           </Text>
         </View>
         <View style={styles.metaItem}>
