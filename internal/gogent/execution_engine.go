@@ -19,10 +19,19 @@ import (
 )
 
 const (
-	DefaultMaxTokens = 200
-	DefaultTimeoutMs = 300
 	DefaultMaxLength = 500
-	DefaultMaxDepth  = 10
+
+	// Error classification constants
+	ErrorTypeTimeout        = "timeout"
+	ErrorTypeRateLimit      = "rate_limit"
+	ErrorTypeAuthentication = "authentication"
+	ErrorTypePermission     = "permission"
+	ErrorTypeNotFound       = "not_found"
+	ErrorTypeValidation     = "validation"
+	ErrorTypeNetwork        = "network"
+
+	// Function results prompt
+	FunctionResultsPrompt = "**Function Results:**\n"
 )
 
 // ExecuteMultiVariation executes the same prompt with multiple configurations
@@ -247,63 +256,11 @@ func (c *Client) executeMultiVariationWithRun(ctx context.Context, userID string
 	return result, nil
 }
 
-// executeSingleVariation executes a single variation and logs everything
-func (c *Client) executeSingleVariation(ctx context.Context, userID string, executionRunID string, config *types.APIConfiguration, prompt, context string) (*types.VariationResult, error) {
-	// Always delegate to the engine implementation
-	return c.newEngine().ExecuteSingle(ctx, userID, executionRunID, config, prompt, context)
-}
-
 // compareResults compares the results of multiple variations with comprehensive metrics
 // Legacy comparison helpers removed; engine handles comparison and storage via adapters.
 
-// Helper functions for calculating different metrics
-func (c *Client) calculateResponseTimeScore(responseTimeMs int64) float64 {
-	return engine.ResponseTimeScore(responseTimeMs)
-}
-
-func (c *Client) calculateCreativityScore(config types.APIConfiguration, response types.APIResponse) float64 {
-	return engine.CreativityScore(config, response)
-}
-
-func (c *Client) calculateCoherenceScore(responseText string) float64 {
-	return engine.CoherenceScore(responseText)
-}
-
-func (c *Client) calculateTokenEfficiencyScore(response types.APIResponse) float64 {
-	return engine.TokenEfficiencyScore(response)
-}
-
-func (c *Client) calculateSafetyScore(responseText string) float64 {
-	return engine.SafetyScore(responseText)
-}
-
-func (c *Client) calculateCostEffectivenessScore(response types.APIResponse) float64 {
-	return engine.CostEffectivenessScore(response)
-}
-
-func (c *Client) calculateEstimatedCost(response types.APIResponse) float64 {
-	return engine.EstimatedCost(response)
-}
-
-// Helper functions
-func (c *Client) getScoreFromMap(scores map[string]interface{}, configName, scoreKey string) float64 {
-	return engine.GetScoreFromMap(scores, configName, scoreKey)
-}
-
-func (c *Client) getTokenCount(metadata map[string]interface{}, key string) int {
-	return engine.GetTokenCount(metadata, key)
-}
-
-func (c *Client) findFastest(results []types.VariationResult) *types.VariationResult {
-	return engine.FindFastest(results)
-}
-
-func (c *Client) findMostCreative(scores map[string]interface{}) string {
-	return engine.FindMostCreative(scores)
-}
-
 // StoreComparisonResult stores a comparison result in the database
-func (c *Client) StoreComparisonResult(ctx context.Context, userID string, comparison *types.ComparisonResult) error {
+func (c *Client) StoreComparisonResult(ctx context.Context, _ string, comparison *types.ComparisonResult) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
@@ -730,7 +687,7 @@ func (c *Client) processIterativeFunctionCallsWithProvider(ctx context.Context, 
 
 	// Add function results to synthesis prompt so LLM can see what data it already has
 	if len(functionResults) > 0 {
-		synthesisPrompt += "**Function Results:**\n"
+		synthesisPrompt += FunctionResultsPrompt
 		for i, result := range functionResults {
 			if i < len(functionCalls) {
 				functionName := functionCalls[i].FunctionCall.Name
@@ -1129,7 +1086,7 @@ func (c *Client) createFallbackSummary(functionCalls []ResponsePart, functionRes
 }
 
 // processIterativeFunctionCalls handles function calls with proper dependency support
-func (c *Client) processIterativeFunctionCalls(ctx context.Context, _ *types.APIConfiguration, _ *types.APIRequest, functionCalls []ResponsePart, originalPrompt string) (string, map[string]interface{}) {
+func (c *Client) processIterativeFunctionCalls(ctx context.Context, _ *types.APIConfiguration, _ *types.APIRequest, functionCalls []ResponsePart, _ string) (string, map[string]interface{}) {
 	log.Printf("🔧 Starting iterative function calling with %d initial function(s)", len(functionCalls))
 
 	// For now, execute all function calls and provide a basic summary
@@ -1337,7 +1294,7 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 
 	// Add function results to synthesis prompt so LLM can see what data it already has
 	if len(currentAllFunctionResults) > 0 {
-		synthesisPrompt += "**Function Results:**\n"
+		synthesisPrompt += FunctionResultsPrompt
 		for i, result := range currentAllFunctionResults {
 			if i < len(currentAllFunctionCalls) {
 				functionName := currentAllFunctionCalls[i].FunctionCall.Name
@@ -1649,21 +1606,21 @@ func (c *Client) classifyError(errorMsg string) string {
 
 	switch {
 	case strings.Contains(errorLower, "timeout"):
-		return "timeout"
+		return ErrorTypeTimeout
 	case strings.Contains(errorLower, "rate limit"):
-		return "rate_limit"
+		return ErrorTypeRateLimit
 	case strings.Contains(errorLower, "quota"):
 		return "quota_exceeded"
 	case strings.Contains(errorLower, "authentication") || strings.Contains(errorLower, "unauthorized"):
-		return "authentication"
+		return ErrorTypeAuthentication
 	case strings.Contains(errorLower, "permission") || strings.Contains(errorLower, "forbidden"):
-		return "permission"
+		return ErrorTypePermission
 	case strings.Contains(errorLower, "not found") || strings.Contains(errorLower, "404"):
-		return "not_found"
+		return ErrorTypeNotFound
 	case strings.Contains(errorLower, "invalid") || strings.Contains(errorLower, "bad request"):
-		return "validation"
+		return ErrorTypeValidation
 	case strings.Contains(errorLower, "network") || strings.Contains(errorLower, "connection"):
-		return "network"
+		return ErrorTypeNetwork
 	case strings.Contains(errorLower, "server error") || strings.Contains(errorLower, "500"):
 		return "server_error"
 	default:
@@ -1683,31 +1640,6 @@ func (c *Client) isRetryableError(errorMsg string) bool {
 	default:
 		return false
 	}
-}
-
-// extractTokenUsage attempts to extract token usage information from API response
-func (c *Client) extractTokenUsage(response *types.APIResponse) map[string]interface{} {
-	if response.UsageMetadata == nil {
-		return map[string]interface{}{"available": false}
-	}
-
-	// Usage metadata is already a map, no need to unmarshal
-	usage := response.UsageMetadata
-
-	result := map[string]interface{}{"available": true}
-
-	// Extract common token fields
-	if promptTokens, ok := usage["promptTokenCount"]; ok {
-		result["promptTokens"] = promptTokens
-	}
-	if candidateTokens, ok := usage["candidatesTokenCount"]; ok {
-		result["candidateTokens"] = candidateTokens
-	}
-	if totalTokens, ok := usage["totalTokenCount"]; ok {
-		result["totalTokens"] = totalTokens
-	}
-
-	return result
 }
 
 // resultHasData checks if a function result contains meaningful data
@@ -2343,16 +2275,6 @@ func (c *Client) createIntelligentResultSummary(functionName string, result map[
 	return engine.SummarizeResult(functionName, result)
 }
 
-// createFullDataSummary is kept for compatibility; delegate to engine
-func (c *Client) createFullDataSummary(result map[string]interface{}) string {
-	s := engine.CreateFullDataSummary(result)
-	// When marshaling fails, engine falls back to generic; we log for observability
-	if s == engine.CreateGenericSummary(result) {
-		log.Printf("⚠️ Failed to marshal result to JSON; using generic summary")
-	}
-	return s
-}
-
 // autoExtractParameters automatically extracts missing parameters from previous function results
 // Following LLM function calling best practices - minimal intervention, let LLM handle parameter selection
 func (c *Client) autoExtractParameters(ctx context.Context, funcCall *ResponsePart, previousResults []map[string]interface{}) {
@@ -2437,11 +2359,6 @@ func (c *Client) detectTaskCompletion(functionCalls []ResponsePart, _ []map[stri
 	return false
 }
 
-// smartTruncateJSON truncates JSON at logical boundaries to avoid malformed JSON
-func (c *Client) smartTruncateJSON(jsonStr string, maxLength int) string {
-	return engine.SmartTruncateJSON(jsonStr, maxLength)
-}
-
 // autoExtractParametersFromContext extracts parameters for next iteration function calls using current results
 func (c *Client) autoExtractParametersFromContext(ctx context.Context, funcCall *ResponsePart, previousResults []map[string]interface{}) {
 	if funcCall.FunctionCall.Args == nil {
@@ -2456,21 +2373,4 @@ func (c *Client) autoExtractParametersFromContext(ctx context.Context, funcCall 
 	} else if ch, ok := funcCall.FunctionCall.Args["channel"].(string); ok && ch != "" {
 		log.Printf("✅ Auto-extraction: %s already has channel parameter", funcCall.FunctionCall.Name)
 	}
-}
-
-// createGenericSummary provides a fallback summary for unknown functions
-func (c *Client) createGenericSummary(result map[string]interface{}) string {
-	if len(result) == 0 {
-		return "No data returned"
-	}
-
-	// Count data elements
-	dataCount := 0
-	for key, value := range result {
-		if key != "metadata" && key != "_metadata" && value != nil {
-			dataCount++
-		}
-	}
-
-	return fmt.Sprintf("Retrieved data with %d fields", dataCount)
 }

@@ -108,7 +108,7 @@ func (bc *BasicComparator) Compare(_ context.Context, result *types.ExecutionRes
 	return comp, nil
 }
 
-func (bc *BasicComparator) Store(_ context.Context, _ string, comp *types.ComparisonResult) error {
+func (bc *BasicComparator) Store(_ context.Context, _ string, _ *types.ComparisonResult) error {
 	// Intentionally not implemented; storage should be handled by adapter or caller.
 	return nil
 }

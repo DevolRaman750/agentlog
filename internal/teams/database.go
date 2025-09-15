@@ -9,6 +9,17 @@ import (
 	"gogent/internal/types"
 )
 
+// Database query constants
+const (
+	QueryTeamExists = `SELECT EXISTS(SELECT 1 FROM teams WHERE id = ? AND user_id = ?)`
+	QueryInsertTeam = `
+		INSERT INTO teams (id, user_id, name, description, max_tokens_per_day, 
+		                   tokens_used_today, tokens_reset_date, agent_count, 
+		                   active_agent_count, total_executions, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`
+)
+
 // getTeams retrieves all teams for a user
 func (h *Handler) getTeams(userID string) ([]types.Team, error) {
 	query := `
@@ -67,6 +78,10 @@ func (h *Handler) getTeams(userID string) ([]types.Team, error) {
 		teams = append(teams, team)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return teams, nil
 }
 
@@ -121,12 +136,7 @@ func (h *Handler) getTeamByID(teamID, userID string) (types.Team, error) {
 
 // createTeamInDB creates a new team in the database
 func (h *Handler) createTeamInDB(team types.Team) error {
-	query := `
-		INSERT INTO teams (id, user_id, name, description, max_tokens_per_day, 
-		                   tokens_used_today, tokens_reset_date, agent_count, 
-		                   active_agent_count, total_executions, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`
+	query := QueryInsertTeam
 
 	var description interface{}
 	if team.Description != nil {
@@ -281,6 +291,10 @@ func (h *Handler) getTeamWithAgents(teamID, userID string) (types.TeamWithAgents
 		agents = append(agents, agent)
 	}
 
+	if err := rows.Err(); err != nil {
+		return types.TeamWithAgents{}, err
+	}
+
 	return types.TeamWithAgents{
 		Team:   team,
 		Agents: agents,
@@ -298,7 +312,7 @@ func (h *Handler) assignAgentToTeam(agentID, teamID, userID string) (types.Agent
 		return types.Agent{}, err
 	}
 
-	teamQuery := `SELECT EXISTS(SELECT 1 FROM teams WHERE id = ? AND user_id = ?)`
+	teamQuery := QueryTeamExists
 	err = h.db.QueryRow(teamQuery, teamID, userID).Scan(&teamExists)
 	if err != nil {
 		return types.Agent{}, err
@@ -397,7 +411,7 @@ func (h *Handler) getAgentWithTeamInfo(agentID, userID string) (types.Agent, err
 func (h *Handler) pauseAllAgentsInTeam(teamID, userID string) (int64, error) {
 	// First verify the team belongs to the user
 	var teamExists bool
-	teamQuery := `SELECT EXISTS(SELECT 1 FROM teams WHERE id = ? AND user_id = ?)`
+	teamQuery := QueryTeamExists
 	err := h.db.QueryRow(teamQuery, teamID, userID).Scan(&teamExists)
 	if err != nil {
 		return 0, err
@@ -425,7 +439,7 @@ func (h *Handler) pauseAllAgentsInTeam(teamID, userID string) (int64, error) {
 func (h *Handler) resumeAllAgentsInTeam(teamID, userID string) (int64, error) {
 	// First verify the team belongs to the user
 	var teamExists bool
-	teamQuery := `SELECT EXISTS(SELECT 1 FROM teams WHERE id = ? AND user_id = ?)`
+	teamQuery := QueryTeamExists
 	err := h.db.QueryRow(teamQuery, teamID, userID).Scan(&teamExists)
 	if err != nil {
 		return 0, err
@@ -453,7 +467,7 @@ func (h *Handler) resumeAllAgentsInTeam(teamID, userID string) (int64, error) {
 func (h *Handler) getTeamStatsByID(teamID, userID string) (types.TeamStats, error) {
 	// First verify the team belongs to the user
 	var teamExists bool
-	teamQuery := `SELECT EXISTS(SELECT 1 FROM teams WHERE id = ? AND user_id = ?)`
+	teamQuery := QueryTeamExists
 	err := h.db.QueryRow(teamQuery, teamID, userID).Scan(&teamExists)
 	if err != nil {
 		return types.TeamStats{}, err
@@ -515,7 +529,7 @@ func (h *Handler) validateAgentTeamMembership(agentID, teamID, userID string) er
 // validateTeamMemoryAccess checks if either the agent is a member of the team OR the user owns the team
 func (h *Handler) validateTeamMemoryAccess(agentID, teamID, userID string) error {
 	// First check if the user owns the team (for manual UI access)
-	teamQuery := `SELECT EXISTS(SELECT 1 FROM teams WHERE id = ? AND user_id = ?)`
+	teamQuery := QueryTeamExists
 	var userOwnsTeam bool
 
 	err := h.db.QueryRow(teamQuery, teamID, userID).Scan(&userOwnsTeam)
@@ -562,12 +576,7 @@ func (h *Handler) saveTeamMemory(teamID, userID string, memory *types.TeamMemory
 
 // createTeamInDBTx creates a new team in the database within a transaction
 func (h *Handler) createTeamInDBTx(tx *sql.Tx, team types.Team) error {
-	query := `
-		INSERT INTO teams (id, user_id, name, description, max_tokens_per_day, 
-		                   tokens_used_today, tokens_reset_date, agent_count, 
-		                   active_agent_count, total_executions, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`
+	query := QueryInsertTeam
 
 	var description interface{}
 	if team.Description != nil {

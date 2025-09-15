@@ -14,6 +14,12 @@ import (
 	"gogent/internal/types"
 )
 
+const (
+	httpTimeoutSeconds = 60
+	httpStatusOK       = 200
+	propertiesKey      = "properties"
+)
+
 // GeminiClient wraps the Google Generative AI REST API
 type Client struct {
 	apiKey     string
@@ -21,14 +27,14 @@ type Client struct {
 }
 
 // NewGeminiClient creates a new Gemini API client using the REST API
-func NewGeminiClient(ctx context.Context, apiKey string) (*Client, error) {
+func NewGeminiClient(_ context.Context, apiKey string) (*Client, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("API key is required")
 	}
 
 	return &Client{
 		apiKey:     apiKey,
-		httpClient: &http.Client{Timeout: 60 * time.Second},
+		httpClient: &http.Client{Timeout: httpTimeoutSeconds * time.Second},
 	}, nil
 }
 
@@ -43,7 +49,8 @@ func (c *Client) GenerateContent(ctx context.Context, config *types.APIConfigura
 
 	// Add current time context following LLM function calling best practices
 	currentTime := time.Now()
-	timeContext := fmt.Sprintf("**SYSTEM TIME CONTEXT:**\n- Current time: %s\n- UTC time: %s\n- Unix timestamp: %d\n- Timezone: %s\n\nUse this current time information for any time-sensitive operations, queries, or when interpreting relative time references like 'recent', 'today', 'last hour', etc.\n\n",
+	timeContext := fmt.Sprintf("**SYSTEM TIME CONTEXT:**\n- Current time: %s\n- UTC time: %s\n- Unix timestamp: %d\n- Timezone: %s\n\n"+
+		"Use this current time information for any time-sensitive operations, queries, or when interpreting relative time references like 'recent', 'today', 'last hour', etc.\n\n",
 		currentTime.Format("2006-01-02 15:04:05 MST"),
 		currentTime.UTC().Format("2006-01-02 15:04:05 UTC"),
 		currentTime.Unix(),
@@ -58,7 +65,8 @@ func (c *Client) GenerateContent(ctx context.Context, config *types.APIConfigura
 		fullPrompt = fmt.Sprintf("%s\n\nContext: %s", fullPrompt, contextStr)
 	}
 
-	log.Printf("Gemini REST API call - Model: %s, Prompt length: %d, Tools: %d", config.ModelName, len(fullPrompt), len(config.Tools))
+	log.Printf("Gemini REST API call - Model: %s, Prompt length: %d, Tools: %d",
+		config.ModelName, len(fullPrompt), len(config.Tools))
 
 	// Build the REST API request (following official documentation format)
 	requestBody := map[string]interface{}{
@@ -181,7 +189,7 @@ func (c *Client) GenerateContent(ctx context.Context, config *types.APIConfigura
 	responseTime := time.Since(startTime)
 	log.Printf("REST API - Response status: %d, Time: %dms", resp.StatusCode, responseTime.Milliseconds())
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != httpStatusOK {
 		log.Printf("REST API - Error response: %s", string(body))
 		return &types.APIResponse{
 			ResponseStatus: types.ResponseStatusError,
@@ -246,7 +254,8 @@ func (c *Client) GenerateContent(ctx context.Context, config *types.APIConfigura
 
 		for i, part := range candidate.Content.Parts {
 			log.Printf("🔍 DEBUG: Part %d - Text: %q, HasFunctionCall: %v", i, part.Text, part.FunctionCall != nil)
-			log.Printf("🔍 [SYNTHESIS_DEBUG] Part %d details - Text length: %d, Text preview: %.200s", i, len(part.Text), part.Text)
+			log.Printf("🔍 [SYNTHESIS_DEBUG] Part %d details - Text length: %d, Text preview: %.200s",
+				i, len(part.Text), part.Text)
 
 			if part.Text != "" {
 				// Check if the text contains tool_code blocks
@@ -325,7 +334,7 @@ func (c *Client) sanitizeToolParameters(params map[string]interface{}) map[strin
 
 	for key, value := range params {
 		if allowedTopLevel[key] {
-			if key == "properties" {
+			if key == propertiesKey {
 				// Recursively sanitize properties
 				if props, ok := value.(map[string]interface{}); ok {
 					sanitizedProps := make(map[string]interface{})

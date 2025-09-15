@@ -255,7 +255,7 @@ func (s *GRPCServer) DeleteExecutionRun(ctx context.Context, req *pb.DeleteExecu
 // CONFIGURATION MANAGEMENT
 // =============================================================================
 
-func (s *GRPCServer) ListConfigurations(ctx context.Context, req *pb.ListConfigurationsRequest) (*pb.ListConfigurationsResponse, error) {
+func (s *GRPCServer) ListConfigurations(ctx context.Context, _ *pb.ListConfigurationsRequest) (*pb.ListConfigurationsResponse, error) {
 	// TODO: Extract user ID from gRPC metadata/context when authentication is implemented
 	// For now, use the business logic's user ID (typically "system-user" for gRPC)
 	userID := s.businessLogic.userID
@@ -318,7 +318,7 @@ func (s *GRPCServer) DeleteConfiguration(ctx context.Context, req *pb.DeleteConf
 // FUNCTION MANAGEMENT
 // =============================================================================
 
-func (s *GRPCServer) ListFunctions(ctx context.Context, req *pb.ListFunctionsRequest) (*pb.ListFunctionsResponse, error) {
+func (s *GRPCServer) ListFunctions(ctx context.Context, _ *pb.ListFunctionsRequest) (*pb.ListFunctionsResponse, error) {
 	functions, err := s.businessLogic.ListFunctions(ctx)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Failed to list functions: %v", err)

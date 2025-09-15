@@ -15,9 +15,11 @@ import (
 )
 
 const (
-	DefaultMaxTokens = 100
 	DefaultTimeoutSeconds = 30
-	DefaultMaxRetries = 3
+	DefaultMaxRetries     = 3
+
+	// Status constants
+	StatusPending = "pending"
 )
 
 // CreateExecutionRun creates a new execution run for grouping related API calls
@@ -81,7 +83,7 @@ func (c *Client) UpdateExecutionRunStatus(ctx context.Context, userID, execution
 
 	var statusEnum db.ExecutionRunsStatus
 	switch status {
-	case "pending":
+	case StatusPending:
 		statusEnum = db.ExecutionRunsStatusPending
 	case "running":
 		statusEnum = db.ExecutionRunsStatusRunning

@@ -5,6 +5,10 @@ import (
 	"strconv"
 )
 
+const (
+	noDataReturned = "No data returned"
+)
+
 // SummarizeResult returns a concise representation of a function result.
 // Current strategy:
 // - If result is nil: "No data returned"
@@ -12,7 +16,7 @@ import (
 // - Otherwise: return full JSON for maximal context preservation
 func SummarizeResult(_ string, result map[string]interface{}) string {
 	if result == nil {
-		return "No data returned"
+		return noDataReturned
 	}
 
 	if status, ok := result["status"].(string); ok && (status == "failed" || status == "validation_failed") {
@@ -28,7 +32,7 @@ func SummarizeResult(_ string, result map[string]interface{}) string {
 // CreateFullDataSummary marshals the entire result as JSON.
 func CreateFullDataSummary(result map[string]interface{}) string {
 	if len(result) == 0 {
-		return "No data returned"
+		return noDataReturned
 	}
 	b, err := json.Marshal(result)
 	if err != nil {
@@ -41,7 +45,7 @@ func CreateFullDataSummary(result map[string]interface{}) string {
 // CreateGenericSummary provides a coarse fallback string when JSON marshal fails.
 func CreateGenericSummary(result map[string]interface{}) string {
 	if len(result) == 0 {
-		return "No data returned"
+		return noDataReturned
 	}
 	// Keep very concise to avoid large prompts; count non-metadata fields
 	count := 0

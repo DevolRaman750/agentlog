@@ -98,7 +98,7 @@ func (g *GRPCGateway) Close() error {
 }
 
 // Health check endpoint
-func (g *GRPCGateway) healthHandler(w http.ResponseWriter, r *http.Request) {
+func (g *GRPCGateway) healthHandler(w http.ResponseWriter, _ *http.Request) {
 	ctx := context.Background()
 
 	req := &pb.HealthRequest{}
@@ -382,7 +382,7 @@ func (g *GRPCGateway) configurationByIDHandler(w http.ResponseWriter, r *http.Re
 	}
 }
 
-func (g *GRPCGateway) listConfigurations(w http.ResponseWriter, r *http.Request) {
+func (g *GRPCGateway) listConfigurations(w http.ResponseWriter, _ *http.Request) {
 	// Call gRPC service
 	ctx := context.Background()
 	req := &pb.ListConfigurationsRequest{}

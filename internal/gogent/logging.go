@@ -12,6 +12,11 @@ import (
 	"github.com/google/uuid"
 )
 
+// Log event type constants
+const (
+	LogEventFunctionExecution = "function_execution_start"
+)
+
 // logExecutionEvent logs an execution event to the database
 func (c *Client) logExecutionEvent(level types.LogLevel, category types.LogCategory, message string, details map[string]interface{}) {
 	c.mutex.Lock()
@@ -89,7 +94,7 @@ func (c *Client) logExecutionFlowEvent(eventType string, sequenceNumber int, sta
 	case "api_request_start", "api_request_end":
 		// For backward compatibility, map these to ai_model_call
 		dbEventType = db.ExecutionFlowEventsEventTypeAiModelCall
-	case "function_execution_start", "function_execution_end":
+	case LogEventFunctionExecution, "function_execution_end":
 		// Map function execution events appropriately
 		if eventType == "function_execution_start" {
 			dbEventType = db.ExecutionFlowEventsEventTypeFunctionCallStart

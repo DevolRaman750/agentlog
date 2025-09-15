@@ -175,7 +175,7 @@ func (s *Server) Close() error {
 }
 
 // Health check endpoint
-func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) healthHandler(w http.ResponseWriter, _ *http.Request) {
 	response := map[string]interface{}{
 		"status":    "ok",
 		"version":   "1.0.0",

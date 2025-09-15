@@ -667,7 +667,7 @@ func (c *Client) syncExecutionTemplateToDatabase(ctx context.Context, spec *Exec
 }
 
 // syncTemplateFunction associates functions with a template by resolving function names to IDs
-func (c *Client) syncTemplateFunction(ctx context.Context, templateID string, functionIds []string) error {
+func (c *Client) syncTemplateFunction(ctx context.Context, templateID string, functionIDs []string) error {
 	// First, remove existing associations for this template
 	_, err := c.db.ExecContext(ctx,
 		"DELETE FROM execution_template_functions WHERE template_id = ?", templateID)
@@ -676,7 +676,7 @@ func (c *Client) syncTemplateFunction(ctx context.Context, templateID string, fu
 	}
 
 	// Add new associations
-	for i, functionRef := range functionIds {
+	for i, functionRef := range functionIDs {
 		// Resolve function reference to actual database ID
 		actualFunctionID, err := c.resolveFunctionID(ctx, functionRef)
 		if err != nil {

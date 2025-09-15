@@ -19,6 +19,11 @@ import (
 	"gogent/internal/types"
 )
 
+// GitHub function name constants
+const (
+	FunctionGoogleDriveSearchFiles = "googledrive_search_files"
+)
+
 // Integration implements the GitHub API integration
 type Integration struct {
 	baseURL     string

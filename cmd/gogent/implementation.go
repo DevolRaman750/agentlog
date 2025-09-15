@@ -84,7 +84,7 @@ func (bl *BusinessLogic) GetDB() *sql.DB {
 // AUTHENTICATION & USER MANAGEMENT
 // =============================================================================
 
-func (bl *BusinessLogic) LoginUser(username, password string) (*auth.User, string, time.Time, error) {
+func (bl *BusinessLogic) LoginUser(username, _ string) (*auth.User, string, time.Time, error) {
 	// TODO: Implement actual authentication logic
 	log.Printf("🔐 Login attempt for user: %s", username)
 
@@ -107,7 +107,7 @@ func (bl *BusinessLogic) LoginUser(username, password string) (*auth.User, strin
 	return user, token, expiresAt, nil
 }
 
-func (bl *BusinessLogic) RegisterUser(username, email, password string) (*auth.User, string, error) {
+func (bl *BusinessLogic) RegisterUser(username, email, _ string) (*auth.User, string, error) {
 	// TODO: Implement actual registration logic
 	log.Printf("📝 Registration attempt for user: %s", username)
 

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -185,7 +186,11 @@ func (h *Handler) createTeamWithAgents(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("Failed to start transaction: %v", err), http.StatusInternalServerError)
 		return
 	}
-	defer tx.Rollback()
+	defer func() {
+		if err := tx.Rollback(); err != nil {
+			log.Printf("Failed to rollback transaction: %v", err)
+		}
+	}()
 
 	// Create team
 	team := types.Team{
@@ -298,7 +303,9 @@ func (h *Handler) createTeamWithAgents(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+	}
 }
 
 // getTeam retrieves a specific team
@@ -320,7 +327,9 @@ func (h *Handler) getTeam(w http.ResponseWriter, r *http.Request, teamID string)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(team)
+	if err := json.NewEncoder(w).Encode(team); err != nil {
+		log.Printf("Failed to encode team: %v", err)
+	}
 }
 
 // updateTeam updates a team
@@ -352,7 +361,9 @@ func (h *Handler) updateTeam(w http.ResponseWriter, r *http.Request, teamID stri
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(team)
+	if err := json.NewEncoder(w).Encode(team); err != nil {
+		log.Printf("Failed to encode team: %v", err)
+	}
 }
 
 // deleteTeam deletes a team
@@ -602,7 +613,9 @@ func (h *Handler) handleTeamMemory(w http.ResponseWriter, r *http.Request, teamI
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+	}
 }
 
 // validateTeamWithAgentsCreateRequest validates the team with agents creation request
@@ -742,7 +755,11 @@ func (h *Handler) updateTeamContextForAllAgents(teamID, userID string, sharedCon
 	if err != nil {
 		return fmt.Errorf("failed to start transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		if err := tx.Rollback(); err != nil {
+			log.Printf("Failed to rollback transaction: %v", err)
+		}
+	}()
 
 	// Get all agents in the team
 	agents, err := h.getTeamAgentsTx(tx, teamID, userID)

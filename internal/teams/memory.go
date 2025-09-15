@@ -11,11 +11,39 @@ import (
 	"gogent/internal/types"
 )
 
+// String constants for memory operations
+const (
+	MemoryVersion = "1.0"
+
+	// Memory context types
+	ContextWorkflow   = "workflow"
+	ContextSession    = "session"
+	ContextPersistent = "persistent"
+	ContextShared     = "shared"
+
+	// Task status constants
+	TaskStatusCompleted = "completed"
+	TaskStatusFailed    = "failed"
+
+	// Memory operation types
+	OpClearAll       = "clear_all"
+	OpClearCompleted = "clear_completed"
+	OpReplace        = "replace"
+	OpAppend         = "append"
+
+	// Memory context keys
+	ContextReportedTasks = "reported_tasks"
+	ContextMergeMetadata = "merge_metadata"
+
+	// Search criteria
+	SearchCriteriaTitle = "title"
+)
+
 // InitializeTeamMemory creates a new empty memory structure for a team
 func (h *Handler) InitializeTeamMemory(_ string) (*types.TeamMemory, error) {
 	now := time.Now()
 	memory := &types.TeamMemory{
-		Version: "1.0",
+		Version: MemoryVersion,
 		Contexts: types.TeamMemoryContexts{
 			Workflow:   make(map[string]interface{}),
 			Session:    make(map[string]interface{}),
@@ -74,13 +102,13 @@ func (h *Handler) ReadTeamMemory(_ context.Context, teamID, agentID, userID stri
 	// Filter by context if specified
 	var responseData map[string]interface{}
 	switch strings.ToLower(request.Context) {
-	case "workflow":
+	case ContextWorkflow:
 		responseData = map[string]interface{}{"workflow": memory.Contexts.Workflow}
-	case "session":
+	case ContextSession:
 		responseData = map[string]interface{}{"session": memory.Contexts.Session}
-	case "persistent":
+	case ContextPersistent:
 		responseData = map[string]interface{}{"persistent": memory.Contexts.Persistent}
-	case "shared":
+	case ContextShared:
 		responseData = map[string]interface{}{"shared": memory.Contexts.Shared}
 	case "all", "":
 		responseData = map[string]interface{}{
@@ -157,22 +185,22 @@ func (h *Handler) WriteTeamMemory(_ context.Context, teamID, agentID, userID str
 	// Get target context
 	var targetContext map[string]interface{}
 	switch strings.ToLower(request.Context) {
-	case "workflow":
+	case ContextWorkflow:
 		if memory.Contexts.Workflow == nil {
 			memory.Contexts.Workflow = make(map[string]interface{})
 		}
 		targetContext = memory.Contexts.Workflow
-	case "session":
+	case ContextSession:
 		if memory.Contexts.Session == nil {
 			memory.Contexts.Session = make(map[string]interface{})
 		}
 		targetContext = memory.Contexts.Session
-	case "persistent":
+	case ContextPersistent:
 		if memory.Contexts.Persistent == nil {
 			memory.Contexts.Persistent = make(map[string]interface{})
 		}
 		targetContext = memory.Contexts.Persistent
-	case "shared":
+	case ContextShared:
 		if memory.Contexts.Shared == nil {
 			memory.Contexts.Shared = make(map[string]interface{})
 		}
@@ -296,7 +324,7 @@ func (h *Handler) ClearTeamMemory(ctx context.Context, teamID, agentID, userID s
 		err = h.clearContext(team.Memory, request.Path) // Using path field for context name
 	case "clear_path":
 		err = h.clearPath(team.Memory, request.Path)
-	case "clear_all":
+	case OpClearAll:
 		team.Memory, err = h.InitializeTeamMemory(teamID)
 	case "compact":
 		err = h.compactMemory(team.Memory)
@@ -365,7 +393,7 @@ func (h *Handler) writeToContext(context map[string]interface{}, path string, da
 	if path == "" {
 		// Write to context root
 		switch mergeStrategy {
-		case "replace":
+		case OpReplace:
 			// Clear and replace
 			for k := range context {
 				delete(context, k)
@@ -377,7 +405,7 @@ func (h *Handler) writeToContext(context map[string]interface{}, path string, da
 			} else {
 				context["value"] = data
 			}
-		case "append":
+		case OpAppend:
 			// Append to array or create new array
 			if dataArray, ok := data.([]interface{}); ok {
 				if existingArray, exists := context["items"]; exists {
@@ -412,9 +440,9 @@ func (h *Handler) writeToContext(context map[string]interface{}, path string, da
 		if i == len(parts)-1 {
 			// Last part - write the data
 			switch mergeStrategy {
-			case "replace":
+			case OpReplace:
 				current[part] = data
-			case "append":
+			case OpAppend:
 				if existing, exists := current[part]; exists {
 					if existingArray, ok := existing.([]interface{}); ok {
 						if dataArray, ok := data.([]interface{}); ok {
@@ -538,13 +566,13 @@ func (h *Handler) searchRecursive(data interface{}, path, context, query string,
 
 func (h *Handler) clearContext(memory *types.TeamMemory, contextName string) error {
 	switch strings.ToLower(contextName) {
-	case "workflow":
+	case ContextWorkflow:
 		memory.Contexts.Workflow = make(map[string]interface{})
-	case "session":
+	case ContextSession:
 		memory.Contexts.Session = make(map[string]interface{})
-	case "persistent":
+	case ContextPersistent:
 		memory.Contexts.Persistent = make(map[string]interface{})
-	case "shared":
+	case ContextShared:
 		memory.Contexts.Shared = make(map[string]interface{})
 	default:
 		return fmt.Errorf("invalid context: %s", contextName)
@@ -552,7 +580,7 @@ func (h *Handler) clearContext(memory *types.TeamMemory, contextName string) err
 	return nil
 }
 
-func (h *Handler) clearPath(_ *types.TeamMemory, path string) error {
+func (h *Handler) clearPath(_ *types.TeamMemory, _ string) error {
 	// Implementation for clearing specific paths
 	// This would need to traverse the memory structure and remove the specified path
 	return fmt.Errorf("clear path not implemented yet")
@@ -892,9 +920,9 @@ func (h *Handler) CompleteTeamTask(ctx context.Context, teamID, agentID, userID 
 	// Update task completion
 	now := time.Now()
 	switch request.CompletionStatus {
-	case "completed":
+	case TaskStatusCompleted:
 		task.Status = types.TaskStatusCompleted
-	case "failed":
+	case TaskStatusFailed:
 		task.Status = types.TaskStatusFailed
 	case "blocked":
 		task.Status = types.TaskStatusBlocked
@@ -1243,7 +1271,7 @@ func (h *Handler) ClearTeamTasks(ctx context.Context, teamID, agentID, userID st
 	var tasksKept []types.TeamTask
 
 	switch action {
-	case "clear_all":
+	case OpClearAll:
 		if !request.Confirmation {
 			return &types.TeamTaskResponse{
 				Success: false,
@@ -1253,7 +1281,7 @@ func (h *Handler) ClearTeamTasks(ctx context.Context, teamID, agentID, userID st
 		tasksRemoved = tasks
 		tasksKept = []types.TeamTask{}
 
-	case "clear_completed":
+	case OpClearCompleted:
 		for _, task := range tasks {
 			if string(task.Status) == "completed" {
 				tasksRemoved = append(tasksRemoved, task)
@@ -1362,7 +1390,7 @@ func (h *Handler) ClearTeamTasks(ctx context.Context, teamID, agentID, userID st
 	case "delete_duplicates":
 		criteria := request.DuplicateCriteria
 		if criteria == "" {
-			criteria = "title"
+			criteria = SearchCriteriaTitle
 		}
 		keepNewest := true
 		if !request.KeepNewest {
@@ -1745,7 +1773,7 @@ func (h *Handler) UpdateTeamTask(ctx context.Context, teamID, agentID, userID st
 				updatedTask.Metadata = make(map[string]interface{})
 			}
 			for key, value := range request.Metadata {
-				if key != "merge_metadata" { // Don't store the merge flag
+				if key != ContextMergeMetadata { // Don't store the merge flag
 					updatedTask.Metadata[key] = value
 				}
 			}
@@ -1753,7 +1781,7 @@ func (h *Handler) UpdateTeamTask(ctx context.Context, teamID, agentID, userID st
 			// Replace all metadata
 			filteredMetadata := make(map[string]interface{})
 			for key, value := range request.Metadata {
-				if key != "merge_metadata" { // Don't store the merge flag
+				if key != ContextMergeMetadata { // Don't store the merge flag
 					filteredMetadata[key] = value
 				}
 			}
@@ -1836,7 +1864,7 @@ func (h *Handler) StoreAgentTask(ctx context.Context, teamID, agentID, userID st
 	}
 
 	// Get context from metadata or default
-	context := "reported_tasks"
+	context := ContextReportedTasks
 	if contextValue, ok := request.Metadata["context"]; ok {
 		if contextStr, ok := contextValue.(string); ok && contextStr != "" {
 			context = contextStr
@@ -1936,7 +1964,7 @@ func (h *Handler) ListAgentTasks(ctx context.Context, teamID, agentID, userID st
 	}
 
 	// Get context from metadata or default
-	context := "reported_tasks"
+	context := ContextReportedTasks
 	if contextValue, ok := request.Metadata["context"]; ok {
 		if contextStr, ok := contextValue.(string); ok && contextStr != "" {
 			context = contextStr
@@ -2060,7 +2088,7 @@ func (h *Handler) DeleteAgentTask(ctx context.Context, teamID, agentID, userID s
 	}
 
 	// Get context from metadata or default
-	context := "reported_tasks"
+	context := ContextReportedTasks
 	if contextValue, ok := request.Metadata["context"]; ok {
 		if contextStr, ok := contextValue.(string); ok && contextStr != "" {
 			context = contextStr
@@ -2464,7 +2492,7 @@ func (h *Handler) ClearAgentTaskProgress(ctx context.Context, teamID, agentID, u
 			clearedCount = 1
 		}
 
-	case "clear_completed":
+	case OpClearCompleted:
 		cutoffTime := now.Add(-time.Duration(request.OlderThanHours) * time.Hour)
 		for taskID, progressData := range agentProgress {
 			if progressMap, ok := progressData.(map[string]interface{}); ok {
@@ -2501,7 +2529,7 @@ func (h *Handler) ClearAgentTaskProgress(ctx context.Context, teamID, agentID, u
 			}
 		}
 
-	case "clear_all":
+	case OpClearAll:
 		for taskID := range agentProgress {
 			delete(agentProgress, taskID)
 			clearedTasks = append(clearedTasks, taskID)

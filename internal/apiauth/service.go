@@ -23,7 +23,8 @@ func NewService(apiKeyService *apikeys.Service) *Service {
 }
 
 // GetAuthCredentialsForService gets authentication credentials for a specific service
-func (s *Service) GetAuthCredentialsForService(ctx context.Context, userID, serviceName string) (*types.AuthCredentials, error) {
+func (s *Service) GetAuthCredentialsForService(ctx context.Context, userID, serviceName string) (
+	*types.AuthCredentials, error) {
 	// Get API keys for the service
 	apiKeys, err := s.apiKeyService.GetAPIKeysByService(ctx, userID, serviceName)
 	if err != nil {
@@ -42,7 +43,7 @@ func (s *Service) GetAuthCredentialsForService(ctx context.Context, userID, serv
 
 	// First, look for GitHub App credentials
 	for _, key := range apiKeys {
-		if key.AuthMode == "github_app" {
+		if key.AuthMode == AuthModeGitHubApp {
 			selectedKey = key
 			break
 		}

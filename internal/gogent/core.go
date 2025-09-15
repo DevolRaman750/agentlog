@@ -37,8 +37,45 @@ import (
 const (
 	DefaultMaxResults = 50
 	DefaultPageSize   = 100
+	DefaultMaxTokens  = 200
 	DefaultTimeoutMs  = 300
 	DefaultMaxDepth   = 10
+
+	// Service names
+	ServiceGemini      = "gemini"
+	ServiceOpenWeather = "openweather"
+	ServiceGitHub      = "github"
+	ServiceOpenRouter  = "openrouter"
+	ServiceSlack       = "slack"
+	ServiceGoogleDrive = "googledrive"
+
+	// Function groups
+	FunctionGroupInternal      = "internal"
+	FunctionGroupCommunication = "communication"
+	FunctionGroupAPI           = "API"
+
+	// Function names
+	FunctionTeamTaskList           = "team_task_list"
+	FunctionTeamTaskClaim          = "team_task_claim"
+	FunctionTeamMemoryWrite        = "team_memory_write"
+	FunctionAgentMemoryRead        = "agent_memory_read"
+	FunctionAgentMemoryWrite       = "agent_memory_write"
+	FunctionAgentMemoryClear       = "agent_memory_clear"
+	FunctionSlackReadMessages      = "slack_read_messages"
+	FunctionCreateBranch           = "create_branch"
+	FunctionGoogleDriveSearchFiles = "googledrive_search_files"
+
+	// Status constants
+	StatusEmpty   = "EMPTY"
+	StatusPresent = "PRESENT"
+	StatusMissing = "MISSING"
+	StatusUnknown = "unknown"
+
+	// Response constants
+	ResponseNoData = "No data returned"
+
+	// File type constants
+	FileTypeDir = "dir"
 )
 
 // Client represents the main gogent client that wraps Gemini API calls
@@ -390,7 +427,7 @@ func (c *Client) LoadDatabaseAPIKeys(ctx context.Context, userID string) error {
 
 		// Map service names to session key fields
 		switch apiKey.ServiceName {
-		case "gemini":
+		case ServiceGemini:
 			sessionKeys.GeminiAPIKey = decryptedKey
 			log.Printf("🔑 Loaded Gemini API key from database - Length: %d, Prefix: %s",
 				len(decryptedKey),
@@ -400,18 +437,18 @@ func (c *Client) LoadDatabaseAPIKeys(ctx context.Context, userID string) error {
 					} else if len(decryptedKey) > 0 {
 						return decryptedKey + "..."
 					}
-					return "EMPTY"
+					return StatusEmpty
 				}())
-		case "openweather":
+		case ServiceOpenWeather:
 			sessionKeys.OpenWeatherAPIKey = decryptedKey
 			log.Printf("🔑 Loaded OpenWeather API key from database")
 		case "github":
 			sessionKeys.GithubAPIKey = decryptedKey
 			log.Printf("🔑 Loaded GitHub API key from database")
-		case "openrouter":
+		case ServiceOpenRouter:
 			sessionKeys.OpenRouterAPIKey = decryptedKey
 			log.Printf("🔑 Loaded OpenRouter API key from database")
-		case "slack":
+		case ServiceSlack:
 			sessionKeys.SlackBotToken = decryptedKey
 			log.Printf("🔑 Loaded Slack Bot Token from database - Length: %d, Prefix: %s",
 				len(decryptedKey),
@@ -421,7 +458,7 @@ func (c *Client) LoadDatabaseAPIKeys(ctx context.Context, userID string) error {
 					} else if len(decryptedKey) > 0 {
 						return decryptedKey + "..."
 					}
-					return "EMPTY"
+					return StatusEmpty
 				}())
 			log.Printf("🔍 DEBUG: Slack token stored in sessionKeys.SlackBotToken: %t", sessionKeys.SlackBotToken != "")
 		case "whatsapp":
@@ -434,9 +471,9 @@ func (c *Client) LoadDatabaseAPIKeys(ctx context.Context, userID string) error {
 					} else if len(decryptedKey) > 0 {
 						return decryptedKey + "..."
 					}
-					return "EMPTY"
+					return StatusEmpty
 				}())
-		case "googledrive":
+		case ServiceGoogleDrive:
 			sessionKeys.GoogleDriveAPIKey = decryptedKey
 			log.Printf("🔑 Loaded Google Drive API key from database - Length: %d, Prefix: %s",
 				len(decryptedKey),
@@ -446,7 +483,7 @@ func (c *Client) LoadDatabaseAPIKeys(ctx context.Context, userID string) error {
 					} else if len(decryptedKey) > 0 {
 						return decryptedKey + "..."
 					}
-					return "EMPTY"
+					return StatusEmpty
 				}())
 		case "neo4j":
 			// For Neo4j, we need to handle the connection details differently
@@ -546,11 +583,11 @@ func (c *Client) LoadAgentAPIKeys(ctx context.Context, agentID string) error {
 
 		// Map service names to session key fields
 		switch serviceName {
-		case "gemini":
+		case ServiceGemini:
 			sessionKeys.GeminiAPIKey = decryptedKey
 			log.Printf("🔑 [Agent %s] Loaded Gemini API key - Source: %s, Length: %d",
 				agentID, apiKey.KeyName, len(decryptedKey))
-		case "openweather":
+		case ServiceOpenWeather:
 			sessionKeys.OpenWeatherAPIKey = decryptedKey
 			log.Printf("🔑 [Agent %s] Loaded OpenWeather API key - Source: %s",
 				agentID, apiKey.KeyName)
@@ -558,11 +595,11 @@ func (c *Client) LoadAgentAPIKeys(ctx context.Context, agentID string) error {
 			sessionKeys.GithubAPIKey = decryptedKey
 			log.Printf("🔑 [Agent %s] Loaded GitHub API key - Source: %s",
 				agentID, apiKey.KeyName)
-		case "openrouter":
+		case ServiceOpenRouter:
 			sessionKeys.OpenRouterAPIKey = decryptedKey
 			log.Printf("🔑 [Agent %s] Loaded OpenRouter API key - Source: %s",
 				agentID, apiKey.KeyName)
-		case "slack":
+		case ServiceSlack:
 			sessionKeys.SlackBotToken = decryptedKey
 			log.Printf("🔑 [Agent %s] Loaded Slack Bot Token - Source: %s, Length: %d",
 				agentID, apiKey.KeyName, len(decryptedKey))
@@ -570,7 +607,7 @@ func (c *Client) LoadAgentAPIKeys(ctx context.Context, agentID string) error {
 			sessionKeys.WhatsappAccessToken = decryptedKey
 			log.Printf("🔑 [Agent %s] Loaded WhatsApp Access Token - Source: %s, Length: %d",
 				agentID, apiKey.KeyName, len(decryptedKey))
-		case "googledrive":
+		case ServiceGoogleDrive:
 			sessionKeys.GoogleDriveAPIKey = decryptedKey
 			log.Printf("🔑 [Agent %s] Loaded Google Drive API key - Source: %s",
 				agentID, apiKey.KeyName)
@@ -649,26 +686,6 @@ func (c *Client) getNextSequenceNumber() int {
 }
 
 // getCurrentRequestID returns the current request ID
-func (c *Client) getCurrentRequestID() string {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-	if c.currentRequestID != nil {
-		return *c.currentRequestID
-	}
-	return ""
-}
-
-// getUserIDFromExecutionRun gets the user ID from an execution run
-func (c *Client) getUserIDFromExecutionRun(ctx context.Context, executionRunID string) (string, error) {
-	executionRun, err := c.queries.GetExecutionRun(ctx, db.GetExecutionRunParams{
-		ID:     executionRunID,
-		UserID: c.currentUserID,
-	})
-	if err != nil {
-		return "", fmt.Errorf("failed to get execution run: %w", err)
-	}
-	return executionRun.UserID, nil
-}
 
 // RunMigrations runs database migrations using golang-migrate
 func (c *Client) RunMigrations() error {
@@ -797,7 +814,7 @@ func (c *Client) executeMCPFunction(ctx context.Context, funcDef *db.FunctionDef
 
 	// Operation-specific validation
 	switch operation {
-	case "create_branch":
+	case FunctionCreateBranch:
 		if _, ok := args["branch_name"]; !ok {
 			return nil, fmt.Errorf("branch_name is required")
 		}
@@ -821,7 +838,7 @@ func (c *Client) executeMCPFunction(ctx context.Context, funcDef *db.FunctionDef
 
 	// Add operation-specific fields
 	switch operation {
-	case "create_branch":
+	case FunctionCreateBranch:
 		result["branch_name"] = args["branch_name"]
 		result["branch_url"] = fmt.Sprintf("https://github.com/%s/tree/%s", repo, args["branch_name"])
 		result["commit_sha"] = "abc123def456"
@@ -845,7 +862,7 @@ func (c *Client) executeDynamicFunction(ctx context.Context, funcDef *db.Functio
 	log.Printf("🔍 [ROUTING_DEBUG] Function: %s, FunctionGroup: %s, HTTPMethod: %s", funcDef.Name, funcDef.FunctionGroup, funcDef.HTTPMethod.String)
 
 	// Handle internal functions differently
-	if funcDef.FunctionGroup == "internal" {
+	if funcDef.FunctionGroup == FunctionGroupInternal {
 		log.Printf("🔍 [ROUTING_DEBUG] Routing %s to executeInternalFunction", funcDef.Name)
 		return c.executeInternalFunction(ctx, funcDef, args)
 	}
@@ -884,7 +901,7 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 	// Extract agent ID from args or current execution context
 	agentID, ok := args["agent_id"].(string)
 	// Treat placeholder/dummy values as invalid
-	isDummyAgent := agentID == "unknown" || agentID == "my_agent_id" || strings.HasPrefix(agentID, "dummy_")
+	isDummyAgent := agentID == StatusUnknown || agentID == "my_agent_id" || strings.HasPrefix(agentID, "dummy_")
 	log.Printf("🔍 DEBUG: agentID='%s', ok=%v, isDummyAgent=%v", agentID, ok, isDummyAgent)
 	if !ok || isDummyAgent {
 		if isDummyAgent {
@@ -1000,7 +1017,7 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 			switch functionName {
 			case "team_memory_read":
 				response, err = teamsHandler.ReadTeamMemory(ctx, teamID, agentID, userID, request)
-			case "team_memory_write":
+			case FunctionTeamMemoryWrite:
 				response, err = teamsHandler.WriteTeamMemory(ctx, teamID, agentID, userID, request)
 			case "team_memory_search":
 				response, err = teamsHandler.SearchTeamMemory(ctx, teamID, agentID, userID, request)
@@ -1315,7 +1332,7 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 						log.Printf("⚠️ Auto progress update after create failed: %v", perr)
 					}
 				}
-			case "team_task_claim":
+			case FunctionTeamTaskClaim:
 				// task_id is optional for claim - can auto-select if not provided
 				log.Printf("🔍 About to call ClaimTeamTask with teamID=%s, agentID=%s, userID=%s, taskID=%s", teamID, agentID, userID, taskRequest.TaskID)
 				taskResponse, err = teamsHandler.ClaimTeamTask(ctx, teamID, agentID, userID, taskRequest)
@@ -1351,7 +1368,7 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 						log.Printf("⚠️ Auto progress clear after completion failed: %v", cerr)
 					}
 				}
-			case "team_task_list":
+			case FunctionTeamTaskList:
 				taskResponse, err = teamsHandler.ListTeamTasks(ctx, teamID, agentID, userID, taskRequest)
 			case "team_task_error":
 				// task_id is required for error reporting
@@ -1667,13 +1684,13 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 	var err error
 
 	switch functionName {
-	case "agent_memory_read":
+	case FunctionAgentMemoryRead:
 		response, err = agentsHandler.ReadMemory(ctx, agentID, userID, request)
-	case "agent_memory_write":
+	case FunctionAgentMemoryWrite:
 		response, err = agentsHandler.WriteMemory(ctx, agentID, userID, request)
 	case "agent_memory_search":
 		response, err = agentsHandler.SearchMemory(ctx, agentID, userID, request)
-	case "agent_memory_clear":
+	case FunctionAgentMemoryClear:
 		response, err = agentsHandler.ClearMemory(ctx, agentID, userID, request)
 	default:
 		return nil, fmt.Errorf("unsupported internal function: %s", functionName)
@@ -1709,7 +1726,7 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 // createMockMemoryResponse creates mock responses for memory functions when no agent context is available
 func (c *Client) createMockMemoryResponse(functionName string, args map[string]interface{}) map[string]interface{} {
 	switch functionName {
-	case "agent_memory_write":
+	case FunctionAgentMemoryWrite:
 		return map[string]interface{}{
 			"success":       true,
 			"function_name": functionName,
@@ -1723,7 +1740,7 @@ func (c *Client) createMockMemoryResponse(functionName string, args map[string]i
 			},
 			"message": "Memory function called in non-agent execution - no data stored",
 		}
-	case "agent_memory_read":
+	case FunctionAgentMemoryRead:
 		return map[string]interface{}{
 			"success":       true,
 			"function_name": functionName,
@@ -1751,7 +1768,7 @@ func (c *Client) createMockMemoryResponse(functionName string, args map[string]i
 			},
 			"message": "Memory function called in non-agent execution - no data to search",
 		}
-	case "agent_memory_clear":
+	case FunctionAgentMemoryClear:
 		return map[string]interface{}{
 			"success":       true,
 			"function_name": functionName,
@@ -1994,7 +2011,7 @@ func (c *Client) executeIntegrationFunction(ctx context.Context, funcDef *db.Fun
 // createIntegrationResultSummary creates a summary of integration execution results
 func (c *Client) createIntegrationResultSummary(functionName string, result map[string]interface{}) string {
 	if result == nil {
-		return "No data returned"
+		return ResponseNoData
 	}
 
 	// Check for integration response structure
@@ -2004,7 +2021,7 @@ func (c *Client) createIntegrationResultSummary(functionName string, result map[
 				switch functionName {
 				case "github_read_issues", "github_read_commits", "github_read_code", "github_search_code":
 					return fmt.Sprintf("GitHub API success - data type: %T", data)
-				case "slack_find_channel", "slack_read_messages", "slack_send_message":
+				case "slack_find_channel", FunctionSlackReadMessages, "slack_send_message":
 					return fmt.Sprintf("Slack API success - data type: %T", data)
 				default:
 					return fmt.Sprintf("API success - data type: %T", data)
@@ -2033,7 +2050,7 @@ func (c *Client) getMapKeysFromResult(result map[string]interface{}) []string {
 }
 
 // executeGitHubBranchUpdatePRWorkflow executes the complete GitHub branch-update-PR workflow
-func (c *Client) executeGitHubBranchUpdatePRWorkflow(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+func (c *Client) executeGitHubBranchUpdatePRWorkflow(ctx context.Context, _ *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
 	// Extract required parameters
 	owner, _ := args["owner"].(string)
 	repo, _ := args["repo"].(string)
@@ -2261,27 +2278,27 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 		functionName,
 		func() string {
 			if effectiveKeys.SlackBotToken != "" {
-				return "PRESENT"
+				return StatusPresent
 			}
-			return "MISSING"
+			return StatusMissing
 		}(),
 		func() string {
 			if effectiveKeys.GithubAPIKey != "" {
-				return "PRESENT"
+				return StatusPresent
 			}
-			return "MISSING"
+			return StatusMissing
 		}(),
 		func() string {
 			if effectiveKeys.GeminiAPIKey != "" {
-				return "PRESENT"
+				return StatusPresent
 			}
-			return "MISSING"
+			return StatusMissing
 		}(),
 		func() string {
 			if effectiveKeys.GoogleDriveAPIKey != "" {
-				return "PRESENT"
+				return StatusPresent
 			}
-			return "MISSING"
+			return StatusMissing
 		}())
 
 	// Apply function-specific headers from database first
@@ -2390,12 +2407,12 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 	apiType := func() string {
 		if funcDef.FunctionGroup == "github" {
 			return "GitHub"
-		} else if funcDef.FunctionGroup == "communication" {
+		} else if funcDef.FunctionGroup == FunctionGroupCommunication {
 			return "Slack"
 		} else if funcDef.FunctionGroup == "googledrive" {
 			return "Google Drive"
 		}
-		return "API"
+		return FunctionGroupAPI
 	}()
 
 	log.Printf("🌐 %s API response: %d status, %d bytes, %dms", apiType, resp.StatusCode, len(body), executionTimeMs)
@@ -2416,7 +2433,7 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 		apiName := "API"
 		if funcDef.FunctionGroup == "github" {
 			apiName = "GitHub API"
-		} else if funcDef.FunctionGroup == "communication" {
+		} else if funcDef.FunctionGroup == FunctionGroupCommunication {
 			apiName = "Slack API"
 		} else if funcDef.FunctionGroup == "googledrive" {
 			apiName = "Google Drive API"
@@ -2498,7 +2515,7 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 				log.Printf("✅ Retrieved single file: %s", codeData["name"])
 			} else if directoryItems, ok := responseData.([]interface{}); ok {
 				// Directory listing response
-				result["type"] = "dir"
+				result["type"] = FileTypeDir
 				result["items"] = directoryItems
 				result["total_count"] = len(directoryItems)
 				log.Printf("✅ Retrieved directory with %d items", len(directoryItems))
@@ -2574,7 +2591,7 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 				result["content"] = responseData
 				log.Printf("✅ Retrieved file content (non-text format)")
 			}
-		case "googledrive_search_files":
+		case FunctionGoogleDriveSearchFiles:
 			if searchData, ok := responseData.(map[string]interface{}); ok {
 				if files, exists := searchData["files"].([]interface{}); exists {
 					result["files"] = files
@@ -3485,38 +3502,6 @@ func (c *Client) GetExecutionFlowGraphByConfiguration(ctx context.Context, userI
 }
 
 // Helper functions for type conversions
-func (c *Client) parseFloat32FromNullString(ns sql.NullString) *float32 {
-	if !ns.Valid {
-		return nil
-	}
-	if f, err := parseFloat32(ns.String); err == nil {
-		return &f
-	}
-	return nil
-}
-
-func (c *Client) parseInt32FromNullInt32(ni sql.NullInt32) *int32 {
-	if !ni.Valid {
-		return nil
-	}
-	return &ni.Int32
-}
-
-func (c *Client) parseJSONToTools(raw json.RawMessage) []types.Tool {
-	var tools []types.Tool
-	if len(raw) > 0 {
-		json.Unmarshal(raw, &tools)
-	}
-	return tools
-}
-
-func (c *Client) parseJSONToMap(raw json.RawMessage) map[string]interface{} {
-	var result map[string]interface{}
-	if len(raw) > 0 {
-		json.Unmarshal(raw, &result)
-	}
-	return result
-}
 
 // Helper functions for execution flow graph
 func (c *Client) getExecutionFlowEvents(ctx context.Context, executionRunID string) ([]types.ExecutionFlowEvent, error) {
@@ -3899,11 +3884,11 @@ func (c *Client) buildGoogleDriveAPIURL(functionName string, args map[string]int
 		return apiURL, nil
 
 	case "googledrive_get_file":
-		fileId, ok := args["fileId"].(string)
-		if !ok || fileId == "" {
+		fileID, ok := args["fileId"].(string)
+		if !ok || fileID == "" {
 			return "", fmt.Errorf("fileId parameter is required for googledrive_get_file")
 		}
-		apiURL := baseURL + "/files/" + url.QueryEscape(fileId)
+		apiURL := baseURL + "/files/" + url.QueryEscape(fileID)
 		params := []string{}
 
 		if fields, ok := args["fields"].(string); ok && fields != "" {
@@ -3934,11 +3919,11 @@ func (c *Client) buildGoogleDriveAPIURL(functionName string, args map[string]int
 		return apiURL, nil
 
 	case "googledrive_get_file_content":
-		fileId, ok := args["fileId"].(string)
-		if !ok || fileId == "" {
+		fileID, ok := args["fileId"].(string)
+		if !ok || fileID == "" {
 			return "", fmt.Errorf("fileId parameter is required for googledrive_get_file_content")
 		}
-		apiURL := baseURL + "/files/" + url.QueryEscape(fileId)
+		apiURL := baseURL + "/files/" + url.QueryEscape(fileID)
 		params := []string{}
 
 		if alt, ok := args["alt"].(string); ok && alt != "" {
@@ -3956,7 +3941,7 @@ func (c *Client) buildGoogleDriveAPIURL(functionName string, args map[string]int
 		}
 		return apiURL, nil
 
-	case "googledrive_search_files":
+	case FunctionGoogleDriveSearchFiles:
 		q, ok := args["q"].(string)
 		if !ok || q == "" {
 			return "", fmt.Errorf("q parameter is required for googledrive_search_files")
