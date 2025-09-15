@@ -12,7 +12,7 @@ import (
 )
 
 // InitializeTeamMemory creates a new empty memory structure for a team
-func (h *Handler) InitializeTeamMemory(teamID string) (*types.TeamMemory, error) {
+func (h *Handler) InitializeTeamMemory(_ string) (*types.TeamMemory, error) {
 	now := time.Now()
 	memory := &types.TeamMemory{
 		Version: "1.0",
@@ -35,7 +35,7 @@ func (h *Handler) InitializeTeamMemory(teamID string) (*types.TeamMemory, error)
 }
 
 // ReadTeamMemory retrieves memory data for a team with optional filtering
-func (h *Handler) ReadTeamMemory(ctx context.Context, teamID, agentID, userID string, request *types.TeamMemoryRequest) (*types.TeamMemoryResponse, error) {
+func (h *Handler) ReadTeamMemory(_ context.Context, teamID, agentID, userID string, request *types.TeamMemoryRequest) (*types.TeamMemoryResponse, error) {
 	// Validate access - either agent membership or team ownership
 	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
 	if err != nil {
@@ -121,7 +121,7 @@ func (h *Handler) ReadTeamMemory(ctx context.Context, teamID, agentID, userID st
 }
 
 // WriteTeamMemory stores or updates memory data for a team
-func (h *Handler) WriteTeamMemory(ctx context.Context, teamID, agentID, userID string, request *types.TeamMemoryRequest) (*types.TeamMemoryResponse, error) {
+func (h *Handler) WriteTeamMemory(_ context.Context, teamID, agentID, userID string, request *types.TeamMemoryRequest) (*types.TeamMemoryResponse, error) {
 	// Validate access - either agent membership or team ownership
 	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
 	if err != nil {
@@ -552,13 +552,13 @@ func (h *Handler) clearContext(memory *types.TeamMemory, contextName string) err
 	return nil
 }
 
-func (h *Handler) clearPath(memory *types.TeamMemory, path string) error {
+func (h *Handler) clearPath(_ *types.TeamMemory, path string) error {
 	// Implementation for clearing specific paths
 	// This would need to traverse the memory structure and remove the specified path
 	return fmt.Errorf("clear path not implemented yet")
 }
 
-func (h *Handler) compactMemory(memory *types.TeamMemory) error {
+func (h *Handler) compactMemory(_ *types.TeamMemory) error {
 	// Implementation for memory compaction
 	// This could remove empty contexts, optimize storage, etc.
 	return nil

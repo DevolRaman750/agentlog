@@ -426,7 +426,7 @@ func (g *Integration) decodeFileContent(fileData map[string]interface{}) map[str
 }
 
 // encodeFileContent encodes file content as Base64 for GitHub API requests
-func (g *Integration) encodeFileContent(req *http.Request, args map[string]interface{}) error {
+func (g *Integration) encodeFileContent(req *http.Request, _ map[string]interface{}) error {
 	// Read the current request body
 	if req.Body == nil {
 		return fmt.Errorf("no request body to encode")
@@ -513,7 +513,7 @@ func (g *Integration) handleUpdateFileOnBranch(ctx context.Context, req *http.Re
 }
 
 // handleBranchUpdatePRWorkflow handles the complete branch creation, file update, and PR creation workflow
-func (g *Integration) handleBranchUpdatePRWorkflow(ctx context.Context, req *http.Request, funcDef *db.FunctionDefinition, args map[string]interface{}) error {
+func (g *Integration) handleBranchUpdatePRWorkflow(ctx context.Context, req *http.Request, _ *db.FunctionDefinition, args map[string]interface{}) error {
 	// Extract required parameters
 	owner, _ := args["owner"].(string)
 	repo, _ := args["repo"].(string)

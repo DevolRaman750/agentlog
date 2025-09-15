@@ -633,7 +633,7 @@ func runMigrations(db *sql.DB) error {
 }
 
 // Helper function to insert test agent
-func (h *TeamsHandler) insertAgent(agent *types.Agent) error {
+func (h *Handler) insertAgent(agent *types.Agent) error {
 	query := `
 		INSERT INTO agents (id, user_id, team_id, first_name, last_name, template_id, max_tokens_per_day, tokens_used_today, tokens_reset_date, total_executions, lifecycle_status, heartbeat_minutes, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)

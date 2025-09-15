@@ -243,7 +243,7 @@ func (sm *SynthesisManager) hasSignificantErrors(results []map[string]interface{
 }
 
 // GetSynthesisPromptSuffix returns guidance following Gemini function calling best practices
-func (sm *SynthesisManager) GetSynthesisPromptSuffix(decision *SynthesisDecision, providerType string) string {
+func (sm *SynthesisManager) GetSynthesisPromptSuffix(decision *SynthesisDecision, _ string) string {
 	if decision.ForceCompletion {
 		return "\n\n**COMPLETION REQUIRED:** Please provide your final response using the information you've gathered. Focus on the user's primary request."
 	}

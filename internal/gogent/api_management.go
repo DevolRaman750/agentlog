@@ -248,7 +248,7 @@ func (c *Client) LogFunctionCall(ctx context.Context, call *types.FunctionCall) 
 }
 
 // ListAPIConfigurationsByUser lists API configurations for a user
-func (c *Client) ListAPIConfigurationsByUser(ctx context.Context, userID string, limit, offset int32) ([]types.APIConfiguration, error) {
+func (c *Client) ListAPIConfigurationsByUser(ctx context.Context, userID string, _ int32, _ int32) ([]types.APIConfiguration, error) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 

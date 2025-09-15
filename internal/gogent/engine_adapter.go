@@ -29,7 +29,7 @@ func (s *engineStore) LogAPIResponse(ctx context.Context, userID string, resp *t
 // engineLogger adapts flow event logging
 type engineLogger struct{ c *Client }
 
-func (l *engineLogger) FlowEvent(name string, seq int, status string, payload map[string]interface{}) {
+func (l *engineLogger) FlowEvent(name string, _ int, status string, payload map[string]interface{}) {
 	// Reuse client's flow event logger; sequence numbers are managed by client
 	l.c.logExecutionFlowEvent(name, l.c.getNextSequenceNumber(), status, nil, payload, nil, nil)
 }

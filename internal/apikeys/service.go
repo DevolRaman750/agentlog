@@ -729,7 +729,7 @@ func (s *Service) GetFunctionGroupAPIKeyStatus(ctx context.Context, userID strin
 	return nil, fmt.Errorf("get function group API key status not yet implemented")
 }
 
-func (s *Service) GetAPIKeyStatistics(ctx context.Context, userID string) (*types.APIKeyStatistics, error) {
+func (s *Service) GetAPIKeyStatistics(_ context.Context, userID string) (*types.APIKeyStatistics, error) {
 	// For now, return not implemented
 	return nil, fmt.Errorf("get API key statistics not yet implemented")
 }

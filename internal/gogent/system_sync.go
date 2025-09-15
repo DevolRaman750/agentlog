@@ -86,7 +86,7 @@ func (c *Client) syncProviders(ctx context.Context) error {
 	}
 
 	// Walk through provider JSON files
-	err := filepath.WalkDir(providersDir, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(providersDir, func(path string, _ fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -138,7 +138,7 @@ func (c *Client) syncFunctions(ctx context.Context) error {
 	}
 
 	// Walk through function JSON files
-	err := filepath.WalkDir(functionsDir, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(functionsDir, func(path string, _ fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -376,7 +376,7 @@ func (c *Client) syncSystemModelConfigurations(ctx context.Context) error {
 	}
 
 	// Walk through model JSON files
-	err := filepath.WalkDir(modelsDir, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(modelsDir, func(path string, _ fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -549,7 +549,7 @@ func (c *Client) syncExecutionTemplates(ctx context.Context) error {
 	}
 
 	// Walk through template JSON files
-	err := filepath.WalkDir(templatesDir, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(templatesDir, func(path string, _ fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}

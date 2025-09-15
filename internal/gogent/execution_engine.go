@@ -1122,7 +1122,7 @@ func (c *Client) createFallbackSummary(functionCalls []ResponsePart, functionRes
 }
 
 // processIterativeFunctionCalls handles function calls with proper dependency support
-func (c *Client) processIterativeFunctionCalls(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest, functionCalls []ResponsePart, originalPrompt string) (string, map[string]interface{}) {
+func (c *Client) processIterativeFunctionCalls(ctx context.Context, _ *types.APIConfiguration, _ *types.APIRequest, functionCalls []ResponsePart, originalPrompt string) (string, map[string]interface{}) {
 	log.Printf("🔧 Starting iterative function calling with %d initial function(s)", len(functionCalls))
 
 	// For now, execute all function calls and provide a basic summary
@@ -2417,7 +2417,7 @@ func (c *Client) detectGeminiLoopPattern(functionCalls []ResponsePart, depth int
 }
 
 // detectTaskCompletion determines if we have enough data to complete the user's task
-func (c *Client) detectTaskCompletion(functionCalls []ResponsePart, functionResults []map[string]interface{}, depth int, originalPrompt string) bool {
+func (c *Client) detectTaskCompletion(functionCalls []ResponsePart, _ []map[string]interface{}, depth int, _ string) bool {
 	// Safety net only at very high depth to prevent runaway execution
 	if depth >= 10 {
 		log.Printf("🛑 Gemini safety net: Force completion at depth %d to prevent runaway execution", depth)
