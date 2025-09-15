@@ -16,14 +16,14 @@ import (
 // TestGitHubWorkflowFunctions tests the new composite workflow functions
 func TestGitHubWorkflowFunctions(t *testing.T) {
 	// Create test integration
-	integration := NewIntegration(&types.SessionApiKeys{
-		GithubApiKey: "test-token",
+	integration := NewIntegration(&types.SessionAPIKeys{
+		GithubAPIKey: "test-token",
 	})
 
 	t.Run("github_update_file_on_branch_validation", func(t *testing.T) {
 		funcDef := &db.FunctionDefinition{
 			Name:       "github_update_file_on_branch",
-			HttpMethod: sql.NullString{String: "PUT", Valid: true},
+			HTTPMethod: sql.NullString{String: "PUT", Valid: true},
 		}
 
 		tests := []struct {
@@ -96,7 +96,7 @@ func TestGitHubWorkflowFunctions(t *testing.T) {
 		}
 		funcDef := &db.FunctionDefinition{
 			Name:       "github_branch_update_pr_workflow",
-			HttpMethod: sql.NullString{String: "POST", Valid: true},
+			HTTPMethod: sql.NullString{String: "POST", Valid: true},
 		}
 
 		req := httptest.NewRequest("POST", "/test", nil)
@@ -123,8 +123,8 @@ func TestGitHubWorkflowFunctions(t *testing.T) {
 
 // TestGitHubWorkflowIntegration tests the integration with the main workflow
 func TestGitHubWorkflowIntegration(t *testing.T) {
-	integration := NewIntegration(&types.SessionApiKeys{
-		GithubApiKey: "test-token",
+	integration := NewIntegration(&types.SessionAPIKeys{
+		GithubAPIKey: "test-token",
 	})
 
 	t.Run("function_validation", func(t *testing.T) {
@@ -228,8 +228,8 @@ func TestGitHubSHARetrieval(t *testing.T) {
 	}))
 	defer server.Close()
 
-	integration := NewIntegration(&types.SessionApiKeys{
-		GithubApiKey: "test-token",
+	integration := NewIntegration(&types.SessionAPIKeys{
+		GithubAPIKey: "test-token",
 	})
 	integration.baseURL = server.URL
 

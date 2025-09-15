@@ -16,17 +16,17 @@ import (
 )
 
 // TeamsHandler handles all team-related HTTP requests
-type TeamsHandler struct {
+type Handler struct {
 	db *sql.DB
 }
 
 // NewTeamsHandler creates a new teams handler
-func NewTeamsHandler(db *sql.DB) *TeamsHandler {
-	return &TeamsHandler{db: db}
+func NewTeamsHandler(db *sql.DB) *Handler {
+	return &Handler{db: db}
 }
 
 // HandleTeams handles operations on the base /api/teams endpoint
-func (h *TeamsHandler) HandleTeams(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleTeams(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		h.listTeams(w, r)
@@ -43,7 +43,7 @@ func (h *TeamsHandler) HandleTeams(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleTeamByID handles operations on specific teams at /api/teams/{id} and sub-routes
-func (h *TeamsHandler) HandleTeamByID(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleTeamByID(w http.ResponseWriter, r *http.Request) {
 	// Extract team ID from URL path
 	pathParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 	if len(pathParts) < 3 {
@@ -94,7 +94,7 @@ func (h *TeamsHandler) HandleTeamByID(w http.ResponseWriter, r *http.Request) {
 }
 
 // listTeams retrieves all teams for the authenticated user
-func (h *TeamsHandler) listTeams(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) listTeams(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -115,7 +115,7 @@ func (h *TeamsHandler) listTeams(w http.ResponseWriter, r *http.Request) {
 }
 
 // createTeam creates a new team
-func (h *TeamsHandler) createTeam(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) createTeam(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -160,7 +160,7 @@ func (h *TeamsHandler) createTeam(w http.ResponseWriter, r *http.Request) {
 }
 
 // createTeamWithAgents creates a new team with associated agents
-func (h *TeamsHandler) createTeamWithAgents(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) createTeamWithAgents(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -302,7 +302,7 @@ func (h *TeamsHandler) createTeamWithAgents(w http.ResponseWriter, r *http.Reque
 }
 
 // getTeam retrieves a specific team
-func (h *TeamsHandler) getTeam(w http.ResponseWriter, r *http.Request, teamID string) {
+func (h *Handler) getTeam(w http.ResponseWriter, r *http.Request, teamID string) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -324,7 +324,7 @@ func (h *TeamsHandler) getTeam(w http.ResponseWriter, r *http.Request, teamID st
 }
 
 // updateTeam updates a team
-func (h *TeamsHandler) updateTeam(w http.ResponseWriter, r *http.Request, teamID string) {
+func (h *Handler) updateTeam(w http.ResponseWriter, r *http.Request, teamID string) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -356,7 +356,7 @@ func (h *TeamsHandler) updateTeam(w http.ResponseWriter, r *http.Request, teamID
 }
 
 // deleteTeam deletes a team
-func (h *TeamsHandler) deleteTeam(w http.ResponseWriter, r *http.Request, teamID string) {
+func (h *Handler) deleteTeam(w http.ResponseWriter, r *http.Request, teamID string) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -378,7 +378,7 @@ func (h *TeamsHandler) deleteTeam(w http.ResponseWriter, r *http.Request, teamID
 }
 
 // handleTeamAgents handles /api/teams/{id}/agents
-func (h *TeamsHandler) handleTeamAgents(w http.ResponseWriter, r *http.Request, teamID string) {
+func (h *Handler) handleTeamAgents(w http.ResponseWriter, r *http.Request, teamID string) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -406,7 +406,7 @@ func (h *TeamsHandler) handleTeamAgents(w http.ResponseWriter, r *http.Request, 
 }
 
 // handleTeamAgentAssignment handles /api/teams/{id}/agents/{agentId}
-func (h *TeamsHandler) handleTeamAgentAssignment(w http.ResponseWriter, r *http.Request, teamID, agentID string) {
+func (h *Handler) handleTeamAgentAssignment(w http.ResponseWriter, r *http.Request, teamID, agentID string) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -434,7 +434,7 @@ func (h *TeamsHandler) handleTeamAgentAssignment(w http.ResponseWriter, r *http.
 }
 
 // pauseAllTeamAgents pauses all active agents in a team
-func (h *TeamsHandler) pauseAllTeamAgents(w http.ResponseWriter, r *http.Request, teamID string) {
+func (h *Handler) pauseAllTeamAgents(w http.ResponseWriter, r *http.Request, teamID string) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -460,7 +460,7 @@ func (h *TeamsHandler) pauseAllTeamAgents(w http.ResponseWriter, r *http.Request
 }
 
 // resumeAllTeamAgents resumes all paused agents in a team
-func (h *TeamsHandler) resumeAllTeamAgents(w http.ResponseWriter, r *http.Request, teamID string) {
+func (h *Handler) resumeAllTeamAgents(w http.ResponseWriter, r *http.Request, teamID string) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -486,7 +486,7 @@ func (h *TeamsHandler) resumeAllTeamAgents(w http.ResponseWriter, r *http.Reques
 }
 
 // getTeamStats retrieves statistics for a team
-func (h *TeamsHandler) getTeamStats(w http.ResponseWriter, r *http.Request, teamID string) {
+func (h *Handler) getTeamStats(w http.ResponseWriter, r *http.Request, teamID string) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -513,7 +513,7 @@ func (h *TeamsHandler) getTeamStats(w http.ResponseWriter, r *http.Request, team
 }
 
 // handleTeamMemory handles team memory operations
-func (h *TeamsHandler) handleTeamMemory(w http.ResponseWriter, r *http.Request, teamID string, pathParts []string) {
+func (h *Handler) handleTeamMemory(w http.ResponseWriter, r *http.Request, teamID string, pathParts []string) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -606,7 +606,7 @@ func (h *TeamsHandler) handleTeamMemory(w http.ResponseWriter, r *http.Request, 
 }
 
 // validateTeamWithAgentsCreateRequest validates the team with agents creation request
-func (h *TeamsHandler) validateTeamWithAgentsCreateRequest(req *types.TeamWithAgentsCreateRequest) error {
+func (h *Handler) validateTeamWithAgentsCreateRequest(req *types.TeamWithAgentsCreateRequest) error {
 	if req.Name == "" {
 		return fmt.Errorf("name is required")
 	}
@@ -649,7 +649,7 @@ func (h *TeamsHandler) validateTeamWithAgentsCreateRequest(req *types.TeamWithAg
 }
 
 // getTemplateByIDTx retrieves a template by ID within a transaction
-func (h *TeamsHandler) getTemplateByIDTx(tx *sql.Tx, templateID string) (*types.ExecutionTemplate, error) {
+func (h *Handler) getTemplateByIDTx(tx *sql.Tx, templateID string) (*types.ExecutionTemplate, error) {
 	query := `
 		SELECT id, name, description, template_prompt, context_template,
 		       enable_function_calling, preferred_configuration_id, is_active, user_id, created_at, updated_at
@@ -702,7 +702,7 @@ func (h *TeamsHandler) getTemplateByIDTx(tx *sql.Tx, templateID string) (*types.
 }
 
 // handleTeamContextOperations handles team context update operations
-func (h *TeamsHandler) handleTeamContextOperations(w http.ResponseWriter, r *http.Request, teamID string) {
+func (h *Handler) handleTeamContextOperations(w http.ResponseWriter, r *http.Request, teamID string) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -736,7 +736,7 @@ func (h *TeamsHandler) handleTeamContextOperations(w http.ResponseWriter, r *htt
 }
 
 // updateTeamContextForAllAgents updates the effective context for all agents in a team
-func (h *TeamsHandler) updateTeamContextForAllAgents(teamID, userID string, sharedContext *string) error {
+func (h *Handler) updateTeamContextForAllAgents(teamID, userID string, sharedContext *string) error {
 	// Start transaction
 	tx, err := h.db.Begin()
 	if err != nil {
@@ -783,7 +783,7 @@ func (h *TeamsHandler) updateTeamContextForAllAgents(teamID, userID string, shar
 }
 
 // getTeamAgentsTx retrieves all agents in a team within a transaction
-func (h *TeamsHandler) getTeamAgentsTx(tx *sql.Tx, teamID, userID string) ([]types.Agent, error) {
+func (h *Handler) getTeamAgentsTx(tx *sql.Tx, teamID, userID string) ([]types.Agent, error) {
 	query := `
 		SELECT id, user_id, first_name, last_name, template_id, team_id,
 		       max_tokens_per_day, heartbeat_minutes, lifecycle_status,
@@ -840,7 +840,7 @@ func (h *TeamsHandler) getTeamAgentsTx(tx *sql.Tx, teamID, userID string) ([]typ
 }
 
 // updateAgentEffectiveContextTx updates an agent's effective context within a transaction
-func (h *TeamsHandler) updateAgentEffectiveContextTx(tx *sql.Tx, agentID string, effectiveContext *string) error {
+func (h *Handler) updateAgentEffectiveContextTx(tx *sql.Tx, agentID string, effectiveContext *string) error {
 	query := `UPDATE agents SET effective_context = ?, updated_at = NOW() WHERE id = ?`
 	_, err := tx.Exec(query, effectiveContext, agentID)
 	return err

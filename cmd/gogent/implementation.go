@@ -207,7 +207,7 @@ func (bl *BusinessLogic) GetCurrentUser() *auth.User {
 // EXECUTION MANAGEMENT
 // =============================================================================
 
-func (bl *BusinessLogic) StartExecution(request *types.MultiExecutionRequest, useMock bool, sessionApiKeys map[string]string) (string, *types.ExecutionRun, error) {
+func (bl *BusinessLogic) StartExecution(request *types.MultiExecutionRequest, useMock bool, sessionAPIKeys map[string]string) (string, *types.ExecutionRun, error) {
 	log.Printf("🚀 Starting execution: %s", request.ExecutionRunName)
 
 	// Generate execution run ID
@@ -234,7 +234,7 @@ func (bl *BusinessLogic) StartExecution(request *types.MultiExecutionRequest, us
 	}
 
 	// Start async execution with session API keys
-	go bl.runAsyncExecution(executionID, request, useMock, sessionApiKeys)
+	go bl.runAsyncExecution(executionID, request, useMock, sessionAPIKeys)
 
 	return executionID, executionRun, nil
 }
@@ -411,7 +411,7 @@ func (bl *BusinessLogic) ListFunctions(ctx context.Context) ([]*types.FunctionDe
 			&dbFunction.ParametersSchema,
 			&dbFunction.MockResponse,
 			&dbFunction.EndpointUrl,
-			&dbFunction.HttpMethod,
+			&dbFunction.HTTPMethod,
 			&dbFunction.Headers,
 			&dbFunction.AuthConfig,
 			&dbFunction.IsActive,
@@ -440,8 +440,8 @@ func (bl *BusinessLogic) ListFunctions(ctx context.Context) ([]*types.FunctionDe
 		if dbFunction.EndpointUrl.Valid {
 			function.EndpointURL = dbFunction.EndpointUrl.String
 		}
-		if dbFunction.HttpMethod.Valid {
-			function.HttpMethod = dbFunction.HttpMethod.String
+		if dbFunction.HTTPMethod.Valid {
+			function.HTTPMethod = dbFunction.HTTPMethod.String
 		}
 
 		// Handle JSON fields - no longer nullable after schema fix
@@ -479,7 +479,7 @@ func (bl *BusinessLogic) GetFunction(id string) (*types.FunctionDefinition, erro
 			DisplayName: "Get Weather",
 			Description: "Get current weather information for a location",
 			EndpointURL: "https://api.weather.com/v1/current",
-			HttpMethod:  "GET",
+			HTTPMethod:  "GET",
 			IsActive:    true,
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
@@ -619,7 +619,7 @@ func (bl *BusinessLogic) TestConnection() *types.APIResponse {
 // =============================================================================
 
 // runAsyncExecution runs the execution in a goroutine
-func (bl *BusinessLogic) runAsyncExecution(executionID string, request *types.MultiExecutionRequest, useMock bool, sessionApiKeys map[string]string) {
+func (bl *BusinessLogic) runAsyncExecution(executionID string, request *types.MultiExecutionRequest, useMock bool, sessionAPIKeys map[string]string) {
 	// Update status to running
 	bl.executionMutex.Lock()
 	if status, exists := bl.executions[executionID]; exists {
@@ -635,21 +635,21 @@ func (bl *BusinessLogic) runAsyncExecution(executionID string, request *types.Mu
 		TimeoutSecs: bl.config.TimeoutSecs,
 	}
 
-	// Convert session API keys map to SessionApiKeys struct
-	var sessionKeys *types.SessionApiKeys
-	if sessionApiKeys != nil {
-		sessionKeys = &types.SessionApiKeys{
-			GeminiApiKey:      sessionApiKeys["geminiApiKey"],
-			OpenWeatherApiKey: sessionApiKeys["openWeatherApiKey"],
-			Neo4jUrl:          sessionApiKeys["neo4jUrl"],
-			Neo4jUsername:     sessionApiKeys["neo4jUsername"],
-			Neo4jPassword:     sessionApiKeys["neo4jPassword"],
-			Neo4jDatabase:     sessionApiKeys["neo4jDatabase"],
-			GithubApiKey:      sessionApiKeys["githubApiKey"],
+	// Convert session API keys map to SessionAPIKeys struct
+	var sessionKeys *types.SessionAPIKeys
+	if sessionAPIKeys != nil {
+		sessionKeys = &types.SessionAPIKeys{
+			GeminiAPIKey:      sessionAPIKeys["geminiAPIKey"],
+			OpenWeatherAPIKey: sessionAPIKeys["openWeatherAPIKey"],
+			Neo4jURL:          sessionAPIKeys["neo4jUrl"],
+			Neo4jUsername:     sessionAPIKeys["neo4jUsername"],
+			Neo4jPassword:     sessionAPIKeys["neo4jPassword"],
+			Neo4jDatabase:     sessionAPIKeys["neo4jDatabase"],
+			GithubAPIKey:      sessionAPIKeys["githubAPIKey"],
 		}
 	}
 
-	if useMock || (sessionKeys == nil || sessionKeys.GeminiApiKey == "") {
+	if useMock || (sessionKeys == nil || sessionKeys.GeminiAPIKey == "") {
 		log.Printf("Using mock mode for execution (no Gemini API key)")
 	} else {
 		log.Printf("Using real Gemini API for execution")
@@ -666,7 +666,7 @@ func (bl *BusinessLogic) runAsyncExecution(executionID string, request *types.Mu
 
 	// Load API keys from database for this user
 	ctx := context.Background()
-	if loadErr := tempClient.LoadDatabaseApiKeys(ctx, bl.userID); loadErr != nil {
+	if loadErr := tempClient.LoadDatabaseAPIKeys(ctx, bl.userID); loadErr != nil {
 		log.Printf("⚠️ Failed to load API keys from database: %v", loadErr)
 		// Continue execution - the client will use mock responses if no keys available
 	}

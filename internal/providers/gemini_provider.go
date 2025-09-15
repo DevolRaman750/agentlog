@@ -12,7 +12,7 @@ import (
 
 // GeminiProvider implements the ModelProvider interface for Google Gemini models
 type GeminiProvider struct {
-	client *gemini.GeminiClient
+	client *gemini.Client
 }
 
 // NewGeminiProvider creates a new Gemini provider instance

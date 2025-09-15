@@ -22,13 +22,13 @@ import (
 // Integration implements the GitHub API integration
 type Integration struct {
 	baseURL     string
-	apiKeys     *types.SessionApiKeys // Legacy support
+	apiKeys     *types.SessionAPIKeys // Legacy support
 	authService *apiauth.Service
 	userID      string
 }
 
 // NewIntegration creates a new GitHub integration
-func NewIntegration(apiKeys *types.SessionApiKeys) *Integration {
+func NewIntegration(apiKeys *types.SessionAPIKeys) *Integration {
 	return &Integration{
 		baseURL: "https://api.github.com",
 		apiKeys: apiKeys,
@@ -69,8 +69,8 @@ func (g *Integration) BuildURL(funcDef *db.FunctionDefinition, args map[string]i
 
 		// For GET requests, add remaining parameters as query parameters
 		httpMethod := "GET"
-		if funcDef.HttpMethod.Valid {
-			httpMethod = funcDef.HttpMethod.String
+		if funcDef.HTTPMethod.Valid {
+			httpMethod = funcDef.HTTPMethod.String
 		}
 
 		if httpMethod == "GET" {
@@ -255,8 +255,8 @@ func (g *Integration) PrepareRequest(ctx context.Context, req *http.Request, fun
 	}
 
 	// Legacy authentication fallback
-	if g.apiKeys != nil && g.apiKeys.GithubApiKey != "" {
-		req.Header.Set("Authorization", "token "+g.apiKeys.GithubApiKey)
+	if g.apiKeys != nil && g.apiKeys.GithubAPIKey != "" {
+		req.Header.Set("Authorization", "token "+g.apiKeys.GithubAPIKey)
 		req.Header.Set("Accept", "application/vnd.github+json")
 		req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
 		req.Header.Set("User-Agent", "GoGent/1.0")
@@ -607,8 +607,8 @@ func (g *Integration) getFileSHAFromBranch(ctx context.Context, owner, repo, pat
 				req.Header.Set(key, value)
 			}
 		}
-	} else if g.apiKeys != nil && g.apiKeys.GithubApiKey != "" {
-		req.Header.Set("Authorization", "token "+g.apiKeys.GithubApiKey)
+	} else if g.apiKeys != nil && g.apiKeys.GithubAPIKey != "" {
+		req.Header.Set("Authorization", "token "+g.apiKeys.GithubAPIKey)
 		req.Header.Set("Accept", "application/vnd.github+json")
 		req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
 		req.Header.Set("User-Agent", "GoGent/1.0")
@@ -848,8 +848,8 @@ func (g *Integration) applyAuth(ctx context.Context, req *http.Request) error {
 	}
 
 	// Legacy authentication fallback
-	if g.apiKeys != nil && g.apiKeys.GithubApiKey != "" {
-		req.Header.Set("Authorization", "token "+g.apiKeys.GithubApiKey)
+	if g.apiKeys != nil && g.apiKeys.GithubAPIKey != "" {
+		req.Header.Set("Authorization", "token "+g.apiKeys.GithubAPIKey)
 		req.Header.Set("Accept", "application/vnd.github+json")
 		req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
 		req.Header.Set("User-Agent", "GoGent/1.0")

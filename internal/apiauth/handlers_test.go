@@ -18,7 +18,7 @@ func TestGitHubPATHandler(t *testing.T) {
 	})
 
 	t.Run("GetAuthHeaders", func(t *testing.T) {
-		apiKey := &types.UserApiKey{
+		apiKey := &types.UserAPIKey{
 			AuthMode: "personal_access_token",
 			AuthConfig: map[string]interface{}{
 				"decrypted_token": "ghp_test1234567890abcdef1234567890abcdef",
@@ -35,7 +35,7 @@ func TestGitHubPATHandler(t *testing.T) {
 	})
 
 	t.Run("GetAuthHeaders_MissingToken", func(t *testing.T) {
-		apiKey := &types.UserApiKey{
+		apiKey := &types.UserAPIKey{
 			AuthMode:   "personal_access_token",
 			AuthConfig: map[string]interface{}{},
 		}
@@ -112,7 +112,7 @@ func TestSlackBotTokenHandler(t *testing.T) {
 	})
 
 	t.Run("GetAuthHeaders", func(t *testing.T) {
-		apiKey := &types.UserApiKey{
+		apiKey := &types.UserAPIKey{
 			AuthMode: "bot_token",
 			AuthConfig: map[string]interface{}{
 				"token": "xoxb-test-token-12345",
@@ -142,7 +142,7 @@ func TestGeminiAPIKeyHandler(t *testing.T) {
 	})
 
 	t.Run("GetAuthHeaders", func(t *testing.T) {
-		apiKey := &types.UserApiKey{
+		apiKey := &types.UserAPIKey{
 			AuthMode: "api_key",
 			AuthConfig: map[string]interface{}{
 				"api_key": "AIzaxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
@@ -200,7 +200,7 @@ func TestAuthResolver(t *testing.T) {
 	})
 
 	t.Run("ResolveAuth", func(t *testing.T) {
-		apiKey := &types.UserApiKey{
+		apiKey := &types.UserAPIKey{
 			ServiceName: "github",
 			AuthMode:    "personal_access_token",
 			AuthConfig: map[string]interface{}{

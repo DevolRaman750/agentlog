@@ -477,8 +477,8 @@ func (h *AgentsHandler) removeAgentFromTeam(agentID, userID string) error {
 	return nil
 }
 
-// getAgentApiKeys retrieves all API keys for an agent
-func (h *AgentsHandler) getAgentApiKeys(agentID string) ([]types.AgentApiKey, error) {
+// getAgentAPIKeys retrieves all API keys for an agent
+func (h *AgentsHandler) getAgentAPIKeys(agentID string) ([]types.AgentAPIKey, error) {
 	query := `
 		SELECT aak.id, aak.agent_id, aak.api_key_id, aak.is_default, aak.use_global_default,
 		       aak.priority, aak.created_at, aak.updated_at,
@@ -495,16 +495,16 @@ func (h *AgentsHandler) getAgentApiKeys(agentID string) ([]types.AgentApiKey, er
 	}
 	defer rows.Close()
 
-	var agentApiKeys []types.AgentApiKey
+	var agentAPIKeys []types.AgentAPIKey
 	for rows.Next() {
-		var agentApiKey types.AgentApiKey
+		var agentAPIKey types.AgentAPIKey
 		var serviceName, displayName, validationStatus sql.NullString
 		var isActive sql.NullBool
 
 		err := rows.Scan(
-			&agentApiKey.ID, &agentApiKey.AgentID, &agentApiKey.ApiKeyID,
-			&agentApiKey.IsDefault, &agentApiKey.UseGlobalDefault, &agentApiKey.Priority,
-			&agentApiKey.CreatedAt, &agentApiKey.UpdatedAt,
+			&agentAPIKey.ID, &agentAPIKey.AgentID, &agentAPIKey.APIKeyID,
+			&agentAPIKey.IsDefault, &agentAPIKey.UseGlobalDefault, &agentAPIKey.Priority,
+			&agentAPIKey.CreatedAt, &agentAPIKey.UpdatedAt,
 			&serviceName, &displayName, &validationStatus, &isActive,
 		)
 		if err != nil {
@@ -513,26 +513,26 @@ func (h *AgentsHandler) getAgentApiKeys(agentID string) ([]types.AgentApiKey, er
 
 		// Populate JOIN fields
 		if serviceName.Valid {
-			agentApiKey.ServiceName = serviceName.String
+			agentAPIKey.ServiceName = serviceName.String
 		}
 		if displayName.Valid {
-			agentApiKey.DisplayName = displayName.String
+			agentAPIKey.DisplayName = displayName.String
 		}
 		if validationStatus.Valid {
-			agentApiKey.ValidationStatus = validationStatus.String
+			agentAPIKey.ValidationStatus = validationStatus.String
 		}
 		if isActive.Valid {
-			agentApiKey.IsActive = isActive.Bool
+			agentAPIKey.IsActive = isActive.Bool
 		}
 
-		agentApiKeys = append(agentApiKeys, agentApiKey)
+		agentAPIKeys = append(agentAPIKeys, agentAPIKey)
 	}
 
-	return agentApiKeys, rows.Err()
+	return agentAPIKeys, rows.Err()
 }
 
-// insertAgentApiKey creates a new agent API key mapping
-func (h *AgentsHandler) insertAgentApiKey(agentApiKey *types.AgentApiKey) error {
+// insertAgentAPIKey creates a new agent API key mapping
+func (h *AgentsHandler) insertAgentAPIKey(agentAPIKey *types.AgentAPIKey) error {
 	query := `
 		INSERT INTO agent_api_keys (
 			id, agent_id, api_key_id, is_default, use_global_default,
@@ -541,15 +541,15 @@ func (h *AgentsHandler) insertAgentApiKey(agentApiKey *types.AgentApiKey) error 
 	`
 
 	_, err := h.db.Exec(query,
-		agentApiKey.ID, agentApiKey.AgentID, agentApiKey.ApiKeyID,
-		agentApiKey.IsDefault, agentApiKey.UseGlobalDefault, agentApiKey.Priority,
-		agentApiKey.CreatedAt, agentApiKey.UpdatedAt,
+		agentAPIKey.ID, agentAPIKey.AgentID, agentAPIKey.APIKeyID,
+		agentAPIKey.IsDefault, agentAPIKey.UseGlobalDefault, agentAPIKey.Priority,
+		agentAPIKey.CreatedAt, agentAPIKey.UpdatedAt,
 	)
 	return err
 }
 
-// updateAgentApiKeyFields updates specific fields of an agent API key mapping
-func (h *AgentsHandler) updateAgentApiKeyFields(agentID, mappingID string, req *types.AgentApiKeyUpdateRequest) error {
+// updateAgentAPIKeyFields updates specific fields of an agent API key mapping
+func (h *AgentsHandler) updateAgentAPIKeyFields(agentID, mappingID string, req *types.AgentAPIKeyUpdateRequest) error {
 	var setParts []string
 	var args []interface{}
 
@@ -599,8 +599,8 @@ func (h *AgentsHandler) updateAgentApiKeyFields(agentID, mappingID string, req *
 	return nil
 }
 
-// deleteAgentApiKey removes an agent API key mapping
-func (h *AgentsHandler) deleteAgentApiKey(agentID, mappingID string) error {
+// deleteAgentAPIKey removes an agent API key mapping
+func (h *AgentsHandler) deleteAgentAPIKey(agentID, mappingID string) error {
 	query := `DELETE FROM agent_api_keys WHERE agent_id = ? AND id = ?`
 
 	result, err := h.db.Exec(query, agentID, mappingID)
@@ -619,8 +619,8 @@ func (h *AgentsHandler) deleteAgentApiKey(agentID, mappingID string) error {
 	return nil
 }
 
-// verifyApiKeyAccess checks if an API key exists and is accessible to the user who owns the agent
-func (h *AgentsHandler) verifyApiKeyAccess(agentID, apiKeyID string) error {
+// verifyAPIKeyAccess checks if an API key exists and is accessible to the user who owns the agent
+func (h *AgentsHandler) verifyAPIKeyAccess(agentID, apiKeyID string) error {
 	query := `
 		SELECT a.user_id, ak.user_id 
 		FROM agents a, user_api_keys ak 
@@ -644,9 +644,9 @@ func (h *AgentsHandler) verifyApiKeyAccess(agentID, apiKeyID string) error {
 	return nil
 }
 
-// getAgentApiKeyConfiguration gets the complete API key configuration for an agent
+// getAgentAPIKeyConfiguration gets the complete API key configuration for an agent
 // Returns agent-specific keys where available, falling back to global user keys
-func (h *AgentsHandler) getAgentApiKeyConfiguration(ctx context.Context, agentID string) (*types.AgentApiKeyConfiguration, error) {
+func (h *AgentsHandler) getAgentAPIKeyConfiguration(ctx context.Context, agentID string) (*types.AgentAPIKeyConfiguration, error) {
 	// First get the agent to find the user ID
 	var userID string
 	err := h.db.QueryRowContext(ctx, "SELECT user_id FROM agents WHERE id = ?", agentID).Scan(&userID)
@@ -655,18 +655,18 @@ func (h *AgentsHandler) getAgentApiKeyConfiguration(ctx context.Context, agentID
 	}
 
 	// Get agent-specific API keys
-	agentApiKeys, err := h.getAgentApiKeys(agentID)
+	agentAPIKeys, err := h.getAgentAPIKeys(agentID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get agent API keys: %w", err)
 	}
 
 	// Load the actual API key details for agent-specific keys
-	serviceApiKeys := make(map[string]types.UserApiKey)
-	fallbackApiKeys := make(map[string]types.UserApiKey)
+	serviceAPIKeys := make(map[string]types.UserAPIKey)
+	fallbackAPIKeys := make(map[string]types.UserAPIKey)
 
-	for _, agentKey := range agentApiKeys {
+	for _, agentKey := range agentAPIKeys {
 		// Get the full API key details
-		var apiKey types.UserApiKey
+		var apiKey types.UserAPIKey
 		err := h.db.QueryRowContext(ctx, `
 			SELECT id, user_id, key_name, service_name, key_type, auth_mode, auth_config,
 			       encrypted_key_value, encryption_algorithm, encryption_key_version,
@@ -677,7 +677,7 @@ func (h *AgentsHandler) getAgentApiKeyConfiguration(ctx context.Context, agentID
 			       created_at, updated_at, created_by
 			FROM user_api_keys 
 			WHERE id = ? AND user_id = ? AND is_active = 1
-		`, agentKey.ApiKeyID, userID).Scan(
+		`, agentKey.APIKeyID, userID).Scan(
 			&apiKey.ID, &apiKey.UserID, &apiKey.KeyName, &apiKey.ServiceName,
 			&apiKey.KeyType, &apiKey.AuthMode, &apiKey.AuthConfig,
 			&apiKey.EncryptedKeyValue, &apiKey.EncryptionAlgorithm, &apiKey.EncryptionKeyVersion,
@@ -690,50 +690,50 @@ func (h *AgentsHandler) getAgentApiKeyConfiguration(ctx context.Context, agentID
 			&apiKey.CreatedAt, &apiKey.UpdatedAt, &apiKey.CreatedBy)
 
 		if err != nil {
-			fmt.Printf("⚠️ Failed to load API key %s for agent %s: %v\n", agentKey.ApiKeyID, agentID, err)
+			fmt.Printf("⚠️ Failed to load API key %s for agent %s: %v\n", agentKey.APIKeyID, agentID, err)
 			continue
 		}
 
 		// Add to agent-specific keys
-		serviceApiKeys[apiKey.ServiceName] = apiKey
+		serviceAPIKeys[apiKey.ServiceName] = apiKey
 
 		// If useGlobalDefault is enabled, we'll need to get the global fallback later
 		if agentKey.UseGlobalDefault {
 			// Mark that this service should have a fallback
-			fallbackApiKeys[apiKey.ServiceName] = types.UserApiKey{}
+			fallbackAPIKeys[apiKey.ServiceName] = types.UserAPIKey{}
 		}
 	}
 
 	// Get global user API keys for services not covered by agent-specific keys
 	// and for fallback keys where useGlobalDefault is true
-	userApiKeys, err := h.getUserGlobalApiKeys(ctx, userID)
+	userAPIKeys, err := h.getUserGlobalAPIKeys(ctx, userID)
 	if err != nil {
 		fmt.Printf("⚠️ Failed to load global user API keys for user %s: %v\n", userID, err)
 		// Continue with just agent-specific keys
 	} else {
 		// Fill in missing services with global keys
-		for serviceName, globalKey := range userApiKeys {
-			if _, hasAgentSpecific := serviceApiKeys[serviceName]; !hasAgentSpecific {
-				serviceApiKeys[serviceName] = globalKey
+		for serviceName, globalKey := range userAPIKeys {
+			if _, hasAgentSpecific := serviceAPIKeys[serviceName]; !hasAgentSpecific {
+				serviceAPIKeys[serviceName] = globalKey
 			}
 
 			// Fill in fallback keys where requested
-			if _, needsFallback := fallbackApiKeys[serviceName]; needsFallback {
-				fallbackApiKeys[serviceName] = globalKey
+			if _, needsFallback := fallbackAPIKeys[serviceName]; needsFallback {
+				fallbackAPIKeys[serviceName] = globalKey
 			}
 		}
 	}
 
-	return &types.AgentApiKeyConfiguration{
+	return &types.AgentAPIKeyConfiguration{
 		AgentID:           agentID,
-		ServiceApiKeys:    serviceApiKeys,
-		FallbackApiKeys:   fallbackApiKeys,
-		UseGlobalDefaults: len(agentApiKeys) == 0, // True if no agent-specific keys at all
+		ServiceAPIKeys:    serviceAPIKeys,
+		FallbackAPIKeys:   fallbackAPIKeys,
+		UseGlobalDefaults: len(agentAPIKeys) == 0, // True if no agent-specific keys at all
 	}, nil
 }
 
-// getUserGlobalApiKeys gets all active API keys for a user organized by service
-func (h *AgentsHandler) getUserGlobalApiKeys(ctx context.Context, userID string) (map[string]types.UserApiKey, error) {
+// getUserGlobalAPIKeys gets all active API keys for a user organized by service
+func (h *AgentsHandler) getUserGlobalAPIKeys(ctx context.Context, userID string) (map[string]types.UserAPIKey, error) {
 	query := `
 		SELECT id, user_id, key_name, service_name, key_type, auth_mode, auth_config,
 		       encrypted_key_value, encryption_algorithm, encryption_key_version,
@@ -753,10 +753,10 @@ func (h *AgentsHandler) getUserGlobalApiKeys(ctx context.Context, userID string)
 	}
 	defer rows.Close()
 
-	serviceKeys := make(map[string]types.UserApiKey)
+	serviceKeys := make(map[string]types.UserAPIKey)
 
 	for rows.Next() {
-		var apiKey types.UserApiKey
+		var apiKey types.UserAPIKey
 		err := rows.Scan(
 			&apiKey.ID, &apiKey.UserID, &apiKey.KeyName, &apiKey.ServiceName,
 			&apiKey.KeyType, &apiKey.AuthMode, &apiKey.AuthConfig,

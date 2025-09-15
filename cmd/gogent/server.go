@@ -37,7 +37,7 @@ type Server struct {
 	authHandlers        *auth.AuthHandlers
 	templateIntegration *templates.TemplateIntegration
 	agentsHandler       *agents.AgentsHandler
-	teamsHandler        *teams.TeamsHandler
+	teamsHandler        *teams.Handler
 	apiKeysService      *apikeys.Service
 	apiKeysHandler      *apikeys.Handler
 	heartbeatExecutor   *heartbeat.HeartbeatExecutor
@@ -60,7 +60,7 @@ type ExecutionEngineAdapter struct {
 }
 
 // StartExecution implements the ExecutionEngine interface for templates
-func (e *ExecutionEngineAdapter) StartExecution(request *types.MultiExecutionRequest, useMock bool, sessionApiKeys map[string]string) (string, *types.ExecutionRun, error) {
+func (e *ExecutionEngineAdapter) StartExecution(request *types.MultiExecutionRequest, useMock bool, sessionAPIKeys map[string]string) (string, *types.ExecutionRun, error) {
 	ctx := context.Background()
 
 	// For template execution, we use a system user ID
@@ -384,11 +384,11 @@ func (s *Server) runAsyncExecution(executionID string, request *types.MultiExecu
 	// Get OpenWeather API key from encrypted headers first, then fallback to plain text
 	var openWeatherAPIKey string
 	log.Printf("🔍 DEBUG: Looking for OpenWeather API key...")
-	log.Printf("🔍 DEBUG: encryptedKeys has openWeatherApiKey: %v", encryptedKeys["openWeatherApiKey"] != "")
+	log.Printf("🔍 DEBUG: encryptedKeys has openWeatherAPIKey: %v", encryptedKeys["openWeatherAPIKey"] != "")
 	log.Printf("🔍 DEBUG: Headers has X-OpenWeather-API-Key: %v", headers.Get("X-OpenWeather-API-Key") != "")
 	log.Printf("🔍 DEBUG: Headers has X-Encrypted-Openweather-Api-Key: %v", headers.Get("X-Encrypted-Openweather-Api-Key") != "")
 
-	if decryptedKey, exists := encryptedKeys["openWeatherApiKey"]; exists && decryptedKey != "" {
+	if decryptedKey, exists := encryptedKeys["openWeatherAPIKey"]; exists && decryptedKey != "" {
 		openWeatherAPIKey = decryptedKey
 		log.Printf("🌤️ Using decrypted OpenWeather API key from frontend: %s...", openWeatherAPIKey[:10])
 	} else if plainKey := headers.Get("X-OpenWeather-API-Key"); plainKey != "" {
@@ -448,7 +448,7 @@ func (s *Server) runAsyncExecution(executionID string, request *types.MultiExecu
 
 	// Get GitHub API key from encrypted headers
 	var githubAPIKey string
-	if decryptedKey, exists := encryptedKeys["githubApiKey"]; exists && decryptedKey != "" {
+	if decryptedKey, exists := encryptedKeys["githubAPIKey"]; exists && decryptedKey != "" {
 		githubAPIKey = decryptedKey
 		log.Printf("🐙 Using decrypted GitHub API key from frontend: %s...", githubAPIKey[:10])
 	} else {
@@ -457,7 +457,7 @@ func (s *Server) runAsyncExecution(executionID string, request *types.MultiExecu
 
 	// Get OpenRouter API key from encrypted headers
 	var openRouterAPIKey string
-	if decryptedKey, exists := encryptedKeys["openRouterApiKey"]; exists && decryptedKey != "" {
+	if decryptedKey, exists := encryptedKeys["openRouterAPIKey"]; exists && decryptedKey != "" {
 		openRouterAPIKey = decryptedKey
 		log.Printf("🚀 Using decrypted OpenRouter API key from frontend: %s...", openRouterAPIKey[:10])
 	} else {
@@ -487,7 +487,7 @@ func (s *Server) runAsyncExecution(executionID string, request *types.MultiExecu
 	defer tempClient.Close()
 
 	// Load API keys from database for this user
-	if loadErr := tempClient.LoadDatabaseApiKeys(ctx, userID); loadErr != nil {
+	if loadErr := tempClient.LoadDatabaseAPIKeys(ctx, userID); loadErr != nil {
 		log.Printf("⚠️ Failed to load API keys from database: %v", loadErr)
 		// Continue execution - the client will determine if mock responses are needed
 	}
@@ -2046,7 +2046,7 @@ func runServer() {
 		}
 	})
 
-	apiKeyMux.HandleFunc("/api/user/api-keys/function-groups/status", server.apiKeysHandler.GetFunctionGroupApiKeyStatus)
+	apiKeyMux.HandleFunc("/api/user/api-keys/function-groups/status", server.apiKeysHandler.GetFunctionGroupAPIKeyStatus)
 	apiKeyMux.HandleFunc("/api/user/api-keys/statistics", server.apiKeysHandler.GetAPIKeyStatistics)
 	apiKeyMux.HandleFunc("/api/user/api-keys/functions/", server.apiKeysHandler.HandleKeyRoutes)
 	apiKeyMux.HandleFunc("/api/user/api-keys/", server.apiKeysHandler.HandleKeyRoutes)
@@ -2587,13 +2587,13 @@ func (s *Server) listFunctions(w http.ResponseWriter, r *http.Request) {
 			&dbFunction.ParametersSchema,
 			&dbFunction.MockResponse,
 			&dbFunction.EndpointUrl,
-			&dbFunction.HttpMethod,
+			&dbFunction.HTTPMethod,
 			&dbFunction.Headers,
 			&dbFunction.AuthConfig,
 			&dbFunction.IsActive,
 			&dbFunction.IsSystemResource,
-			&dbFunction.RequiredApiKeys,
-			&dbFunction.ApiKeyValidation,
+			&dbFunction.RequiredAPIKeys,
+			&dbFunction.APIKeyValidation,
 			&dbFunction.QueryTemplate,
 			&dbFunction.ResultTransformer,
 			&fallbackData,
@@ -2627,8 +2627,8 @@ func (s *Server) listFunctions(w http.ResponseWriter, r *http.Request) {
 		if dbFunction.EndpointUrl.Valid {
 			function.EndpointURL = dbFunction.EndpointUrl.String
 		}
-		if dbFunction.HttpMethod.Valid {
-			function.HttpMethod = dbFunction.HttpMethod.String
+		if dbFunction.HTTPMethod.Valid {
+			function.HTTPMethod = dbFunction.HTTPMethod.String
 		}
 		if dbFunction.QueryTemplate.Valid {
 			function.QueryTemplate = dbFunction.QueryTemplate.String
@@ -2662,15 +2662,15 @@ func (s *Server) listFunctions(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		// Handle RequiredApiKeys and ApiKeyValidation JSON fields
-		if err := json.Unmarshal(dbFunction.RequiredApiKeys, &function.RequiredApiKeys); err != nil {
+		// Handle RequiredAPIKeys and APIKeyValidation JSON fields
+		if err := json.Unmarshal(dbFunction.RequiredAPIKeys, &function.RequiredAPIKeys); err != nil {
 			log.Printf("⚠️ Failed to parse required API keys for %s: %v", function.Name, err)
-			function.RequiredApiKeys = []string{}
+			function.RequiredAPIKeys = []string{}
 		}
 
-		if err := json.Unmarshal(dbFunction.ApiKeyValidation, &function.ApiKeyValidation); err != nil {
+		if err := json.Unmarshal(dbFunction.APIKeyValidation, &function.APIKeyValidation); err != nil {
 			log.Printf("⚠️ Failed to parse API key validation for %s: %v", function.Name, err)
-			function.ApiKeyValidation = make(map[string]interface{})
+			function.APIKeyValidation = make(map[string]interface{})
 		}
 
 		functions = append(functions, function)
@@ -2763,7 +2763,7 @@ func (s *Server) createFunction(w http.ResponseWriter, r *http.Request) {
 
 	_, err = s.client.GetDB().ExecContext(ctx, query,
 		function.ID, userID, function.Name, function.DisplayName, function.Description,
-		string(parametersSchemaJSON), string(mockResponseJSON), function.EndpointURL, function.HttpMethod,
+		string(parametersSchemaJSON), string(mockResponseJSON), function.EndpointURL, function.HTTPMethod,
 		string(headersJSON), string(authConfigJSON), function.IsActive, function.CreatedAt, function.UpdatedAt,
 	)
 
@@ -2816,7 +2816,7 @@ func (s *Server) getFunctionByID(w http.ResponseWriter, r *http.Request, functio
 				"humidity":    65,
 			},
 			EndpointURL: "https://api.weather.com/v1/current",
-			HttpMethod:  "GET",
+			HTTPMethod:  "GET",
 			IsActive:    true,
 			CreatedAt:   time.Now().Add(-24 * time.Hour),
 			UpdatedAt:   time.Now().Add(-1 * time.Hour),

@@ -19,9 +19,9 @@ import (
 
 // AuthHandler interface for different authentication modes
 type AuthHandler interface {
-	GetAuthHeaders(ctx context.Context, apiKey *types.UserApiKey) (map[string]string, error)
-	ValidateCredentials(ctx context.Context, apiKey *types.UserApiKey) error
-	RefreshCredentials(ctx context.Context, apiKey *types.UserApiKey) (*types.AuthCredentials, error)
+	GetAuthHeaders(ctx context.Context, apiKey *types.UserAPIKey) (map[string]string, error)
+	ValidateCredentials(ctx context.Context, apiKey *types.UserAPIKey) error
+	RefreshCredentials(ctx context.Context, apiKey *types.UserAPIKey) (*types.AuthCredentials, error)
 	GetRateLimit() *types.RateLimit
 	GetAuthMode() string
 }
@@ -78,7 +78,7 @@ func (r *AuthResolver) GetHandler(provider, authMode string) (AuthHandler, error
 }
 
 // ResolveAuth resolves authentication for a given API key
-func (r *AuthResolver) ResolveAuth(ctx context.Context, apiKey *types.UserApiKey) (*types.AuthCredentials, error) {
+func (r *AuthResolver) ResolveAuth(ctx context.Context, apiKey *types.UserAPIKey) (*types.AuthCredentials, error) {
 	handler, err := r.GetHandler(apiKey.ServiceName, apiKey.AuthMode)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get auth handler: %w", err)
@@ -107,7 +107,7 @@ func (h *GitHubPATHandler) GetAuthMode() string {
 	return "personal_access_token"
 }
 
-func (h *GitHubPATHandler) GetAuthHeaders(ctx context.Context, apiKey *types.UserApiKey) (map[string]string, error) {
+func (h *GitHubPATHandler) GetAuthHeaders(ctx context.Context, apiKey *types.UserAPIKey) (map[string]string, error) {
 	// For PAT, the token should be in the auth config under "decrypted_token"
 	// This is set by the auth service when it decrypts the key value
 
@@ -130,7 +130,7 @@ func (h *GitHubPATHandler) GetAuthHeaders(ctx context.Context, apiKey *types.Use
 	}, nil
 }
 
-func (h *GitHubPATHandler) ValidateCredentials(ctx context.Context, apiKey *types.UserApiKey) error {
+func (h *GitHubPATHandler) ValidateCredentials(ctx context.Context, apiKey *types.UserAPIKey) error {
 	headers, err := h.GetAuthHeaders(ctx, apiKey)
 	if err != nil {
 		return err
@@ -160,7 +160,7 @@ func (h *GitHubPATHandler) ValidateCredentials(ctx context.Context, apiKey *type
 	return nil
 }
 
-func (h *GitHubPATHandler) RefreshCredentials(ctx context.Context, apiKey *types.UserApiKey) (*types.AuthCredentials, error) {
+func (h *GitHubPATHandler) RefreshCredentials(ctx context.Context, apiKey *types.UserAPIKey) (*types.AuthCredentials, error) {
 	// PAT doesn't need refresh, just return current credentials
 	headers, err := h.GetAuthHeaders(ctx, apiKey)
 	if err != nil {
@@ -197,7 +197,7 @@ func (h *GitHubAppHandler) GetAuthMode() string {
 	return "github_app"
 }
 
-func (h *GitHubAppHandler) GetAuthHeaders(ctx context.Context, apiKey *types.UserApiKey) (map[string]string, error) {
+func (h *GitHubAppHandler) GetAuthHeaders(ctx context.Context, apiKey *types.UserAPIKey) (map[string]string, error) {
 	// Parse GitHub App config
 	appConfig, err := h.parseAppConfig(apiKey.AuthConfig)
 	if err != nil {
@@ -421,7 +421,7 @@ func (h *GitHubAppHandler) normalizePEMKey(key string) string {
 	return key
 }
 
-func (h *GitHubAppHandler) ValidateCredentials(ctx context.Context, apiKey *types.UserApiKey) error {
+func (h *GitHubAppHandler) ValidateCredentials(ctx context.Context, apiKey *types.UserAPIKey) error {
 	headers, err := h.GetAuthHeaders(ctx, apiKey)
 	if err != nil {
 		return err
@@ -458,7 +458,7 @@ func (h *GitHubAppHandler) ValidateCredentials(ctx context.Context, apiKey *type
 	return nil
 }
 
-func (h *GitHubAppHandler) RefreshCredentials(ctx context.Context, apiKey *types.UserApiKey) (*types.AuthCredentials, error) {
+func (h *GitHubAppHandler) RefreshCredentials(ctx context.Context, apiKey *types.UserAPIKey) (*types.AuthCredentials, error) {
 	// Parse config and force refresh token
 	appConfig, err := h.parseAppConfig(apiKey.AuthConfig)
 	if err != nil {
@@ -501,7 +501,7 @@ func (h *SlackBotTokenHandler) GetAuthMode() string {
 	return "bot_token"
 }
 
-func (h *SlackBotTokenHandler) GetAuthHeaders(ctx context.Context, apiKey *types.UserApiKey) (map[string]string, error) {
+func (h *SlackBotTokenHandler) GetAuthHeaders(ctx context.Context, apiKey *types.UserAPIKey) (map[string]string, error) {
 	// For Slack, the token should be in the encrypted key value or auth config
 	var token string
 
@@ -532,12 +532,12 @@ func (h *SlackBotTokenHandler) GetAuthHeaders(ctx context.Context, apiKey *types
 	}, nil
 }
 
-func (h *SlackBotTokenHandler) ValidateCredentials(ctx context.Context, apiKey *types.UserApiKey) error {
+func (h *SlackBotTokenHandler) ValidateCredentials(ctx context.Context, apiKey *types.UserAPIKey) error {
 	// Implementation would validate Slack token
 	return nil
 }
 
-func (h *SlackBotTokenHandler) RefreshCredentials(ctx context.Context, apiKey *types.UserApiKey) (*types.AuthCredentials, error) {
+func (h *SlackBotTokenHandler) RefreshCredentials(ctx context.Context, apiKey *types.UserAPIKey) (*types.AuthCredentials, error) {
 	headers, err := h.GetAuthHeaders(ctx, apiKey)
 	if err != nil {
 		return nil, err
@@ -568,7 +568,7 @@ func (h *GeminiAPIKeyHandler) GetAuthMode() string {
 	return "api_key"
 }
 
-func (h *GeminiAPIKeyHandler) GetAuthHeaders(ctx context.Context, apiKey *types.UserApiKey) (map[string]string, error) {
+func (h *GeminiAPIKeyHandler) GetAuthHeaders(ctx context.Context, apiKey *types.UserAPIKey) (map[string]string, error) {
 	var token string
 	if tokenVal, exists := apiKey.AuthConfig["api_key"]; exists {
 		if tokenStr, ok := tokenVal.(string); ok {
@@ -587,12 +587,12 @@ func (h *GeminiAPIKeyHandler) GetAuthHeaders(ctx context.Context, apiKey *types.
 	}, nil
 }
 
-func (h *GeminiAPIKeyHandler) ValidateCredentials(ctx context.Context, apiKey *types.UserApiKey) error {
+func (h *GeminiAPIKeyHandler) ValidateCredentials(ctx context.Context, apiKey *types.UserAPIKey) error {
 	// Implementation would validate Gemini API key
 	return nil
 }
 
-func (h *GeminiAPIKeyHandler) RefreshCredentials(ctx context.Context, apiKey *types.UserApiKey) (*types.AuthCredentials, error) {
+func (h *GeminiAPIKeyHandler) RefreshCredentials(ctx context.Context, apiKey *types.UserAPIKey) (*types.AuthCredentials, error) {
 	headers, err := h.GetAuthHeaders(ctx, apiKey)
 	if err != nil {
 		return nil, err

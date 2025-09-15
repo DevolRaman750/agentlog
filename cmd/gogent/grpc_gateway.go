@@ -182,11 +182,11 @@ func (g *GRPCGateway) executeHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Fallback: Collect legacy plain-text API keys from headers (for backward compatibility)
 	if geminiKey := r.Header.Get("X-Gemini-API-Key"); geminiKey != "" {
-		grpcReq.SessionApiKeys["geminiApiKey"] = geminiKey
+		grpcReq.SessionApiKeys["geminiAPIKey"] = geminiKey
 		log.Printf("⚠️ Using legacy plain-text Gemini API key")
 	}
 	if openWeatherKey := r.Header.Get("X-OpenWeather-API-Key"); openWeatherKey != "" {
-		grpcReq.SessionApiKeys["openWeatherApiKey"] = openWeatherKey
+		grpcReq.SessionApiKeys["openWeatherAPIKey"] = openWeatherKey
 		log.Printf("⚠️ Using legacy plain-text OpenWeather API key")
 	}
 	if neo4jUrl := r.Header.Get("X-Neo4j-URL"); neo4jUrl != "" {

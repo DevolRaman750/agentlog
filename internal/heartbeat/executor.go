@@ -353,7 +353,7 @@ func (he *HeartbeatExecutor) executeAgentTemplate(ctx context.Context, agent *Ov
 		ComparisonConfig: &types.ComparisonConfig{
 			Enabled: false, // Disable comparison for heartbeat executions
 		},
-		SessionApiKeys: nil, // Will be loaded from database by LoadDatabaseApiKeys
+		SessionAPIKeys: nil, // Will be loaded from database by LoadDatabaseAPIKeys
 	}
 
 	// Load function tools if function calling is enabled
@@ -374,11 +374,11 @@ func (he *HeartbeatExecutor) executeAgentTemplate(ctx context.Context, agent *Ov
 
 	// Load agent-specific API keys with fallback to user defaults
 	log.Printf("🔑 Loading agent-specific API keys for agent %s (user: %s)", agent.ID, agent.UserID)
-	if err := he.client.LoadAgentApiKeys(ctx, agent.ID); err != nil {
+	if err := he.client.LoadAgentAPIKeys(ctx, agent.ID); err != nil {
 		log.Printf("⚠️ Failed to load agent-specific API keys for agent %s: %v", agent.ID, err)
 		// Try fallback to user API keys
 		log.Printf("🔄 Falling back to user API keys for agent %s (user: %s)", agent.ID, agent.UserID)
-		if err := he.client.LoadDatabaseApiKeys(ctx, agent.UserID); err != nil {
+		if err := he.client.LoadDatabaseAPIKeys(ctx, agent.UserID); err != nil {
 			log.Printf("⚠️ Failed to load user API keys for agent %s (user %s): %v", agent.ID, agent.UserID, err)
 			// Continue anyway - the client will handle missing keys gracefully
 		} else {

@@ -253,19 +253,19 @@ func (c *Client) syncFunctionToDatabase(ctx context.Context, spec *FunctionSpec)
 	}
 
 	// Build required API keys based on provider
-	requiredApiKeys := []string{}
+	requiredAPIKeys := []string{}
 	if spec.Provider == "slack" {
-		requiredApiKeys = []string{"SLACK_BOT_TOKEN"}
+		requiredAPIKeys = []string{"SLACK_BOT_TOKEN"}
 	} else if spec.Provider == "github" {
-		requiredApiKeys = []string{"GITHUB_API_KEY"}
+		requiredAPIKeys = []string{"GITHUB_API_KEY"}
 	}
 
-	requiredApiKeysJSON, err := json.Marshal(requiredApiKeys)
+	requiredAPIKeysJSON, err := json.Marshal(requiredAPIKeys)
 	if err != nil {
 		return fmt.Errorf("failed to marshal required API keys: %w", err)
 	}
 
-	defaultApiKeyValidation, err := json.Marshal(map[string]interface{}{})
+	defaultAPIKeyValidation, err := json.Marshal(map[string]interface{}{})
 	if err != nil {
 		return fmt.Errorf("failed to marshal default API key validation: %w", err)
 	}
@@ -295,13 +295,13 @@ func (c *Client) syncFunctionToDatabase(ctx context.Context, spec *FunctionSpec)
 			ParametersSchema:  parametersSchema,
 			MockResponse:      mockResponse,
 			EndpointUrl:       sql.NullString{String: endpointURL, Valid: endpointURL != ""},
-			HttpMethod:        sql.NullString{String: spec.Endpoint.Method, Valid: spec.Endpoint.Method != ""},
+			HTTPMethod:        sql.NullString{String: spec.Endpoint.Method, Valid: spec.Endpoint.Method != ""},
 			Headers:           headersJSON,
 			AuthConfig:        defaultAuthConfig,
 			IsActive:          sql.NullBool{Bool: true, Valid: true},
 			IsSystemResource:  sql.NullBool{Bool: isSystemResource, Valid: true},
-			RequiredApiKeys:   requiredApiKeysJSON,
-			ApiKeyValidation:  defaultApiKeyValidation,
+			RequiredAPIKeys:   requiredAPIKeysJSON,
+			APIKeyValidation:  defaultAPIKeyValidation,
 			QueryTemplate:     sql.NullString{Valid: false}, // Empty for now
 			ResultTransformer: sql.NullString{Valid: false}, // Empty for now
 			FallbackData:      defaultFallbackData,
@@ -328,13 +328,13 @@ func (c *Client) syncFunctionToDatabase(ctx context.Context, spec *FunctionSpec)
 			ParametersSchema:  parametersSchema,
 			MockResponse:      mockResponse,
 			EndpointUrl:       sql.NullString{String: endpointURL, Valid: endpointURL != ""},
-			HttpMethod:        sql.NullString{String: spec.Endpoint.Method, Valid: spec.Endpoint.Method != ""},
+			HTTPMethod:        sql.NullString{String: spec.Endpoint.Method, Valid: spec.Endpoint.Method != ""},
 			Headers:           headersJSON,
 			AuthConfig:        defaultAuthConfig,
 			IsActive:          sql.NullBool{Bool: true, Valid: true},
 			IsSystemResource:  sql.NullBool{Bool: isSystemResource, Valid: true},
-			RequiredApiKeys:   requiredApiKeysJSON,
-			ApiKeyValidation:  defaultApiKeyValidation,
+			RequiredAPIKeys:   requiredAPIKeysJSON,
+			APIKeyValidation:  defaultAPIKeyValidation,
 			QueryTemplate:     sql.NullString{Valid: false}, // Empty for now
 			ResultTransformer: sql.NullString{Valid: false}, // Empty for now
 			FallbackData:      defaultFallbackData,
@@ -532,7 +532,7 @@ type ExecutionTemplateSpec struct {
 		RateLimitBurst          int `json:"rate_limit_burst"`
 	} `json:"settings"`
 	Tags        []string                 `json:"tags"`
-	FunctionIds []string                 `json:"function_ids"`
+	FunctionIDs []string                 `json:"function_ids"`
 	Parameters  []map[string]interface{} `json:"parameters"`
 	IsSystem    bool                     `json:"is_system"`
 	IsPublic    bool                     `json:"is_public"`
@@ -656,8 +656,8 @@ func (c *Client) syncExecutionTemplateToDatabase(ctx context.Context, spec *Exec
 	}
 
 	// Sync function associations if provided
-	if len(spec.FunctionIds) > 0 {
-		if err := c.syncTemplateFunction(ctx, spec.ID, spec.FunctionIds); err != nil {
+	if len(spec.FunctionIDs) > 0 {
+		if err := c.syncTemplateFunction(ctx, spec.ID, spec.FunctionIDs); err != nil {
 			log.Printf("⚠️ Failed to sync function associations for template %s: %v", spec.ID, err)
 			// Don't fail the entire sync for function association errors
 		}

@@ -23,7 +23,7 @@ func TestMultiAuthSupport(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("CreateGitHubPATKey", func(t *testing.T) {
-		req := &types.CreateApiKeyRequest{
+		req := &types.CreateAPIKeyRequest{
 			KeyName:     "github_pat_key",
 			ServiceName: "github",
 			KeyType:     "api_key",
@@ -51,7 +51,7 @@ func TestMultiAuthSupport(t *testing.T) {
 	})
 
 	t.Run("CreateGitHubAppKey", func(t *testing.T) {
-		req := &types.CreateApiKeyRequest{
+		req := &types.CreateAPIKeyRequest{
 			KeyName:     "github_app_key",
 			ServiceName: "github",
 			KeyType:     "api_key",
@@ -84,7 +84,7 @@ func TestMultiAuthSupport(t *testing.T) {
 
 	t.Run("DefaultAuthModeAssignment", func(t *testing.T) {
 		// Test that default auth modes are assigned when not specified
-		req := &types.CreateApiKeyRequest{
+		req := &types.CreateAPIKeyRequest{
 			KeyName:     "slack_default_key",
 			ServiceName: "slack",
 			KeyType:     "api_key",
@@ -112,7 +112,7 @@ func TestMultiAuthSupport(t *testing.T) {
 		assert.GreaterOrEqual(t, len(apiKeys), 3)
 
 		// Find and verify each key
-		var githubPATKey, githubAppKey, slackKey *types.UserApiKey
+		var githubPATKey, githubAppKey, slackKey *types.UserAPIKey
 		for _, key := range apiKeys {
 			switch key.KeyName {
 			case "github_pat_key":
@@ -210,7 +210,7 @@ func TestAuthModeDefaults(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.serviceName, func(t *testing.T) {
-			req := &types.CreateApiKeyRequest{
+			req := &types.CreateAPIKeyRequest{
 				KeyName:     tc.serviceName + "_test_key",
 				ServiceName: tc.serviceName,
 				KeyType:     "api_key",

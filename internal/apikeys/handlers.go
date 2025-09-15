@@ -44,7 +44,7 @@ func (h *Handler) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req types.CreateApiKeyRequest
+	var req types.CreateAPIKeyRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, fmt.Sprintf("Invalid JSON: %v", err), http.StatusBadRequest)
 		return
@@ -91,7 +91,7 @@ func (h *Handler) GetAPIKeys(w http.ResponseWriter, r *http.Request) {
 	serviceName := r.URL.Query().Get("service")
 
 	ctx := context.Background()
-	var apiKeys []*types.UserApiKey
+	var apiKeys []*types.UserAPIKey
 
 	if serviceName != "" {
 		apiKeys, err = h.service.GetAPIKeysByService(ctx, userID, serviceName)
@@ -119,7 +119,7 @@ func (h *Handler) HandleKeyRoutes(w http.ResponseWriter, r *http.Request) {
 
 	// Handle function requirements endpoint first
 	if strings.HasPrefix(path, "/api/user/api-keys/functions/") && strings.HasSuffix(path, "/requirements") {
-		h.GetFunctionApiKeyRequirements(w, r)
+		h.GetFunctionAPIKeyRequirements(w, r)
 		return
 	}
 
@@ -183,7 +183,7 @@ func (h *Handler) UpdateAPIKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	keyID := strings.TrimPrefix(r.URL.Path, "/api/user/api-keys/")
-	var req types.UpdateApiKeyRequest
+	var req types.UpdateAPIKeyRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
@@ -222,27 +222,27 @@ func (h *Handler) TestAPIKey(w http.ResponseWriter, r *http.Request) {
 	}
 	json.NewEncoder(w).Encode(result)
 }
-func (h *Handler) GetFunctionApiKeyRequirements(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetFunctionAPIKeyRequirements(w http.ResponseWriter, r *http.Request) {
 	userID, err := h.getUserIDFromContext(r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 	functionID := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/api/user/api-keys/functions/"), "/requirements")
-	requirements, err := h.service.GetFunctionApiKeyRequirements(r.Context(), userID, functionID)
+	requirements, err := h.service.GetFunctionAPIKeyRequirements(r.Context(), userID, functionID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	json.NewEncoder(w).Encode(requirements)
 }
-func (h *Handler) GetFunctionGroupApiKeyStatus(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetFunctionGroupAPIKeyStatus(w http.ResponseWriter, r *http.Request) {
 	userID, err := h.getUserIDFromContext(r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-	status, err := h.service.GetFunctionGroupApiKeyStatus(r.Context(), userID)
+	status, err := h.service.GetFunctionGroupAPIKeyStatus(r.Context(), userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -269,7 +269,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, authMiddleware func(http.Ha
 	mux.HandleFunc("/api/user/api-keys", authMiddleware(h.handleAPIKeyRoutes))
 
 	// Status and requirements
-	mux.HandleFunc("/api/user/api-keys/function-groups/status", authMiddleware(h.GetFunctionGroupApiKeyStatus))
+	mux.HandleFunc("/api/user/api-keys/function-groups/status", authMiddleware(h.GetFunctionGroupAPIKeyStatus))
 	mux.HandleFunc("/api/user/api-keys/statistics", authMiddleware(h.GetAPIKeyStatistics))
 
 	// These will need custom routing logic since they have path parameters
@@ -293,7 +293,7 @@ func (h *Handler) handleAPIKeyRoutes(w http.ResponseWriter, r *http.Request) {
 	case strings.HasPrefix(path, "/api/user/api-keys/") && strings.HasSuffix(path, "/test"):
 		h.TestAPIKey(w, r)
 	case strings.HasPrefix(path, "/api/user/api-keys/functions/") && strings.HasSuffix(path, "/requirements"):
-		h.GetFunctionApiKeyRequirements(w, r)
+		h.GetFunctionAPIKeyRequirements(w, r)
 	case strings.HasPrefix(path, "/api/user/api-keys/"):
 		// Individual API key operations (GET, PUT, DELETE)
 		switch r.Method {

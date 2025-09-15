@@ -226,7 +226,7 @@ type ExecutionEngineAdapter struct {
 
 // BusinessLogicInterface represents the interface to the existing business logic
 type BusinessLogicInterface interface {
-	StartExecution(request *types.MultiExecutionRequest, useMock bool, sessionApiKeys map[string]string) (string, *types.ExecutionRun, error)
+	StartExecution(request *types.MultiExecutionRequest, useMock bool, sessionAPIKeys map[string]string) (string, *types.ExecutionRun, error)
 	GetExecutionStatus(executionID string) (string, error)
 }
 
@@ -238,8 +238,8 @@ func NewExecutionEngineAdapter(businessLogic BusinessLogicInterface) *ExecutionE
 }
 
 // StartExecution implements the ExecutionEngine interface
-func (adapter *ExecutionEngineAdapter) StartExecution(request *types.MultiExecutionRequest, useMock bool, sessionApiKeys map[string]string) (string, *types.ExecutionRun, error) {
-	return adapter.businessLogic.StartExecution(request, useMock, sessionApiKeys)
+func (adapter *ExecutionEngineAdapter) StartExecution(request *types.MultiExecutionRequest, useMock bool, sessionAPIKeys map[string]string) (string, *types.ExecutionRun, error) {
+	return adapter.businessLogic.StartExecution(request, useMock, sessionAPIKeys)
 }
 
 // GetExecutionStatus implements the ExecutionEngine interface

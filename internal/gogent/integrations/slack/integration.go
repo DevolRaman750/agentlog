@@ -19,7 +19,7 @@ import (
 // Integration implements the Slack API integration
 type Integration struct {
 	baseURL         string
-	apiKeys         *types.SessionApiKeys // Legacy support
+	apiKeys         *types.SessionAPIKeys // Legacy support
 	authService     *apiauth.Service
 	userID          string
 	headerProcessor *base.HeaderProcessor
@@ -28,7 +28,7 @@ type Integration struct {
 }
 
 // NewIntegration creates a new Slack integration
-func NewIntegration(apiKeys *types.SessionApiKeys) *Integration {
+func NewIntegration(apiKeys *types.SessionAPIKeys) *Integration {
 	return &Integration{
 		baseURL:         "https://slack.com/api",
 		apiKeys:         apiKeys,
@@ -61,8 +61,8 @@ func (s *Integration) BuildURL(funcDef *db.FunctionDefinition, args map[string]i
 
 	// For GET requests, add parameters as query parameters
 	httpMethod := "GET"
-	if funcDef.HttpMethod.Valid {
-		httpMethod = funcDef.HttpMethod.String
+	if funcDef.HTTPMethod.Valid {
+		httpMethod = funcDef.HTTPMethod.String
 	}
 
 	if httpMethod == "GET" {

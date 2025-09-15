@@ -420,9 +420,9 @@ func (c *Client) callGeminiAPI(ctx context.Context, config *types.APIConfigurati
 	// Use provider abstraction to determine which provider to use
 	providerType := c.providerFactory.GetProviderForModel(config.ModelName)
 	log.Printf("🤖 Using %s provider for model: %s", providerType, config.ModelName)
-	effectiveKeys := c.getEffectiveApiKeys()
+	effectiveKeys := c.getEffectiveAPIKeys()
 	log.Printf("🔑 API keys available: Gemini=%v, OpenRouter=%v",
-		effectiveKeys.GeminiApiKey != "", effectiveKeys.OpenRouterApiKey != "")
+		effectiveKeys.GeminiAPIKey != "", effectiveKeys.OpenRouterAPIKey != "")
 
 	// TEMPORARY FIX: For Gemini models, use the original working implementation instead of the broken provider
 	if providerType == "gemini" {
@@ -446,7 +446,7 @@ func (c *Client) callGeminiAPI(ctx context.Context, config *types.APIConfigurati
 		SystemPrompt:        config.SystemPrompt,
 		Tools:               config.Tools,
 		ConversationHistory: []providers.ConversationMessage{}, // TODO: Add conversation history support
-		SessionApiKeys:      effectiveKeys,
+		SessionAPIKeys:      effectiveKeys,
 	}
 
 	// Call the provider
@@ -517,8 +517,8 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 	log.Printf("🔧 USING ORIGINAL GEMINI IMPLEMENTATION (REST API)")
 
 	// Use the existing Gemini client from internal/gemini
-	effectiveKeys := c.getEffectiveApiKeys()
-	if effectiveKeys.GeminiApiKey == "" {
+	effectiveKeys := c.getEffectiveAPIKeys()
+	if effectiveKeys.GeminiAPIKey == "" {
 		log.Printf("❌ No Gemini API key available for REST API call")
 		return &types.APIResponse{
 			ID:             uuid.New().String(),
@@ -531,7 +531,7 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 	}
 
 	// Create a Gemini client instance
-	geminiClient, err := gemini.NewGeminiClient(ctx, effectiveKeys.GeminiApiKey)
+	geminiClient, err := gemini.NewGeminiClient(ctx, effectiveKeys.GeminiAPIKey)
 	if err != nil {
 		log.Printf("❌ Failed to create Gemini client: %v", err)
 		return &types.APIResponse{
@@ -620,8 +620,8 @@ func (c *Client) callGeminiRestAPIForSynthesis(ctx context.Context, config *type
 	log.Printf("🔧 USING GEMINI REST API FOR SYNTHESIS (no function processing)")
 
 	// Use the existing Gemini client from internal/gemini
-	effectiveKeys := c.getEffectiveApiKeys()
-	if effectiveKeys.GeminiApiKey == "" {
+	effectiveKeys := c.getEffectiveAPIKeys()
+	if effectiveKeys.GeminiAPIKey == "" {
 		log.Printf("❌ No Gemini API key available for REST API call")
 		return &types.APIResponse{
 			ID:             uuid.New().String(),
@@ -634,7 +634,7 @@ func (c *Client) callGeminiRestAPIForSynthesis(ctx context.Context, config *type
 	}
 
 	// Create a Gemini client instance
-	geminiClient, err := gemini.NewGeminiClient(ctx, effectiveKeys.GeminiApiKey)
+	geminiClient, err := gemini.NewGeminiClient(ctx, effectiveKeys.GeminiAPIKey)
 	if err != nil {
 		log.Printf("❌ Failed to create Gemini client: %v", err)
 		return &types.APIResponse{
@@ -740,7 +740,7 @@ func (c *Client) processIterativeFunctionCallsWithProvider(ctx context.Context, 
 	synthesisPrompt += "**IMPORTANT: Respond in natural language. Summarize what you found and what actions you took to fulfill the user's request.**"
 
 	// Get effective API keys for the synthesis request
-	effectiveKeys := c.getEffectiveApiKeys()
+	effectiveKeys := c.getEffectiveAPIKeys()
 
 	// Use SynthesisManager for provider-based synthesis (Kimi K2, etc.)
 	synthesisManager := NewSynthesisManager()
@@ -763,7 +763,7 @@ func (c *Client) processIterativeFunctionCallsWithProvider(ctx context.Context, 
 		SystemPrompt:        config.SystemPrompt,
 		Tools:               decision.Tools, // Use intelligent tool decision
 		ConversationHistory: []providers.ConversationMessage{},
-		SessionApiKeys:      effectiveKeys,
+		SessionAPIKeys:      effectiveKeys,
 	}
 
 	// Create a longer timeout context specifically for synthesis (may take longer due to large function results)
@@ -878,7 +878,7 @@ func (c *Client) processProviderSynthesisWithIteration(ctx context.Context, conf
 			SystemPrompt:        synthesisRequest.SystemPrompt,
 			Tools:               decision.Tools,
 			ConversationHistory: synthesisRequest.ConversationHistory,
-			SessionApiKeys:      synthesisRequest.SessionApiKeys,
+			SessionAPIKeys:      synthesisRequest.SessionAPIKeys,
 		}
 
 		// Recursively continue synthesis

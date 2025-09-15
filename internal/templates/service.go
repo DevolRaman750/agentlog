@@ -79,7 +79,7 @@ func (ts *TemplateService) CreateTemplate(template *types.ExecutionTemplate, par
 		description = template.Description
 	}
 
-	log.Printf("🔧 Creating template with values: ID=%s, UserID=%s, Name=%s, FunctionIds=%v", template.ID, template.UserID, template.Name, functionIds)
+	log.Printf("🔧 Creating template with values: ID=%s, UserID=%s, Name=%s, FunctionIDs=%v", template.ID, template.UserID, template.Name, functionIds)
 	_, err = tx.Exec(query,
 		template.ID, template.UserID, template.Name, description,
 		template.TemplatePrompt, contextTemplate, template.EnableFunctionCalling,
@@ -241,11 +241,11 @@ func (ts *TemplateService) GetTemplateByID(templateID string, includeParameters,
 	}
 
 	// Always load function associations
-	functionIds, err := ts.getTemplateFunctionIds(templateID)
+	functionIds, err := ts.getTemplateFunctionIDs(templateID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load function associations: %w", err)
 	}
-	template.FunctionIds = functionIds
+	template.FunctionIDs = functionIds
 
 	return &template, nil
 }
@@ -360,13 +360,13 @@ func (ts *TemplateService) ListTemplates(userID string, limit, offset int, categ
 		}
 
 		// Always load function associations for each template
-		functionIds, err := ts.getTemplateFunctionIds(template.ID)
+		functionIds, err := ts.getTemplateFunctionIDs(template.ID)
 		if err != nil {
 			log.Printf("Warning: failed to load function associations for template %s: %v", template.ID, err)
 			// Don't fail the whole request, just set empty slice
-			template.FunctionIds = []string{}
+			template.FunctionIDs = []string{}
 		} else {
-			template.FunctionIds = functionIds
+			template.FunctionIDs = functionIds
 		}
 
 		// Load auth tokens if requested
@@ -1038,7 +1038,7 @@ func (ts *TemplateService) getTemplateAuthTokens(templateID string, includeInact
 	return tokens, nil
 }
 
-func (ts *TemplateService) getTemplateFunctionIds(templateID string) ([]string, error) {
+func (ts *TemplateService) getTemplateFunctionIDs(templateID string) ([]string, error) {
 	query := `
 		SELECT function_id
 		FROM execution_template_functions

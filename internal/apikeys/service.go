@@ -143,7 +143,7 @@ func (s *Service) decryptAPIKey(ciphertext string) (string, error) {
 }
 
 // CreateAPIKey creates a new API key for a user
-func (s *Service) CreateAPIKey(ctx context.Context, userID string, req *types.CreateApiKeyRequest) (*types.UserApiKey, error) {
+func (s *Service) CreateAPIKey(ctx context.Context, userID string, req *types.CreateAPIKeyRequest) (*types.UserAPIKey, error) {
 	// Validate input
 	if err := s.validateCreateRequest(req); err != nil {
 		return nil, fmt.Errorf("validation failed: %w", err)
@@ -213,7 +213,7 @@ func (s *Service) CreateAPIKey(ctx context.Context, userID string, req *types.Cr
 	}
 
 	// Create the record
-	apiKey := &types.UserApiKey{
+	apiKey := &types.UserAPIKey{
 		ID:                   uuid.New().String(),
 		UserID:               userID,
 		KeyName:              req.KeyName,
@@ -283,7 +283,7 @@ func (s *Service) CreateAPIKey(ctx context.Context, userID string, req *types.Cr
 }
 
 // GetAPIKeys retrieves all API keys for a user
-func (s *Service) GetAPIKeys(ctx context.Context, userID string) ([]*types.UserApiKey, error) {
+func (s *Service) GetAPIKeys(ctx context.Context, userID string) ([]*types.UserAPIKey, error) {
 	query := `
 		SELECT 
 			id, user_id, key_name, service_name, key_type, auth_mode, auth_config,
@@ -305,7 +305,7 @@ func (s *Service) GetAPIKeys(ctx context.Context, userID string) ([]*types.UserA
 	}
 	defer rows.Close()
 
-	var apiKeys []*types.UserApiKey
+	var apiKeys []*types.UserAPIKey
 	for rows.Next() {
 		apiKey, err := s.scanAPIKeyRow(rows)
 		if err != nil {
@@ -322,7 +322,7 @@ func (s *Service) GetAPIKeys(ctx context.Context, userID string) ([]*types.UserA
 }
 
 // GetAPIKeyByID retrieves a specific API key by ID
-func (s *Service) GetAPIKeyByID(ctx context.Context, userID, keyID string) (*types.UserApiKey, error) {
+func (s *Service) GetAPIKeyByID(ctx context.Context, userID, keyID string) (*types.UserAPIKey, error) {
 	query := `
 		SELECT 
 			id, user_id, key_name, service_name, key_type, auth_mode, auth_config,
@@ -376,7 +376,7 @@ func (s *Service) GetDecryptedAPIKey(ctx context.Context, userID, keyID string) 
 }
 
 // GetAPIKeysByService retrieves API keys for a specific service
-func (s *Service) GetAPIKeysByService(ctx context.Context, userID, serviceName string) ([]*types.UserApiKey, error) {
+func (s *Service) GetAPIKeysByService(ctx context.Context, userID, serviceName string) ([]*types.UserAPIKey, error) {
 	query := `
 		SELECT 
 			id, user_id, key_name, service_name, key_type, auth_mode, auth_config,
@@ -398,7 +398,7 @@ func (s *Service) GetAPIKeysByService(ctx context.Context, userID, serviceName s
 	}
 	defer rows.Close()
 
-	var apiKeys []*types.UserApiKey
+	var apiKeys []*types.UserAPIKey
 	for rows.Next() {
 		apiKey, err := s.scanAPIKeyRow(rows)
 		if err != nil {
@@ -410,7 +410,7 @@ func (s *Service) GetAPIKeysByService(ctx context.Context, userID, serviceName s
 	return apiKeys, nil
 }
 
-func (s *Service) GetFunctionApiKeyRequirements(ctx context.Context, userID, functionID string) (*types.FunctionApiKeyRequirements, error) {
+func (s *Service) GetFunctionAPIKeyRequirements(ctx context.Context, userID, functionID string) (*types.FunctionAPIKeyRequirements, error) {
 	// Step 1: Get function definition
 	queryFunc := `
 		SELECT 
@@ -423,10 +423,10 @@ func (s *Service) GetFunctionApiKeyRequirements(ctx context.Context, userID, fun
 		Name            string
 		DisplayName     string
 		FunctionGroup   string
-		RequiredApiKeys sql.NullString
+		RequiredAPIKeys sql.NullString
 	}
 	err := s.db.QueryRowContext(ctx, queryFunc, functionID).Scan(
-		&funcDef.ID, &funcDef.Name, &funcDef.DisplayName, &funcDef.FunctionGroup, &funcDef.RequiredApiKeys,
+		&funcDef.ID, &funcDef.Name, &funcDef.DisplayName, &funcDef.FunctionGroup, &funcDef.RequiredAPIKeys,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -436,8 +436,8 @@ func (s *Service) GetFunctionApiKeyRequirements(ctx context.Context, userID, fun
 	}
 
 	var requiredServices []string
-	if funcDef.RequiredApiKeys.Valid && funcDef.RequiredApiKeys.String != "" {
-		if err := json.Unmarshal([]byte(funcDef.RequiredApiKeys.String), &requiredServices); err != nil {
+	if funcDef.RequiredAPIKeys.Valid && funcDef.RequiredAPIKeys.String != "" {
+		if err := json.Unmarshal([]byte(funcDef.RequiredAPIKeys.String), &requiredServices); err != nil {
 			log.Printf("⚠️ Could not unmarshal required_api_keys for function %s: %v", functionID, err)
 			requiredServices = []string{}
 		}
@@ -450,7 +450,7 @@ func (s *Service) GetFunctionApiKeyRequirements(ctx context.Context, userID, fun
 	}
 
 	// Step 3: Build the requirements response
-	requirements := &types.FunctionApiKeyRequirements{
+	requirements := &types.FunctionAPIKeyRequirements{
 		FunctionID:          funcDef.ID,
 		FunctionName:        funcDef.Name,
 		DisplayName:         funcDef.DisplayName,
@@ -491,7 +491,7 @@ func (s *Service) GetFunctionApiKeyRequirements(ctx context.Context, userID, fun
 
 // Helper methods
 
-func (s *Service) validateCreateRequest(req *types.CreateApiKeyRequest) error {
+func (s *Service) validateCreateRequest(req *types.CreateAPIKeyRequest) error {
 	if req.KeyName == "" {
 		return fmt.Errorf("key name is required")
 	}
@@ -558,7 +558,7 @@ func (s *Service) unsetDefaultKeyTx(ctx context.Context, tx *sql.Tx, userID, ser
 	return err
 }
 
-func (s *Service) UpdateAPIKey(ctx context.Context, userID, keyID string, req *types.UpdateApiKeyRequest) (*types.UserApiKey, error) {
+func (s *Service) UpdateAPIKey(ctx context.Context, userID, keyID string, req *types.UpdateAPIKeyRequest) (*types.UserAPIKey, error) {
 	log.Printf("🔑 Updating API key %s for user %s", keyID, userID)
 
 	// Start transaction
@@ -719,25 +719,25 @@ func (s *Service) DeleteAPIKey(ctx context.Context, userID, keyID string) error 
 	return nil
 }
 
-func (s *Service) TestAPIKey(ctx context.Context, userID, keyID string) (*types.ApiKeyValidationResult, error) {
+func (s *Service) TestAPIKey(ctx context.Context, userID, keyID string) (*types.APIKeyValidationResult, error) {
 	// For now, return not implemented
 	return nil, fmt.Errorf("test API key not yet implemented")
 }
 
-func (s *Service) GetFunctionGroupApiKeyStatus(ctx context.Context, userID string) ([]*types.FunctionGroupApiKeyStatus, error) {
+func (s *Service) GetFunctionGroupAPIKeyStatus(ctx context.Context, userID string) ([]*types.FunctionGroupAPIKeyStatus, error) {
 	// For now, return not implemented
 	return nil, fmt.Errorf("get function group API key status not yet implemented")
 }
 
-func (s *Service) GetAPIKeyStatistics(ctx context.Context, userID string) (*types.ApiKeyStatistics, error) {
+func (s *Service) GetAPIKeyStatistics(ctx context.Context, userID string) (*types.APIKeyStatistics, error) {
 	// For now, return not implemented
 	return nil, fmt.Errorf("get API key statistics not yet implemented")
 }
 
 func (s *Service) scanAPIKeyRow(scanner interface {
 	Scan(...interface{}) error
-}) (*types.UserApiKey, error) {
-	var apiKey types.UserApiKey
+}) (*types.UserAPIKey, error) {
+	var apiKey types.UserAPIKey
 	var scopesJSON, permissionsJSON, serviceConfigJSON, authConfigJSON []byte
 	var expiresAt, lastValidatedAt, lastUsedAt sql.NullTime
 	var description, validationError, createdBy sql.NullString

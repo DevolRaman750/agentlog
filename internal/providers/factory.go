@@ -31,7 +31,7 @@ func NewProviderFactory() *ProviderFactory {
 }
 
 // CreateProvider creates or returns a cached provider for the given model and session keys
-func (f *ProviderFactory) CreateProvider(ctx context.Context, modelName string, sessionKeys *types.SessionApiKeys) (ModelProvider, error) {
+func (f *ProviderFactory) CreateProvider(ctx context.Context, modelName string, sessionKeys *types.SessionAPIKeys) (ModelProvider, error) {
 	providerType := f.getProviderTypeFromModel(modelName)
 
 	f.mutex.RLock()
@@ -78,16 +78,16 @@ func (f *ProviderFactory) CreateProvider(ctx context.Context, modelName string, 
 }
 
 // createGeminiProvider creates a Gemini provider instance
-func (f *ProviderFactory) createGeminiProvider(ctx context.Context, sessionKeys *types.SessionApiKeys) (ModelProvider, error) {
-	if sessionKeys == nil || sessionKeys.GeminiApiKey == "" {
+func (f *ProviderFactory) createGeminiProvider(ctx context.Context, sessionKeys *types.SessionAPIKeys) (ModelProvider, error) {
+	if sessionKeys == nil || sessionKeys.GeminiAPIKey == "" {
 		return nil, fmt.Errorf("Gemini API key is required")
 	}
 
-	return NewGeminiProvider(ctx, sessionKeys.GeminiApiKey)
+	return NewGeminiProvider(ctx, sessionKeys.GeminiAPIKey)
 }
 
 // createKimiProvider creates a Kimi provider instance
-func (f *ProviderFactory) createKimiProvider(sessionKeys *types.SessionApiKeys) (ModelProvider, error) {
+func (f *ProviderFactory) createKimiProvider(sessionKeys *types.SessionAPIKeys) (ModelProvider, error) {
 	var apiKey string
 	var baseURL string
 
@@ -102,7 +102,7 @@ func (f *ProviderFactory) createKimiProvider(sessionKeys *types.SessionApiKeys) 
 				} else {
 					return key
 				}
-			}(sessionKeys.OpenRouterApiKey),
+			}(sessionKeys.OpenRouterAPIKey),
 			func(key string) string {
 				if len(key) > 10 {
 					return key[:10] + "..."
@@ -111,16 +111,16 @@ func (f *ProviderFactory) createKimiProvider(sessionKeys *types.SessionApiKeys) 
 				} else {
 					return key
 				}
-			}(sessionKeys.GeminiApiKey))
+			}(sessionKeys.GeminiAPIKey))
 
 		// Try OpenRouter API key first
-		if sessionKeys.OpenRouterApiKey != "" {
-			apiKey = sessionKeys.OpenRouterApiKey
+		if sessionKeys.OpenRouterAPIKey != "" {
+			apiKey = sessionKeys.OpenRouterAPIKey
 			baseURL = OpenRouterBaseURL
 			log.Printf("✅ Using OpenRouter API key for Kimi provider")
-		} else if strings.HasPrefix(sessionKeys.GeminiApiKey, "sk-or-") {
+		} else if strings.HasPrefix(sessionKeys.GeminiAPIKey, "sk-or-") {
 			// Fallback: Use Gemini key field if it's actually an OpenRouter key
-			apiKey = sessionKeys.GeminiApiKey
+			apiKey = sessionKeys.GeminiAPIKey
 			baseURL = OpenRouterBaseURL
 			log.Printf("✅ Using Gemini field with OpenRouter prefix for Kimi provider")
 		}
@@ -128,7 +128,7 @@ func (f *ProviderFactory) createKimiProvider(sessionKeys *types.SessionApiKeys) 
 
 	if apiKey == "" {
 		log.Printf("❌ No OpenRouter API key found - sessionKeys: %+v", sessionKeys)
-		return nil, fmt.Errorf("OpenRouter API key is required for Kimi models (set openRouterApiKey or use sk-or- prefixed key)")
+		return nil, fmt.Errorf("OpenRouter API key is required for Kimi models (set openRouterAPIKey or use sk-or- prefixed key)")
 	}
 
 	log.Printf("🚀 Creating Kimi provider with baseURL: %s", baseURL)

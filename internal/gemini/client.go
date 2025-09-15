@@ -15,30 +15,30 @@ import (
 )
 
 // GeminiClient wraps the Google Generative AI REST API
-type GeminiClient struct {
+type Client struct {
 	apiKey     string
 	httpClient *http.Client
 }
 
 // NewGeminiClient creates a new Gemini API client using the REST API
-func NewGeminiClient(ctx context.Context, apiKey string) (*GeminiClient, error) {
+func NewGeminiClient(ctx context.Context, apiKey string) (*Client, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("API key is required")
 	}
 
-	return &GeminiClient{
+	return &Client{
 		apiKey:     apiKey,
 		httpClient: &http.Client{Timeout: 60 * time.Second},
 	}, nil
 }
 
 // Close closes the Gemini client (no-op for REST API)
-func (c *GeminiClient) Close() error {
+func (c *Client) Close() error {
 	return nil
 }
 
 // GenerateContent generates content using the Gemini REST API with full function calling support
-func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APIConfiguration, prompt, contextStr string) (*types.APIResponse, error) {
+func (c *Client) GenerateContent(ctx context.Context, config *types.APIConfiguration, prompt, contextStr string) (*types.APIResponse, error) {
 	startTime := time.Now()
 
 	// Add current time context following LLM function calling best practices
@@ -307,7 +307,7 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 }
 
 // sanitizeToolParameters removes fields that are not supported by the Gemini API
-func (c *GeminiClient) sanitizeToolParameters(params map[string]interface{}) map[string]interface{} {
+func (c *Client) sanitizeToolParameters(params map[string]interface{}) map[string]interface{} {
 	if params == nil {
 		return params
 	}
@@ -350,7 +350,7 @@ func (c *GeminiClient) sanitizeToolParameters(params map[string]interface{}) map
 }
 
 // sanitizePropertySchema removes unsupported fields from individual property schemas
-func (c *GeminiClient) sanitizePropertySchema(propSchema map[string]interface{}) map[string]interface{} {
+func (c *Client) sanitizePropertySchema(propSchema map[string]interface{}) map[string]interface{} {
 	sanitized := make(map[string]interface{})
 
 	// Allow these fields for property definitions

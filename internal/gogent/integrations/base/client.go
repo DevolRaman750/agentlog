@@ -57,8 +57,8 @@ func (c *HTTPClient) ExecuteRequest(ctx context.Context, integration APIIntegrat
 
 	// Determine HTTP method
 	httpMethod := "GET"
-	if funcDef.HttpMethod.Valid && funcDef.HttpMethod.String != "" {
-		httpMethod = funcDef.HttpMethod.String
+	if funcDef.HTTPMethod.Valid && funcDef.HTTPMethod.String != "" {
+		httpMethod = funcDef.HTTPMethod.String
 	}
 	log.Printf("🔍 [HTTP_DEBUG] HTTP method: %s", httpMethod)
 

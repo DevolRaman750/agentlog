@@ -84,11 +84,11 @@ func TestAutomationFunctionsIntegration(t *testing.T) {
 
 				var id, name, displayName, functionGroup, functionType, description, parametersSchema string
 				var isActive, isSystemResource bool
-				var requiredApiKeys string
+				var requiredAPIKeys string
 
 				err := db.QueryRow(query, functionName).Scan(
 					&id, &name, &displayName, &functionGroup, &functionType,
-					&description, &parametersSchema, &isActive, &isSystemResource, &requiredApiKeys)
+					&description, &parametersSchema, &isActive, &isSystemResource, &requiredAPIKeys)
 
 				require.NoError(t, err,
 					fmt.Sprintf("Function '%s' not found in database", functionName))
@@ -113,7 +113,7 @@ func TestAutomationFunctionsIntegration(t *testing.T) {
 
 				// Verify API keys are properly formatted
 				var apiKeys []string
-				err = json.Unmarshal([]byte(requiredApiKeys), &apiKeys)
+				err = json.Unmarshal([]byte(requiredAPIKeys), &apiKeys)
 				assert.NoError(t, err, "Required API keys should be valid JSON array")
 			})
 		}

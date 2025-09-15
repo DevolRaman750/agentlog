@@ -21,7 +21,7 @@ type PublicAPIHandler struct {
 
 // ExecutionEngine interface for integrating with existing execution system
 type ExecutionEngine interface {
-	StartExecution(request *types.MultiExecutionRequest, useMock bool, sessionApiKeys map[string]string) (string, *types.ExecutionRun, error)
+	StartExecution(request *types.MultiExecutionRequest, useMock bool, sessionAPIKeys map[string]string) (string, *types.ExecutionRun, error)
 	GetExecutionStatus(executionID string) (string, string, *time.Time, *time.Time, *types.ExecutionResult, error)
 }
 
@@ -208,7 +208,7 @@ func (pah *PublicAPIHandler) ExecuteTemplate(w http.ResponseWriter, r *http.Requ
 		Context:               resolvedContext,
 		EnableFunctionCalling: template.EnableFunctionCalling,
 		Configurations:        []types.APIConfiguration{}, // Use default configuration
-		SessionApiKeys:        &types.SessionApiKeys{},    // No API keys for public execution
+		SessionAPIKeys:        &types.SessionAPIKeys{},    // No API keys for public execution
 	}
 
 	// Start execution using existing system

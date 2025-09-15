@@ -662,7 +662,7 @@ func (he *HeaderEncryption) GetDecryptedAPIKeysFromHeaders(headers map[string][]
 	// Decrypt each API key using exact header names from frontend
 	if encryptedKey := getHeader("X-Encrypted-Gemini-Api-Key"); encryptedKey != "" {
 		if decrypted, err := he.DecryptAPIKey(encryptedKey); err == nil && decrypted != "" {
-			apiKeys["geminiApiKey"] = decrypted
+			apiKeys["geminiAPIKey"] = decrypted
 			log.Printf("🔓 Successfully decrypted Gemini API key: %s...", decrypted[:10])
 		} else {
 			// Only log decryption errors if not in test environment
@@ -674,7 +674,7 @@ func (he *HeaderEncryption) GetDecryptedAPIKeysFromHeaders(headers map[string][]
 
 	if encryptedKey := getHeader("X-Encrypted-Openweather-Api-Key"); encryptedKey != "" {
 		if decrypted, err := he.DecryptAPIKey(encryptedKey); err == nil && decrypted != "" {
-			apiKeys["openWeatherApiKey"] = decrypted
+			apiKeys["openWeatherAPIKey"] = decrypted
 			log.Printf("🔓 Successfully decrypted OpenWeather API key: %s...", decrypted[:10])
 		} else {
 			if os.Getenv("GO_ENV") != "test" && !strings.Contains(os.Args[0], ".test") {
@@ -729,7 +729,7 @@ func (he *HeaderEncryption) GetDecryptedAPIKeysFromHeaders(headers map[string][]
 
 	if encryptedKey := getHeader("X-Encrypted-Github-Api-Key"); encryptedKey != "" {
 		if decrypted, err := he.DecryptAPIKey(encryptedKey); err == nil && decrypted != "" {
-			apiKeys["githubApiKey"] = decrypted
+			apiKeys["githubAPIKey"] = decrypted
 			log.Printf("🔓 Successfully decrypted GitHub API key: %s...", decrypted[:10])
 		} else {
 			if os.Getenv("GO_ENV") != "test" && !strings.Contains(os.Args[0], ".test") {
@@ -740,7 +740,7 @@ func (he *HeaderEncryption) GetDecryptedAPIKeysFromHeaders(headers map[string][]
 
 	if encryptedKey := getHeader("X-Encrypted-Openrouter-Api-Key"); encryptedKey != "" {
 		if decrypted, err := he.DecryptAPIKey(encryptedKey); err == nil && decrypted != "" {
-			apiKeys["openRouterApiKey"] = decrypted
+			apiKeys["openRouterAPIKey"] = decrypted
 			log.Printf("🔓 Successfully decrypted OpenRouter API key: %s...", decrypted[:10])
 		} else {
 			if os.Getenv("GO_ENV") != "test" && !strings.Contains(os.Args[0], ".test") {

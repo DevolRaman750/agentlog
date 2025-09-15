@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-// UserApiKey represents a user's API key with full metadata
-type UserApiKey struct {
+// UserAPIKey represents a user's API key with full metadata
+type UserAPIKey struct {
 	ID          string `json:"id"`
 	UserID      string `json:"userId"`
 	KeyName     string `json:"keyName"`
@@ -59,8 +59,8 @@ type UserApiKey struct {
 	CreatedBy string    `json:"createdBy,omitempty"`
 }
 
-// CreateApiKeyRequest represents a request to create a new API key
-type CreateApiKeyRequest struct {
+// CreateAPIKeyRequest represents a request to create a new API key
+type CreateAPIKeyRequest struct {
 	KeyName          string                 `json:"keyName"`
 	ServiceName      string                 `json:"serviceName"`
 	KeyType          string                 `json:"keyType"`
@@ -81,8 +81,8 @@ type CreateApiKeyRequest struct {
 	RateLimitBurst   *int                   `json:"rateLimitBurst,omitempty"`
 }
 
-// UpdateApiKeyRequest represents a request to update an existing API key
-type UpdateApiKeyRequest struct {
+// UpdateAPIKeyRequest represents a request to update an existing API key
+type UpdateAPIKeyRequest struct {
 	KeyName          *string                `json:"keyName,omitempty"`
 	KeyValue         *string                `json:"keyValue,omitempty"` // If provided, will re-encrypt
 	AuthMode         *string                `json:"authMode,omitempty"`
@@ -102,10 +102,10 @@ type UpdateApiKeyRequest struct {
 	RateLimitBurst   *int                   `json:"rateLimitBurst,omitempty"`
 }
 
-// ApiKeyFunctionMapping represents the mapping between API keys and functions
-type ApiKeyFunctionMapping struct {
+// APIKeyFunctionMapping represents the mapping between API keys and functions
+type APIKeyFunctionMapping struct {
 	ID                   string                 `json:"id"`
-	ApiKeyID             string                 `json:"apiKeyId"`
+	APIKeyID             string                 `json:"apiKeyId"`
 	FunctionDefinitionID *string                `json:"functionDefinitionId,omitempty"`
 	FunctionGroup        *string                `json:"functionGroup,omitempty"`
 	IsRequired           bool                   `json:"isRequired"`
@@ -115,10 +115,10 @@ type ApiKeyFunctionMapping struct {
 	UpdatedAt            time.Time              `json:"updatedAt"`
 }
 
-// ApiKeyUsageLog represents a log entry of API key usage
-type ApiKeyUsageLog struct {
+// APIKeyUsageLog represents a log entry of API key usage
+type APIKeyUsageLog struct {
 	ID                string    `json:"id"`
-	ApiKeyID          string    `json:"apiKeyId"`
+	APIKeyID          string    `json:"apiKeyId"`
 	UserID            string    `json:"userId"`
 	FunctionName      string    `json:"functionName,omitempty"`
 	FunctionGroup     string    `json:"functionGroup,omitempty"`
@@ -132,8 +132,8 @@ type ApiKeyUsageLog struct {
 	ResponseSizeBytes *int      `json:"responseSizeBytes,omitempty"`
 }
 
-// ApiKeyValidationResult represents the result of validating an API key
-type ApiKeyValidationResult struct {
+// APIKeyValidationResult represents the result of validating an API key
+type APIKeyValidationResult struct {
 	IsValid         bool                   `json:"isValid"`
 	ErrorMessage    string                 `json:"errorMessage,omitempty"`
 	HttpStatusCode  *int                   `json:"httpStatusCode,omitempty"`
@@ -142,8 +142,8 @@ type ApiKeyValidationResult struct {
 	TestedAt        time.Time              `json:"testedAt"`
 }
 
-// FunctionGroupApiKeyStatus represents the status of API keys for a function group
-type FunctionGroupApiKeyStatus struct {
+// FunctionGroupAPIKeyStatus represents the status of API keys for a function group
+type FunctionGroupAPIKeyStatus struct {
 	FunctionGroup      string   `json:"functionGroup"`
 	GroupDisplayName   string   `json:"groupDisplayName"`
 	RequiredServices   []string `json:"requiredServices"`
@@ -153,11 +153,11 @@ type FunctionGroupApiKeyStatus struct {
 	FunctionCount      int      `json:"functionCount"`
 
 	// Per-service details
-	ServiceDetails map[string]ServiceApiKeyStatus `json:"serviceDetails"`
+	ServiceDetails map[string]ServiceAPIKeyStatus `json:"serviceDetails"`
 }
 
-// ServiceApiKeyStatus represents the status of API keys for a specific service
-type ServiceApiKeyStatus struct {
+// ServiceAPIKeyStatus represents the status of API keys for a specific service
+type ServiceAPIKeyStatus struct {
 	ServiceName      string     `json:"serviceName"`
 	HasValidKey      bool       `json:"hasValidKey"`
 	KeyCount         int        `json:"keyCount"`
@@ -168,8 +168,8 @@ type ServiceApiKeyStatus struct {
 	Environment      string     `json:"environment,omitempty"`
 }
 
-// FunctionApiKeyRequirements represents API key requirements for a specific function
-type FunctionApiKeyRequirements struct {
+// FunctionAPIKeyRequirements represents API key requirements for a specific function
+type FunctionAPIKeyRequirements struct {
 	FunctionID         string   `json:"functionId"`
 	FunctionName       string   `json:"functionName"`
 	DisplayName        string   `json:"displayName"`
@@ -194,8 +194,8 @@ type ServiceRequirement struct {
 	ConfiguredAccessLevel string   `json:"configuredAccessLevel,omitempty"`
 }
 
-// ApiKeyStatistics represents usage statistics for API keys
-type ApiKeyStatistics struct {
+// APIKeyStatistics represents usage statistics for API keys
+type APIKeyStatistics struct {
 	UserID       string `json:"userId"`
 	TotalKeys    int    `json:"totalKeys"`
 	ActiveKeys   int    `json:"activeKeys"`
@@ -231,7 +231,7 @@ type ServiceStatistics struct {
 // Helper methods for JSON marshaling/unmarshaling with database compatibility
 
 // MarshalScopes converts scopes slice to JSON for database storage
-func (k *UserApiKey) MarshalScopes() ([]byte, error) {
+func (k *UserAPIKey) MarshalScopes() ([]byte, error) {
 	if k.Scopes == nil {
 		return json.Marshal([]string{})
 	}
@@ -239,7 +239,7 @@ func (k *UserApiKey) MarshalScopes() ([]byte, error) {
 }
 
 // UnmarshalScopes converts JSON to scopes slice from database
-func (k *UserApiKey) UnmarshalScopes(data []byte) error {
+func (k *UserAPIKey) UnmarshalScopes(data []byte) error {
 	if len(data) == 0 {
 		k.Scopes = []string{}
 		return nil
@@ -248,7 +248,7 @@ func (k *UserApiKey) UnmarshalScopes(data []byte) error {
 }
 
 // MarshalPermissions converts permissions map to JSON for database storage
-func (k *UserApiKey) MarshalPermissions() ([]byte, error) {
+func (k *UserAPIKey) MarshalPermissions() ([]byte, error) {
 	if k.Permissions == nil {
 		return json.Marshal(map[string]interface{}{})
 	}
@@ -256,7 +256,7 @@ func (k *UserApiKey) MarshalPermissions() ([]byte, error) {
 }
 
 // UnmarshalPermissions converts JSON to permissions map from database
-func (k *UserApiKey) UnmarshalPermissions(data []byte) error {
+func (k *UserAPIKey) UnmarshalPermissions(data []byte) error {
 	if len(data) == 0 {
 		k.Permissions = map[string]interface{}{}
 		return nil
@@ -265,7 +265,7 @@ func (k *UserApiKey) UnmarshalPermissions(data []byte) error {
 }
 
 // MarshalServiceConfig converts service config map to JSON for database storage
-func (k *UserApiKey) MarshalServiceConfig() ([]byte, error) {
+func (k *UserAPIKey) MarshalServiceConfig() ([]byte, error) {
 	if k.ServiceConfig == nil {
 		return json.Marshal(map[string]interface{}{})
 	}
@@ -273,7 +273,7 @@ func (k *UserApiKey) MarshalServiceConfig() ([]byte, error) {
 }
 
 // UnmarshalServiceConfig converts JSON to service config map from database
-func (k *UserApiKey) UnmarshalServiceConfig(data []byte) error {
+func (k *UserAPIKey) UnmarshalServiceConfig(data []byte) error {
 	if len(data) == 0 {
 		k.ServiceConfig = map[string]interface{}{}
 		return nil
@@ -282,7 +282,7 @@ func (k *UserApiKey) UnmarshalServiceConfig(data []byte) error {
 }
 
 // MarshalAuthConfig converts auth config map to JSON for database storage
-func (k *UserApiKey) MarshalAuthConfig() ([]byte, error) {
+func (k *UserAPIKey) MarshalAuthConfig() ([]byte, error) {
 	if k.AuthConfig == nil {
 		return json.Marshal(map[string]interface{}{})
 	}
@@ -290,7 +290,7 @@ func (k *UserApiKey) MarshalAuthConfig() ([]byte, error) {
 }
 
 // UnmarshalAuthConfig converts JSON to auth config map from database
-func (k *UserApiKey) UnmarshalAuthConfig(data []byte) error {
+func (k *UserAPIKey) UnmarshalAuthConfig(data []byte) error {
 	if len(data) == 0 {
 		k.AuthConfig = map[string]interface{}{}
 		return nil
@@ -325,9 +325,9 @@ type AuthCredentials struct {
 
 // AuthHandler interface for different authentication modes
 type AuthHandler interface {
-	GetAuthCredentials(ctx context.Context, apiKey *UserApiKey) (*AuthCredentials, error)
-	ValidateCredentials(ctx context.Context, apiKey *UserApiKey) error
-	RefreshCredentials(ctx context.Context, apiKey *UserApiKey) (*AuthCredentials, error)
+	GetAuthCredentials(ctx context.Context, apiKey *UserAPIKey) (*AuthCredentials, error)
+	ValidateCredentials(ctx context.Context, apiKey *UserAPIKey) error
+	RefreshCredentials(ctx context.Context, apiKey *UserAPIKey) (*AuthCredentials, error)
 	GetRateLimit() *RateLimit
 }
 

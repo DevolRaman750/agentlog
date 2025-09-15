@@ -19,7 +19,7 @@ func TestExecuteMySQLFunction(t *testing.T) {
 	// Mock function definition for MySQL
 	funcDef := &db.FunctionDefinition{
 		Name:       "test_mysql_query",
-		HttpMethod: sql.NullString{String: "MYSQL", Valid: true},
+		HTTPMethod: sql.NullString{String: "MYSQL", Valid: true},
 	}
 
 	t.Run("ValidSelectQuery", func(t *testing.T) {
@@ -119,7 +119,7 @@ func TestExecuteMCPFunction(t *testing.T) {
 	// Mock function definition for MCP
 	funcDef := &db.FunctionDefinition{
 		Name:       "test_mcp_github_ops",
-		HttpMethod: sql.NullString{String: "MCP", Valid: true},
+		HTTPMethod: sql.NullString{String: "MCP", Valid: true},
 	}
 
 	t.Run("CreateBranchOperation", func(t *testing.T) {
@@ -265,7 +265,7 @@ func TestDynamicFunctionExecution(t *testing.T) {
 	t.Run("MySQLFunctionRouting", func(t *testing.T) {
 		funcDef := &db.FunctionDefinition{
 			Name:       "mysql_test_function",
-			HttpMethod: sql.NullString{String: "MYSQL", Valid: true},
+			HTTPMethod: sql.NullString{String: "MYSQL", Valid: true},
 		}
 
 		args := map[string]interface{}{
@@ -282,7 +282,7 @@ func TestDynamicFunctionExecution(t *testing.T) {
 	t.Run("MCPFunctionRouting", func(t *testing.T) {
 		funcDef := &db.FunctionDefinition{
 			Name:       "mcp_test_function",
-			HttpMethod: sql.NullString{String: "MCP", Valid: true},
+			HTTPMethod: sql.NullString{String: "MCP", Valid: true},
 		}
 
 		args := map[string]interface{}{
@@ -301,7 +301,7 @@ func TestDynamicFunctionExecution(t *testing.T) {
 	t.Run("UnsupportedMethod", func(t *testing.T) {
 		funcDef := &db.FunctionDefinition{
 			Name:       "unsupported_function",
-			HttpMethod: sql.NullString{String: "UNSUPPORTED", Valid: true},
+			HTTPMethod: sql.NullString{String: "UNSUPPORTED", Valid: true},
 		}
 
 		args := map[string]interface{}{}
@@ -319,7 +319,7 @@ func TestPerformanceAndTiming(t *testing.T) {
 	t.Run("MySQLExecutionTiming", func(t *testing.T) {
 		funcDef := &db.FunctionDefinition{
 			Name:       "mysql_performance_test",
-			HttpMethod: sql.NullString{String: "MYSQL", Valid: true},
+			HTTPMethod: sql.NullString{String: "MYSQL", Valid: true},
 		}
 
 		args := map[string]interface{}{
@@ -342,7 +342,7 @@ func TestPerformanceAndTiming(t *testing.T) {
 	t.Run("MCPExecutionTiming", func(t *testing.T) {
 		funcDef := &db.FunctionDefinition{
 			Name:       "mcp_performance_test",
-			HttpMethod: sql.NullString{String: "MCP", Valid: true},
+			HTTPMethod: sql.NullString{String: "MCP", Valid: true},
 		}
 
 		args := map[string]interface{}{

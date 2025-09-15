@@ -135,34 +135,34 @@ func (s *GRPCServer) Execute(ctx context.Context, req *pb.ExecuteRequest) (*pb.E
 	}
 
 	// Extract session API keys from the request
-	sessionApiKeys := make(map[string]string)
+	sessionAPIKeys := make(map[string]string)
 
 	// Use the new session_api_keys map if available
 	if sessionKeysMap := req.GetSessionApiKeys(); len(sessionKeysMap) > 0 {
 		for key, value := range sessionKeysMap {
-			sessionApiKeys[key] = value
+			sessionAPIKeys[key] = value
 		}
 	} else {
 		// Fallback to legacy fields for backward compatibility
 		if req.GetOpenweatherApiKey() != "" {
-			sessionApiKeys["openWeatherApiKey"] = req.GetOpenweatherApiKey()
+			sessionAPIKeys["openWeatherAPIKey"] = req.GetOpenweatherApiKey()
 		}
 		if req.GetNeo4JUrl() != "" {
-			sessionApiKeys["neo4jUrl"] = req.GetNeo4JUrl()
+			sessionAPIKeys["neo4jUrl"] = req.GetNeo4JUrl()
 		}
 		if req.GetNeo4JUsername() != "" {
-			sessionApiKeys["neo4jUsername"] = req.GetNeo4JUsername()
+			sessionAPIKeys["neo4jUsername"] = req.GetNeo4JUsername()
 		}
 		if req.GetNeo4JPassword() != "" {
-			sessionApiKeys["neo4jPassword"] = req.GetNeo4JPassword()
+			sessionAPIKeys["neo4jPassword"] = req.GetNeo4JPassword()
 		}
 		if req.GetNeo4JDatabase() != "" {
-			sessionApiKeys["neo4jDatabase"] = req.GetNeo4JDatabase()
+			sessionAPIKeys["neo4jDatabase"] = req.GetNeo4JDatabase()
 		}
 	}
 
 	// Start execution with session API keys
-	executionID, executionRun, err := s.businessLogic.StartExecution(request, req.GetUseMock(), sessionApiKeys)
+	executionID, executionRun, err := s.businessLogic.StartExecution(request, req.GetUseMock(), sessionAPIKeys)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Failed to start execution: %v", err)
 	}
@@ -559,7 +559,7 @@ func (s *GRPCServer) convertFunctionToProto(function *types.FunctionDefinition) 
 		DisplayName: function.DisplayName,
 		Description: function.Description,
 		EndpointUrl: function.EndpointURL,
-		HttpMethod:  function.HttpMethod,
+		HttpMethod:  function.HTTPMethod,
 		IsActive:    function.IsActive,
 		CreatedAt:   timestamppb.New(function.CreatedAt),
 		UpdatedAt:   timestamppb.New(function.UpdatedAt),
@@ -588,7 +588,7 @@ func (s *GRPCServer) convertProtoFunctionToInternal(pf *pb.FunctionDefinition) *
 		DisplayName: pf.DisplayName,
 		Description: pf.Description,
 		EndpointURL: pf.EndpointUrl,
-		HttpMethod:  pf.HttpMethod,
+		HTTPMethod:  pf.HttpMethod,
 		IsActive:    pf.IsActive,
 	}
 

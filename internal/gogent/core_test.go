@@ -60,13 +60,13 @@ func TestEnsureMultiStatements(t *testing.T) {
 	}
 }
 
-func TestGetEffectiveApiKeys(t *testing.T) {
+func TestGetEffectiveAPIKeys(t *testing.T) {
 	// Create a client with empty database keys
 	client := &Client{
-		databaseApiKeys: &types.SessionApiKeys{},
+		databaseAPIKeys: &types.SessionAPIKeys{},
 	}
 
-	keys := client.getEffectiveApiKeys()
+	keys := client.getEffectiveAPIKeys()
 	if keys == nil {
 		t.Error("Expected non-nil API keys")
 	}

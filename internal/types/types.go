@@ -109,13 +109,13 @@ type FunctionDefinition struct {
 	ParametersSchema  map[string]interface{} `json:"parametersSchema"`       // JSON schema for parameters
 	MockResponse      map[string]interface{} `json:"mockResponse,omitempty"` // Mock response for testing
 	EndpointURL       string                 `json:"endpointUrl,omitempty"`  // Real API endpoint
-	HttpMethod        string                 `json:"httpMethod"`             // HTTP method (GET, POST, etc.)
+	HTTPMethod        string                 `json:"httpMethod"`             // HTTP method (GET, POST, etc.)
 	Headers           map[string]interface{} `json:"headers,omitempty"`      // HTTP headers
 	AuthConfig        map[string]interface{} `json:"authConfig,omitempty"`   // Authentication config
 	IsActive          bool                   `json:"isActive"`
 	IsSystemResource  bool                   `json:"isSystemResource"`            // Mark as system-provided resource
-	RequiredApiKeys   []string               `json:"requiredApiKeys,omitempty"`   // API keys required for this function
-	ApiKeyValidation  map[string]interface{} `json:"apiKeyValidation,omitempty"`  // Validation rules for each API key
+	RequiredAPIKeys   []string               `json:"requiredAPIKeys,omitempty"`   // API keys required for this function
+	APIKeyValidation  map[string]interface{} `json:"apiKeyValidation,omitempty"`  // Validation rules for each API key
 	QueryTemplate     string                 `json:"queryTemplate,omitempty"`     // Cypher query template with {{parameter}} placeholders
 	ResultTransformer string                 `json:"resultTransformer,omitempty"` // How to transform the raw results (e.g., 'sales_summary', 'normalize_attributes')
 	FallbackData      map[string]interface{} `json:"fallbackData,omitempty"`      // Fallback data when external services are unavailable
@@ -240,19 +240,19 @@ type FunctionCall struct {
 	ExecutionDepth   int32                  `json:"execution_depth"`
 }
 
-// SessionApiKeys represents API keys passed with each request (not stored on backend)
-type SessionApiKeys struct {
-	GeminiApiKey        string `json:"geminiApiKey,omitempty"`
-	OpenRouterApiKey    string `json:"openRouterApiKey,omitempty"` // For Kimi K2 and other models via OpenRouter
-	OpenWeatherApiKey   string `json:"openWeatherApiKey,omitempty"`
-	Neo4jUrl            string `json:"neo4jUrl,omitempty"`
+// SessionAPIKeys represents API keys passed with each request (not stored on backend)
+type SessionAPIKeys struct {
+	GeminiAPIKey        string `json:"geminiAPIKey,omitempty"`
+	OpenRouterAPIKey    string `json:"openRouterAPIKey,omitempty"` // For Kimi K2 and other models via OpenRouter
+	OpenWeatherAPIKey   string `json:"openWeatherAPIKey,omitempty"`
+	Neo4jURL            string `json:"neo4jUrl,omitempty"`
 	Neo4jUsername       string `json:"neo4jUsername,omitempty"`
 	Neo4jPassword       string `json:"neo4jPassword,omitempty"`
 	Neo4jDatabase       string `json:"neo4jDatabase,omitempty"`
-	GithubApiKey        string `json:"githubApiKey,omitempty"`
+	GithubAPIKey        string `json:"githubAPIKey,omitempty"`
 	SlackBotToken       string `json:"slackBotToken,omitempty"`       // Slack Bot Token (xoxb-...)
 	WhatsappAccessToken string `json:"whatsappAccessToken,omitempty"` // WhatsApp Business API Access Token (EAA...)
-	GoogleDriveApiKey   string `json:"googleDriveApiKey,omitempty"`   // Google Drive API OAuth 2.0 Access Token
+	GoogleDriveAPIKey   string `json:"googleDriveAPIKey,omitempty"`   // Google Drive API OAuth 2.0 Access Token
 }
 
 // GeminiClientConfig represents the configuration for the Gemini client
@@ -273,7 +273,7 @@ type MultiExecutionRequest struct {
 	Configurations        []APIConfiguration `json:"configurations"`
 	FunctionTools         []Tool             `json:"functionTools,omitempty"`
 	ComparisonConfig      *ComparisonConfig  `json:"comparisonConfig,omitempty"`
-	SessionApiKeys        *SessionApiKeys    `json:"sessionApiKeys,omitempty"` // API keys for this session
+	SessionAPIKeys        *SessionAPIKeys    `json:"sessionAPIKeys,omitempty"` // API keys for this session
 	AgentID               *string            `json:"agentId,omitempty"`        // Agent ID for agent executions
 }
 
@@ -459,7 +459,7 @@ type ExecutionTemplate struct {
 	UpdatedAt                time.Time                    `json:"updatedAt"`
 	Parameters               []ExecutionTemplateParameter `json:"parameters,omitempty"`
 	AuthTokens               []ExecutionTemplateAuthToken `json:"authTokens,omitempty"`
-	FunctionIds              []string                     `json:"functionIds,omitempty"` // Associated function IDs
+	FunctionIDs              []string                     `json:"functionIds,omitempty"` // Associated function IDs
 }
 
 // ExecutionTemplateParameter represents a parameter definition for templates
@@ -713,7 +713,7 @@ type TeamWithAgentsCreateRequest struct {
 	Name              string                      `json:"name" validate:"required,min=1,max=100"`
 	Description       *string                     `json:"description,omitempty" validate:"omitempty,max=500"`
 	MaxTokensPerDay   int32                       `json:"maxTokensPerDay" validate:"required,min=1000"`
-	TeamConfigId      *string                     `json:"teamConfigId,omitempty"`
+	TeamConfigID      *string                     `json:"teamConfigId,omitempty"`
 	SharedTeamContext *string                     `json:"sharedTeamContext,omitempty" validate:"omitempty,max=2000"`
 	Agents            []AgentCreateRequestForTeam `json:"agents" validate:"required,min=1"`
 }
@@ -860,11 +860,11 @@ type MemorySearchResult struct {
 	UpdatedAt time.Time              `json:"updatedAt"`
 }
 
-// AgentApiKey represents a mapping between agents and API keys
-type AgentApiKey struct {
+// AgentAPIKey represents a mapping between agents and API keys
+type AgentAPIKey struct {
 	ID               string    `json:"id"`
 	AgentID          string    `json:"agentId"`
-	ApiKeyID         string    `json:"apiKeyId"`
+	APIKeyID         string    `json:"apiKeyId"`
 	IsDefault        bool      `json:"isDefault"`
 	UseGlobalDefault bool      `json:"useGlobalDefault"`
 	Priority         int       `json:"priority"`
@@ -872,40 +872,40 @@ type AgentApiKey struct {
 	UpdatedAt        time.Time `json:"updatedAt"`
 
 	// Populated via JOINs when needed
-	ApiKey           *UserApiKey `json:"apiKey,omitempty"`
+	APIKey           *UserAPIKey `json:"apiKey,omitempty"`
 	ServiceName      string      `json:"serviceName,omitempty"`
 	DisplayName      string      `json:"displayName,omitempty"`
 	ValidationStatus string      `json:"validationStatus,omitempty"`
 	IsActive         bool        `json:"isActive,omitempty"`
 }
 
-// AgentApiKeyCreateRequest represents a request to create an agent API key mapping
-type AgentApiKeyCreateRequest struct {
+// AgentAPIKeyCreateRequest represents a request to create an agent API key mapping
+type AgentAPIKeyCreateRequest struct {
 	AgentID          string `json:"agentId" validate:"required"`
-	ApiKeyID         string `json:"apiKeyId" validate:"required"`
+	APIKeyID         string `json:"apiKeyId" validate:"required"`
 	IsDefault        bool   `json:"isDefault"`
 	UseGlobalDefault bool   `json:"useGlobalDefault"`
 	Priority         int    `json:"priority"`
 }
 
-// AgentApiKeyUpdateRequest represents a request to update an agent API key mapping
-type AgentApiKeyUpdateRequest struct {
+// AgentAPIKeyUpdateRequest represents a request to update an agent API key mapping
+type AgentAPIKeyUpdateRequest struct {
 	IsDefault        *bool `json:"isDefault,omitempty"`
 	UseGlobalDefault *bool `json:"useGlobalDefault,omitempty"`
 	Priority         *int  `json:"priority,omitempty"`
 }
 
-// AgentWithApiKeys represents an agent with its associated API keys
-type AgentWithApiKeys struct {
+// AgentWithAPIKeys represents an agent with its associated API keys
+type AgentWithAPIKeys struct {
 	Agent
-	ApiKeys []AgentApiKey `json:"apiKeys,omitempty"`
+	APIKeys []AgentAPIKey `json:"apiKeys,omitempty"`
 }
 
-// AgentApiKeyConfiguration represents the API key configuration for an agent
-type AgentApiKeyConfiguration struct {
+// AgentAPIKeyConfiguration represents the API key configuration for an agent
+type AgentAPIKeyConfiguration struct {
 	AgentID           string                `json:"agentId"`
-	ServiceApiKeys    map[string]UserApiKey `json:"serviceApiKeys"`  // Service name -> API key
-	FallbackApiKeys   map[string]UserApiKey `json:"fallbackApiKeys"` // Service name -> fallback API key
+	ServiceAPIKeys    map[string]UserAPIKey `json:"serviceAPIKeys"`  // Service name -> API key
+	FallbackAPIKeys   map[string]UserAPIKey `json:"fallbackAPIKeys"` // Service name -> fallback API key
 	UseGlobalDefaults bool                  `json:"useGlobalDefaults"`
 }
 

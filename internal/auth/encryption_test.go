@@ -536,8 +536,8 @@ func TestHeaderEncryption_EndToEndWithHeaders(t *testing.T) {
 	he := NewHeaderEncryption()
 
 	testData := map[string]string{
-		"geminiApiKey":      "sk-test123456789abcdef",
-		"openWeatherApiKey": "1234567890abcdef",
+		"geminiAPIKey":      "sk-test123456789abcdef",
+		"openWeatherAPIKey": "1234567890abcdef",
 		"neo4jUrl":          "bolt://localhost:7687",
 		"neo4jUsername":     "neo4j",
 		"neo4jPassword":     "password123",
@@ -553,9 +553,9 @@ func TestHeaderEncryption_EndToEndWithHeaders(t *testing.T) {
 		// Map to appropriate header names
 		var headerName string
 		switch key {
-		case "geminiApiKey":
+		case "geminiAPIKey":
 			headerName = "X-Encrypted-Gemini-API-Key"
-		case "openWeatherApiKey":
+		case "openWeatherAPIKey":
 			headerName = "X-Encrypted-OpenWeather-API-Key"
 		case "neo4jUrl":
 			headerName = "X-Encrypted-Neo4j-URL"
@@ -637,12 +637,12 @@ func TestHeaderEncryption_OriginalIssueFixed(t *testing.T) {
 			{
 				name:    "Gemini API key",
 				apiKey:  "AIzaSyB2Kk8jH9vL3mN4oP5qR6sT7uV8wX9yZ0aB1c",
-				keyType: "geminiApiKey",
+				keyType: "geminiAPIKey",
 			},
 			{
 				name:    "OpenWeather API key",
 				apiKey:  "1234567890abcdef",
-				keyType: "openWeatherApiKey",
+				keyType: "openWeatherAPIKey",
 			},
 			{
 				name:    "Neo4j URL",
@@ -703,7 +703,7 @@ func TestHeaderEncryption_OriginalIssueFixed(t *testing.T) {
 		result := he.GetDecryptedAPIKeysFromHeaders(headers)
 
 		// Verify all keys were successfully decrypted
-		assert.Equal(t, geminiKey, result["geminiApiKey"], "Gemini API key should be decrypted correctly")
+		assert.Equal(t, geminiKey, result["geminiAPIKey"], "Gemini API key should be decrypted correctly")
 		assert.Equal(t, neo4jUrl, result["neo4jUrl"], "Neo4j URL should be decrypted correctly")
 		assert.Equal(t, neo4jUsername, result["neo4jUsername"], "Neo4j username should be decrypted correctly")
 		assert.Equal(t, neo4jPassword, result["neo4jPassword"], "Neo4j password should be decrypted correctly")

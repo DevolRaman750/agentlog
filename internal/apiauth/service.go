@@ -38,7 +38,7 @@ func (s *Service) GetAuthCredentialsForService(ctx context.Context, userID, serv
 	// 1. GitHub App credentials (github_app auth mode) - highest priority
 	// 2. Default key (is_default = true)
 	// 3. Most recently created key
-	var selectedKey *types.UserApiKey
+	var selectedKey *types.UserAPIKey
 
 	// First, look for GitHub App credentials
 	for _, key := range apiKeys {

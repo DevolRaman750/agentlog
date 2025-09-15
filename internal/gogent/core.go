@@ -39,10 +39,10 @@ type Client struct {
 	db              *sql.DB
 	queries         *db.Queries
 	config          *types.GeminiClientConfig
-	sessionApiKeys  *types.SessionApiKeys // DEPRECATED: Will be removed - use database keys
-	databaseApiKeys *types.SessionApiKeys // API keys loaded from database
+	sessionAPIKeys  *types.SessionAPIKeys // DEPRECATED: Will be removed - use database keys
+	databaseAPIKeys *types.SessionAPIKeys // API keys loaded from database
 	currentUserID   string                // Current user ID for loading API keys
-	geminiClient    *gemini.GeminiClient
+	geminiClient    *gemini.Client
 	providerFactory *providers.ProviderFactory // Provider factory for multi-model support
 	mutex           sync.RWMutex
 	// Add execution context for logging
@@ -210,7 +210,7 @@ func ensureMultiStatements(dbURL string) string {
 }
 
 // NewClient creates a new gogent client with database connection
-func NewClient(dbURL string, config *types.GeminiClientConfig, sessionApiKeys *types.SessionApiKeys) (*Client, error) {
+func NewClient(dbURL string, config *types.GeminiClientConfig, sessionAPIKeys *types.SessionAPIKeys) (*Client, error) {
 	// Ensure dbURL includes multiStatements=true for migrations
 	dbURL = ensureMultiStatements(dbURL)
 
@@ -243,7 +243,7 @@ func NewClient(dbURL string, config *types.GeminiClientConfig, sessionApiKeys *t
 		db:                  database,
 		queries:             queries,
 		config:              config,
-		sessionApiKeys:      sessionApiKeys,
+		sessionAPIKeys:      sessionAPIKeys,
 		providerFactory:     providers.NewProviderFactory(),
 		mutex:               sync.RWMutex{},
 		functionCallHistory: make(map[string]*FunctionCallHistory),
@@ -298,7 +298,7 @@ func (c *Client) Close() error {
 // registerIntegrations registers all available integrations
 func (c *Client) registerIntegrations() error {
 	// Get effective API keys for legacy support
-	apiKeys := c.getEffectiveApiKeys()
+	apiKeys := c.getEffectiveAPIKeys()
 
 	// Create auth service if we have a current user
 	var authService *apiauth.Service
@@ -341,8 +341,8 @@ func (c *Client) registerIntegrations() error {
 	return nil
 }
 
-// LoadDatabaseApiKeys loads API keys from the database for the current user
-func (c *Client) LoadDatabaseApiKeys(ctx context.Context, userID string) error {
+// LoadDatabaseAPIKeys loads API keys from the database for the current user
+func (c *Client) LoadDatabaseAPIKeys(ctx context.Context, userID string) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
@@ -356,20 +356,20 @@ func (c *Client) LoadDatabaseApiKeys(ctx context.Context, userID string) error {
 	}
 
 	// Get all API keys for the user
-	userApiKeys, err := apiKeyService.GetAPIKeys(ctx, userID)
+	userAPIKeys, err := apiKeyService.GetAPIKeys(ctx, userID)
 	if err != nil {
 		log.Printf("⚠️ Failed to load API keys for user %s: %v", userID, err)
 		// Don't fail completely - continue with empty keys
-		c.databaseApiKeys = &types.SessionApiKeys{}
+		c.databaseAPIKeys = &types.SessionAPIKeys{}
 		return nil
 	}
 
-	log.Printf("🔑 Loaded %d API keys from database for user %s", len(userApiKeys), userID)
+	log.Printf("🔑 Loaded %d API keys from database for user %s", len(userAPIKeys), userID)
 
 	// Convert database API keys to session format
-	sessionKeys := &types.SessionApiKeys{}
+	sessionKeys := &types.SessionAPIKeys{}
 
-	for _, apiKey := range userApiKeys {
+	for _, apiKey := range userAPIKeys {
 		if !apiKey.IsActive || apiKey.ValidationStatus == "invalid" {
 			continue
 		}
@@ -384,7 +384,7 @@ func (c *Client) LoadDatabaseApiKeys(ctx context.Context, userID string) error {
 		// Map service names to session key fields
 		switch apiKey.ServiceName {
 		case "gemini":
-			sessionKeys.GeminiApiKey = decryptedKey
+			sessionKeys.GeminiAPIKey = decryptedKey
 			log.Printf("🔑 Loaded Gemini API key from database - Length: %d, Prefix: %s",
 				len(decryptedKey),
 				func() string {
@@ -396,13 +396,13 @@ func (c *Client) LoadDatabaseApiKeys(ctx context.Context, userID string) error {
 					return "EMPTY"
 				}())
 		case "openweather":
-			sessionKeys.OpenWeatherApiKey = decryptedKey
+			sessionKeys.OpenWeatherAPIKey = decryptedKey
 			log.Printf("🔑 Loaded OpenWeather API key from database")
 		case "github":
-			sessionKeys.GithubApiKey = decryptedKey
+			sessionKeys.GithubAPIKey = decryptedKey
 			log.Printf("🔑 Loaded GitHub API key from database")
 		case "openrouter":
-			sessionKeys.OpenRouterApiKey = decryptedKey
+			sessionKeys.OpenRouterAPIKey = decryptedKey
 			log.Printf("🔑 Loaded OpenRouter API key from database")
 		case "slack":
 			sessionKeys.SlackBotToken = decryptedKey
@@ -430,7 +430,7 @@ func (c *Client) LoadDatabaseApiKeys(ctx context.Context, userID string) error {
 					return "EMPTY"
 				}())
 		case "googledrive":
-			sessionKeys.GoogleDriveApiKey = decryptedKey
+			sessionKeys.GoogleDriveAPIKey = decryptedKey
 			log.Printf("🔑 Loaded Google Drive API key from database - Length: %d, Prefix: %s",
 				len(decryptedKey),
 				func() string {
@@ -444,20 +444,20 @@ func (c *Client) LoadDatabaseApiKeys(ctx context.Context, userID string) error {
 		case "neo4j":
 			// For Neo4j, we need to handle the connection details differently
 			// This is a simplified version - you might want to parse the connection string
-			sessionKeys.Neo4jUrl = decryptedKey
+			sessionKeys.Neo4jURL = decryptedKey
 			log.Printf("🔑 Loaded Neo4j connection from database")
 		}
 	}
 
-	c.databaseApiKeys = sessionKeys
+	c.databaseAPIKeys = sessionKeys
 	log.Printf("🔑 Database API keys loaded: Gemini=%v, OpenWeather=%v, GitHub=%v, OpenRouter=%v, Slack=%v, WhatsApp=%v, GoogleDrive=%v",
-		sessionKeys.GeminiApiKey != "",
-		sessionKeys.OpenWeatherApiKey != "",
-		sessionKeys.GithubApiKey != "",
-		sessionKeys.OpenRouterApiKey != "",
+		sessionKeys.GeminiAPIKey != "",
+		sessionKeys.OpenWeatherAPIKey != "",
+		sessionKeys.GithubAPIKey != "",
+		sessionKeys.OpenRouterAPIKey != "",
 		sessionKeys.SlackBotToken != "",
 		sessionKeys.WhatsappAccessToken != "",
-		sessionKeys.GoogleDriveApiKey != "")
+		sessionKeys.GoogleDriveAPIKey != "")
 
 	// Re-register integrations with the new user context and auth system
 	if err := c.registerIntegrations(); err != nil {
@@ -468,14 +468,14 @@ func (c *Client) LoadDatabaseApiKeys(ctx context.Context, userID string) error {
 	return nil
 }
 
-// LoadAgentApiKeys loads API keys for a specific agent with fallback to user defaults
-func (c *Client) LoadAgentApiKeys(ctx context.Context, agentID string) error {
+// LoadAgentAPIKeys loads API keys for a specific agent with fallback to user defaults
+func (c *Client) LoadAgentAPIKeys(ctx context.Context, agentID string) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
 	// Create agents service to get agent API key configuration
 	agentHandler := agents.NewAgentsHandler(c.db)
-	agentConfig, err := agentHandler.GetAgentApiKeyConfiguration(ctx, agentID)
+	agentConfig, err := agentHandler.GetAgentAPIKeyConfiguration(ctx, agentID)
 	if err != nil {
 		log.Printf("⚠️ Failed to get agent API key configuration for %s: %v", agentID, err)
 		// Fallback to loading user keys directly
@@ -485,7 +485,7 @@ func (c *Client) LoadAgentApiKeys(ctx context.Context, agentID string) error {
 			err := c.db.QueryRowContext(ctx, "SELECT user_id FROM agents WHERE id = ?", agentID).Scan(&userID)
 			if err == nil {
 				log.Printf("🔄 Falling back to global user API keys for agent %s (user: %s)", agentID, userID)
-				return c.LoadDatabaseApiKeys(ctx, userID)
+				return c.LoadDatabaseAPIKeys(ctx, userID)
 			}
 		}
 		return fmt.Errorf("failed to load API keys for agent %s: %w", agentID, err)
@@ -508,12 +508,12 @@ func (c *Client) LoadAgentApiKeys(ctx context.Context, agentID string) error {
 	}
 
 	log.Printf("🔑 Loading API keys for agent %s - Found %d service configurations",
-		agentID, len(agentConfig.ServiceApiKeys))
+		agentID, len(agentConfig.ServiceAPIKeys))
 
 	// Convert database API keys to session format
-	sessionKeys := &types.SessionApiKeys{}
+	sessionKeys := &types.SessionAPIKeys{}
 
-	for serviceName, apiKey := range agentConfig.ServiceApiKeys {
+	for serviceName, apiKey := range agentConfig.ServiceAPIKeys {
 		if !apiKey.IsActive || apiKey.ValidationStatus == "invalid" {
 			log.Printf("⚠️ Skipping inactive/invalid API key for service %s", serviceName)
 			continue
@@ -525,7 +525,7 @@ func (c *Client) LoadAgentApiKeys(ctx context.Context, agentID string) error {
 			log.Printf("⚠️ Failed to decrypt API key %s for agent %s: %v", apiKey.KeyName, agentID, err)
 
 			// Try fallback key if available
-			if fallbackKey, hasFallback := agentConfig.FallbackApiKeys[serviceName]; hasFallback && fallbackKey.ID != "" {
+			if fallbackKey, hasFallback := agentConfig.FallbackAPIKeys[serviceName]; hasFallback && fallbackKey.ID != "" {
 				log.Printf("🔄 Trying fallback API key for service %s", serviceName)
 				decryptedKey, err = apiKeyService.GetDecryptedAPIKey(ctx, userID, fallbackKey.ID)
 				if err != nil {
@@ -540,19 +540,19 @@ func (c *Client) LoadAgentApiKeys(ctx context.Context, agentID string) error {
 		// Map service names to session key fields
 		switch serviceName {
 		case "gemini":
-			sessionKeys.GeminiApiKey = decryptedKey
+			sessionKeys.GeminiAPIKey = decryptedKey
 			log.Printf("🔑 [Agent %s] Loaded Gemini API key - Source: %s, Length: %d",
 				agentID, apiKey.KeyName, len(decryptedKey))
 		case "openweather":
-			sessionKeys.OpenWeatherApiKey = decryptedKey
+			sessionKeys.OpenWeatherAPIKey = decryptedKey
 			log.Printf("🔑 [Agent %s] Loaded OpenWeather API key - Source: %s",
 				agentID, apiKey.KeyName)
 		case "github":
-			sessionKeys.GithubApiKey = decryptedKey
+			sessionKeys.GithubAPIKey = decryptedKey
 			log.Printf("🔑 [Agent %s] Loaded GitHub API key - Source: %s",
 				agentID, apiKey.KeyName)
 		case "openrouter":
-			sessionKeys.OpenRouterApiKey = decryptedKey
+			sessionKeys.OpenRouterAPIKey = decryptedKey
 			log.Printf("🔑 [Agent %s] Loaded OpenRouter API key - Source: %s",
 				agentID, apiKey.KeyName)
 		case "slack":
@@ -564,7 +564,7 @@ func (c *Client) LoadAgentApiKeys(ctx context.Context, agentID string) error {
 			log.Printf("🔑 [Agent %s] Loaded WhatsApp Access Token - Source: %s, Length: %d",
 				agentID, apiKey.KeyName, len(decryptedKey))
 		case "googledrive":
-			sessionKeys.GoogleDriveApiKey = decryptedKey
+			sessionKeys.GoogleDriveAPIKey = decryptedKey
 			log.Printf("🔑 [Agent %s] Loaded Google Drive API key - Source: %s",
 				agentID, apiKey.KeyName)
 		default:
@@ -572,17 +572,17 @@ func (c *Client) LoadAgentApiKeys(ctx context.Context, agentID string) error {
 		}
 	}
 
-	c.databaseApiKeys = sessionKeys
+	c.databaseAPIKeys = sessionKeys
 
 	log.Printf("🔑 Agent API keys loaded for %s: Gemini=%v, OpenWeather=%v, GitHub=%v, OpenRouter=%v, Slack=%v, WhatsApp=%v, GoogleDrive=%v",
 		agentID,
-		sessionKeys.GeminiApiKey != "",
-		sessionKeys.OpenWeatherApiKey != "",
-		sessionKeys.GithubApiKey != "",
-		sessionKeys.OpenRouterApiKey != "",
+		sessionKeys.GeminiAPIKey != "",
+		sessionKeys.OpenWeatherAPIKey != "",
+		sessionKeys.GithubAPIKey != "",
+		sessionKeys.OpenRouterAPIKey != "",
 		sessionKeys.SlackBotToken != "",
 		sessionKeys.WhatsappAccessToken != "",
-		sessionKeys.GoogleDriveApiKey != "")
+		sessionKeys.GoogleDriveAPIKey != "")
 
 	// Re-register integrations with the new user context and auth system
 	if err := c.registerIntegrations(); err != nil {
@@ -594,20 +594,20 @@ func (c *Client) LoadAgentApiKeys(ctx context.Context, agentID string) error {
 	return nil
 }
 
-// getEffectiveApiKeys returns the effective API keys, with database keys taking precedence over session keys
-func (c *Client) getEffectiveApiKeys() *types.SessionApiKeys {
+// getEffectiveAPIKeys returns the effective API keys, with database keys taking precedence over session keys
+func (c *Client) getEffectiveAPIKeys() *types.SessionAPIKeys {
 	// Prefer database keys when available (new system)
-	if c.databaseApiKeys != nil {
-		return c.databaseApiKeys
+	if c.databaseAPIKeys != nil {
+		return c.databaseAPIKeys
 	}
 
 	// Fall back to session keys for backward compatibility (legacy system)
-	if c.sessionApiKeys != nil {
-		return c.sessionApiKeys
+	if c.sessionAPIKeys != nil {
+		return c.sessionAPIKeys
 	}
 
 	// Return empty keys if none available
-	return &types.SessionApiKeys{}
+	return &types.SessionAPIKeys{}
 }
 
 // GetDB returns the database connection
@@ -835,7 +835,7 @@ func (c *Client) executeMCPFunction(ctx context.Context, funcDef *db.FunctionDef
 // executeDynamicFunction routes to the appropriate execution method based on function definition
 func (c *Client) executeDynamicFunction(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
 	// Debug logging for function routing
-	log.Printf("🔍 [ROUTING_DEBUG] Function: %s, FunctionGroup: %s, HttpMethod: %s", funcDef.Name, funcDef.FunctionGroup, funcDef.HttpMethod.String)
+	log.Printf("🔍 [ROUTING_DEBUG] Function: %s, FunctionGroup: %s, HTTPMethod: %s", funcDef.Name, funcDef.FunctionGroup, funcDef.HTTPMethod.String)
 
 	// Handle internal functions differently
 	if funcDef.FunctionGroup == "internal" {
@@ -851,7 +851,7 @@ func (c *Client) executeDynamicFunction(ctx context.Context, funcDef *db.Functio
 	}
 
 	log.Printf("🔍 [ROUTING_DEBUG] No integration found for function_group: %s, falling back to HTTP method routing", funcDef.FunctionGroup)
-	switch funcDef.HttpMethod.String {
+	switch funcDef.HTTPMethod.String {
 	case "MYSQL":
 		log.Printf("🔍 [ROUTING_DEBUG] Routing %s to executeMySQLFunction", funcDef.Name)
 		return c.executeMySQLFunction(ctx, funcDef, args)
@@ -859,10 +859,10 @@ func (c *Client) executeDynamicFunction(ctx context.Context, funcDef *db.Functio
 		log.Printf("🔍 [ROUTING_DEBUG] Routing %s to executeMCPFunction", funcDef.Name)
 		return c.executeMCPFunction(ctx, funcDef, args)
 	case "GET", "POST", "PUT", "PATCH", "DELETE":
-		log.Printf("🔍 [ROUTING_DEBUG] Routing %s to executeAPIFunction (HTTP method: %s)", funcDef.Name, funcDef.HttpMethod.String)
+		log.Printf("🔍 [ROUTING_DEBUG] Routing %s to executeAPIFunction (HTTP method: %s)", funcDef.Name, funcDef.HTTPMethod.String)
 		return c.executeAPIFunction(ctx, funcDef, args)
 	default:
-		return nil, fmt.Errorf("unsupported execution method: %s", funcDef.HttpMethod.String)
+		return nil, fmt.Errorf("unsupported execution method: %s", funcDef.HTTPMethod.String)
 	}
 }
 
@@ -1886,7 +1886,7 @@ func (c *Client) executeIntegrationFunction(ctx context.Context, funcDef *db.Fun
 			"arguments":        args,
 			"argumentCount":    len(args),
 			"endpointUrl":      funcDef.EndpointUrl.String,
-			"httpMethod":       funcDef.HttpMethod.String,
+			"httpMethod":       funcDef.HTTPMethod.String,
 			"integrationStart": time.Now().Format("15:04:05.000"),
 		})
 
@@ -2201,8 +2201,8 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 
 	// Determine HTTP method from function definition
 	httpMethod := "GET" // Default
-	if funcDef.HttpMethod.Valid {
-		httpMethod = funcDef.HttpMethod.String
+	if funcDef.HTTPMethod.Valid {
+		httpMethod = funcDef.HTTPMethod.String
 	}
 
 	log.Printf("🌐 Making API call: %s %s (function: %s)", httpMethod, url, functionName)
@@ -2249,7 +2249,7 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 	}
 
 	// Add authentication based on function type and available headers
-	effectiveKeys := c.getEffectiveApiKeys()
+	effectiveKeys := c.getEffectiveAPIKeys()
 	log.Printf("🔍 DEBUG: Effective keys for %s - Slack: %s, GitHub: %s, Gemini: %s, GoogleDrive: %s",
 		functionName,
 		func() string {
@@ -2259,19 +2259,19 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 			return "MISSING"
 		}(),
 		func() string {
-			if effectiveKeys.GithubApiKey != "" {
+			if effectiveKeys.GithubAPIKey != "" {
 				return "PRESENT"
 			}
 			return "MISSING"
 		}(),
 		func() string {
-			if effectiveKeys.GeminiApiKey != "" {
+			if effectiveKeys.GeminiAPIKey != "" {
 				return "PRESENT"
 			}
 			return "MISSING"
 		}(),
 		func() string {
-			if effectiveKeys.GoogleDriveApiKey != "" {
+			if effectiveKeys.GoogleDriveAPIKey != "" {
 				return "PRESENT"
 			}
 			return "MISSING"
@@ -2299,11 +2299,11 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 							return headerValue
 						}())
 				}
-				if strings.Contains(headerValue, "{GITHUB_API_KEY}") && effectiveKeys.GithubApiKey != "" {
-					headerValue = strings.ReplaceAll(headerValue, "{GITHUB_API_KEY}", effectiveKeys.GithubApiKey)
+				if strings.Contains(headerValue, "{GITHUB_API_KEY}") && effectiveKeys.GithubAPIKey != "" {
+					headerValue = strings.ReplaceAll(headerValue, "{GITHUB_API_KEY}", effectiveKeys.GithubAPIKey)
 				}
-				if strings.Contains(headerValue, "{GOOGLE_DRIVE_API_KEY}") && effectiveKeys.GoogleDriveApiKey != "" {
-					headerValue = strings.ReplaceAll(headerValue, "{GOOGLE_DRIVE_API_KEY}", effectiveKeys.GoogleDriveApiKey)
+				if strings.Contains(headerValue, "{GOOGLE_DRIVE_API_KEY}") && effectiveKeys.GoogleDriveAPIKey != "" {
+					headerValue = strings.ReplaceAll(headerValue, "{GOOGLE_DRIVE_API_KEY}", effectiveKeys.GoogleDriveAPIKey)
 				}
 				log.Printf("🔍 DEBUG: Setting header %s = %s", key,
 					func() string {
@@ -2324,10 +2324,10 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 
 	// Add function-group-specific authentication if not already set via headers
 	if funcDef.FunctionGroup == "github" {
-		if req.Header.Get("Authorization") == "" && effectiveKeys.GithubApiKey != "" {
-			req.Header.Set("Authorization", "token "+effectiveKeys.GithubApiKey)
+		if req.Header.Get("Authorization") == "" && effectiveKeys.GithubAPIKey != "" {
+			req.Header.Set("Authorization", "token "+effectiveKeys.GithubAPIKey)
 			log.Printf("🔑 Added GitHub API authentication")
-		} else if effectiveKeys.GithubApiKey == "" {
+		} else if effectiveKeys.GithubAPIKey == "" {
 			log.Printf("⚠️ No GitHub API key available - proceeding without authentication")
 		}
 		// Set GitHub-specific headers if not already set
@@ -2338,10 +2338,10 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 			req.Header.Set("Accept", "application/vnd.github.v3+json")
 		}
 	} else if funcDef.FunctionGroup == "googledrive" {
-		if req.Header.Get("Authorization") == "" && effectiveKeys.GoogleDriveApiKey != "" {
-			req.Header.Set("Authorization", "Bearer "+effectiveKeys.GoogleDriveApiKey)
+		if req.Header.Get("Authorization") == "" && effectiveKeys.GoogleDriveAPIKey != "" {
+			req.Header.Set("Authorization", "Bearer "+effectiveKeys.GoogleDriveAPIKey)
 			log.Printf("🔑 Added Google Drive API authentication")
-		} else if effectiveKeys.GoogleDriveApiKey == "" {
+		} else if effectiveKeys.GoogleDriveAPIKey == "" {
 			log.Printf("⚠️ No Google Drive API key available - proceeding without authentication")
 		}
 		// Set Google Drive-specific headers if not already set
@@ -2739,8 +2739,8 @@ func (c *Client) buildGenericAPIURL(funcDef *db.FunctionDefinition, args map[str
 
 	// For GET requests, add remaining parameters as query parameters
 	httpMethod := "GET" // Default
-	if funcDef.HttpMethod.Valid {
-		httpMethod = funcDef.HttpMethod.String
+	if funcDef.HTTPMethod.Valid {
+		httpMethod = funcDef.HTTPMethod.String
 	}
 
 	if httpMethod == "GET" && len(args) > 0 {

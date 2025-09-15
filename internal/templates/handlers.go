@@ -151,7 +151,7 @@ func (th *TemplateHandler) CreateTemplate(w http.ResponseWriter, r *http.Request
 	var request struct {
 		Template    types.ExecutionTemplate            `json:"template"`
 		Parameters  []types.ExecutionTemplateParameter `json:"parameters"`
-		FunctionIds []string                           `json:"functionIds,omitempty"` // Function IDs to associate
+		FunctionIDs []string                           `json:"functionIds,omitempty"` // Function IDs to associate
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -188,7 +188,7 @@ func (th *TemplateHandler) CreateTemplate(w http.ResponseWriter, r *http.Request
 	}
 
 	// Create template
-	createdTemplate, err := th.templateService.CreateTemplate(&request.Template, request.Parameters, request.FunctionIds)
+	createdTemplate, err := th.templateService.CreateTemplate(&request.Template, request.Parameters, request.FunctionIDs)
 	if err != nil {
 		log.Printf("Error creating template: %v", err)
 		if strings.Contains(err.Error(), "duplicate") || strings.Contains(err.Error(), "unique") {
@@ -245,7 +245,7 @@ func (th *TemplateHandler) UpdateTemplate(w http.ResponseWriter, r *http.Request
 	var request struct {
 		Template      types.ExecutionTemplate            `json:"template"`
 		Parameters    []types.ExecutionTemplateParameter `json:"parameters"`
-		FunctionIds   []string                           `json:"functionIds,omitempty"` // Function IDs to associate
+		FunctionIDs   []string                           `json:"functionIds,omitempty"` // Function IDs to associate
 		ChangeSummary string                             `json:"changeSummary"`
 	}
 
@@ -265,7 +265,7 @@ func (th *TemplateHandler) UpdateTemplate(w http.ResponseWriter, r *http.Request
 			return "nil"
 		}(),
 		request.Template.EnableFunctionCalling)
-	log.Printf("🔍 DEBUG: FunctionIds count: %d, FunctionIds: %v", len(request.FunctionIds), request.FunctionIds)
+	log.Printf("🔍 DEBUG: FunctionIDs count: %d, FunctionIDs: %v", len(request.FunctionIDs), request.FunctionIDs)
 	log.Printf("🔍 DEBUG: Parameters count: %d", len(request.Parameters))
 
 	// Preserve user ID and ID and creation time - these should never be changed
@@ -285,10 +285,10 @@ func (th *TemplateHandler) UpdateTemplate(w http.ResponseWriter, r *http.Request
 
 	// Debug logging for function updates
 	log.Printf("🔥 HANDLERS: UpdateTemplate received function data: count=%d, ids=%v",
-		len(request.FunctionIds), request.FunctionIds)
+		len(request.FunctionIDs), request.FunctionIDs)
 
 	// Update template
-	updatedTemplate, version, err := th.templateService.UpdateTemplate(templateID, &request.Template, request.Parameters, request.FunctionIds, request.ChangeSummary)
+	updatedTemplate, version, err := th.templateService.UpdateTemplate(templateID, &request.Template, request.Parameters, request.FunctionIDs, request.ChangeSummary)
 	if err != nil {
 		log.Printf("Error updating template: %v", err)
 		http.Error(w, "Failed to update template", http.StatusInternalServerError)

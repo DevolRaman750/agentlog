@@ -197,7 +197,7 @@ func (a *Analyzer) InferDirectoryPurpose(filesWithContent []map[string]interface
 	hasMain := false
 	hasServer := false
 	hasGRPC := false
-	hasHttp := false
+	hasHTTP := false
 
 	for _, file := range filesWithContent {
 		fileName := strings.ToLower(getStringFromResult(file, "name"))
@@ -213,13 +213,13 @@ func (a *Analyzer) InferDirectoryPurpose(filesWithContent []map[string]interface
 			hasGRPC = true
 		}
 		if strings.Contains(content, "http") && strings.Contains(content, "ListenAndServe") {
-			hasHttp = true
+			hasHTTP = true
 		}
 	}
 
 	if hasMain && hasServer && hasGRPC {
 		return "Go gRPC server application with main entry point"
-	} else if hasMain && hasServer && hasHttp {
+	} else if hasMain && hasServer && hasHTTP {
 		return "Go HTTP server application with main entry point"
 	} else if hasMain {
 		return "Go application with main entry point"

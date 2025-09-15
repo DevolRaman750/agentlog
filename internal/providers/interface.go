@@ -31,7 +31,7 @@ type ModelRequest struct {
 	SystemPrompt        string                `json:"systemPrompt,omitempty"`
 	Tools               []types.Tool          `json:"tools,omitempty"`
 	ConversationHistory []ConversationMessage `json:"conversationHistory,omitempty"`
-	SessionApiKeys      *types.SessionApiKeys `json:"sessionApiKeys,omitempty"`
+	SessionAPIKeys      *types.SessionAPIKeys `json:"sessionAPIKeys,omitempty"`
 }
 
 // ModelResponse represents a standardized response format
@@ -60,7 +60,7 @@ type FunctionCall struct {
 // ProviderConfig holds provider-specific configuration
 type ProviderConfig struct {
 	ProviderType string                 `json:"providerType"` // "gemini", "kimi", etc.
-	ApiKey       string                 `json:"apiKey"`
+	APIKey       string                 `json:"apiKey"`
 	BaseURL      string                 `json:"baseUrl,omitempty"`
 	ExtraConfig  map[string]interface{} `json:"extraConfig,omitempty"`
 }
