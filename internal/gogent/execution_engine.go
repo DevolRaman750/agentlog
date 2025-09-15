@@ -18,6 +18,13 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	DefaultMaxTokens = 200
+	DefaultTimeoutMs = 300
+	DefaultMaxLength = 500
+	DefaultMaxDepth = 10
+)
+
 // ExecuteMultiVariation executes the same prompt with multiple configurations
 func (c *Client) ExecuteMultiVariation(ctx context.Context, userID string, request *types.MultiExecutionRequest) (*types.ExecutionResult, error) {
 	// Create execution run
@@ -67,8 +74,8 @@ func (c *Client) executeMultiVariationWithRun(ctx context.Context, userID string
 		"comparisonEnabled":     request.ComparisonConfig.Enabled,
 		"userID":                userID,
 		"executionRunID":        executionRun.ID,
-		"promptPreview":         c.truncateString(request.BasePrompt, 200),
-		"contextPreview":        c.truncateString(request.Context, 200),
+		"promptPreview":         c.truncateString(request.BasePrompt, DefaultMaxTokens),
+		"contextPreview":        c.truncateString(request.Context, DefaultMaxTokens),
 		"functionList":          c.extractFunctionNames(request.FunctionTools),
 		"configModels":          c.extractModelNames(request.Configurations),
 	}, nil, nil)
@@ -998,7 +1005,7 @@ func (c *Client) executeFunctionCall(ctx context.Context, functionName string, a
 			"functionName":    functionName,
 			"arguments":       args,
 			"resultSize":      len(resultStr),
-			"resultPreview":   c.truncateString(resultStr, 500),
+			"resultPreview":   c.truncateString(resultStr, DefaultMaxLength),
 			"executionTimeMs": executionTimeMs,
 			"hasData":         c.resultHasData(result),
 		}, &executionTimeMs, nil)
@@ -1289,7 +1296,7 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 					"resultSummary": resultSummary,
 					"resultKeys":    c.getMapKeys(result),
 					"executionEnd":  time.Now().Format("15:04:05.000"),
-					"resultPreview": c.truncateString(fmt.Sprintf("%v", result), 500),
+					"resultPreview": c.truncateString(fmt.Sprintf("%v", result), DefaultMaxLength),
 				})
 
 			// Log success in flow

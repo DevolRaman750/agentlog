@@ -14,6 +14,12 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	DefaultMaxTokens = 100
+	DefaultTimeoutSeconds = 30
+	DefaultMaxRetries = 3
+)
+
 // CreateExecutionRun creates a new execution run for grouping related API calls
 func (c *Client) CreateExecutionRun(ctx context.Context, userID, name, description string, enableFunctionCalling bool, agentID *string) (*types.ExecutionRun, error) {
 	c.mutex.Lock()

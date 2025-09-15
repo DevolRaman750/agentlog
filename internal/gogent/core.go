@@ -34,6 +34,13 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	DefaultMaxResults = 50
+	DefaultPageSize = 100
+	DefaultTimeoutMs = 300
+	DefaultMaxDepth = 10
+)
+
 // Client represents the main gogent client that wraps Gemini API calls
 type Client struct {
 	db              *sql.DB
@@ -751,7 +758,7 @@ func (c *Client) executeMySQLFunction(ctx context.Context, funcDef *db.FunctionD
 			"query_type":     "SELECT",
 			"security_level": "high",
 		},
-		"execution_time_ms": int64(50),
+		"execution_time_ms": int64(DefaultMaxResults),
 	}
 
 	return result, nil
@@ -805,7 +812,7 @@ func (c *Client) executeMCPFunction(ctx context.Context, funcDef *db.FunctionDef
 		"success":           true,
 		"operation":         operation,
 		"repo":              repo,
-		"execution_time_ms": int64(100),
+		"execution_time_ms": int64(DefaultPageSize),
 		"metadata": map[string]interface{}{
 			"source":     "mock",
 			"mcp_server": "github-operations",
@@ -1977,7 +1984,7 @@ func (c *Client) executeIntegrationFunction(ctx context.Context, funcDef *db.Fun
 			"resultSummary":  resultSummary,
 			"resultKeys":     c.getMapKeysFromResult(result),
 			"integrationEnd": time.Now().Format("15:04:05.000"),
-			"resultPreview":  c.truncateString(fmt.Sprintf("%v", result), 300),
+			"resultPreview":  c.truncateString(fmt.Sprintf("%v", result), DefaultTimeoutMs),
 		})
 
 	log.Printf("✅ Integration function executed successfully: %s", functionName)
