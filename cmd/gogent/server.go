@@ -828,7 +828,7 @@ func (s *Server) executeMockVariation(ctx context.Context, request *types.MultiE
 		// Simulate realistic delay
 		time.Sleep(time.Duration(200+i*50) * time.Millisecond)
 
-		responseText := s.generateMockResponse(request.BasePrompt, config)
+		responseText := fmt.Sprintf("🎨 [MOCK Response] %s - This is a mock response for testing purposes.", request.BasePrompt)
 		responseTime := int32(200 + i*50)
 
 		apiRequest := types.APIRequest{
@@ -906,7 +906,6 @@ func (s *Server) executeMockVariation(ctx context.Context, request *types.MultiE
 
 	return result
 }
-
 
 // Get specific execution run endpoint
 func (s *Server) getSpecificExecutionRun(w http.ResponseWriter, r *http.Request, runID string) {

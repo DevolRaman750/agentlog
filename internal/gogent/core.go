@@ -643,7 +643,8 @@ func (c *Client) LoadAgentAPIKeys(ctx context.Context, agentID string) error {
 
 	c.databaseAPIKeys = sessionKeys
 
-	log.Printf("🔑 Agent API keys loaded for %s: Gemini=%v, OpenWeather=%v, GitHub=%v, OpenRouter=%v, Slack=%v, WhatsApp=%v, GoogleDrive=%v",
+	log.Printf("🔑 Agent API keys loaded for %s: Gemini=%v, OpenWeather=%v, GitHub=%v, "+
+		"OpenRouter=%v, Slack=%v, WhatsApp=%v, GoogleDrive=%v",
 		agentID,
 		sessionKeys.GeminiAPIKey != "",
 		sessionKeys.OpenWeatherAPIKey != "",
