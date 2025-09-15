@@ -72,14 +72,12 @@ func (ts *TemplateService) CreateTemplate(template *types.ExecutionTemplate, par
 
 	// Convert tags to JSON
 	var tagsJSON interface{}
-	if template.Tags != nil && len(template.Tags) > 0 {
+	if len(template.Tags) > 0 {
 		tagsBytes, err := json.Marshal(template.Tags)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal tags: %w", err)
 		}
 		tagsJSON = string(tagsBytes)
-	} else {
-		tagsJSON = nil // SQL NULL
 	}
 
 	// Insert template
@@ -432,7 +430,7 @@ func (ts *TemplateService) UpdateTemplate(templateID string, template *types.Exe
 
 	// Convert tags to JSON
 	var tagsJSON interface{}
-	if template.Tags != nil && len(template.Tags) > 0 {
+	if len(template.Tags) > 0 {
 		tagsBytes, err := json.Marshal(template.Tags)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to marshal tags: %w", err)
@@ -666,18 +664,16 @@ func (ts *TemplateService) SubstituteTemplateParameters(template *types.Executio
 func (ts *TemplateService) insertTemplateParameter(tx *sql.Tx, param *types.ExecutionTemplateParameter) error {
 	// Convert JSON fields
 	var validationRulesJSON interface{}
-	if param.ValidationRules != nil && len(param.ValidationRules) > 0 {
+	if len(param.ValidationRules) > 0 {
 		bytes, err := json.Marshal(param.ValidationRules)
 		if err != nil {
 			return fmt.Errorf("failed to marshal validation rules: %w", err)
 		}
 		validationRulesJSON = string(bytes)
-	} else {
-		validationRulesJSON = nil // SQL NULL
 	}
 
 	var allowedValuesJSON interface{}
-	if param.AllowedValues != nil && len(param.AllowedValues) > 0 {
+	if len(param.AllowedValues) > 0 {
 		bytes, err := json.Marshal(param.AllowedValues)
 		if err != nil {
 			return fmt.Errorf("failed to marshal allowed values: %w", err)
@@ -876,10 +872,10 @@ func (ts *TemplateService) createTemplateVersion(tx *sql.Tx, template *types.Exe
 	// Create version record
 	versionID := generateVersionID()
 	var tagsJSON interface{}
-	if template.Tags != nil && len(template.Tags) > 0 {
+	if len(template.Tags) > 0 {
 		tagsBytes, err := json.Marshal(template.Tags)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to marshal tags: %w", err)
 		}
 		tagsJSON = string(tagsBytes)
 	} else {
@@ -947,10 +943,10 @@ func (ts *TemplateService) insertParameterVersion(tx *sql.Tx, versionID string, 
 	}
 
 	var validationRulesJSON interface{}
-	if param.ValidationRules != nil && len(param.ValidationRules) > 0 {
+	if len(param.ValidationRules) > 0 {
 		bytes, err := json.Marshal(param.ValidationRules)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to marshal validation rules: %w", err)
 		}
 		validationRulesJSON = string(bytes)
 	} else {
@@ -958,10 +954,10 @@ func (ts *TemplateService) insertParameterVersion(tx *sql.Tx, versionID string, 
 	}
 
 	var allowedValuesJSON interface{}
-	if param.AllowedValues != nil && len(param.AllowedValues) > 0 {
+	if len(param.AllowedValues) > 0 {
 		bytes, err := json.Marshal(param.AllowedValues)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to marshal allowed values: %w", err)
 		}
 		allowedValuesJSON = string(bytes)
 	} else {

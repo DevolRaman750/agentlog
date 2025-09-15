@@ -26,7 +26,7 @@ func (ts *TemplateService) CreateAuthToken(token *types.ExecutionTemplateAuthTok
 
 	// Convert JSON fields
 	var allowedOriginsJSON interface{}
-	if token.AllowedOrigins != nil && len(token.AllowedOrigins) > 0 {
+	if len(token.AllowedOrigins) > 0 {
 		bytes, err := json.Marshal(token.AllowedOrigins)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal allowed origins: %w", err)
@@ -37,7 +37,7 @@ func (ts *TemplateService) CreateAuthToken(token *types.ExecutionTemplateAuthTok
 	}
 
 	var allowedIPsJSON interface{}
-	if token.AllowedIPs != nil && len(token.AllowedIPs) > 0 {
+	if len(token.AllowedIPs) > 0 {
 		bytes, err := json.Marshal(token.AllowedIPs)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal allowed IPs: %w", err)
@@ -160,7 +160,7 @@ func (ts *TemplateService) UpdateAuthToken(tokenID string, token *types.Executio
 
 	// Convert JSON fields
 	var allowedOriginsJSON interface{}
-	if token.AllowedOrigins != nil && len(token.AllowedOrigins) > 0 {
+	if len(token.AllowedOrigins) > 0 {
 		bytes, err := json.Marshal(token.AllowedOrigins)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal allowed origins: %w", err)
@@ -171,7 +171,7 @@ func (ts *TemplateService) UpdateAuthToken(tokenID string, token *types.Executio
 	}
 
 	var allowedIPsJSON interface{}
-	if token.AllowedIPs != nil && len(token.AllowedIPs) > 0 {
+	if len(token.AllowedIPs) > 0 {
 		bytes, err := json.Marshal(token.AllowedIPs)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal allowed IPs: %w", err)
@@ -328,7 +328,6 @@ func (ts *TemplateService) DeleteAuthToken(tokenID string) error {
 func generateTokenID() string {
 	return "token-" + generateRandomString(16)
 }
-
 
 // generateRandomString generates a random hex string of specified length
 func generateRandomString(length int) string {

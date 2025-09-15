@@ -333,16 +333,16 @@ func (c *Client) GetComparisonResult(ctx context.Context, executionRunID string)
 	}
 
 	var bestConfiguration *types.APIConfiguration
-	if bestConfigData, ok := row.BestConfigurationData.(string); ok && len(bestConfigData) > 0 {
+	if bestConfigData, ok := row.BestConfigurationData.(string); ok && bestConfigData != "" {
 		if err := json.Unmarshal([]byte(bestConfigData), &bestConfiguration); err != nil {
-			log.Printf("Failed to unmarshal best configuration: %v", err)
+			log.Printf("⚠️ Failed to parse best configuration JSON: %v", err)
 		}
 	}
 
 	var allConfigurations []types.APIConfiguration
-	if allConfigData, ok := row.AllConfigurationsData.(string); ok && len(allConfigData) > 0 {
+	if allConfigData, ok := row.AllConfigurationsData.(string); ok && allConfigData != "" {
 		if err := json.Unmarshal([]byte(allConfigData), &allConfigurations); err != nil {
-			log.Printf("Failed to unmarshal all configurations: %v", err)
+			log.Printf("⚠️ Failed to parse all configurations JSON: %v", err)
 		}
 	}
 
@@ -383,14 +383,14 @@ func (c *Client) ListComparisonResults(ctx context.Context, executionRunID strin
 		}
 
 		var bestConfiguration *types.APIConfiguration
-		if bestConfigData, ok := row.BestConfigurationData.(string); ok && len(bestConfigData) > 0 {
+		if bestConfigData, ok := row.BestConfigurationData.(string); ok && bestConfigData != "" {
 			if err := json.Unmarshal([]byte(bestConfigData), &bestConfiguration); err != nil {
 				log.Printf("⚠️ Failed to parse best configuration JSON: %v", err)
 			}
 		}
 
 		var allConfigurations []types.APIConfiguration
-		if allConfigData, ok := row.AllConfigurationsData.(string); ok && len(allConfigData) > 0 {
+		if allConfigData, ok := row.AllConfigurationsData.(string); ok && allConfigData != "" {
 			if err := json.Unmarshal([]byte(allConfigData), &allConfigurations); err != nil {
 				log.Printf("⚠️ Failed to parse all configurations JSON: %v", err)
 			}
@@ -719,7 +719,7 @@ func (c *Client) processIterativeFunctionCallsWithProvider(ctx context.Context, 
 		currentTime.UTC().Format("2006-01-02 15:04:05 UTC"),
 		currentTime.Unix())
 
-	synthesisPrompt := fmt.Sprintf("User's original request: \"%s\"\n\n%s\n\n", originalPrompt, timeContext)
+	synthesisPrompt := fmt.Sprintf("User's original request: %q\n\n%s\n\n", originalPrompt, timeContext)
 
 	// Add function results to synthesis prompt so LLM can see what data it already has
 	if len(functionResults) > 0 {
@@ -727,7 +727,6 @@ func (c *Client) processIterativeFunctionCallsWithProvider(ctx context.Context, 
 		for i, result := range functionResults {
 			if i < len(functionCalls) {
 				functionName := functionCalls[i].FunctionCall.Name
-
 				// Create intelligent summaries instead of truncating raw JSON
 				summary := c.createIntelligentResultSummary(functionName, result)
 				synthesisPrompt += fmt.Sprintf("- %s: %s\n", functionName, summary)
@@ -810,79 +809,64 @@ func (c *Client) processProviderSynthesisWithIteration(ctx context.Context, conf
 
 		// Use SynthesisManager to determine if we should continue
 		synthesisManager := NewSynthesisManager()
-		allFunctionCalls := append(functionCalls, convertFunctionCallsToResponseParts(synthesisResponse.FunctionCalls)...)
-		allFunctionResults := append(functionResults, additionalResults...)
+		functionCalls = append(functionCalls, convertFunctionCallsToResponseParts(synthesisResponse.FunctionCalls)...)
+		functionResults = append(functionResults, additionalResults...)
 
-		synthesisConfig := &SynthesisConfig{
-			ProviderType:    providerType,
-			Depth:           depth + 1,
-			ShouldComplete:  false,
-			FunctionCalls:   allFunctionCalls,
-			FunctionResults: allFunctionResults,
-			OriginalConfig:  config,
-		}
+		// Decide whether to continue synthesizing based on progress
+		shouldContinue := depth < maxDepth
 
-		decision := synthesisManager.DetermineSynthesisStrategy(synthesisConfig)
+		if shouldContinue {
+			log.Printf("🔄 Continuing synthesis at depth %d", depth)
+			// Create a clean synthesis prompt focused on task guidance
+			newSynthesisPrompt := fmt.Sprintf("User's original request: %q\n\n", originalPrompt)
 
-		if decision.ForceCompletion {
-			log.Printf("🛑 %s synthesis manager forcing completion at depth %d: %s", providerType, depth, decision.Reason)
-			if synthesisResponse.ResponseText != "" {
-				return synthesisResponse.ResponseText, nil
+			// Add accumulated function results to synthesis prompt so LLM can see what data it already has
+			if len(functionResults) > 0 {
+				newSynthesisPrompt += "**Function Results:**\n"
+				for i, result := range functionResults {
+					if i < len(functionCalls) {
+						functionName := functionCalls[i].FunctionCall.Name
+						summary := c.createIntelligentResultSummary(functionName, result)
+						newSynthesisPrompt += fmt.Sprintf("- %s: %s\n", functionName, summary)
+					}
+				}
+				newSynthesisPrompt += "\n"
 			}
-			return c.createFallbackSummary(allFunctionCalls, allFunctionResults), nil
-		}
 
-		// Create a clean synthesis prompt focused on task guidance
-		newSynthesisPrompt := fmt.Sprintf("User's original request: \"%s\"\n\n", originalPrompt)
-
-		// Add accumulated function results to synthesis prompt so LLM can see what data it already has
-		if len(allFunctionResults) > 0 {
-			newSynthesisPrompt += "**Function Results:**\n"
-			for i, result := range allFunctionResults {
-				if i < len(allFunctionCalls) {
-					functionName := allFunctionCalls[i].FunctionCall.Name
-
-					// Create intelligent summaries instead of truncating raw JSON
-					summary := c.createIntelligentResultSummary(functionName, result)
-					newSynthesisPrompt += fmt.Sprintf("- %s: %s\n", functionName, summary)
+			var hasErrors bool
+			// Check for errors without duplicating function data in the prompt
+			for i := range functionResults {
+				if status, ok := functionResults[i]["status"].(string); ok && (status == "failed" || status == "validation_failed") {
+					hasErrors = true
 				}
 			}
-			newSynthesisPrompt += "\n"
-		}
 
-		var hasErrors bool
-		// Check for errors without duplicating function data in the prompt
-		for i := range allFunctionResults {
-			if status, ok := allFunctionResults[i]["status"].(string); ok && (status == "failed" || status == "validation_failed") {
-				hasErrors = true
+			// Detect if we have sufficient data to complete the task
+			shouldComplete := c.detectTaskCompletion(functionCalls, functionResults, depth+1, originalPrompt)
+
+			// Add intelligent prompt suffix with context awareness
+			if hasErrors {
+				newSynthesisPrompt += "\n**ERROR HANDLING:** Some functions failed with errors. Please analyze the available data and provide your best response. DO NOT make additional function calls that might fail with the same errors.\n\n**IMPORTANT: Respond in natural language - DO NOT echo the function names or raw data above. Instead, analyze the successful results and provide a human-readable response explaining what you were able to accomplish. CRITICAL: Use ONLY natural language - no code blocks or tool_code.**"
+			} else if shouldComplete {
+				newSynthesisPrompt += "\n**FINAL RESPONSE REQUIRED:** You now have all the necessary data to complete the user's request. STOP calling functions and provide a comprehensive final response using the data above. \n\n**IMPORTANT: Respond in natural language - DO NOT echo the function names or raw data above. Instead, analyze the results and provide a human-readable response that directly addresses the user's original request. Summarize what you found and what actions you took. CRITICAL: Use ONLY natural language - no code blocks or tool_code.**"
+			} else {
+				promptSuffix := synthesisManager.GetSynthesisPromptSuffix(&SynthesisDecision{ForceCompletion: false}, providerType)
+				newSynthesisPrompt += promptSuffix
 			}
+
+			// Create new synthesis request
+			newSynthesisRequest := &providers.ModelRequest{
+				Prompt:              newSynthesisPrompt,
+				Context:             synthesisRequest.Context,
+				SystemPrompt:        synthesisRequest.SystemPrompt,
+				Tools:               config.Tools,
+				ConversationHistory: synthesisRequest.ConversationHistory,
+				SessionAPIKeys:      synthesisRequest.SessionAPIKeys,
+			}
+
+			// Recursively continue synthesis
+			return c.processProviderSynthesisWithIteration(ctx, config, newSynthesisRequest, provider, providerType, functionCalls, functionResults, originalPrompt, depth+1, maxDepth)
 		}
-
-		// Detect if we have sufficient data to complete the task
-		shouldComplete := c.detectTaskCompletion(allFunctionCalls, allFunctionResults, depth+1, originalPrompt)
-
-		// Add intelligent prompt suffix with context awareness
-		if hasErrors {
-			newSynthesisPrompt += "\n**ERROR HANDLING:** Some functions failed with errors. Please analyze the available data and provide your best response. DO NOT make additional function calls that might fail with the same errors.\n\n**IMPORTANT: Respond in natural language - DO NOT echo the function names or raw data above. Instead, analyze the successful results and provide a human-readable response explaining what you were able to accomplish. CRITICAL: Use ONLY natural language - no code blocks or tool_code.**"
-		} else if shouldComplete {
-			newSynthesisPrompt += "\n**FINAL RESPONSE REQUIRED:** You now have all the necessary data to complete the user's request. STOP calling functions and provide a comprehensive final response using the data above. \n\n**IMPORTANT: Respond in natural language - DO NOT echo the function names or raw data above. Instead, analyze the results and provide a human-readable response that directly addresses the user's original request. Summarize what you found and what actions you took. CRITICAL: Use ONLY natural language - no code blocks or tool_code.**"
-		} else {
-			promptSuffix := synthesisManager.GetSynthesisPromptSuffix(decision, providerType)
-			newSynthesisPrompt += promptSuffix
-		}
-
-		// Create new synthesis request
-		newSynthesisRequest := &providers.ModelRequest{
-			Prompt:              newSynthesisPrompt,
-			Context:             synthesisRequest.Context,
-			SystemPrompt:        synthesisRequest.SystemPrompt,
-			Tools:               decision.Tools,
-			ConversationHistory: synthesisRequest.ConversationHistory,
-			SessionAPIKeys:      synthesisRequest.SessionAPIKeys,
-		}
-
-		// Recursively continue synthesis
-		return c.processProviderSynthesisWithIteration(ctx, config, newSynthesisRequest, provider, providerType, allFunctionCalls, allFunctionResults, originalPrompt, depth+1, maxDepth)
 	}
 
 	// No additional function calls - provide final response
@@ -1273,8 +1257,10 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 	}
 
 	// Accumulate all function calls and results across iterations
-	currentAllFunctionCalls := append(allFunctionCalls, functionCalls...)
-	currentAllFunctionResults := append(allFunctionResults, functionResults...)
+	currentAllFunctionCalls := append([]ResponsePart{}, allFunctionCalls...)
+	currentAllFunctionCalls = append(currentAllFunctionCalls, functionCalls...)
+	currentAllFunctionResults := append([]map[string]interface{}{}, allFunctionResults...)
+	currentAllFunctionResults = append(currentAllFunctionResults, functionResults...)
 
 	// Enhanced loop detection for Gemini - check for patterns earlier
 	if c.detectGeminiLoopPattern(currentAllFunctionCalls, depth) {
@@ -1289,7 +1275,7 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 		currentTime.UTC().Format("2006-01-02 15:04:05 UTC"),
 		currentTime.Unix())
 
-	synthesisPrompt := fmt.Sprintf("User's original request: \"%s\"\n\n%s\n\n", originalPrompt, timeContext)
+	synthesisPrompt := fmt.Sprintf("User's original request: %q\n\n%s\n\n", originalPrompt, timeContext)
 
 	// Add function results to synthesis prompt so LLM can see what data it already has
 	if len(currentAllFunctionResults) > 0 {
@@ -1297,8 +1283,6 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 		for i, result := range currentAllFunctionResults {
 			if i < len(currentAllFunctionCalls) {
 				functionName := currentAllFunctionCalls[i].FunctionCall.Name
-
-				// Create intelligent summaries instead of truncating raw JSON
 				summary := c.createIntelligentResultSummary(functionName, result)
 				synthesisPrompt += fmt.Sprintf("- %s: %s\n", functionName, summary)
 			}
@@ -1388,7 +1372,7 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 
 	// Add intelligent prompt suffix if not already handled by error/completion logic
 	if !hasErrors && !shouldComplete {
-		promptSuffix := synthesisManager.GetSynthesisPromptSuffix(decision, "gemini")
+		promptSuffix := synthesisManager.GetSynthesisPromptSuffix(&SynthesisDecision{ForceCompletion: false}, "gemini")
 		synthesisPrompt += promptSuffix
 	}
 

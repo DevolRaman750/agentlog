@@ -3109,7 +3109,7 @@ func (c *Client) GetExecutionResult(ctx context.Context, userID string, executio
 			Configuration: *config,
 			Request:       *request,
 			Response:      *response,
-			ExecutionTime: int64(response.ResponseTimeMs),
+			ExecutionTime: response.ResponseTimeMs,
 		}
 
 		results = append(results, variationResult)
@@ -3120,7 +3120,7 @@ func (c *Client) GetExecutionResult(ctx context.Context, userID string, executio
 		} else {
 			errorCount++
 		}
-		totalTime += int64(response.ResponseTimeMs)
+		totalTime += response.ResponseTimeMs
 	}
 
 	// Try to fetch comparison result for this execution run

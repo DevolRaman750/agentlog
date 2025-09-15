@@ -284,7 +284,7 @@ func (c *Client) ListAPIConfigurationsByUser(ctx context.Context, userID string,
 			}
 		}
 		if config.MaxTokens.Valid {
-			maxTokens := int32(config.MaxTokens.Int32)
+			maxTokens := config.MaxTokens.Int32
 			apiConfig.MaxTokens = &maxTokens
 		}
 		if config.TopP.Valid {
@@ -293,7 +293,7 @@ func (c *Client) ListAPIConfigurationsByUser(ctx context.Context, userID string,
 			}
 		}
 		if config.TopK.Valid {
-			topK := int32(config.TopK.Int32)
+			topK := config.TopK.Int32
 			apiConfig.TopK = &topK
 		}
 
