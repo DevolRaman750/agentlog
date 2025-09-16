@@ -129,7 +129,20 @@ const ExecutionTemplatesScreen: React.FC = () => {
       functionIDsLength: template.functionIDs?.length || 0,
       allKeys: Object.keys(template)
     });
-    setSelectedTemplate(template);
+    
+    // Ensure functionIDs is preserved when setting selected template
+    const templateWithFunctionIDs = {
+      ...template,
+      functionIDs: template.functionIDs || []
+    };
+    
+    console.log('🎯 Setting selectedTemplate with functionIDs:', {
+      id: templateWithFunctionIDs.id,
+      functionIDs: templateWithFunctionIDs.functionIDs,
+      functionIDsLength: templateWithFunctionIDs.functionIDs?.length || 0
+    });
+    
+    setSelectedTemplate(templateWithFunctionIDs);
     setIsViewMode(true);
     setIsEditMode(false);
     setShowCreateModal(true);
@@ -153,10 +166,24 @@ const ExecutionTemplatesScreen: React.FC = () => {
         functionIDs: freshTemplate.functionIDs,
         functionIDsLength: freshTemplate.functionIDs?.length || 0
       });
-      setSelectedTemplate(freshTemplate);
+      
+      // Ensure functionIDs is preserved
+      const templateWithFunctionIDs = {
+        ...freshTemplate,
+        functionIDs: freshTemplate.functionIDs || []
+      };
+      
+      setSelectedTemplate(templateWithFunctionIDs);
     } else {
       console.log('⚠️ Could not find fresh template, using original');
-      setSelectedTemplate(template);
+      
+      // Ensure functionIDs is preserved even for original template
+      const templateWithFunctionIDs = {
+        ...template,
+        functionIDs: template.functionIDs || []
+      };
+      
+      setSelectedTemplate(templateWithFunctionIDs);
     }
     
     setIsViewMode(false);
