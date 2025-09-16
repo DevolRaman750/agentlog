@@ -99,7 +99,7 @@ func TestURLBuilding(t *testing.T) {
 		funcDef := &db.FunctionDefinition{
 			Name:        "slack_read_messages",
 			EndpointUrl: sql.NullString{String: "https://slack.com/api/conversations.history", Valid: true},
-			HTTPMethod:  sql.NullString{String: "GET", Valid: true},
+			HttpMethod:  sql.NullString{String: "GET", Valid: true},
 		}
 
 		args := map[string]interface{}{

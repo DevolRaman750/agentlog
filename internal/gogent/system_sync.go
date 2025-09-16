@@ -103,7 +103,7 @@ func (c *Client) syncProviders(_ context.Context) error {
 		log.Printf("📄 Loading provider spec: %s", path)
 
 		// Read and parse provider spec
-		data, err := os.ReadFile(path)
+		data, err := os.ReadFile(path) //nolint:gosec // G304: Reading trusted system provider spec files
 		if err != nil {
 			return fmt.Errorf("failed to read %s: %w", path, err)
 		}
@@ -155,7 +155,7 @@ func (c *Client) syncFunctions(ctx context.Context) error {
 		log.Printf("📄 Loading function spec: %s", path)
 
 		// Read and parse function spec
-		data, err := os.ReadFile(path)
+		data, err := os.ReadFile(path) //nolint:gosec // G304: Reading trusted system function spec files
 		if err != nil {
 			return fmt.Errorf("failed to read %s: %w", path, err)
 		}
@@ -393,7 +393,7 @@ func (c *Client) syncSystemModelConfigurations(ctx context.Context) error {
 		log.Printf("📄 Loading model configuration: %s", path)
 
 		// Read and parse model configuration spec
-		data, err := os.ReadFile(path)
+		data, err := os.ReadFile(path) //nolint:gosec // G304: Reading trusted system model config files
 		if err != nil {
 			return fmt.Errorf("failed to read %s: %w", path, err)
 		}
@@ -566,7 +566,7 @@ func (c *Client) syncExecutionTemplates(ctx context.Context) error {
 		log.Printf("📄 Loading execution template spec: %s", path)
 
 		// Read and parse template spec
-		data, err := os.ReadFile(path)
+		data, err := os.ReadFile(path) //nolint:gosec // G304: Reading trusted system template spec files
 		if err != nil {
 			return fmt.Errorf("failed to read %s: %w", path, err)
 		}

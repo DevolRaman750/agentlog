@@ -232,7 +232,9 @@ func (f *ProviderFactory) ClearProvider(providerType string) {
 	defer f.mutex.Unlock()
 
 	if provider, exists := f.providers[providerType]; exists {
-		provider.Close()
+		if err := provider.Close(); err != nil {
+			log.Printf("⚠️ Error closing %s provider: %v", providerType, err)
+		}
 		delete(f.providers, providerType)
 		log.Printf("🗑️ Cleared %s provider from cache", providerType)
 	}

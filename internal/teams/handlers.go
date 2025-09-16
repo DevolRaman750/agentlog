@@ -16,7 +16,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// TeamsHandler handles all team-related HTTP requests
+// Handler handles all team-related HTTP requests
 type Handler struct {
 	db *sql.DB
 }

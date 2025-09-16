@@ -72,7 +72,7 @@ type ExecutionRun struct {
 	ContextPrompt         string    `json:"contextPrompt,omitempty"`
 	EnableFunctionCalling bool      `json:"enableFunctionCalling"`
 	FunctionTools         []Tool    `json:"functionTools,omitempty"` // Function tools used in this execution
-	Status                string    `json:"status"` // pending, running, completed, failed
+	Status                string    `json:"status"`                  // pending, running, completed, failed
 	ErrorMessage          string    `json:"errorMessage,omitempty"`
 	AgentID               *string   `json:"agentId,omitempty"` // Agent ID if this execution was run by an agent
 	CreatedAt             time.Time `json:"createdAt"`

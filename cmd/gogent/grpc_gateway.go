@@ -66,7 +66,9 @@ func NewGRPCGateway() (*GRPCGateway, error) {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
-		db.Close()
+		if closeErr := db.Close(); closeErr != nil {
+			log.Printf("⚠️ Warning: failed to close database connection: %v", closeErr)
+		}
 		return nil, fmt.Errorf("failed to connect to gRPC server: %w", err)
 	}
 
@@ -834,7 +836,9 @@ func runGRPCGateway() {
 
 	// Wrap HTTP server with graceful shutdown
 	if err := graceful.WrapHTTP(httpServer); err != nil {
-		gateway.Close()
+		if closeErr := gateway.Close(); closeErr != nil {
+			log.Printf("⚠️ Warning: failed to close gateway: %v", closeErr)
+		}
 		log.Fatalf("Failed to wrap HTTP server: %v", err) //nolint:gocritic // exitAfterDefer - cleanup before exit
 	}
 

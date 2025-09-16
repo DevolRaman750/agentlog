@@ -20,7 +20,7 @@ const (
 	propertiesKey      = "properties"
 )
 
-// GeminiClient wraps the Google Generative AI REST API
+// Client wraps the Google Generative AI REST API
 type Client struct {
 	apiKey     string
 	httpClient *http.Client
