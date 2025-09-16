@@ -3,14 +3,6 @@ run:
   issues-exit-code: 1
   tests: false
 
-issues:
-  exclude-dirs:
-    - vendor
-    - coverage-reports
-  exclude-files:
-    - ".*\\.pb\\.go$"
-    - ".*_test\\.go$"
-
 linters-settings:
   gocyclo:
     min-complexity: 50
@@ -126,6 +118,12 @@ issues:
   exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
+  exclude-dirs:
+    - vendor
+    - coverage-reports
+  exclude-files:
+    - ".*\\.pb\\.go$"
+    - ".*_test\\.go$"
   
   exclude-rules:
     - path: vendor/
