@@ -912,7 +912,7 @@ func (c *Client) executeDynamicFunction(ctx context.Context, funcDef *db.Functio
 	args map[string]interface{}) (map[string]interface{}, error) {
 	// Debug logging for function routing
 	log.Printf("🔍 [ROUTING_DEBUG] Function: %s, FunctionGroup: %s, HTTPMethod: %s",
-		funcDef.Name, funcDef.FunctionGroup, funcDef.HTTPMethod.String)
+		funcDef.Name, funcDef.FunctionGroup, funcDef.HttpMethod.String)
 
 	// Handle internal functions differently
 	if funcDef.FunctionGroup == FunctionGroupInternal {
@@ -930,7 +930,7 @@ func (c *Client) executeDynamicFunction(ctx context.Context, funcDef *db.Functio
 
 	log.Printf("🔍 [ROUTING_DEBUG] No integration found for function_group: %s, "+
 		"falling back to HTTP method routing", funcDef.FunctionGroup)
-	switch funcDef.HTTPMethod.String {
+	switch funcDef.HttpMethod.String {
 	case "MYSQL":
 		log.Printf("🔍 [ROUTING_DEBUG] Routing %s to executeMySQLFunction", funcDef.Name)
 		return c.executeMySQLFunction(ctx, funcDef, args)
@@ -939,10 +939,10 @@ func (c *Client) executeDynamicFunction(ctx context.Context, funcDef *db.Functio
 		return c.executeMCPFunction(ctx, funcDef, args)
 	case HTTPMethodGET, HTTPMethodPOST, HTTPMethodPUT, HTTPMethodPATCH, HTTPMethodDELETE:
 		log.Printf("🔍 [ROUTING_DEBUG] Routing %s to executeAPIFunction (HTTP method: %s)",
-			funcDef.Name, funcDef.HTTPMethod.String)
+			funcDef.Name, funcDef.HttpMethod.String)
 		return c.executeAPIFunction(ctx, funcDef, args)
 	default:
-		return nil, fmt.Errorf("unsupported execution method: %s", funcDef.HTTPMethod.String)
+		return nil, fmt.Errorf("unsupported execution method: %s", funcDef.HttpMethod.String)
 	}
 }
 
@@ -1964,7 +1964,7 @@ func (c *Client) executeIntegrationFunction(ctx context.Context, funcDef *db.Fun
 			"arguments":        args,
 			"argumentCount":    len(args),
 			"endpointUrl":      funcDef.EndpointUrl.String,
-			"httpMethod":       funcDef.HTTPMethod.String,
+			"httpMethod":       funcDef.HttpMethod.String,
 			"integrationStart": time.Now().Format("15:04:05.000"),
 		})
 
@@ -2278,8 +2278,8 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 
 	// Determine HTTP method from function definition
 	httpMethod := "GET" // Default
-	if funcDef.HTTPMethod.Valid {
-		httpMethod = funcDef.HTTPMethod.String
+	if funcDef.HttpMethod.Valid {
+		httpMethod = funcDef.HttpMethod.String
 	}
 
 	log.Printf("🌐 Making API call: %s %s (function: %s)", httpMethod, url, functionName)
@@ -2816,8 +2816,8 @@ func (c *Client) buildGenericAPIURL(funcDef *db.FunctionDefinition, args map[str
 
 	// For GET requests, add remaining parameters as query parameters
 	httpMethod := "GET" // Default
-	if funcDef.HTTPMethod.Valid {
-		httpMethod = funcDef.HTTPMethod.String
+	if funcDef.HttpMethod.Valid {
+		httpMethod = funcDef.HttpMethod.String
 	}
 
 	if httpMethod == "GET" && len(args) > 0 {
@@ -3245,6 +3245,26 @@ func (c *Client) GetExecutionRun(ctx context.Context, userID string, executionRu
 		agentID = &row.AgentID.String
 	}
 
+	// Load function tools if function calling was enabled
+	var functionTools []types.Tool
+	if row.EnableFunctionCalling {
+		// Get execution function configs
+		execFuncConfigs, err := c.queries.ListExecutionFunctionConfigs(ctx, executionRunID)
+		if err != nil {
+			log.Printf("⚠️ Failed to load function tools for execution run %s: %v", executionRunID, err)
+		} else {
+			// Convert to Tool array
+			for _, efc := range execFuncConfigs {
+				functionTools = append(functionTools, types.Tool{
+					Name:        efc.Name,
+					Description: efc.Description.String,
+					Parameters:  make(map[string]interface{}), // Basic parameters, could be enhanced
+				})
+			}
+			log.Printf("✅ Loaded %d function tools for execution run %s", len(functionTools), executionRunID)
+		}
+	}
+
 	return &types.ExecutionRun{
 		ID:                    row.ID,
 		Name:                  row.Name,
@@ -3252,6 +3272,7 @@ func (c *Client) GetExecutionRun(ctx context.Context, userID string, executionRu
 		BasePrompt:            basePrompt,
 		ContextPrompt:         contextPrompt,
 		EnableFunctionCalling: row.EnableFunctionCalling,
+		FunctionTools:         functionTools, // Include loaded function tools
 		Status:                status,       // Use actual database status
 		ErrorMessage:          errorMessage, // Use actual error message
 		AgentID:               agentID,      // Include agent ID if present

@@ -2619,13 +2619,13 @@ func (s *Server) listFunctions(w http.ResponseWriter, r *http.Request) {
 			&dbFunction.ParametersSchema,
 			&dbFunction.MockResponse,
 			&dbFunction.EndpointUrl,
-			&dbFunction.HTTPMethod,
+			&dbFunction.HttpMethod,
 			&dbFunction.Headers,
 			&dbFunction.AuthConfig,
 			&dbFunction.IsActive,
 			&dbFunction.IsSystemResource,
-			&dbFunction.RequiredAPIKeys,
-			&dbFunction.APIKeyValidation,
+			&dbFunction.RequiredApiKeys,
+			&dbFunction.ApiKeyValidation,
 			&dbFunction.QueryTemplate,
 			&dbFunction.ResultTransformer,
 			&fallbackData,
@@ -2659,8 +2659,8 @@ func (s *Server) listFunctions(w http.ResponseWriter, r *http.Request) {
 		if dbFunction.EndpointUrl.Valid {
 			function.EndpointURL = dbFunction.EndpointUrl.String
 		}
-		if dbFunction.HTTPMethod.Valid {
-			function.HTTPMethod = dbFunction.HTTPMethod.String
+		if dbFunction.HttpMethod.Valid {
+			function.HTTPMethod = dbFunction.HttpMethod.String
 		}
 		if dbFunction.QueryTemplate.Valid {
 			function.QueryTemplate = dbFunction.QueryTemplate.String
@@ -2695,12 +2695,12 @@ func (s *Server) listFunctions(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Handle RequiredAPIKeys and APIKeyValidation JSON fields
-		if err := json.Unmarshal(dbFunction.RequiredAPIKeys, &function.RequiredAPIKeys); err != nil {
+		if err := json.Unmarshal(dbFunction.RequiredApiKeys, &function.RequiredAPIKeys); err != nil {
 			log.Printf("⚠️ Failed to parse required API keys for %s: %v", function.Name, err)
 			function.RequiredAPIKeys = []string{}
 		}
 
-		if err := json.Unmarshal(dbFunction.APIKeyValidation, &function.APIKeyValidation); err != nil {
+		if err := json.Unmarshal(dbFunction.ApiKeyValidation, &function.APIKeyValidation); err != nil {
 			log.Printf("⚠️ Failed to parse API key validation for %s: %v", function.Name, err)
 			function.APIKeyValidation = make(map[string]interface{})
 		}

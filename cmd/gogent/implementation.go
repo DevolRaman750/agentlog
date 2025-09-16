@@ -417,7 +417,7 @@ func (bl *BusinessLogic) ListFunctions(ctx context.Context) ([]*types.FunctionDe
 			&dbFunction.ParametersSchema,
 			&dbFunction.MockResponse,
 			&dbFunction.EndpointUrl,
-			&dbFunction.HTTPMethod,
+			&dbFunction.HttpMethod,
 			&dbFunction.Headers,
 			&dbFunction.AuthConfig,
 			&dbFunction.IsActive,
@@ -446,8 +446,8 @@ func (bl *BusinessLogic) ListFunctions(ctx context.Context) ([]*types.FunctionDe
 		if dbFunction.EndpointUrl.Valid {
 			function.EndpointURL = dbFunction.EndpointUrl.String
 		}
-		if dbFunction.HTTPMethod.Valid {
-			function.HTTPMethod = dbFunction.HTTPMethod.String
+		if dbFunction.HttpMethod.Valid {
+			function.HTTPMethod = dbFunction.HttpMethod.String
 		}
 
 		// Handle JSON fields - no longer nullable after schema fix

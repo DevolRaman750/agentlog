@@ -115,6 +115,7 @@ export interface ExecutionRun {
   basePrompt?: string; // Add missing property for backward compatibility
   contextPrompt?: string; // Add missing property for backward compatibility  
   enableFunctionCalling?: boolean; // Add missing property for backward compatibility
+  functionTools?: Tool[]; // Function tools used in this execution
   status?: string;
   total_time?: number;
   created_at?: string;

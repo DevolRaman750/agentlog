@@ -300,13 +300,13 @@ func (c *Client) syncFunctionToDatabase(ctx context.Context, spec *FunctionSpec)
 			ParametersSchema:  parametersSchema,
 			MockResponse:      mockResponse,
 			EndpointUrl:       sql.NullString{String: endpointURL, Valid: endpointURL != ""},
-			HTTPMethod:        sql.NullString{String: spec.Endpoint.Method, Valid: spec.Endpoint.Method != ""},
+			HttpMethod:        sql.NullString{String: spec.Endpoint.Method, Valid: spec.Endpoint.Method != ""},
 			Headers:           headersJSON,
 			AuthConfig:        defaultAuthConfig,
 			IsActive:          sql.NullBool{Bool: true, Valid: true},
 			IsSystemResource:  sql.NullBool{Bool: isSystemResource, Valid: true},
-			RequiredAPIKeys:   requiredAPIKeysJSON,
-			APIKeyValidation:  defaultAPIKeyValidation,
+			RequiredApiKeys:   requiredAPIKeysJSON,
+			ApiKeyValidation:  defaultAPIKeyValidation,
 			QueryTemplate:     sql.NullString{Valid: false}, // Empty for now
 			ResultTransformer: sql.NullString{Valid: false}, // Empty for now
 			FallbackData:      defaultFallbackData,
@@ -333,13 +333,13 @@ func (c *Client) syncFunctionToDatabase(ctx context.Context, spec *FunctionSpec)
 			ParametersSchema:  parametersSchema,
 			MockResponse:      mockResponse,
 			EndpointUrl:       sql.NullString{String: endpointURL, Valid: endpointURL != ""},
-			HTTPMethod:        sql.NullString{String: spec.Endpoint.Method, Valid: spec.Endpoint.Method != ""},
+			HttpMethod:        sql.NullString{String: spec.Endpoint.Method, Valid: spec.Endpoint.Method != ""},
 			Headers:           headersJSON,
 			AuthConfig:        defaultAuthConfig,
 			IsActive:          sql.NullBool{Bool: true, Valid: true},
 			IsSystemResource:  sql.NullBool{Bool: isSystemResource, Valid: true},
-			RequiredAPIKeys:   requiredAPIKeysJSON,
-			APIKeyValidation:  defaultAPIKeyValidation,
+			RequiredApiKeys:   requiredAPIKeysJSON,
+			ApiKeyValidation:  defaultAPIKeyValidation,
 			QueryTemplate:     sql.NullString{Valid: false}, // Empty for now
 			ResultTransformer: sql.NullString{Valid: false}, // Empty for now
 			FallbackData:      defaultFallbackData,

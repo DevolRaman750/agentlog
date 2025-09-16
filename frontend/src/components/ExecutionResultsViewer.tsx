@@ -83,9 +83,15 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
   const handleReExecute = () => {
     if (!onReExecute) return;
     
-    // Extract function tools from the execution data
-    const functionTools: any[] = [];
-    if (executionResult.results && executionResult.results.length > 0) {
+    // Use function tools from the execution run if available
+    let functionTools: any[] = [];
+    if (executionResult.executionRun.functionTools && executionResult.executionRun.functionTools.length > 0) {
+      // Use the stored function tools from the execution run
+      functionTools = executionResult.executionRun.functionTools;
+      console.log('✅ Using stored function tools from execution run:', functionTools.length);
+    } else if (executionResult.results && executionResult.results.length > 0) {
+      // Fallback: Extract function tools from the execution data (for backward compatibility)
+      console.log('⚠️ No function tools in executionRun, falling back to extraction from results');
       executionResult.results.forEach(result => {
         if (result.functionCalls && result.functionCalls.length > 0) {
           result.functionCalls.forEach(functionCall => {
@@ -117,6 +123,10 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
       // Pass agent information if this was an agent execution
       agentId: executionResult.executionRun.agentId || undefined
     };
+    
+    if (functionTools.length === 0 && executionResult.executionRun.enableFunctionCalling) {
+      console.log('⚠️ No function tools found for re-execution despite function calling being enabled');
+    }
     
     onReExecute(reExecutionData);
   };
