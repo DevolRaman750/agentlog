@@ -29,6 +29,22 @@ const ExecutionTemplatesScreen: React.FC = () => {
 
   // Template management
   const { templates, loading, error, fetchTemplates, createTemplate, updateTemplate, deleteTemplate } = useTemplateManagement();
+  
+  // Debug: Log whenever templates change
+  useEffect(() => {
+    if (templates.length > 0) {
+      console.log('🔄 Templates state updated in ExecutionTemplatesScreen:', {
+        count: templates.length,
+        firstTemplate: {
+          id: templates[0].id,
+          name: templates[0].name,
+          functionIDs: templates[0].functionIDs,
+          functionIDsLength: templates[0].functionIDs?.length || 0,
+          hasField: 'functionIDs' in templates[0]
+        }
+      });
+    }
+  }, [templates]);
 
   // UI state
   const [showCreateModal, setShowCreateModal] = useState(false);
