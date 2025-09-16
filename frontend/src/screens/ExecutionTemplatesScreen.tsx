@@ -42,7 +42,15 @@ const ExecutionTemplatesScreen: React.FC = () => {
   const processedParamsRef = useRef<string | null>(null);
 
   useEffect(() => {
-    fetchTemplates();
+    fetchTemplates().then(() => {
+      console.log('🔍 ExecutionTemplatesScreen - templates loaded, first template:', templates[0] ? {
+        id: templates[0].id,
+        name: templates[0].name,
+        functionIDs: templates[0].functionIDs,
+        functionIDsLength: templates[0].functionIDs?.length || 0,
+        allKeys: Object.keys(templates[0])
+      } : 'No templates');
+    });
     fetchAvailableFunctions();
     
     // Handle creating template from execution (only process once per unique param set)
@@ -98,6 +106,13 @@ const ExecutionTemplatesScreen: React.FC = () => {
   };
 
   const handleTemplatePress = (template: ExecutionTemplate) => {
+    console.log('🔍 handleTemplatePress - template data:', {
+      id: template.id,
+      name: template.name,
+      functionIDs: template.functionIDs,
+      functionIDsLength: template.functionIDs?.length || 0,
+      allKeys: Object.keys(template)
+    });
     setSelectedTemplate(template);
     setIsViewMode(true);
     setIsEditMode(false);
@@ -107,11 +122,21 @@ const ExecutionTemplatesScreen: React.FC = () => {
   const handleTemplateEdit = async (template: ExecutionTemplate) => {
     // Always fetch fresh templates before editing to ensure we have the latest data
     console.log('🔄 Fetching fresh template data before edit...');
+    console.log('🔍 handleTemplateEdit - original template:', {
+      id: template.id,
+      name: template.name,
+      functionIDs: template.functionIDs,
+      functionIDsLength: template.functionIDs?.length || 0
+    });
     const freshTemplates = await fetchTemplates();
     const freshTemplate = freshTemplates.find(t => t.id === template.id);
     
     if (freshTemplate) {
-      console.log('✅ Using fresh template data for edit:', freshTemplate.preferredConfigurationId);
+      console.log('✅ Using fresh template data for edit:', {
+        preferredConfigurationId: freshTemplate.preferredConfigurationId,
+        functionIDs: freshTemplate.functionIDs,
+        functionIDsLength: freshTemplate.functionIDs?.length || 0
+      });
       setSelectedTemplate(freshTemplate);
     } else {
       console.log('⚠️ Could not find fresh template, using original');
