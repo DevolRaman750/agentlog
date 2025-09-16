@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"time"
 
 	"gogent/internal/db"
@@ -348,6 +349,12 @@ func (c *Client) storeFunctionExecutionConfigs(ctx context.Context, userID strin
 		funcDefID, exists := funcDefMap[tool.Name]
 		if !exists {
 			log.Printf("⚠️ Function definition not found for tool: %s", tool.Name)
+			continue
+		}
+		
+		// Check for potential integer overflow
+		if i > math.MaxInt32 {
+			log.Printf("⚠️ Function index %d exceeds int32 max value, skipping", i)
 			continue
 		}
 		
