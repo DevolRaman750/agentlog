@@ -326,7 +326,7 @@ func (c *Client) GetSystemConfigurations(ctx context.Context) ([]types.APIConfig
 // storeFunctionExecutionConfigs stores function tools for replay functionality
 func (c *Client) storeFunctionExecutionConfigs(ctx context.Context, userID string, executionRunID string, functionTools []types.Tool) error {
 	log.Printf("🔧 Storing %d function tools for execution run %s", len(functionTools), executionRunID)
-	
+
 	// First, get available function definitions to map tools to function IDs
 	functionDefs, err := c.queries.ListFunctionDefinitions(ctx, userID)
 	if err != nil {
@@ -337,13 +337,13 @@ func (c *Client) storeFunctionExecutionConfigs(ctx context.Context, userID strin
 			return fmt.Errorf("failed to get function definitions: %w", err)
 		}
 	}
-	
+
 	// Create a map for quick lookup
 	funcDefMap := make(map[string]string) // name -> id
 	for _, fd := range functionDefs {
 		funcDefMap[fd.Name] = fd.ID
 	}
-	
+
 	// Store each function tool as an execution function config
 	for i, tool := range functionTools {
 		funcDefID, exists := funcDefMap[tool.Name]
@@ -351,13 +351,13 @@ func (c *Client) storeFunctionExecutionConfigs(ctx context.Context, userID strin
 			log.Printf("⚠️ Function definition not found for tool: %s", tool.Name)
 			continue
 		}
-		
+
 		// Check for potential integer overflow
 		if i > math.MaxInt32 {
 			log.Printf("⚠️ Function index %d exceeds int32 max value, skipping", i)
 			continue
 		}
-		
+
 		configID := uuid.New().String()
 		err := c.queries.CreateExecutionFunctionConfig(ctx, db.CreateExecutionFunctionConfigParams{
 			ID:                   configID,
@@ -372,7 +372,7 @@ func (c *Client) storeFunctionExecutionConfigs(ctx context.Context, userID strin
 			// Continue with other functions instead of failing completely
 		}
 	}
-	
+
 	return nil
 }
 

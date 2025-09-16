@@ -3273,9 +3273,9 @@ func (c *Client) GetExecutionRun(ctx context.Context, userID string, executionRu
 		ContextPrompt:         contextPrompt,
 		EnableFunctionCalling: row.EnableFunctionCalling,
 		FunctionTools:         functionTools, // Include loaded function tools
-		Status:                status,       // Use actual database status
-		ErrorMessage:          errorMessage, // Use actual error message
-		AgentID:               agentID,      // Include agent ID if present
+		Status:                status,        // Use actual database status
+		ErrorMessage:          errorMessage,  // Use actual error message
+		AgentID:               agentID,       // Include agent ID if present
 		CreatedAt:             row.CreatedAt.Time,
 		UpdatedAt:             row.UpdatedAt.Time,
 	}, nil

@@ -225,3 +225,15 @@ issues:
     - text: "comment on exported"
       linters:
         - revive
+    - text: "ST1000"
+      linters:
+        - stylecheck
+    - text: "at least one file in a package should have a package comment"
+      linters:
+        - stylecheck
+    - text: "exported const .* should have comment"
+      linters:
+        - revive
+    - text: "exported: exported const .* should have comment \\(or a comment on this block\\) or be unexported"
+      linters:
+        - revive
