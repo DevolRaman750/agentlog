@@ -53,25 +53,34 @@ func (sm *SynthesisManager) DetermineSynthesisStrategy(config *SynthesisConfig) 
 		}
 	}
 
-	// Check for excessive function calls (stronger loop detection)
-	// Allow more calls for complex workflows (Slack + GitHub integration needs multiple calls)
-	if len(config.FunctionCalls) >= 20 {
-		log.Printf("🛑 [EXCESSIVE] Too many function calls (%d) - forcing completion", len(config.FunctionCalls))
+	// Check for excessive function calls (reasonable limits)
+	maxCalls := 15
+	if config.ProviderType == "gemini" {
+		maxCalls = 12 // Slightly lower limit for Gemini to prevent runaway execution
+	}
+
+	if len(config.FunctionCalls) >= maxCalls {
+		log.Printf("🛑 [EXCESSIVE] Too many function calls (%d) - forcing completion for %s", len(config.FunctionCalls), config.ProviderType)
 		return &SynthesisDecision{
 			AllowFunctionCalls: false,
 			Tools:              []types.Tool{},
-			Reason:             "Excessive function calls detected - forcing completion",
+			Reason:             fmt.Sprintf("Excessive function calls detected (%d) - forcing completion", len(config.FunctionCalls)),
 			ForceCompletion:    true,
 		}
 	}
 
 	// Only stop for absolute safety net (prevent runaway costs)
-	if config.Depth >= 15 {
-		log.Printf("🛑 [SAFETY] Maximum depth reached: %d - preventing runaway execution", config.Depth)
+	maxDepth := 15
+	if config.ProviderType == "gemini" {
+		maxDepth = 12 // Reasonable depth limit for Gemini
+	}
+
+	if config.Depth >= maxDepth {
+		log.Printf("🛑 [SAFETY] Maximum depth reached: %d - preventing runaway execution for %s", config.Depth, config.ProviderType)
 		return &SynthesisDecision{
 			AllowFunctionCalls: false,
 			Tools:              []types.Tool{},
-			Reason:             "Safety limit reached - preventing runaway execution",
+			Reason:             fmt.Sprintf("Safety limit reached (depth %d) - preventing runaway execution", config.Depth),
 			ForceCompletion:    true,
 		}
 	}
@@ -105,6 +114,18 @@ func (sm *SynthesisManager) DetermineSynthesisStrategy(config *SynthesisConfig) 
 func (sm *SynthesisManager) detectIdenticalFunctionLoop(functionCalls []ResponsePart) bool {
 	if len(functionCalls) < 3 {
 		return false
+	}
+
+	// Check for alternating pattern between team_task_list and slack_find_channel first
+	if len(functionCalls) >= 4 {
+		last4 := functionCalls[len(functionCalls)-4:]
+		if last4[0].FunctionCall.Name == "team_task_list" &&
+			last4[1].FunctionCall.Name == "slack_find_channel" &&
+			last4[2].FunctionCall.Name == "team_task_list" &&
+			last4[3].FunctionCall.Name == "slack_find_channel" {
+			log.Printf("🔄 [LOOP] Detected alternating team_task_list/slack_find_channel loop")
+			return true
+		}
 	}
 
 	// Check the last 3 function calls for most functions
@@ -168,18 +189,6 @@ func (sm *SynthesisManager) detectIdenticalFunctionLoop(functionCalls []Response
 			return true
 		}
 
-		// Check for alternating pattern between team_task_list and slack_find_channel
-		if len(functionCalls) >= 4 {
-			last4 := functionCalls[len(functionCalls)-4:]
-			if last4[0].FunctionCall.Name == "team_task_list" &&
-				last4[1].FunctionCall.Name == "slack_find_channel" &&
-				last4[2].FunctionCall.Name == "team_task_list" &&
-				last4[3].FunctionCall.Name == "slack_find_channel" {
-				log.Printf("🔄 [LOOP] Detected alternating team_task_list/slack_find_channel loop")
-				return true
-			}
-		}
-
 		// For other functions, check if parameters are identical
 		for i := 1; i < checkCount; i++ {
 			if fmt.Sprintf("%v", recent[i].FunctionCall.Args) != fmt.Sprintf("%v", first.FunctionCall.Args) {
@@ -211,30 +220,8 @@ func (sm *SynthesisManager) getChannelNameFromArgs(args map[string]interface{}) 
 	return ""
 }
 
-// hasSignificantErrors checks if recent function calls have significant errors
-func (sm *SynthesisManager) hasSignificantErrors(results []map[string]interface{}) bool {
-	if len(results) == 0 {
-		return false
-	}
-
-	errorCount := 0
-	for _, result := range results {
-		if status, ok := result["status"].(string); ok {
-			if status == "failed" || status == "validation_failed" {
-				errorCount++
-			}
-		}
-		if _, hasError := result["error"]; hasError {
-			errorCount++
-		}
-	}
-
-	// If more than half the recent calls failed, consider it significant
-	return float64(errorCount)/float64(len(results)) > 0.5
-}
-
 // GetSynthesisPromptSuffix returns guidance following Gemini function calling best practices
-func (sm *SynthesisManager) GetSynthesisPromptSuffix(decision *SynthesisDecision, providerType string) string {
+func (sm *SynthesisManager) GetSynthesisPromptSuffix(decision *SynthesisDecision, _ string) string {
 	if decision.ForceCompletion {
 		return "\n\n**COMPLETION REQUIRED:** Please provide your final response using the information you've gathered. Focus on the user's primary request."
 	}

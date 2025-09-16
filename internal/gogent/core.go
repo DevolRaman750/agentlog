@@ -5,10 +5,18 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"net/url"
+	"strings"
+	"sync"
+	"time"
+
 	"gogent/internal/agents"
 	"gogent/internal/apiauth"
 	"gogent/internal/apikeys"
-	"gogent/internal/code_analysis"
+	"gogent/internal/codeanalysis"
 	"gogent/internal/db"
 	"gogent/internal/gemini"
 	"gogent/internal/github"
@@ -19,18 +27,104 @@ import (
 	"gogent/internal/providers"
 	"gogent/internal/teams"
 	"gogent/internal/types"
-	"io"
-	"log"
-	"net/http"
-	"net/url"
-	"strings"
-	"sync"
-	"time"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/mysql"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
+	_ "github.com/golang-migrate/migrate/v4/source/file" // Required for file-based migrations
 	"github.com/google/uuid"
+)
+
+const (
+	DefaultMaxResults = 50
+	DefaultPageSize   = 100
+	DefaultMaxTokens  = 200
+	DefaultTimeoutMs  = 300
+	DefaultMaxDepth   = 10
+
+	// Service names
+	ServiceGemini      = "gemini"
+	ServiceOpenWeather = "openweather"
+	ServiceGitHub      = "github"
+	ServiceOpenRouter  = "openrouter"
+	ServiceSlack       = "slack"
+	ServiceGoogleDrive = "googledrive"
+
+	// Function name constants
+	FunctionTeamTaskList              = "team_task_list"
+	FunctionTeamTaskStore             = "team_task_store"
+	FunctionTeamMemoryRead            = "team_memory_read"
+	FunctionTeamMemorySearch          = "team_memory_search"
+	FunctionAgentMemorySearch         = "agent_memory_search"
+	FunctionCommitFiles               = "commit_files"
+	FunctionSlackSendMessage          = "slack_send_message"
+	FunctionGoogleDriveGetFile        = "googledrive_get_file"
+	FunctionGoogleDriveGetFileContent = "googledrive_get_file_content"
+	FunctionGoogleDriveListFiles      = "googledrive_list_files"
+	FunctionGitHubReadCode            = "github_read_code"
+
+	// Status constants
+	StatusUnknown   = "unknown"
+	StatusCompleted = "completed"
+	StatusFailed    = "failed"
+	StatusSuccess   = "success"
+
+	// HTTP method constants
+	HTTPMethodGET     = "GET"
+	HTTPMethodPOST    = "POST"
+	HTTPMethodPUT     = "PUT"
+	HTTPMethodPATCH   = "PATCH"
+	HTTPMethodDELETE  = "DELETE"
+	HTTPMethodOPTIONS = "OPTIONS"
+
+	// Common string constants
+	StringTrue        = "true"
+	StringFalse       = "false"
+	StringSystem      = "system"
+	StatusServerError = "server_error"
+	StatusInvalid     = "invalid"
+
+	// Other constants
+	NoTitleText = "No title"
+
+	// Numeric constants
+	SystemUserID  = "system"
+	DefaultLimit  = 100
+	DefaultOffset = 0
+
+	// Function groups
+	FunctionGroupInternal      = "internal"
+	FunctionGroupCommunication = "communication"
+	FunctionGroupAPI           = "API"
+
+	// Function names
+	FunctionTeamTaskClaim          = "team_task_claim"
+	FunctionTeamTaskComplete       = "team_task_complete"
+	FunctionTeamMemoryWrite        = "team_memory_write"
+	FunctionTeamMemoryClear        = "team_memory_clear"
+	FunctionAgentMemoryRead        = "agent_memory_read"
+	FunctionAgentMemoryWrite       = "agent_memory_write"
+	FunctionAgentMemoryClear       = "agent_memory_clear"
+	FunctionSlackReadMessages      = "slack_read_messages"
+	FunctionSlackFindChannel       = "slack_find_channel"
+	FunctionCreateBranch           = "create_branch"
+	FunctionGitHubSearchCode       = "github_search_code"
+	FunctionGoogleDriveSearchFiles = "googledrive_search_files"
+
+	// Status constants
+	StatusEmpty   = "EMPTY"
+	StatusPresent = "PRESENT"
+	StatusMissing = "MISSING"
+
+	// Response constants
+	ResponseNoData   = "No data returned"
+	ValidationFailed = "validation_failed"
+
+	// Common strings
+	WeatherGroup    = "weather"
+	WhatsAppService = "whatsapp"
+
+	// File type constants
+	FileTypeDir = "dir"
 )
 
 // Client represents the main gogent client that wraps Gemini API calls
@@ -38,10 +132,10 @@ type Client struct {
 	db              *sql.DB
 	queries         *db.Queries
 	config          *types.GeminiClientConfig
-	sessionApiKeys  *types.SessionApiKeys // DEPRECATED: Will be removed - use database keys
-	databaseApiKeys *types.SessionApiKeys // API keys loaded from database
+	sessionAPIKeys  *types.SessionAPIKeys // DEPRECATED: Will be removed - use database keys
+	databaseAPIKeys *types.SessionAPIKeys // API keys loaded from database
 	currentUserID   string                // Current user ID for loading API keys
-	geminiClient    *gemini.GeminiClient
+	geminiClient    *gemini.Client
 	providerFactory *providers.ProviderFactory // Provider factory for multi-model support
 	mutex           sync.RWMutex
 	// Add execution context for logging
@@ -57,7 +151,7 @@ type Client struct {
 	functionCallMutex   sync.RWMutex
 
 	// Refactored components
-	codeAnalyzer      *code_analysis.Analyzer
+	codeAnalyzer      *codeanalysis.Analyzer
 	directoryAnalyzer *github.DirectoryAnalyzer
 
 	// Integration framework
@@ -153,18 +247,18 @@ func (c *Client) deepCopyMap(original map[string]interface{}) map[string]interfa
 		return nil
 	}
 
-	copy := make(map[string]interface{})
+	result := make(map[string]interface{})
 	for k, v := range original {
 		switch val := v.(type) {
 		case map[string]interface{}:
-			copy[k] = c.deepCopyMap(val)
+			result[k] = c.deepCopyMap(val)
 		case []interface{}:
-			copy[k] = c.deepCopySlice(val)
+			result[k] = c.deepCopySlice(val)
 		default:
-			copy[k] = val
+			result[k] = val
 		}
 	}
-	return copy
+	return result
 }
 
 // deepCopySlice creates a deep copy of a []interface{}
@@ -173,18 +267,18 @@ func (c *Client) deepCopySlice(original []interface{}) []interface{} {
 		return nil
 	}
 
-	copy := make([]interface{}, len(original))
+	result := make([]interface{}, len(original))
 	for i, v := range original {
 		switch val := v.(type) {
 		case map[string]interface{}:
-			copy[i] = c.deepCopyMap(val)
+			result[i] = c.deepCopyMap(val)
 		case []interface{}:
-			copy[i] = c.deepCopySlice(val)
+			result[i] = c.deepCopySlice(val)
 		default:
-			copy[i] = val
+			result[i] = val
 		}
 	}
-	return copy
+	return result
 }
 
 // ResponsePart represents a part of the Gemini API response
@@ -209,7 +303,7 @@ func ensureMultiStatements(dbURL string) string {
 }
 
 // NewClient creates a new gogent client with database connection
-func NewClient(dbURL string, config *types.GeminiClientConfig, sessionApiKeys *types.SessionApiKeys) (*Client, error) {
+func NewClient(dbURL string, config *types.GeminiClientConfig, sessionAPIKeys *types.SessionAPIKeys) (*Client, error) {
 	// Ensure dbURL includes multiStatements=true for migrations
 	dbURL = ensureMultiStatements(dbURL)
 
@@ -242,7 +336,7 @@ func NewClient(dbURL string, config *types.GeminiClientConfig, sessionApiKeys *t
 		db:                  database,
 		queries:             queries,
 		config:              config,
-		sessionApiKeys:      sessionApiKeys,
+		sessionAPIKeys:      sessionAPIKeys,
 		providerFactory:     providers.NewProviderFactory(),
 		mutex:               sync.RWMutex{},
 		functionCallHistory: make(map[string]*FunctionCallHistory),
@@ -250,8 +344,8 @@ func NewClient(dbURL string, config *types.GeminiClientConfig, sessionApiKeys *t
 	}
 
 	// Initialize refactored components
-	client.codeAnalyzer = code_analysis.NewAnalyzer(code_analysis.DefaultConfig())
-	client.directoryAnalyzer = github.NewDirectoryAnalyzer(code_analysis.DefaultConfig())
+	client.codeAnalyzer = codeanalysis.NewAnalyzer(codeanalysis.DefaultConfig())
+	client.directoryAnalyzer = github.NewDirectoryAnalyzer(codeanalysis.DefaultConfig())
 
 	// Initialize integration framework
 	client.httpClient = base.NewHTTPClient(base.HTTPClientConfig{
@@ -297,7 +391,7 @@ func (c *Client) Close() error {
 // registerIntegrations registers all available integrations
 func (c *Client) registerIntegrations() error {
 	// Get effective API keys for legacy support
-	apiKeys := c.getEffectiveApiKeys()
+	apiKeys := c.getEffectiveAPIKeys()
 
 	// Create auth service if we have a current user
 	var authService *apiauth.Service
@@ -340,8 +434,8 @@ func (c *Client) registerIntegrations() error {
 	return nil
 }
 
-// LoadDatabaseApiKeys loads API keys from the database for the current user
-func (c *Client) LoadDatabaseApiKeys(ctx context.Context, userID string) error {
+// LoadDatabaseAPIKeys loads API keys from the database for the current user
+func (c *Client) LoadDatabaseAPIKeys(ctx context.Context, userID string) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
@@ -355,21 +449,21 @@ func (c *Client) LoadDatabaseApiKeys(ctx context.Context, userID string) error {
 	}
 
 	// Get all API keys for the user
-	userApiKeys, err := apiKeyService.GetAPIKeys(ctx, userID)
+	userAPIKeys, err := apiKeyService.GetAPIKeys(ctx, userID)
 	if err != nil {
 		log.Printf("⚠️ Failed to load API keys for user %s: %v", userID, err)
 		// Don't fail completely - continue with empty keys
-		c.databaseApiKeys = &types.SessionApiKeys{}
+		c.databaseAPIKeys = &types.SessionAPIKeys{}
 		return nil
 	}
 
-	log.Printf("🔑 Loaded %d API keys from database for user %s", len(userApiKeys), userID)
+	log.Printf("🔑 Loaded %d API keys from database for user %s", len(userAPIKeys), userID)
 
 	// Convert database API keys to session format
-	sessionKeys := &types.SessionApiKeys{}
+	sessionKeys := &types.SessionAPIKeys{}
 
-	for _, apiKey := range userApiKeys {
-		if !apiKey.IsActive || apiKey.ValidationStatus == "invalid" {
+	for _, apiKey := range userAPIKeys {
+		if !apiKey.IsActive || apiKey.ValidationStatus == StatusInvalid {
 			continue
 		}
 
@@ -382,38 +476,38 @@ func (c *Client) LoadDatabaseApiKeys(ctx context.Context, userID string) error {
 
 		// Map service names to session key fields
 		switch apiKey.ServiceName {
-		case "gemini":
-			sessionKeys.GeminiApiKey = decryptedKey
+		case ServiceGemini:
+			sessionKeys.GeminiAPIKey = decryptedKey
 			log.Printf("🔑 Loaded Gemini API key from database - Length: %d, Prefix: %s",
 				len(decryptedKey),
 				func() string {
 					if len(decryptedKey) >= 10 {
 						return decryptedKey[:10] + "..."
-					} else if len(decryptedKey) > 0 {
+					} else if decryptedKey != "" {
 						return decryptedKey + "..."
 					}
-					return "EMPTY"
+					return StatusEmpty
 				}())
-		case "openweather":
-			sessionKeys.OpenWeatherApiKey = decryptedKey
+		case ServiceOpenWeather:
+			sessionKeys.OpenWeatherAPIKey = decryptedKey
 			log.Printf("🔑 Loaded OpenWeather API key from database")
-		case "github":
-			sessionKeys.GithubApiKey = decryptedKey
+		case ServiceGitHub:
+			sessionKeys.GithubAPIKey = decryptedKey
 			log.Printf("🔑 Loaded GitHub API key from database")
-		case "openrouter":
-			sessionKeys.OpenRouterApiKey = decryptedKey
+		case ServiceOpenRouter:
+			sessionKeys.OpenRouterAPIKey = decryptedKey
 			log.Printf("🔑 Loaded OpenRouter API key from database")
-		case "slack":
+		case ServiceSlack:
 			sessionKeys.SlackBotToken = decryptedKey
 			log.Printf("🔑 Loaded Slack Bot Token from database - Length: %d, Prefix: %s",
 				len(decryptedKey),
 				func() string {
 					if len(decryptedKey) >= 10 {
 						return decryptedKey[:10] + "..."
-					} else if len(decryptedKey) > 0 {
+					} else if decryptedKey != "" {
 						return decryptedKey + "..."
 					}
-					return "EMPTY"
+					return StatusEmpty
 				}())
 			log.Printf("🔍 DEBUG: Slack token stored in sessionKeys.SlackBotToken: %t", sessionKeys.SlackBotToken != "")
 		case "whatsapp":
@@ -423,40 +517,41 @@ func (c *Client) LoadDatabaseApiKeys(ctx context.Context, userID string) error {
 				func() string {
 					if len(decryptedKey) >= 10 {
 						return decryptedKey[:10] + "..."
-					} else if len(decryptedKey) > 0 {
+					} else if decryptedKey != "" {
 						return decryptedKey + "..."
 					}
-					return "EMPTY"
+					return StatusEmpty
 				}())
-		case "googledrive":
-			sessionKeys.GoogleDriveApiKey = decryptedKey
+		case ServiceGoogleDrive:
+			sessionKeys.GoogleDriveAPIKey = decryptedKey
 			log.Printf("🔑 Loaded Google Drive API key from database - Length: %d, Prefix: %s",
 				len(decryptedKey),
 				func() string {
 					if len(decryptedKey) >= 10 {
 						return decryptedKey[:10] + "..."
-					} else if len(decryptedKey) > 0 {
+					} else if decryptedKey != "" {
 						return decryptedKey + "..."
 					}
-					return "EMPTY"
+					return StatusEmpty
 				}())
 		case "neo4j":
 			// For Neo4j, we need to handle the connection details differently
 			// This is a simplified version - you might want to parse the connection string
-			sessionKeys.Neo4jUrl = decryptedKey
+			sessionKeys.Neo4jURL = decryptedKey
 			log.Printf("🔑 Loaded Neo4j connection from database")
 		}
 	}
 
-	c.databaseApiKeys = sessionKeys
-	log.Printf("🔑 Database API keys loaded: Gemini=%v, OpenWeather=%v, GitHub=%v, OpenRouter=%v, Slack=%v, WhatsApp=%v, GoogleDrive=%v",
-		sessionKeys.GeminiApiKey != "",
-		sessionKeys.OpenWeatherApiKey != "",
-		sessionKeys.GithubApiKey != "",
-		sessionKeys.OpenRouterApiKey != "",
+	c.databaseAPIKeys = sessionKeys
+	log.Printf("🔑 Database API keys loaded: Gemini=%v, OpenWeather=%v, GitHub=%v, "+
+		"OpenRouter=%v, Slack=%v, WhatsApp=%v, GoogleDrive=%v",
+		sessionKeys.GeminiAPIKey != "",
+		sessionKeys.OpenWeatherAPIKey != "",
+		sessionKeys.GithubAPIKey != "",
+		sessionKeys.OpenRouterAPIKey != "",
 		sessionKeys.SlackBotToken != "",
 		sessionKeys.WhatsappAccessToken != "",
-		sessionKeys.GoogleDriveApiKey != "")
+		sessionKeys.GoogleDriveAPIKey != "")
 
 	// Re-register integrations with the new user context and auth system
 	if err := c.registerIntegrations(); err != nil {
@@ -467,24 +562,24 @@ func (c *Client) LoadDatabaseApiKeys(ctx context.Context, userID string) error {
 	return nil
 }
 
-// LoadAgentApiKeys loads API keys for a specific agent with fallback to user defaults
-func (c *Client) LoadAgentApiKeys(ctx context.Context, agentID string) error {
+// LoadAgentAPIKeys loads API keys for a specific agent with fallback to user defaults
+func (c *Client) LoadAgentAPIKeys(ctx context.Context, agentID string) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
 	// Create agents service to get agent API key configuration
-	agentHandler := agents.NewAgentsHandler(c.db)
-	agentConfig, err := agentHandler.GetAgentApiKeyConfiguration(ctx, agentID)
+	agentHandler := agents.NewHandler(c.db)
+	agentConfig, err := agentHandler.GetAgentAPIKeyConfiguration(ctx, agentID)
 	if err != nil {
 		log.Printf("⚠️ Failed to get agent API key configuration for %s: %v", agentID, err)
 		// Fallback to loading user keys directly
-		if len(agentID) > 0 {
+		if agentID != "" {
 			// Try to extract user ID from agent and use global keys
 			var userID string
 			err := c.db.QueryRowContext(ctx, "SELECT user_id FROM agents WHERE id = ?", agentID).Scan(&userID)
 			if err == nil {
 				log.Printf("🔄 Falling back to global user API keys for agent %s (user: %s)", agentID, userID)
-				return c.LoadDatabaseApiKeys(ctx, userID)
+				return c.LoadDatabaseAPIKeys(ctx, userID)
 			}
 		}
 		return fmt.Errorf("failed to load API keys for agent %s: %w", agentID, err)
@@ -507,13 +602,13 @@ func (c *Client) LoadAgentApiKeys(ctx context.Context, agentID string) error {
 	}
 
 	log.Printf("🔑 Loading API keys for agent %s - Found %d service configurations",
-		agentID, len(agentConfig.ServiceApiKeys))
+		agentID, len(agentConfig.ServiceAPIKeys))
 
 	// Convert database API keys to session format
-	sessionKeys := &types.SessionApiKeys{}
+	sessionKeys := &types.SessionAPIKeys{}
 
-	for serviceName, apiKey := range agentConfig.ServiceApiKeys {
-		if !apiKey.IsActive || apiKey.ValidationStatus == "invalid" {
+	for serviceName, apiKey := range agentConfig.ServiceAPIKeys {
+		if !apiKey.IsActive || apiKey.ValidationStatus == StatusInvalid {
 			log.Printf("⚠️ Skipping inactive/invalid API key for service %s", serviceName)
 			continue
 		}
@@ -524,7 +619,7 @@ func (c *Client) LoadAgentApiKeys(ctx context.Context, agentID string) error {
 			log.Printf("⚠️ Failed to decrypt API key %s for agent %s: %v", apiKey.KeyName, agentID, err)
 
 			// Try fallback key if available
-			if fallbackKey, hasFallback := agentConfig.FallbackApiKeys[serviceName]; hasFallback && fallbackKey.ID != "" {
+			if fallbackKey, hasFallback := agentConfig.FallbackAPIKeys[serviceName]; hasFallback && fallbackKey.ID != "" {
 				log.Printf("🔄 Trying fallback API key for service %s", serviceName)
 				decryptedKey, err = apiKeyService.GetDecryptedAPIKey(ctx, userID, fallbackKey.ID)
 				if err != nil {
@@ -538,23 +633,23 @@ func (c *Client) LoadAgentApiKeys(ctx context.Context, agentID string) error {
 
 		// Map service names to session key fields
 		switch serviceName {
-		case "gemini":
-			sessionKeys.GeminiApiKey = decryptedKey
+		case ServiceGemini:
+			sessionKeys.GeminiAPIKey = decryptedKey
 			log.Printf("🔑 [Agent %s] Loaded Gemini API key - Source: %s, Length: %d",
 				agentID, apiKey.KeyName, len(decryptedKey))
-		case "openweather":
-			sessionKeys.OpenWeatherApiKey = decryptedKey
+		case ServiceOpenWeather:
+			sessionKeys.OpenWeatherAPIKey = decryptedKey
 			log.Printf("🔑 [Agent %s] Loaded OpenWeather API key - Source: %s",
 				agentID, apiKey.KeyName)
-		case "github":
-			sessionKeys.GithubApiKey = decryptedKey
+		case ServiceGitHub:
+			sessionKeys.GithubAPIKey = decryptedKey
 			log.Printf("🔑 [Agent %s] Loaded GitHub API key - Source: %s",
 				agentID, apiKey.KeyName)
-		case "openrouter":
-			sessionKeys.OpenRouterApiKey = decryptedKey
+		case ServiceOpenRouter:
+			sessionKeys.OpenRouterAPIKey = decryptedKey
 			log.Printf("🔑 [Agent %s] Loaded OpenRouter API key - Source: %s",
 				agentID, apiKey.KeyName)
-		case "slack":
+		case ServiceSlack:
 			sessionKeys.SlackBotToken = decryptedKey
 			log.Printf("🔑 [Agent %s] Loaded Slack Bot Token - Source: %s, Length: %d",
 				agentID, apiKey.KeyName, len(decryptedKey))
@@ -562,8 +657,8 @@ func (c *Client) LoadAgentApiKeys(ctx context.Context, agentID string) error {
 			sessionKeys.WhatsappAccessToken = decryptedKey
 			log.Printf("🔑 [Agent %s] Loaded WhatsApp Access Token - Source: %s, Length: %d",
 				agentID, apiKey.KeyName, len(decryptedKey))
-		case "googledrive":
-			sessionKeys.GoogleDriveApiKey = decryptedKey
+		case ServiceGoogleDrive:
+			sessionKeys.GoogleDriveAPIKey = decryptedKey
 			log.Printf("🔑 [Agent %s] Loaded Google Drive API key - Source: %s",
 				agentID, apiKey.KeyName)
 		default:
@@ -571,17 +666,18 @@ func (c *Client) LoadAgentApiKeys(ctx context.Context, agentID string) error {
 		}
 	}
 
-	c.databaseApiKeys = sessionKeys
+	c.databaseAPIKeys = sessionKeys
 
-	log.Printf("🔑 Agent API keys loaded for %s: Gemini=%v, OpenWeather=%v, GitHub=%v, OpenRouter=%v, Slack=%v, WhatsApp=%v, GoogleDrive=%v",
+	log.Printf("🔑 Agent API keys loaded for %s: Gemini=%v, OpenWeather=%v, GitHub=%v, "+
+		"OpenRouter=%v, Slack=%v, WhatsApp=%v, GoogleDrive=%v",
 		agentID,
-		sessionKeys.GeminiApiKey != "",
-		sessionKeys.OpenWeatherApiKey != "",
-		sessionKeys.GithubApiKey != "",
-		sessionKeys.OpenRouterApiKey != "",
+		sessionKeys.GeminiAPIKey != "",
+		sessionKeys.OpenWeatherAPIKey != "",
+		sessionKeys.GithubAPIKey != "",
+		sessionKeys.OpenRouterAPIKey != "",
 		sessionKeys.SlackBotToken != "",
 		sessionKeys.WhatsappAccessToken != "",
-		sessionKeys.GoogleDriveApiKey != "")
+		sessionKeys.GoogleDriveAPIKey != "")
 
 	// Re-register integrations with the new user context and auth system
 	if err := c.registerIntegrations(); err != nil {
@@ -593,20 +689,20 @@ func (c *Client) LoadAgentApiKeys(ctx context.Context, agentID string) error {
 	return nil
 }
 
-// getEffectiveApiKeys returns the effective API keys, with database keys taking precedence over session keys
-func (c *Client) getEffectiveApiKeys() *types.SessionApiKeys {
+// getEffectiveAPIKeys returns the effective API keys, with database keys taking precedence over session keys
+func (c *Client) getEffectiveAPIKeys() *types.SessionAPIKeys {
 	// Prefer database keys when available (new system)
-	if c.databaseApiKeys != nil {
-		return c.databaseApiKeys
+	if c.databaseAPIKeys != nil {
+		return c.databaseAPIKeys
 	}
 
 	// Fall back to session keys for backward compatibility (legacy system)
-	if c.sessionApiKeys != nil {
-		return c.sessionApiKeys
+	if c.sessionAPIKeys != nil {
+		return c.sessionAPIKeys
 	}
 
 	// Return empty keys if none available
-	return &types.SessionApiKeys{}
+	return &types.SessionAPIKeys{}
 }
 
 // GetDB returns the database connection
@@ -641,26 +737,6 @@ func (c *Client) getNextSequenceNumber() int {
 }
 
 // getCurrentRequestID returns the current request ID
-func (c *Client) getCurrentRequestID() string {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-	if c.currentRequestID != nil {
-		return *c.currentRequestID
-	}
-	return ""
-}
-
-// getUserIDFromExecutionRun gets the user ID from an execution run
-func (c *Client) getUserIDFromExecutionRun(ctx context.Context, executionRunID string) (string, error) {
-	executionRun, err := c.queries.GetExecutionRun(ctx, db.GetExecutionRunParams{
-		ID:     executionRunID,
-		UserID: c.currentUserID,
-	})
-	if err != nil {
-		return "", fmt.Errorf("failed to get execution run: %w", err)
-	}
-	return executionRun.UserID, nil
-}
 
 // RunMigrations runs database migrations using golang-migrate
 func (c *Client) RunMigrations() error {
@@ -696,7 +772,7 @@ func (c *Client) RunMigrations() error {
 }
 
 // executeMySQLFunction executes a MySQL function with security validation
-func (c *Client) executeMySQLFunction(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+func (c *Client) executeMySQLFunction(_ context.Context, _ *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
 	// Validate required parameters
 	query, ok := args["query"].(string)
 	if !ok || query == "" {
@@ -750,14 +826,14 @@ func (c *Client) executeMySQLFunction(ctx context.Context, funcDef *db.FunctionD
 			"query_type":     "SELECT",
 			"security_level": "high",
 		},
-		"execution_time_ms": int64(50),
+		"execution_time_ms": int64(DefaultMaxResults),
 	}
 
 	return result, nil
 }
 
 // executeMCPFunction executes an MCP function
-func (c *Client) executeMCPFunction(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+func (c *Client) executeMCPFunction(_ context.Context, _ *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
 	// Validate required parameters
 	operation, ok := args["operation"].(string)
 	if !ok || operation == "" {
@@ -789,11 +865,11 @@ func (c *Client) executeMCPFunction(ctx context.Context, funcDef *db.FunctionDef
 
 	// Operation-specific validation
 	switch operation {
-	case "create_branch":
+	case FunctionCreateBranch:
 		if _, ok := args["branch_name"]; !ok {
 			return nil, fmt.Errorf("branch_name is required")
 		}
-	case "commit_files":
+	case FunctionCommitFiles:
 		if _, ok := args["commit_message"]; !ok {
 			return nil, fmt.Errorf("commit_message is required")
 		}
@@ -804,7 +880,7 @@ func (c *Client) executeMCPFunction(ctx context.Context, funcDef *db.FunctionDef
 		"success":           true,
 		"operation":         operation,
 		"repo":              repo,
-		"execution_time_ms": int64(100),
+		"execution_time_ms": int64(DefaultPageSize),
 		"metadata": map[string]interface{}{
 			"source":     "mock",
 			"mcp_server": "github-operations",
@@ -813,11 +889,11 @@ func (c *Client) executeMCPFunction(ctx context.Context, funcDef *db.FunctionDef
 
 	// Add operation-specific fields
 	switch operation {
-	case "create_branch":
+	case FunctionCreateBranch:
 		result["branch_name"] = args["branch_name"]
 		result["branch_url"] = fmt.Sprintf("https://github.com/%s/tree/%s", repo, args["branch_name"])
 		result["commit_sha"] = "abc123def456"
-	case "commit_files":
+	case FunctionCommitFiles:
 		result["files_committed"] = 1
 		result["commit_sha"] = "def456ghi789"
 		result["commit_url"] = fmt.Sprintf("https://github.com/%s/commit/def456ghi789", repo)
@@ -832,12 +908,14 @@ func (c *Client) executeMCPFunction(ctx context.Context, funcDef *db.FunctionDef
 }
 
 // executeDynamicFunction routes to the appropriate execution method based on function definition
-func (c *Client) executeDynamicFunction(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+func (c *Client) executeDynamicFunction(ctx context.Context, funcDef *db.FunctionDefinition,
+	args map[string]interface{}) (map[string]interface{}, error) {
 	// Debug logging for function routing
-	log.Printf("🔍 [ROUTING_DEBUG] Function: %s, FunctionGroup: %s, HttpMethod: %s", funcDef.Name, funcDef.FunctionGroup, funcDef.HttpMethod.String)
+	log.Printf("🔍 [ROUTING_DEBUG] Function: %s, FunctionGroup: %s, HTTPMethod: %s",
+		funcDef.Name, funcDef.FunctionGroup, funcDef.HTTPMethod.String)
 
 	// Handle internal functions differently
-	if funcDef.FunctionGroup == "internal" {
+	if funcDef.FunctionGroup == FunctionGroupInternal {
 		log.Printf("🔍 [ROUTING_DEBUG] Routing %s to executeInternalFunction", funcDef.Name)
 		return c.executeInternalFunction(ctx, funcDef, args)
 	}
@@ -845,23 +923,26 @@ func (c *Client) executeDynamicFunction(ctx context.Context, funcDef *db.Functio
 	// Route functions with registered integrations through the integration system
 	// This ensures proper authentication and user context for all integration functions
 	if c.integrations != nil && c.integrations.HasIntegration(funcDef.FunctionGroup) {
-		log.Printf("🔍 [ROUTING_DEBUG] Routing %s to executeIntegrationFunction (function_group: %s)", funcDef.Name, funcDef.FunctionGroup)
+		log.Printf("🔍 [ROUTING_DEBUG] Routing %s to executeIntegrationFunction (function_group: %s)",
+			funcDef.Name, funcDef.FunctionGroup)
 		return c.executeIntegrationFunction(ctx, funcDef, args)
 	}
 
-	log.Printf("🔍 [ROUTING_DEBUG] No integration found for function_group: %s, falling back to HTTP method routing", funcDef.FunctionGroup)
-	switch funcDef.HttpMethod.String {
+	log.Printf("🔍 [ROUTING_DEBUG] No integration found for function_group: %s, "+
+		"falling back to HTTP method routing", funcDef.FunctionGroup)
+	switch funcDef.HTTPMethod.String {
 	case "MYSQL":
 		log.Printf("🔍 [ROUTING_DEBUG] Routing %s to executeMySQLFunction", funcDef.Name)
 		return c.executeMySQLFunction(ctx, funcDef, args)
 	case "MCP":
 		log.Printf("🔍 [ROUTING_DEBUG] Routing %s to executeMCPFunction", funcDef.Name)
 		return c.executeMCPFunction(ctx, funcDef, args)
-	case "GET", "POST", "PUT", "PATCH", "DELETE":
-		log.Printf("🔍 [ROUTING_DEBUG] Routing %s to executeAPIFunction (HTTP method: %s)", funcDef.Name, funcDef.HttpMethod.String)
+	case HTTPMethodGET, HTTPMethodPOST, HTTPMethodPUT, HTTPMethodPATCH, HTTPMethodDELETE:
+		log.Printf("🔍 [ROUTING_DEBUG] Routing %s to executeAPIFunction (HTTP method: %s)",
+			funcDef.Name, funcDef.HTTPMethod.String)
 		return c.executeAPIFunction(ctx, funcDef, args)
 	default:
-		return nil, fmt.Errorf("unsupported execution method: %s", funcDef.HttpMethod.String)
+		return nil, fmt.Errorf("unsupported execution method: %s", funcDef.HTTPMethod.String)
 	}
 }
 
@@ -876,7 +957,7 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 	// Extract agent ID from args or current execution context
 	agentID, ok := args["agent_id"].(string)
 	// Treat placeholder/dummy values as invalid
-	isDummyAgent := agentID == "unknown" || agentID == "my_agent_id" || strings.HasPrefix(agentID, "dummy_")
+	isDummyAgent := agentID == StatusUnknown || agentID == "my_agent_id" || strings.HasPrefix(agentID, "dummy_")
 	log.Printf("🔍 DEBUG: agentID='%s', ok=%v, isDummyAgent=%v", agentID, ok, isDummyAgent)
 	if !ok || isDummyAgent {
 		if isDummyAgent {
@@ -922,7 +1003,7 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 	}
 
 	// Create handlers
-	agentsHandler := agents.NewAgentsHandler(c.db)
+	agentsHandler := agents.NewHandler(c.db)
 	teamsHandler := teams.NewTeamsHandler(c.db)
 
 	// Check if this is a team memory or team task function
@@ -941,9 +1022,8 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 				log.Printf("🔍 Failed to get team_id from agent lookup: %v", queryErr)
 				if queryErr != nil {
 					return nil, fmt.Errorf("TEAM FUNCTION ERROR: %s failed to lookup team membership for agent %s: %v", functionName, agentID, queryErr)
-				} else {
-					return nil, fmt.Errorf("TEAM FUNCTION ERROR: %s requires agent to be assigned to a team (agent: %s not found in any team)", functionName, agentID)
 				}
+				return nil, fmt.Errorf("TEAM FUNCTION ERROR: %s requires agent to be assigned to a team (agent: %s not found in any team)", functionName, agentID)
 			}
 		} else {
 			return nil, fmt.Errorf("TEAM FUNCTION ERROR: %s requires valid agent context - no agent ID provided", functionName)
@@ -990,11 +1070,11 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 			var err error
 
 			switch functionName {
-			case "team_memory_read":
+			case FunctionTeamMemoryRead:
 				response, err = teamsHandler.ReadTeamMemory(ctx, teamID, agentID, userID, request)
-			case "team_memory_write":
+			case FunctionTeamMemoryWrite:
 				response, err = teamsHandler.WriteTeamMemory(ctx, teamID, agentID, userID, request)
-			case "team_memory_search":
+			case FunctionTeamMemorySearch:
 				response, err = teamsHandler.SearchTeamMemory(ctx, teamID, agentID, userID, request)
 			case "team_memory_clear":
 				response, err = teamsHandler.ClearTeamMemory(ctx, teamID, agentID, userID, request)
@@ -1027,7 +1107,6 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 
 			log.Printf("✅ Team memory function %s completed successfully", functionName)
 			return result, nil
-
 		} else if strings.HasPrefix(functionName, "team_task_") || strings.HasPrefix(functionName, "agent_task_") {
 			// Handle team task functions
 			log.Printf("🔍 Entering team task function path for: %s", functionName)
@@ -1290,7 +1369,7 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 			var err error
 
 			switch functionName {
-			case "team_task_store":
+			case FunctionTeamTaskStore:
 				log.Printf("🔍 About to call StoreTeamTask with teamID=%s, agentID=%s, userID=%s", teamID, agentID, userID)
 				taskResponse, err = teamsHandler.StoreTeamTask(ctx, teamID, agentID, userID, taskRequest)
 				log.Printf("🔍 StoreTeamTask returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
@@ -1308,7 +1387,7 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 						log.Printf("⚠️ Auto progress update after create failed: %v", perr)
 					}
 				}
-			case "team_task_claim":
+			case FunctionTeamTaskClaim:
 				// task_id is optional for claim - can auto-select if not provided
 				log.Printf("🔍 About to call ClaimTeamTask with teamID=%s, agentID=%s, userID=%s, taskID=%s", teamID, agentID, userID, taskRequest.TaskID)
 				taskResponse, err = teamsHandler.ClaimTeamTask(ctx, teamID, agentID, userID, taskRequest)
@@ -1344,7 +1423,7 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 						log.Printf("⚠️ Auto progress clear after completion failed: %v", cerr)
 					}
 				}
-			case "team_task_list":
+			case FunctionTeamTaskList:
 				taskResponse, err = teamsHandler.ListTeamTasks(ctx, teamID, agentID, userID, taskRequest)
 			case "team_task_error":
 				// task_id is required for error reporting
@@ -1438,9 +1517,8 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 
 			log.Printf("✅ Team task function %s completed successfully", functionName)
 			return result, nil
-		} else {
-			return nil, fmt.Errorf("unsupported team function: %s", functionName)
 		}
+		return nil, fmt.Errorf("unsupported team function: %s", functionName)
 	}
 
 	// Check if this is an agent task function
@@ -1660,13 +1738,13 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 	var err error
 
 	switch functionName {
-	case "agent_memory_read":
+	case FunctionAgentMemoryRead:
 		response, err = agentsHandler.ReadMemory(ctx, agentID, userID, request)
-	case "agent_memory_write":
+	case FunctionAgentMemoryWrite:
 		response, err = agentsHandler.WriteMemory(ctx, agentID, userID, request)
-	case "agent_memory_search":
+	case FunctionAgentMemorySearch:
 		response, err = agentsHandler.SearchMemory(ctx, agentID, userID, request)
-	case "agent_memory_clear":
+	case FunctionAgentMemoryClear:
 		response, err = agentsHandler.ClearMemory(ctx, agentID, userID, request)
 	default:
 		return nil, fmt.Errorf("unsupported internal function: %s", functionName)
@@ -1702,7 +1780,7 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 // createMockMemoryResponse creates mock responses for memory functions when no agent context is available
 func (c *Client) createMockMemoryResponse(functionName string, args map[string]interface{}) map[string]interface{} {
 	switch functionName {
-	case "agent_memory_write":
+	case FunctionAgentMemoryWrite:
 		return map[string]interface{}{
 			"success":       true,
 			"function_name": functionName,
@@ -1716,7 +1794,7 @@ func (c *Client) createMockMemoryResponse(functionName string, args map[string]i
 			},
 			"message": "Memory function called in non-agent execution - no data stored",
 		}
-	case "agent_memory_read":
+	case FunctionAgentMemoryRead:
 		return map[string]interface{}{
 			"success":       true,
 			"function_name": functionName,
@@ -1730,7 +1808,7 @@ func (c *Client) createMockMemoryResponse(functionName string, args map[string]i
 			},
 			"message": "Memory function called in non-agent execution - no data available",
 		}
-	case "agent_memory_search":
+	case FunctionAgentMemorySearch:
 		return map[string]interface{}{
 			"success":       true,
 			"function_name": functionName,
@@ -1744,7 +1822,7 @@ func (c *Client) createMockMemoryResponse(functionName string, args map[string]i
 			},
 			"message": "Memory function called in non-agent execution - no data to search",
 		}
-	case "agent_memory_clear":
+	case FunctionAgentMemoryClear:
 		return map[string]interface{}{
 			"success":       true,
 			"function_name": functionName,
@@ -1824,7 +1902,7 @@ func (c *Client) createMockMemoryResponse(functionName string, args map[string]i
 			},
 			"message": "Team task store called in non-agent execution - task not actually stored",
 		}
-	case "team_task_list":
+	case FunctionTeamTaskList:
 		// Show clear indication that this is mock data to help with debugging
 		teamID, _ := args["team_id"].(string)
 		agentID, _ := args["agent_id"].(string)
@@ -1886,7 +1964,7 @@ func (c *Client) executeIntegrationFunction(ctx context.Context, funcDef *db.Fun
 			"arguments":        args,
 			"argumentCount":    len(args),
 			"endpointUrl":      funcDef.EndpointUrl.String,
-			"httpMethod":       funcDef.HttpMethod.String,
+			"httpMethod":       funcDef.HTTPMethod.String,
 			"integrationStart": time.Now().Format("15:04:05.000"),
 		})
 
@@ -1904,7 +1982,7 @@ func (c *Client) executeIntegrationFunction(ctx context.Context, funcDef *db.Fun
 	}
 
 	// For Slack functions, create a new integration with current user context if available
-	if funcDef.FunctionGroup == "slack" && c.currentUserID != "" {
+	if funcDef.FunctionGroup == ServiceSlack && c.currentUserID != "" {
 		log.Printf("🔑 [SLACK_DEBUG] Creating Slack integration with current user context: %s", c.currentUserID)
 
 		// Create auth service for current user
@@ -1921,7 +1999,7 @@ func (c *Client) executeIntegrationFunction(ctx context.Context, funcDef *db.Fun
 	}
 
 	// For GitHub functions, create a new integration with current user context if available
-	if funcDef.FunctionGroup == "github" && c.currentUserID != "" {
+	if funcDef.FunctionGroup == ServiceGitHub && c.currentUserID != "" {
 		log.Printf("🔑 [GITHUB_DEBUG] Creating GitHub integration with current user context: %s", c.currentUserID)
 
 		// Create auth service for current user
@@ -1977,7 +2055,7 @@ func (c *Client) executeIntegrationFunction(ctx context.Context, funcDef *db.Fun
 			"resultSummary":  resultSummary,
 			"resultKeys":     c.getMapKeysFromResult(result),
 			"integrationEnd": time.Now().Format("15:04:05.000"),
-			"resultPreview":  c.truncateString(fmt.Sprintf("%v", result), 300),
+			"resultPreview":  c.truncateString(fmt.Sprintf("%v", result), DefaultTimeoutMs),
 		})
 
 	log.Printf("✅ Integration function executed successfully: %s", functionName)
@@ -1987,7 +2065,7 @@ func (c *Client) executeIntegrationFunction(ctx context.Context, funcDef *db.Fun
 // createIntegrationResultSummary creates a summary of integration execution results
 func (c *Client) createIntegrationResultSummary(functionName string, result map[string]interface{}) string {
 	if result == nil {
-		return "No data returned"
+		return ResponseNoData
 	}
 
 	// Check for integration response structure
@@ -1997,16 +2075,15 @@ func (c *Client) createIntegrationResultSummary(functionName string, result map[
 				switch functionName {
 				case "github_read_issues", "github_read_commits", "github_read_code", "github_search_code":
 					return fmt.Sprintf("GitHub API success - data type: %T", data)
-				case "slack_find_channel", "slack_read_messages", "slack_send_message":
+				case "slack_find_channel", FunctionSlackReadMessages, FunctionSlackSendMessage:
 					return fmt.Sprintf("Slack API success - data type: %T", data)
 				default:
 					return fmt.Sprintf("API success - data type: %T", data)
 				}
 			}
 			return "API success"
-		} else {
-			return fmt.Sprintf("API status: %s", status)
 		}
+		return fmt.Sprintf("API status: %s", status)
 	}
 
 	return fmt.Sprintf("Result with %d fields", len(result))
@@ -2026,7 +2103,7 @@ func (c *Client) getMapKeysFromResult(result map[string]interface{}) []string {
 }
 
 // executeGitHubBranchUpdatePRWorkflow executes the complete GitHub branch-update-PR workflow
-func (c *Client) executeGitHubBranchUpdatePRWorkflow(ctx context.Context, funcDef *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
+func (c *Client) executeGitHubBranchUpdatePRWorkflow(ctx context.Context, _ *db.FunctionDefinition, args map[string]interface{}) (map[string]interface{}, error) {
 	// Extract required parameters
 	owner, _ := args["owner"].(string)
 	repo, _ := args["repo"].(string)
@@ -2201,8 +2278,8 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 
 	// Determine HTTP method from function definition
 	httpMethod := "GET" // Default
-	if funcDef.HttpMethod.Valid {
-		httpMethod = funcDef.HttpMethod.String
+	if funcDef.HTTPMethod.Valid {
+		httpMethod = funcDef.HTTPMethod.String
 	}
 
 	log.Printf("🌐 Making API call: %s %s (function: %s)", httpMethod, url, functionName)
@@ -2249,32 +2326,32 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 	}
 
 	// Add authentication based on function type and available headers
-	effectiveKeys := c.getEffectiveApiKeys()
+	effectiveKeys := c.getEffectiveAPIKeys()
 	log.Printf("🔍 DEBUG: Effective keys for %s - Slack: %s, GitHub: %s, Gemini: %s, GoogleDrive: %s",
 		functionName,
 		func() string {
 			if effectiveKeys.SlackBotToken != "" {
-				return "PRESENT"
+				return StatusPresent
 			}
-			return "MISSING"
+			return StatusMissing
 		}(),
 		func() string {
-			if effectiveKeys.GithubApiKey != "" {
-				return "PRESENT"
+			if effectiveKeys.GithubAPIKey != "" {
+				return StatusPresent
 			}
-			return "MISSING"
+			return StatusMissing
 		}(),
 		func() string {
-			if effectiveKeys.GeminiApiKey != "" {
-				return "PRESENT"
+			if effectiveKeys.GeminiAPIKey != "" {
+				return StatusPresent
 			}
-			return "MISSING"
+			return StatusMissing
 		}(),
 		func() string {
-			if effectiveKeys.GoogleDriveApiKey != "" {
-				return "PRESENT"
+			if effectiveKeys.GoogleDriveAPIKey != "" {
+				return StatusPresent
 			}
-			return "MISSING"
+			return StatusMissing
 		}())
 
 	// Apply function-specific headers from database first
@@ -2299,11 +2376,11 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 							return headerValue
 						}())
 				}
-				if strings.Contains(headerValue, "{GITHUB_API_KEY}") && effectiveKeys.GithubApiKey != "" {
-					headerValue = strings.ReplaceAll(headerValue, "{GITHUB_API_KEY}", effectiveKeys.GithubApiKey)
+				if strings.Contains(headerValue, "{GITHUB_API_KEY}") && effectiveKeys.GithubAPIKey != "" {
+					headerValue = strings.ReplaceAll(headerValue, "{GITHUB_API_KEY}", effectiveKeys.GithubAPIKey)
 				}
-				if strings.Contains(headerValue, "{GOOGLE_DRIVE_API_KEY}") && effectiveKeys.GoogleDriveApiKey != "" {
-					headerValue = strings.ReplaceAll(headerValue, "{GOOGLE_DRIVE_API_KEY}", effectiveKeys.GoogleDriveApiKey)
+				if strings.Contains(headerValue, "{GOOGLE_DRIVE_API_KEY}") && effectiveKeys.GoogleDriveAPIKey != "" {
+					headerValue = strings.ReplaceAll(headerValue, "{GOOGLE_DRIVE_API_KEY}", effectiveKeys.GoogleDriveAPIKey)
 				}
 				log.Printf("🔍 DEBUG: Setting header %s = %s", key,
 					func() string {
@@ -2324,10 +2401,10 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 
 	// Add function-group-specific authentication if not already set via headers
 	if funcDef.FunctionGroup == "github" {
-		if req.Header.Get("Authorization") == "" && effectiveKeys.GithubApiKey != "" {
-			req.Header.Set("Authorization", "token "+effectiveKeys.GithubApiKey)
+		if req.Header.Get("Authorization") == "" && effectiveKeys.GithubAPIKey != "" {
+			req.Header.Set("Authorization", "token "+effectiveKeys.GithubAPIKey)
 			log.Printf("🔑 Added GitHub API authentication")
-		} else if effectiveKeys.GithubApiKey == "" {
+		} else if effectiveKeys.GithubAPIKey == "" {
 			log.Printf("⚠️ No GitHub API key available - proceeding without authentication")
 		}
 		// Set GitHub-specific headers if not already set
@@ -2338,10 +2415,10 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 			req.Header.Set("Accept", "application/vnd.github.v3+json")
 		}
 	} else if funcDef.FunctionGroup == "googledrive" {
-		if req.Header.Get("Authorization") == "" && effectiveKeys.GoogleDriveApiKey != "" {
-			req.Header.Set("Authorization", "Bearer "+effectiveKeys.GoogleDriveApiKey)
+		if req.Header.Get("Authorization") == "" && effectiveKeys.GoogleDriveAPIKey != "" {
+			req.Header.Set("Authorization", "Bearer "+effectiveKeys.GoogleDriveAPIKey)
 			log.Printf("🔑 Added Google Drive API authentication")
-		} else if effectiveKeys.GoogleDriveApiKey == "" {
+		} else if effectiveKeys.GoogleDriveAPIKey == "" {
 			log.Printf("⚠️ No Google Drive API key available - proceeding without authentication")
 		}
 		// Set Google Drive-specific headers if not already set
@@ -2383,12 +2460,12 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 	apiType := func() string {
 		if funcDef.FunctionGroup == "github" {
 			return "GitHub"
-		} else if funcDef.FunctionGroup == "communication" {
+		} else if funcDef.FunctionGroup == FunctionGroupCommunication {
 			return "Slack"
-		} else if funcDef.FunctionGroup == "googledrive" {
+		} else if funcDef.FunctionGroup == ServiceGoogleDrive {
 			return "Google Drive"
 		}
-		return "API"
+		return FunctionGroupAPI
 	}()
 
 	log.Printf("🌐 %s API response: %d status, %d bytes, %dms", apiType, resp.StatusCode, len(body), executionTimeMs)
@@ -2409,9 +2486,9 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 		apiName := "API"
 		if funcDef.FunctionGroup == "github" {
 			apiName = "GitHub API"
-		} else if funcDef.FunctionGroup == "communication" {
+		} else if funcDef.FunctionGroup == FunctionGroupCommunication {
 			apiName = "Slack API"
-		} else if funcDef.FunctionGroup == "googledrive" {
+		} else if funcDef.FunctionGroup == ServiceGoogleDrive {
 			apiName = "Google Drive API"
 		}
 		return nil, fmt.Errorf("%s returned %d: %s", apiName, resp.StatusCode, string(body))
@@ -2491,7 +2568,7 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 				log.Printf("✅ Retrieved single file: %s", codeData["name"])
 			} else if directoryItems, ok := responseData.([]interface{}); ok {
 				// Directory listing response
-				result["type"] = "dir"
+				result["type"] = FileTypeDir
 				result["items"] = directoryItems
 				result["total_count"] = len(directoryItems)
 				log.Printf("✅ Retrieved directory with %d items", len(directoryItems))
@@ -2534,7 +2611,7 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 	// Add function-specific data processing for Google Drive functions
 	if funcDef.FunctionGroup == "googledrive" {
 		switch functionName {
-		case "googledrive_list_files":
+		case FunctionGoogleDriveListFiles:
 			if filesData, ok := responseData.(map[string]interface{}); ok {
 				if files, exists := filesData["files"].([]interface{}); exists {
 					result["files"] = files
@@ -2545,7 +2622,7 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 					result["next_page_token"] = nextPageToken
 				}
 			}
-		case "googledrive_get_file":
+		case FunctionGoogleDriveGetFile:
 			if fileData, ok := responseData.(map[string]interface{}); ok {
 				result["file"] = fileData
 				result["file_id"] = fileData["id"]
@@ -2556,7 +2633,7 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 				}
 				log.Printf("✅ Retrieved file metadata: %s", fileData["name"])
 			}
-		case "googledrive_get_file_content":
+		case FunctionGoogleDriveGetFileContent:
 			// For file content, the response might be text or binary
 			if content, ok := responseData.(string); ok {
 				result["content"] = content
@@ -2567,7 +2644,7 @@ func (c *Client) executeAPIFunction(ctx context.Context, funcDef *db.FunctionDef
 				result["content"] = responseData
 				log.Printf("✅ Retrieved file content (non-text format)")
 			}
-		case "googledrive_search_files":
+		case FunctionGoogleDriveSearchFiles:
 			if searchData, ok := responseData.(map[string]interface{}); ok {
 				if files, exists := searchData["files"].([]interface{}); exists {
 					result["files"] = files
@@ -2739,8 +2816,8 @@ func (c *Client) buildGenericAPIURL(funcDef *db.FunctionDefinition, args map[str
 
 	// For GET requests, add remaining parameters as query parameters
 	httpMethod := "GET" // Default
-	if funcDef.HttpMethod.Valid {
-		httpMethod = funcDef.HttpMethod.String
+	if funcDef.HTTPMethod.Valid {
+		httpMethod = funcDef.HTTPMethod.String
 	}
 
 	if httpMethod == "GET" && len(args) > 0 {
@@ -2988,7 +3065,7 @@ func (c *Client) GetExecutionResult(ctx context.Context, userID string, executio
 			ResponseText:   respRow.ResponseText.String,
 			FinishReason:   respRow.FinishReason.String,
 			ErrorMessage:   respRow.ErrorMessage.String,
-			ResponseTimeMs: respRow.ResponseTimeMs.Int32,
+			ResponseTimeMs: respRow.ResponseTimeMs.Int64,
 			CreatedAt:      respRow.CreatedAt.Time,
 		}
 
@@ -3038,7 +3115,7 @@ func (c *Client) GetExecutionResult(ctx context.Context, userID string, executio
 			Configuration: *config,
 			Request:       *request,
 			Response:      *response,
-			ExecutionTime: int64(response.ResponseTimeMs),
+			ExecutionTime: response.ResponseTimeMs,
 		}
 
 		results = append(results, variationResult)
@@ -3049,7 +3126,7 @@ func (c *Client) GetExecutionResult(ctx context.Context, userID string, executio
 		} else {
 			errorCount++
 		}
-		totalTime += int64(response.ResponseTimeMs)
+		totalTime += response.ResponseTimeMs
 	}
 
 	// Try to fetch comparison result for this execution run
@@ -3339,12 +3416,18 @@ func (c *Client) GetExecutionLogsByConfiguration(ctx context.Context, executionR
 			log.RequestID = &requestID.String
 		}
 		if sequenceNumber.Valid {
-			seqNum := int32(sequenceNumber.Int32)
+			seqNum := sequenceNumber.Int32
 			log.SequenceNumber = &seqNum
 		}
 		if durationMs.Valid {
-			durMs := int32(durationMs.Int64)
-			log.DurationMs = &durMs
+			// Guard against int64 -> int32 overflow
+			if durationMs.Int64 > int64(^uint32(0)>>1) {
+				durMs := int32(^uint32(0) >> 1) // MaxInt32
+				log.DurationMs = &durMs
+			} else {
+				durMs := int32(durationMs.Int64)
+				log.DurationMs = &durMs
+			}
 		}
 
 		logs = append(logs, log)
@@ -3412,12 +3495,18 @@ func (c *Client) GetExecutionLogsByRun(ctx context.Context, executionRunID strin
 			log.RequestID = &requestID.String
 		}
 		if sequenceNumber.Valid {
-			seqNum := int32(sequenceNumber.Int32)
+			seqNum := sequenceNumber.Int32
 			log.SequenceNumber = &seqNum
 		}
 		if durationMs.Valid {
-			durMs := int32(durationMs.Int64)
-			log.DurationMs = &durMs
+			// Guard against int64 -> int32 overflow
+			if durationMs.Int64 > int64(^uint32(0)>>1) {
+				durMs := int32(^uint32(0) >> 1) // MaxInt32
+				log.DurationMs = &durMs
+			} else {
+				durMs := int32(durationMs.Int64)
+				log.DurationMs = &durMs
+			}
 		}
 
 		logs = append(logs, log)
@@ -3478,38 +3567,6 @@ func (c *Client) GetExecutionFlowGraphByConfiguration(ctx context.Context, userI
 }
 
 // Helper functions for type conversions
-func (c *Client) parseFloat32FromNullString(ns sql.NullString) *float32 {
-	if !ns.Valid {
-		return nil
-	}
-	if f, err := parseFloat32(ns.String); err == nil {
-		return &f
-	}
-	return nil
-}
-
-func (c *Client) parseInt32FromNullInt32(ni sql.NullInt32) *int32 {
-	if !ni.Valid {
-		return nil
-	}
-	return &ni.Int32
-}
-
-func (c *Client) parseJSONToTools(raw json.RawMessage) []types.Tool {
-	var tools []types.Tool
-	if len(raw) > 0 {
-		json.Unmarshal(raw, &tools)
-	}
-	return tools
-}
-
-func (c *Client) parseJSONToMap(raw json.RawMessage) map[string]interface{} {
-	var result map[string]interface{}
-	if len(raw) > 0 {
-		json.Unmarshal(raw, &result)
-	}
-	return result
-}
 
 // Helper functions for execution flow graph
 func (c *Client) getExecutionFlowEvents(ctx context.Context, executionRunID string) ([]types.ExecutionFlowEvent, error) {
@@ -3773,12 +3830,30 @@ func (c *Client) getExecutionStats(ctx context.Context, executionRunID string) (
 		functionCallCount = 0 // Continue without function call stats
 	}
 
+	// Guard against int -> int32 overflow
+	var totalFunctionCalls, totalAIModelCalls, totalErrors int32
+	if functionCallCount > int(^uint32(0)>>1) {
+		totalFunctionCalls = int32(^uint32(0) >> 1) // MaxInt32
+	} else {
+		totalFunctionCalls = int32(functionCallCount)
+	}
+	if requestCount > int(^uint32(0)>>1) {
+		totalAIModelCalls = int32(^uint32(0) >> 1) // MaxInt32
+	} else {
+		totalAIModelCalls = int32(requestCount)
+	}
+	if errorCount > int(^uint32(0)>>1) {
+		totalErrors = int32(^uint32(0) >> 1) // MaxInt32
+	} else {
+		totalErrors = int32(errorCount)
+	}
+
 	stats := &types.ExecutionStats{
 		ID:                    uuid.New().String(),
 		ExecutionRunID:        executionRunID,
-		TotalFunctionCalls:    int32(functionCallCount),
-		TotalAIModelCalls:     int32(requestCount),
-		TotalErrors:           int32(errorCount),
+		TotalFunctionCalls:    totalFunctionCalls,
+		TotalAIModelCalls:     totalAIModelCalls,
+		TotalErrors:           totalErrors,
 		TotalRetries:          0, // TODO: Calculate retries
 		TotalExecutionTimeMs:  0, // TODO: Calculate total time
 		AvgFunctionCallTimeMs: 0, // TODO: Calculate averages
@@ -3892,11 +3967,11 @@ func (c *Client) buildGoogleDriveAPIURL(functionName string, args map[string]int
 		return apiURL, nil
 
 	case "googledrive_get_file":
-		fileId, ok := args["fileId"].(string)
-		if !ok || fileId == "" {
+		fileID, ok := args["fileId"].(string)
+		if !ok || fileID == "" {
 			return "", fmt.Errorf("fileId parameter is required for googledrive_get_file")
 		}
-		apiURL := baseURL + "/files/" + url.QueryEscape(fileId)
+		apiURL := baseURL + "/files/" + url.QueryEscape(fileID)
 		params := []string{}
 
 		if fields, ok := args["fields"].(string); ok && fields != "" {
@@ -3927,11 +4002,11 @@ func (c *Client) buildGoogleDriveAPIURL(functionName string, args map[string]int
 		return apiURL, nil
 
 	case "googledrive_get_file_content":
-		fileId, ok := args["fileId"].(string)
-		if !ok || fileId == "" {
+		fileID, ok := args["fileId"].(string)
+		if !ok || fileID == "" {
 			return "", fmt.Errorf("fileId parameter is required for googledrive_get_file_content")
 		}
-		apiURL := baseURL + "/files/" + url.QueryEscape(fileId)
+		apiURL := baseURL + "/files/" + url.QueryEscape(fileID)
 		params := []string{}
 
 		if alt, ok := args["alt"].(string); ok && alt != "" {
@@ -3949,7 +4024,7 @@ func (c *Client) buildGoogleDriveAPIURL(functionName string, args map[string]int
 		}
 		return apiURL, nil
 
-	case "googledrive_search_files":
+	case FunctionGoogleDriveSearchFiles:
 		q, ok := args["q"].(string)
 		if !ok || q == "" {
 			return "", fmt.Errorf("q parameter is required for googledrive_search_files")

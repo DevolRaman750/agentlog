@@ -15,6 +15,11 @@ import (
 	"gogent/internal/db"
 )
 
+const (
+	// Default model parameters
+	DefaultTemperature = 0.5
+)
+
 // ProviderSpec defines the JSON structure for provider specifications
 type ProviderSpec struct {
 	Name               string                 `json:"name"`
@@ -76,7 +81,7 @@ func (c *Client) SyncSystemSpecs(ctx context.Context) error {
 }
 
 // syncProviders loads provider specs from JSON files and syncs to database
-func (c *Client) syncProviders(ctx context.Context) error {
+func (c *Client) syncProviders(_ context.Context) error {
 	providersDir := "system/providers"
 
 	// Check if providers directory exists
@@ -86,7 +91,7 @@ func (c *Client) syncProviders(ctx context.Context) error {
 	}
 
 	// Walk through provider JSON files
-	err := filepath.WalkDir(providersDir, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(providersDir, func(path string, _ fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -138,7 +143,7 @@ func (c *Client) syncFunctions(ctx context.Context) error {
 	}
 
 	// Walk through function JSON files
-	err := filepath.WalkDir(functionsDir, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(functionsDir, func(path string, _ fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -253,19 +258,19 @@ func (c *Client) syncFunctionToDatabase(ctx context.Context, spec *FunctionSpec)
 	}
 
 	// Build required API keys based on provider
-	requiredApiKeys := []string{}
+	requiredAPIKeys := []string{}
 	if spec.Provider == "slack" {
-		requiredApiKeys = []string{"SLACK_BOT_TOKEN"}
+		requiredAPIKeys = []string{"SLACK_BOT_TOKEN"}
 	} else if spec.Provider == "github" {
-		requiredApiKeys = []string{"GITHUB_API_KEY"}
+		requiredAPIKeys = []string{"GITHUB_API_KEY"}
 	}
 
-	requiredApiKeysJSON, err := json.Marshal(requiredApiKeys)
+	requiredAPIKeysJSON, err := json.Marshal(requiredAPIKeys)
 	if err != nil {
 		return fmt.Errorf("failed to marshal required API keys: %w", err)
 	}
 
-	defaultApiKeyValidation, err := json.Marshal(map[string]interface{}{})
+	defaultAPIKeyValidation, err := json.Marshal(map[string]interface{}{})
 	if err != nil {
 		return fmt.Errorf("failed to marshal default API key validation: %w", err)
 	}
@@ -295,13 +300,13 @@ func (c *Client) syncFunctionToDatabase(ctx context.Context, spec *FunctionSpec)
 			ParametersSchema:  parametersSchema,
 			MockResponse:      mockResponse,
 			EndpointUrl:       sql.NullString{String: endpointURL, Valid: endpointURL != ""},
-			HttpMethod:        sql.NullString{String: spec.Endpoint.Method, Valid: spec.Endpoint.Method != ""},
+			HTTPMethod:        sql.NullString{String: spec.Endpoint.Method, Valid: spec.Endpoint.Method != ""},
 			Headers:           headersJSON,
 			AuthConfig:        defaultAuthConfig,
 			IsActive:          sql.NullBool{Bool: true, Valid: true},
 			IsSystemResource:  sql.NullBool{Bool: isSystemResource, Valid: true},
-			RequiredApiKeys:   requiredApiKeysJSON,
-			ApiKeyValidation:  defaultApiKeyValidation,
+			RequiredAPIKeys:   requiredAPIKeysJSON,
+			APIKeyValidation:  defaultAPIKeyValidation,
 			QueryTemplate:     sql.NullString{Valid: false}, // Empty for now
 			ResultTransformer: sql.NullString{Valid: false}, // Empty for now
 			FallbackData:      defaultFallbackData,
@@ -328,13 +333,13 @@ func (c *Client) syncFunctionToDatabase(ctx context.Context, spec *FunctionSpec)
 			ParametersSchema:  parametersSchema,
 			MockResponse:      mockResponse,
 			EndpointUrl:       sql.NullString{String: endpointURL, Valid: endpointURL != ""},
-			HttpMethod:        sql.NullString{String: spec.Endpoint.Method, Valid: spec.Endpoint.Method != ""},
+			HTTPMethod:        sql.NullString{String: spec.Endpoint.Method, Valid: spec.Endpoint.Method != ""},
 			Headers:           headersJSON,
 			AuthConfig:        defaultAuthConfig,
 			IsActive:          sql.NullBool{Bool: true, Valid: true},
 			IsSystemResource:  sql.NullBool{Bool: isSystemResource, Valid: true},
-			RequiredApiKeys:   requiredApiKeysJSON,
-			ApiKeyValidation:  defaultApiKeyValidation,
+			RequiredAPIKeys:   requiredAPIKeysJSON,
+			APIKeyValidation:  defaultAPIKeyValidation,
 			QueryTemplate:     sql.NullString{Valid: false}, // Empty for now
 			ResultTransformer: sql.NullString{Valid: false}, // Empty for now
 			FallbackData:      defaultFallbackData,
@@ -376,7 +381,7 @@ func (c *Client) syncSystemModelConfigurations(ctx context.Context) error {
 	}
 
 	// Walk through model JSON files
-	err := filepath.WalkDir(modelsDir, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(modelsDir, func(path string, _ fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -439,7 +444,7 @@ func (c *Client) syncModelConfigurationToDatabase(ctx context.Context, spec *Mod
 	configExists := err == nil
 
 	// Extract parameters
-	temperature := float32(0.5)
+	temperature := float32(DefaultTemperature)
 	maxTokens := int32(4096)
 	topP := float32(0.9)
 	topK := int32(40)
@@ -532,7 +537,7 @@ type ExecutionTemplateSpec struct {
 		RateLimitBurst          int `json:"rate_limit_burst"`
 	} `json:"settings"`
 	Tags        []string                 `json:"tags"`
-	FunctionIds []string                 `json:"function_ids"`
+	FunctionIDs []string                 `json:"function_ids"`
 	Parameters  []map[string]interface{} `json:"parameters"`
 	IsSystem    bool                     `json:"is_system"`
 	IsPublic    bool                     `json:"is_public"`
@@ -549,7 +554,7 @@ func (c *Client) syncExecutionTemplates(ctx context.Context) error {
 	}
 
 	// Walk through template JSON files
-	err := filepath.WalkDir(templatesDir, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(templatesDir, func(path string, _ fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -656,8 +661,8 @@ func (c *Client) syncExecutionTemplateToDatabase(ctx context.Context, spec *Exec
 	}
 
 	// Sync function associations if provided
-	if len(spec.FunctionIds) > 0 {
-		if err := c.syncTemplateFunction(ctx, spec.ID, spec.FunctionIds); err != nil {
+	if len(spec.FunctionIDs) > 0 {
+		if err := c.syncTemplateFunction(ctx, spec.ID, spec.FunctionIDs); err != nil {
 			log.Printf("⚠️ Failed to sync function associations for template %s: %v", spec.ID, err)
 			// Don't fail the entire sync for function association errors
 		}
@@ -667,7 +672,7 @@ func (c *Client) syncExecutionTemplateToDatabase(ctx context.Context, spec *Exec
 }
 
 // syncTemplateFunction associates functions with a template by resolving function names to IDs
-func (c *Client) syncTemplateFunction(ctx context.Context, templateID string, functionIds []string) error {
+func (c *Client) syncTemplateFunction(ctx context.Context, templateID string, functionIDs []string) error {
 	// First, remove existing associations for this template
 	_, err := c.db.ExecContext(ctx,
 		"DELETE FROM execution_template_functions WHERE template_id = ?", templateID)
@@ -676,7 +681,7 @@ func (c *Client) syncTemplateFunction(ctx context.Context, templateID string, fu
 	}
 
 	// Add new associations
-	for i, functionRef := range functionIds {
+	for i, functionRef := range functionIDs {
 		// Resolve function reference to actual database ID
 		actualFunctionID, err := c.resolveFunctionID(ctx, functionRef)
 		if err != nil {

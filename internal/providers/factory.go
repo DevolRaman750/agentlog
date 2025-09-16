@@ -10,6 +10,15 @@ import (
 	"gogent/internal/types"
 )
 
+const (
+	ProviderTypeGemini = "gemini"
+	ProviderTypeKimi   = "kimi"
+	EmptyResponse      = "EMPTY"
+	OpenRouterBaseURL  = "https://openrouter.ai/api/v1"
+	// Constants for key length validation
+	MinKeyLengthForTruncate = 10
+)
+
 // ProviderFactory creates and manages model providers
 type ProviderFactory struct {
 	providers map[string]ModelProvider
@@ -24,7 +33,7 @@ func NewProviderFactory() *ProviderFactory {
 }
 
 // CreateProvider creates or returns a cached provider for the given model and session keys
-func (f *ProviderFactory) CreateProvider(ctx context.Context, modelName string, sessionKeys *types.SessionApiKeys) (ModelProvider, error) {
+func (f *ProviderFactory) CreateProvider(ctx context.Context, modelName string, sessionKeys *types.SessionAPIKeys) (ModelProvider, error) {
 	providerType := f.getProviderTypeFromModel(modelName)
 
 	f.mutex.RLock()
@@ -48,10 +57,10 @@ func (f *ProviderFactory) CreateProvider(ctx context.Context, modelName string, 
 	var err error
 
 	switch providerType {
-	case "gemini":
+	case ProviderTypeGemini:
 		provider, err = f.createGeminiProvider(ctx, sessionKeys)
 
-	case "kimi":
+	case ProviderTypeKimi:
 		provider, err = f.createKimiProvider(sessionKeys)
 
 	default:
@@ -71,16 +80,16 @@ func (f *ProviderFactory) CreateProvider(ctx context.Context, modelName string, 
 }
 
 // createGeminiProvider creates a Gemini provider instance
-func (f *ProviderFactory) createGeminiProvider(ctx context.Context, sessionKeys *types.SessionApiKeys) (ModelProvider, error) {
-	if sessionKeys == nil || sessionKeys.GeminiApiKey == "" {
-		return nil, fmt.Errorf("Gemini API key is required")
+func (f *ProviderFactory) createGeminiProvider(ctx context.Context, sessionKeys *types.SessionAPIKeys) (ModelProvider, error) {
+	if sessionKeys == nil || sessionKeys.GeminiAPIKey == "" {
+		return nil, fmt.Errorf("gemini API key is required")
 	}
 
-	return NewGeminiProvider(ctx, sessionKeys.GeminiApiKey)
+	return NewGeminiProvider(ctx, sessionKeys.GeminiAPIKey)
 }
 
 // createKimiProvider creates a Kimi provider instance
-func (f *ProviderFactory) createKimiProvider(sessionKeys *types.SessionApiKeys) (ModelProvider, error) {
+func (f *ProviderFactory) createKimiProvider(sessionKeys *types.SessionAPIKeys) (ModelProvider, error) {
 	var apiKey string
 	var baseURL string
 
@@ -88,40 +97,40 @@ func (f *ProviderFactory) createKimiProvider(sessionKeys *types.SessionApiKeys) 
 	if sessionKeys != nil {
 		log.Printf("🔑 SessionKeys: OpenRouter=%s, Gemini=%s",
 			func(key string) string {
-				if len(key) > 10 {
+				if len(key) > MinKeyLengthForTruncate {
 					return key[:10] + "..."
-				} else if key == "" {
-					return "EMPTY"
-				} else {
-					return key
 				}
-			}(sessionKeys.OpenRouterApiKey),
+				if key == "" {
+					return EmptyResponse
+				}
+				return key
+			}(sessionKeys.OpenRouterAPIKey),
 			func(key string) string {
-				if len(key) > 10 {
+				if len(key) > MinKeyLengthForTruncate {
 					return key[:10] + "..."
-				} else if key == "" {
-					return "EMPTY"
-				} else {
-					return key
 				}
-			}(sessionKeys.GeminiApiKey))
+				if key == "" {
+					return EmptyResponse
+				}
+				return key
+			}(sessionKeys.GeminiAPIKey))
 
 		// Try OpenRouter API key first
-		if sessionKeys.OpenRouterApiKey != "" {
-			apiKey = sessionKeys.OpenRouterApiKey
-			baseURL = "https://openrouter.ai/api/v1"
+		if sessionKeys.OpenRouterAPIKey != "" {
+			apiKey = sessionKeys.OpenRouterAPIKey
+			baseURL = OpenRouterBaseURL
 			log.Printf("✅ Using OpenRouter API key for Kimi provider")
-		} else if strings.HasPrefix(sessionKeys.GeminiApiKey, "sk-or-") {
+		} else if strings.HasPrefix(sessionKeys.GeminiAPIKey, "sk-or-") {
 			// Fallback: Use Gemini key field if it's actually an OpenRouter key
-			apiKey = sessionKeys.GeminiApiKey
-			baseURL = "https://openrouter.ai/api/v1"
+			apiKey = sessionKeys.GeminiAPIKey
+			baseURL = OpenRouterBaseURL
 			log.Printf("✅ Using Gemini field with OpenRouter prefix for Kimi provider")
 		}
 	}
 
 	if apiKey == "" {
 		log.Printf("❌ No OpenRouter API key found - sessionKeys: %+v", sessionKeys)
-		return nil, fmt.Errorf("OpenRouter API key is required for Kimi models (set openRouterApiKey or use sk-or- prefixed key)")
+		return nil, fmt.Errorf("OpenRouter API key is required for Kimi models (set openRouterAPIKey or use sk-or- prefixed key)")
 	}
 
 	log.Printf("🚀 Creating Kimi provider with baseURL: %s", baseURL)
@@ -132,7 +141,7 @@ func (f *ProviderFactory) createKimiProvider(sessionKeys *types.SessionApiKeys) 
 func (f *ProviderFactory) getProviderTypeFromModel(modelName string) string {
 	// Gemini models (direct Google API)
 	if strings.HasPrefix(modelName, "gemini") {
-		return "gemini"
+		return ProviderTypeGemini
 	}
 
 	// OpenRouter models (all models with provider/model format)
@@ -140,11 +149,11 @@ func (f *ProviderFactory) getProviderTypeFromModel(modelName string) string {
 	if strings.Contains(modelName, "/") {
 		// Models with provider/model format are OpenRouter models
 		// Examples: moonshotai/kimi-k2, openai/gpt-4o, anthropic/claude-3-5-sonnet, meta-llama/llama-3.1-405b-instruct
-		return "kimi" // Using "kimi" provider name for backwards compatibility, but it handles all OpenRouter models
+		return ProviderTypeKimi // Using "kimi" provider name for backwards compatibility, but it handles all OpenRouter models
 	}
 
 	// Default to gemini for backwards compatibility
-	return "gemini"
+	return ProviderTypeGemini
 }
 
 // GetSupportedModels returns all supported models across providers
@@ -153,7 +162,7 @@ func (f *ProviderFactory) GetSupportedModels() map[string][]string {
 	// This doesn't cache them since we don't have API keys here
 
 	return map[string][]string{
-		"gemini": {
+		ProviderTypeGemini: {
 			"gemini-1.5-flash",
 			"gemini-1.5-pro",
 			"gemini-1.0-pro",
@@ -162,7 +171,7 @@ func (f *ProviderFactory) GetSupportedModels() map[string][]string {
 			"gemini-pro-vision",
 			"gemini-1.5-pro-latest",
 		},
-		"kimi": {
+		ProviderTypeKimi: {
 			// All OpenRouter models (including Kimi, OpenAI, Anthropic, Meta, etc.)
 			"moonshotai/kimi-k2",
 			"moonshotai/kimi-k2-instruct",
@@ -182,12 +191,12 @@ func (f *ProviderFactory) ValidateModelConfig(config *types.APIConfiguration) er
 	providerType := f.getProviderTypeFromModel(config.ModelName)
 
 	switch providerType {
-	case "gemini":
+	case ProviderTypeGemini:
 		// Create a temporary provider for validation
 		tempProvider := &GeminiProvider{}
 		return tempProvider.ValidateConfig(config)
 
-	case "kimi":
+	case ProviderTypeKimi:
 		// Create a temporary provider for validation
 		tempProvider := &KimiProvider{}
 		return tempProvider.ValidateConfig(config)

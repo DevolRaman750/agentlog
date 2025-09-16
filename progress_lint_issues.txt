@@ -1,0 +1,27 @@
+internal/apikeys/handlers.go:1: : # gogent/internal/apikeys
+internal/apikeys/service.go:29:2: minPathParts redeclared in this block
+	internal/apikeys/handlers.go:16:2: other declaration of minPathParts
+internal/apikeys/service.go:30:2: maxPathParts redeclared in this block
+	internal/apikeys/handlers.go:17:2: other declaration of maxPathParts (typecheck)
+package apikeys
+internal/apiauth/service.go:7:2: could not import gogent/internal/apikeys (-: # gogent/internal/apikeys
+internal/apikeys/service.go:29:2: minPathParts redeclared in this block
+	internal/apikeys/handlers.go:16:2: other declaration of minPathParts
+internal/apikeys/service.go:30:2: maxPathParts redeclared in this block
+	internal/apikeys/handlers.go:17:2: other declaration of maxPathParts) (typecheck)
+	"gogent/internal/apikeys"
+	^
+internal/gogent/core.go:18:2: could not import gogent/internal/apikeys (-: # gogent/internal/apikeys
+internal/apikeys/service.go:29:2: minPathParts redeclared in this block
+	internal/apikeys/handlers.go:16:2: other declaration of minPathParts
+internal/apikeys/service.go:30:2: maxPathParts redeclared in this block
+	internal/apikeys/handlers.go:17:2: other declaration of maxPathParts) (typecheck)
+	"gogent/internal/apikeys"
+	^
+cmd/gogent/server.go:16:2: could not import gogent/internal/apikeys (-: # gogent/internal/apikeys
+internal/apikeys/service.go:29:2: minPathParts redeclared in this block
+	internal/apikeys/handlers.go:16:2: other declaration of minPathParts
+internal/apikeys/service.go:30:2: maxPathParts redeclared in this block
+	internal/apikeys/handlers.go:17:2: other declaration of maxPathParts) (typecheck)
+	"gogent/internal/apikeys"
+	^

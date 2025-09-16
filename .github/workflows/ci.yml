@@ -7,7 +7,7 @@ on:
     branches: [ main, develop ]
 
 env:
-  GO_VERSION: '1.23.10'
+  GO_VERSION: '1.24.6'
   COVERAGE_THRESHOLD: 70
 
 jobs:
@@ -51,6 +51,12 @@ jobs:
     - name: Install dependencies
       run: go mod download
 
+    - name: Install sqlc
+      run: go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+
+    - name: Generate database code
+      run: sqlc generate
+
     - name: Run tests with coverage
       run: |
         go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
@@ -86,16 +92,26 @@ jobs:
       with:
         go-version: ${{ env.GO_VERSION }}
 
+    - name: Install dependencies
+      run: go mod download
+
+    - name: Install sqlc
+      run: go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+
+    - name: Generate database code
+      run: sqlc generate
+
     - name: Install govulncheck
       run: go install golang.org/x/vuln/cmd/govulncheck@latest
 
     - name: Run vulnerability scan
       run: govulncheck ./...
 
+    - name: Install gosec
+      run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+
     - name: Run Gosec Security Scanner
-      uses: securecodewarrior/github-action-gosec@master
-      with:
-        args: '-fmt sarif -out gosec.sarif ./...'
+      run: gosec -fmt sarif -out gosec.sarif ./...
 
     - name: Upload SARIF file
       uses: github/codeql-action/upload-sarif@v3
@@ -116,6 +132,15 @@ jobs:
       uses: actions/setup-go@v5
       with:
         go-version: ${{ env.GO_VERSION }}
+
+    - name: Install dependencies
+      run: go mod download
+
+    - name: Install sqlc
+      run: go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+
+    - name: Generate database code
+      run: sqlc generate
 
     - name: Build backend
       run: |
@@ -187,6 +212,15 @@ jobs:
       with:
         go-version: ${{ env.GO_VERSION }}
 
+    - name: Install dependencies
+      run: go mod download
+
+    - name: Install sqlc
+      run: go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+
+    - name: Generate database code
+      run: sqlc generate
+
     - name: Run dependency review
       uses: actions/dependency-review-action@v4
       if: github.event_name == 'pull_request'
@@ -207,6 +241,15 @@ jobs:
       uses: actions/setup-go@v5
       with:
         go-version: ${{ env.GO_VERSION }}
+
+    - name: Install dependencies
+      run: go mod download
+
+    - name: Install sqlc
+      run: go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+
+    - name: Generate database code
+      run: sqlc generate
 
     - name: golangci-lint
       uses: golangci/golangci-lint-action@v6

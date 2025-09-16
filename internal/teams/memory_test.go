@@ -401,16 +401,10 @@ func TestTeamMemoryHTTPHandlers(t *testing.T) {
 		assert.True(t, response.Success)
 	})
 
-	t.Run("SearchTeamMemoryHTTP", func(t *testing.T) {
-		requestBody := types.TeamMemoryRequest{
-			TeamID:      testTeam.ID,
-			AgentID:     testAgent.ID,
-			SearchQuery: "test_data",
-			Limit:       10,
-		}
-
+	// Helper function to reduce duplication in HTTP tests
+	testTeamMemoryHTTP := func(t *testing.T, requestBody types.TeamMemoryRequest, endpoint string) {
 		body, _ := json.Marshal(requestBody)
-		req := httptest.NewRequest("POST", "/api/teams/test-team-http/memory/search", bytes.NewReader(body))
+		req := httptest.NewRequest("POST", fmt.Sprintf("/api/teams/test-team-http/memory/%s", endpoint), bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 
 		// Add user to context
@@ -418,7 +412,7 @@ func TestTeamMemoryHTTPHandlers(t *testing.T) {
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
-		pathParts := []string{"api", "teams", "test-team-http", "memory", "search"}
+		pathParts := []string{"api", "teams", "test-team-http", "memory", endpoint}
 		handler.handleTeamMemory(rr, req, testTeam.ID, pathParts)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -427,6 +421,16 @@ func TestTeamMemoryHTTPHandlers(t *testing.T) {
 		err := json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.True(t, response.Success)
+	}
+
+	t.Run("SearchTeamMemoryHTTP", func(t *testing.T) {
+		requestBody := types.TeamMemoryRequest{
+			TeamID:      testTeam.ID,
+			AgentID:     testAgent.ID,
+			SearchQuery: "test_data",
+			Limit:       10,
+		}
+		testTeamMemoryHTTP(t, requestBody, "search")
 	})
 
 	t.Run("ClearTeamMemoryHTTP", func(t *testing.T) {
@@ -436,25 +440,7 @@ func TestTeamMemoryHTTPHandlers(t *testing.T) {
 			Context: "clear_context",
 			Path:    "session",
 		}
-
-		body, _ := json.Marshal(requestBody)
-		req := httptest.NewRequest("POST", "/api/teams/test-team-http/memory/clear", bytes.NewReader(body))
-		req.Header.Set("Content-Type", "application/json")
-
-		// Add user to context
-		ctx := auth.AddUserToContext(req.Context(), testUser)
-		req = req.WithContext(ctx)
-
-		rr := httptest.NewRecorder()
-		pathParts := []string{"api", "teams", "test-team-http", "memory", "clear"}
-		handler.handleTeamMemory(rr, req, testTeam.ID, pathParts)
-
-		assert.Equal(t, http.StatusOK, rr.Code)
-
-		var response types.TeamMemoryResponse
-		err := json.Unmarshal(rr.Body.Bytes(), &response)
-		assert.NoError(t, err)
-		assert.True(t, response.Success)
+		testTeamMemoryHTTP(t, requestBody, "clear")
 	})
 }
 
@@ -647,12 +633,12 @@ func runMigrations(db *sql.DB) error {
 }
 
 // Helper function to insert test agent
-func (h *TeamsHandler) insertAgent(agent *types.Agent) error {
+func (h *Handler) insertAgent(agent *types.Agent) error {
 	query := `
 		INSERT INTO agents (id, user_id, team_id, first_name, last_name, template_id, max_tokens_per_day, tokens_used_today, tokens_reset_date, total_executions, lifecycle_status, heartbeat_minutes, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
-	
+
 	_, err := h.db.Exec(query,
 		agent.ID,
 		agent.UserID,
@@ -669,7 +655,7 @@ func (h *TeamsHandler) insertAgent(agent *types.Agent) error {
 		agent.CreatedAt,
 		agent.UpdatedAt,
 	)
-	
+
 	return err
 }
 
@@ -739,7 +725,7 @@ func TestConvertToTeamTask(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := convertToTeamTask(tt.input)
-			
+
 			if tt.expectErr {
 				assert.Error(t, err, "Expected error for input: %v", tt.input)
 				assert.Nil(t, result, "Expected nil result for invalid input")
@@ -907,13 +893,13 @@ func TestAgentTaskOperations(t *testing.T) {
 	listResponse, err := handler.ListAgentTasks(ctx, teamID, agentID, userID, listRequest)
 	require.NoError(t, err)
 	assert.True(t, listResponse.Success)
-	
+
 	tasks := listResponse.Data["tasks"].([]interface{})
 	assert.Equal(t, 1, len(tasks))
-	
+
 	task := tasks[0].(map[string]interface{})
 	assert.Equal(t, taskID1, task["task_id"])
-	
+
 	taskData := task["task_data"].(map[string]interface{})
 	assert.Equal(t, "Test Task Completion", taskData["title"])
 
@@ -922,9 +908,9 @@ func TestAgentTaskOperations(t *testing.T) {
 	storeRequest2 := &types.TeamTaskRequest{
 		TaskID: taskID2,
 		Metadata: map[string]interface{}{
-			"context":             "summary_tracking",
-			"last_summary_time":   time.Now().Format(time.RFC3339),
-			"summary_type":        "daily",
+			"context":           "summary_tracking",
+			"last_summary_time": time.Now().Format(time.RFC3339),
+			"summary_type":      "daily",
 		},
 	}
 
@@ -943,7 +929,7 @@ func TestAgentTaskOperations(t *testing.T) {
 	listResponse2, err := handler.ListAgentTasks(ctx, teamID, agentID, userID, listRequest2)
 	require.NoError(t, err)
 	assert.True(t, listResponse2.Success)
-	
+
 	summaryTasks := listResponse2.Data["tasks"].([]interface{})
 	assert.Equal(t, 1, len(summaryTasks))
 
@@ -951,7 +937,7 @@ func TestAgentTaskOperations(t *testing.T) {
 	listOriginalContext, err := handler.ListAgentTasks(ctx, teamID, agentID, userID, listRequest)
 	require.NoError(t, err)
 	assert.True(t, listOriginalContext.Success)
-	
+
 	originalTasks := listOriginalContext.Data["tasks"].([]interface{})
 	assert.Equal(t, 1, len(originalTasks)) // Should still have only 1 task
 
@@ -972,7 +958,7 @@ func TestAgentTaskOperations(t *testing.T) {
 	listAfterDelete, err := handler.ListAgentTasks(ctx, teamID, agentID, userID, listRequest)
 	require.NoError(t, err)
 	assert.True(t, listAfterDelete.Success)
-	
+
 	tasksAfterDelete := listAfterDelete.Data["tasks"].([]interface{})
 	assert.Equal(t, 0, len(tasksAfterDelete))
 
@@ -992,7 +978,7 @@ func TestAgentTaskOperations(t *testing.T) {
 	// Test 9: Test with empty context (should use default)
 	taskID3 := "task-default-context"
 	storeDefaultContext := &types.TeamTaskRequest{
-		TaskID:   taskID3,
+		TaskID: taskID3,
 		Metadata: map[string]interface{}{
 			"title": "Default Context Task",
 		},

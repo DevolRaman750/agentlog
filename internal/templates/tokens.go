@@ -26,7 +26,7 @@ func (ts *TemplateService) CreateAuthToken(token *types.ExecutionTemplateAuthTok
 
 	// Convert JSON fields
 	var allowedOriginsJSON interface{}
-	if token.AllowedOrigins != nil && len(token.AllowedOrigins) > 0 {
+	if len(token.AllowedOrigins) > 0 {
 		bytes, err := json.Marshal(token.AllowedOrigins)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal allowed origins: %w", err)
@@ -37,7 +37,7 @@ func (ts *TemplateService) CreateAuthToken(token *types.ExecutionTemplateAuthTok
 	}
 
 	var allowedIPsJSON interface{}
-	if token.AllowedIPs != nil && len(token.AllowedIPs) > 0 {
+	if len(token.AllowedIPs) > 0 {
 		bytes, err := json.Marshal(token.AllowedIPs)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal allowed IPs: %w", err)
@@ -160,7 +160,7 @@ func (ts *TemplateService) UpdateAuthToken(tokenID string, token *types.Executio
 
 	// Convert JSON fields
 	var allowedOriginsJSON interface{}
-	if token.AllowedOrigins != nil && len(token.AllowedOrigins) > 0 {
+	if len(token.AllowedOrigins) > 0 {
 		bytes, err := json.Marshal(token.AllowedOrigins)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal allowed origins: %w", err)
@@ -171,7 +171,7 @@ func (ts *TemplateService) UpdateAuthToken(tokenID string, token *types.Executio
 	}
 
 	var allowedIPsJSON interface{}
-	if token.AllowedIPs != nil && len(token.AllowedIPs) > 0 {
+	if len(token.AllowedIPs) > 0 {
 		bytes, err := json.Marshal(token.AllowedIPs)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal allowed IPs: %w", err)
@@ -329,16 +329,11 @@ func generateTokenID() string {
 	return "token-" + generateRandomString(16)
 }
 
-// generateSecureToken generates a cryptographically secure token
-func generateSecureToken() string {
-	bytes := make([]byte, 32) // 256 bits
-	rand.Read(bytes)
-	return hex.EncodeToString(bytes)
-}
-
 // generateRandomString generates a random hex string of specified length
 func generateRandomString(length int) string {
 	bytes := make([]byte, length/2)
-	rand.Read(bytes)
+	if _, err := rand.Read(bytes); err != nil {
+		panic(fmt.Sprintf("Failed to generate random bytes: %v", err))
+	}
 	return hex.EncodeToString(bytes)
 }

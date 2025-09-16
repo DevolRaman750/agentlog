@@ -16,11 +16,11 @@ import (
 type TemplateHandler struct {
 	templateService *TemplateService
 	rateLimiter     *RateLimiter
-	authService     *auth.AuthService
+	authService     *auth.Service
 }
 
 // NewTemplateHandler creates a new template handler
-func NewTemplateHandler(templateService *TemplateService, rateLimiter *RateLimiter, authService *auth.AuthService) *TemplateHandler {
+func NewTemplateHandler(templateService *TemplateService, rateLimiter *RateLimiter, authService *auth.Service) *TemplateHandler {
 	return &TemplateHandler{
 		templateService: templateService,
 		rateLimiter:     rateLimiter,
@@ -58,9 +58,9 @@ func (th *TemplateHandler) ListTemplates(w http.ResponseWriter, r *http.Request)
 	}
 
 	category := query.Get("category")
-	includePublic := query.Get("include_public") == "true"
-	includeInactive := query.Get("include_inactive") == "true"
-	includeTokens := query.Get("include_tokens") == "true"
+	includePublic := query.Get("include_public") == trueValue
+	includeInactive := query.Get("include_inactive") == trueValue
+	includeTokens := query.Get("include_tokens") == trueValue
 
 	// Get templates
 	templates, totalCount, err := th.templateService.ListTemplates(user.ID, limit, offset, category, includePublic, includeInactive, includeTokens)
@@ -78,7 +78,9 @@ func (th *TemplateHandler) ListTemplates(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // GetTemplate handles GET /api/templates/{id}
@@ -98,7 +100,7 @@ func (th *TemplateHandler) GetTemplate(w http.ResponseWriter, r *http.Request) {
 	// Parse query parameters
 	query := r.URL.Query()
 	includeParameters := query.Get("include_parameters") != "false" // Default true
-	includeTokens := query.Get("include_tokens") == "true"
+	includeTokens := query.Get("include_tokens") == trueValue
 
 	// Get template
 	template, err := th.templateService.GetTemplateByID(templateID, includeParameters, includeTokens)
@@ -130,7 +132,9 @@ func (th *TemplateHandler) GetTemplate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(template)
+	if err := json.NewEncoder(w).Encode(template); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // CreateTemplate handles POST /api/templates
@@ -151,7 +155,7 @@ func (th *TemplateHandler) CreateTemplate(w http.ResponseWriter, r *http.Request
 	var request struct {
 		Template    types.ExecutionTemplate            `json:"template"`
 		Parameters  []types.ExecutionTemplateParameter `json:"parameters"`
-		FunctionIds []string                           `json:"functionIds,omitempty"` // Function IDs to associate
+		FunctionIDs []string                           `json:"functionIDs,omitempty"` // Function IDs to associate
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -188,7 +192,7 @@ func (th *TemplateHandler) CreateTemplate(w http.ResponseWriter, r *http.Request
 	}
 
 	// Create template
-	createdTemplate, err := th.templateService.CreateTemplate(&request.Template, request.Parameters, request.FunctionIds)
+	createdTemplate, err := th.templateService.CreateTemplate(&request.Template, request.Parameters, request.FunctionIDs)
 	if err != nil {
 		log.Printf("Error creating template: %v", err)
 		if strings.Contains(err.Error(), "duplicate") || strings.Contains(err.Error(), "unique") {
@@ -201,7 +205,9 @@ func (th *TemplateHandler) CreateTemplate(w http.ResponseWriter, r *http.Request
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(createdTemplate)
+	if err := json.NewEncoder(w).Encode(createdTemplate); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // UpdateTemplate handles PUT /api/templates/{id}
@@ -245,7 +251,7 @@ func (th *TemplateHandler) UpdateTemplate(w http.ResponseWriter, r *http.Request
 	var request struct {
 		Template      types.ExecutionTemplate            `json:"template"`
 		Parameters    []types.ExecutionTemplateParameter `json:"parameters"`
-		FunctionIds   []string                           `json:"functionIds,omitempty"` // Function IDs to associate
+		FunctionIDs   []string                           `json:"functionIDs,omitempty"` // Function IDs to associate
 		ChangeSummary string                             `json:"changeSummary"`
 	}
 
@@ -262,10 +268,10 @@ func (th *TemplateHandler) UpdateTemplate(w http.ResponseWriter, r *http.Request
 			if request.Template.PreferredConfigurationID != nil {
 				return *request.Template.PreferredConfigurationID
 			}
-			return "nil"
+			return nilValue
 		}(),
 		request.Template.EnableFunctionCalling)
-	log.Printf("🔍 DEBUG: FunctionIds count: %d, FunctionIds: %v", len(request.FunctionIds), request.FunctionIds)
+	log.Printf("🔍 DEBUG: FunctionIDs count: %d, FunctionIDs: %v", len(request.FunctionIDs), request.FunctionIDs)
 	log.Printf("🔍 DEBUG: Parameters count: %d", len(request.Parameters))
 
 	// Preserve user ID and ID and creation time - these should never be changed
@@ -279,16 +285,16 @@ func (th *TemplateHandler) UpdateTemplate(w http.ResponseWriter, r *http.Request
 			if request.Template.PreferredConfigurationID != nil {
 				return *request.Template.PreferredConfigurationID
 			}
-			return "nil"
+			return nilValue
 		}(),
 		request.Template.EnableFunctionCalling)
 
 	// Debug logging for function updates
 	log.Printf("🔥 HANDLERS: UpdateTemplate received function data: count=%d, ids=%v",
-		len(request.FunctionIds), request.FunctionIds)
+		len(request.FunctionIDs), request.FunctionIDs)
 
 	// Update template
-	updatedTemplate, version, err := th.templateService.UpdateTemplate(templateID, &request.Template, request.Parameters, request.FunctionIds, request.ChangeSummary)
+	updatedTemplate, version, err := th.templateService.UpdateTemplate(templateID, &request.Template, request.Parameters, request.FunctionIDs, request.ChangeSummary)
 	if err != nil {
 		log.Printf("Error updating template: %v", err)
 		http.Error(w, "Failed to update template", http.StatusInternalServerError)
@@ -301,7 +307,9 @@ func (th *TemplateHandler) UpdateTemplate(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // DeleteTemplate handles DELETE /api/templates/{id}
@@ -350,9 +358,11 @@ func (th *TemplateHandler) DeleteTemplate(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
+	if err := json.NewEncoder(w).Encode(map[string]string{
 		"message": "Template deleted successfully",
-	})
+	}); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // =============================================================================
@@ -424,7 +434,9 @@ func (th *TemplateHandler) CreateAuthToken(w http.ResponseWriter, r *http.Reques
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(createdToken)
+	if err := json.NewEncoder(w).Encode(createdToken); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // ListAuthTokens handles GET /api/templates/{id}/tokens
@@ -476,9 +488,11 @@ func (th *TemplateHandler) ListAuthTokens(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"tokens": tokens,
-	})
+	}); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // UpdateAuthToken handles PUT /api/templates/{id}/tokens/{tokenId}
@@ -533,7 +547,9 @@ func (th *TemplateHandler) UpdateAuthToken(w http.ResponseWriter, r *http.Reques
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(updatedToken)
+	if err := json.NewEncoder(w).Encode(updatedToken); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // DeleteAuthToken handles DELETE /api/templates/{id}/tokens/{tokenId}
@@ -581,9 +597,11 @@ func (th *TemplateHandler) DeleteAuthToken(w http.ResponseWriter, r *http.Reques
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
+	if err := json.NewEncoder(w).Encode(map[string]string{
 		"message": "Auth token deleted successfully",
-	})
+	}); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // =============================================================================
@@ -597,7 +615,7 @@ func (th *TemplateHandler) extractTemplateID(path string) string {
 	// /api/templates/{id}/tokens
 	// /api/templates/{id}/tokens/{tokenId}
 	parts := strings.Split(strings.Trim(path, "/"), "/")
-	if len(parts) >= 3 && parts[0] == "api" && parts[1] == "templates" {
+	if len(parts) >= 3 && parts[0] == apiPrefix && parts[1] == templatesPath {
 		return parts[2]
 	}
 	return ""
@@ -607,7 +625,7 @@ func (th *TemplateHandler) extractTemplateID(path string) string {
 func (th *TemplateHandler) extractTokenID(path string) string {
 	// Expected pattern: /api/templates/{id}/tokens/{tokenId}
 	parts := strings.Split(strings.Trim(path, "/"), "/")
-	if len(parts) >= 5 && parts[0] == "api" && parts[1] == "templates" && parts[3] == "tokens" {
+	if len(parts) >= 5 && parts[0] == apiPrefix && parts[1] == templatesPath && parts[3] == "tokens" {
 		return parts[4]
 	}
 	return ""

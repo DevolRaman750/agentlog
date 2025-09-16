@@ -619,7 +619,7 @@ describe('API Integration Tests', () => {
 
       // Use first 2 functions for testing
       const testFunctions = availableFunctions.slice(0, 2);
-      const functionIds = testFunctions.map(f => f.id);
+      const functionIDs = testFunctions.map(f => f.id);
 
       const templateData = {
         template: {
@@ -641,11 +641,11 @@ describe('API Integration Tests', () => {
           parameterType: 'string',
           isRequired: true,
         }],
-        functionIds: functionIds,
+        functionIDs: functionIDs,
       };
 
       console.log('🔧 Creating template with functions:', {
-        functionIds: functionIds,
+        functionIDs: functionIDs,
         functionNames: testFunctions.map(f => f.name)
       });
 
@@ -659,14 +659,14 @@ describe('API Integration Tests', () => {
       } else {
         // Backend may not support function associations yet
         console.warn('⚠️ Backend does not support function associations in templates yet');
-        console.warn('   Frontend correctly sends functionIds:', functionIds);
+        console.warn('   Frontend correctly sends functionIDs:', functionIDs);
         console.warn('   Backend error:', response.error);
         
         // Try creating template without function associations to verify basic template creation works
         const templateDataWithoutFunctions = {
           template: templateData.template,
           parameters: templateData.parameters,
-          // Remove functionIds
+          // Remove functionIDs
         };
         
         const fallbackResponse = await goGentAPI.createTemplate(templateDataWithoutFunctions);
@@ -704,18 +704,18 @@ describe('API Integration Tests', () => {
           console.log('📋 Loaded template function data:', {
             templateId: testTemplate.id,
             templateName: testTemplate.name,
-            functionIds: testTemplate.functionIds,
-            functionIdsCount: testTemplate.functionIds?.length || 0,
+            functionIDs: testTemplate.functionIDs,
+            functionIDsCount: testTemplate.functionIDs?.length || 0,
             enableFunctionCalling: testTemplate.enableFunctionCalling
           });
 
           // Verify functions are associated
-          expect(testTemplate.functionIds).toBeDefined();
-          expect(Array.isArray(testTemplate.functionIds)).toBe(true);
-          expect(testTemplate.functionIds.length).toBeGreaterThan(0);
+          expect(testTemplate.functionIDs).toBeDefined();
+          expect(Array.isArray(testTemplate.functionIDs)).toBe(true);
+          expect(testTemplate.functionIDs.length).toBeGreaterThan(0);
           expect(testTemplate.enableFunctionCalling).toBe(true);
 
-          console.log('✅ Template function associations verified:', testTemplate.functionIds);
+          console.log('✅ Template function associations verified:', testTemplate.functionIDs);
         }
       }
     });
@@ -750,11 +750,11 @@ describe('API Integration Tests', () => {
           parameterType: 'string',
           isRequired: true,
         }],
-        functionIds: updatedFunctionIds,
+        functionIDs: updatedFunctionIds,
       };
 
       console.log('🔧 Updating template with new functions:', {
-        functionIds: updatedFunctionIds,
+        functionIDs: updatedFunctionIds,
         functionNames: updateFunctions.map(f => f.name)
       });
 
@@ -774,13 +774,13 @@ describe('API Integration Tests', () => {
         if (updatedTemplate) {
           console.log('📋 Updated template function data:', {
             templateId: updatedTemplate.id,
-            functionIds: updatedTemplate.functionIds,
-            functionIdsCount: updatedTemplate.functionIds?.length || 0
+            functionIDs: updatedTemplate.functionIDs,
+            functionIDsCount: updatedTemplate.functionIDs?.length || 0
           });
 
-          expect(updatedTemplate.functionIds).toBeDefined();
-          expect(Array.isArray(updatedTemplate.functionIds)).toBe(true);
-          expect(updatedTemplate.functionIds).toEqual(updatedFunctionIds);
+          expect(updatedTemplate.functionIDs).toBeDefined();
+          expect(Array.isArray(updatedTemplate.functionIDs)).toBe(true);
+          expect(updatedTemplate.functionIDs).toEqual(updatedFunctionIds);
 
           console.log('✅ Template function update verified');
         }

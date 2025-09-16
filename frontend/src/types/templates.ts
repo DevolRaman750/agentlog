@@ -15,7 +15,7 @@ export interface ExecutionTemplate {
   parameters?: TemplateParameter[];
   authTokens?: AuthToken[];
   modelName?: string;
-  functionIds?: string[];
+  functionIDs?: string[];
   preferredConfigurationId?: string; // ID of the preferred API configuration
 }
 
@@ -63,6 +63,6 @@ export interface CreateTemplateFromExecutionData {
   enableFunctionCalling: boolean;
   tags: string[];
   configurationId: string; // Use configuration instead of model
-  functionIds?: string[];
+  functionIDs?: string[];
   functions?: any[];
 } 

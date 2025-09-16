@@ -237,7 +237,7 @@ func (rl *RateLimiter) checkUserLimits(templateID string, token *types.Execution
 }
 
 // getCurrentWindowCount gets the current request count for a time window
-func (rl *RateLimiter) getCurrentWindowCount(templateID string, tokenID *string, windowType string, limit int) (int, error) {
+func (rl *RateLimiter) getCurrentWindowCount(templateID string, tokenID *string, windowType string, _ int) (int, error) {
 	windowStart := rl.getWindowStart(time.Now(), windowType)
 
 	query := `
@@ -325,11 +325,11 @@ func (rl *RateLimiter) upsertRateLimitWindow(templateID string, tokenID *string,
 // getWindowStart calculates the start time for a rate limiting window
 func (rl *RateLimiter) getWindowStart(t time.Time, windowType string) time.Time {
 	switch windowType {
-	case "hour":
+	case hourWindow:
 		return time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), 0, 0, 0, t.Location())
-	case "day":
+	case dayWindow:
 		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
-	case "burst":
+	case burstWindow:
 		// Burst window is 5-minute sliding window
 		minutes := t.Minute() / 5 * 5
 		return time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), minutes, 0, 0, t.Location())
@@ -432,6 +432,10 @@ func (rl *RateLimiter) GetRateLimitStats(templateID string, days int) (map[strin
 			"avg_requests_per_window": avgRequests,
 			"max_requests_per_window": maxRequests,
 		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate rate limit stats rows: %w", err)
 	}
 
 	return stats, nil

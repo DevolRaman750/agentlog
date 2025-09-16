@@ -174,8 +174,8 @@ func TestProviderFactory_CreateProvider(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("create_gemini_provider", func(t *testing.T) {
-		sessionKeys := &types.SessionApiKeys{
-			GeminiApiKey: "AIzaSyTest123456789012345678901234567890",
+		sessionKeys := &types.SessionAPIKeys{
+			GeminiAPIKey: "AIzaSyTest123456789012345678901234567890",
 		}
 
 		provider, err := factory.CreateProvider(ctx, "gemini-1.5-flash", sessionKeys)
@@ -192,8 +192,8 @@ func TestProviderFactory_CreateProvider(t *testing.T) {
 	})
 
 	t.Run("create_kimi_provider", func(t *testing.T) {
-		sessionKeys := &types.SessionApiKeys{
-			OpenRouterApiKey: "sk-or-test123456789012345678901234567890",
+		sessionKeys := &types.SessionAPIKeys{
+			OpenRouterAPIKey: "sk-or-test123456789012345678901234567890",
 		}
 
 		provider, err := factory.CreateProvider(ctx, "moonshotai/kimi-k2-instruct", sessionKeys)
@@ -213,7 +213,7 @@ func TestProviderFactory_CreateProvider(t *testing.T) {
 		// Create a fresh factory to avoid caching from previous tests
 		freshFactory := NewProviderFactory()
 
-		sessionKeys := &types.SessionApiKeys{
+		sessionKeys := &types.SessionAPIKeys{
 			// No API keys provided
 		}
 

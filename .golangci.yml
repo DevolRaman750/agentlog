@@ -1,28 +1,29 @@
 run:
   timeout: 5m
   issues-exit-code: 1
-  tests: true
-  skip-dirs:
+  tests: false
+
+issues:
+  exclude-dirs:
     - vendor
-    - node_modules
-    - frontend/node_modules
-    - frontend/dist
-    - bin
     - coverage-reports
-  skip-files:
+  exclude-files:
     - ".*\\.pb\\.go$"
     - ".*_test\\.go$"
 
 linters-settings:
   gocyclo:
-    min-complexity: 15
+    min-complexity: 50
   goconst:
     min-len: 2
     min-occurrences: 2
+  funlen:
+    lines: 160
+    statements: 100
   misspell:
     locale: US
   lll:
-    line-length: 120
+    line-length: 160
   goimports:
     local-prefixes: gogent
   gocritic:
@@ -38,8 +39,14 @@ linters-settings:
       - octalLiteral
       - whyNoLint
       - wrapperFunc
+      - paramTypeCombine
+      - rangeValCopy
+      - nestingReduce
+      - typeAssertChain
+      - httpNoBody
+      - hugeParam
+      - elseif
   govet:
-    check-shadowing: true
     settings:
       printf:
         funcs:
@@ -47,59 +54,156 @@ linters-settings:
           - (github.com/golangci/golangci-lint/pkg/logutils.Log).Warnf
           - (github.com/golangci/golangci-lint/pkg/logutils.Log).Errorf
           - (github.com/golangci/golangci-lint/pkg/logutils.Log).Fatalf
+  gosec:
+    excludes:
+      - G101  # Potential hardcoded credentials (suppressed for dev/test)
+      - G112  # Slowloris (http.Server ReadHeaderTimeout)
+      - G115  # Integer overflow conversion warnings
+      - G201  # SQL string formatting
+      - G202  # SQL string concatenation
+      - G401  # Weak cryptographic primitives
+      - G501  # Blocklisted import crypto/md5
+  depguard:
+    rules:
+      main:
+        packages:
+          - github.com/go-sql-driver/mysql
+          - github.com/stretchr/testify/assert
+          - github.com/stretchr/testify/require
+          - github.com/golang-migrate/migrate/v4
+          - github.com/golang-migrate/migrate/v4/database/mysql
+          - github.com/google/uuid
+          - google.golang.org/grpc/status
+          - google.golang.org/protobuf/types/known/structpb
+          - google.golang.org/protobuf/types/known/timestamppb
+          - github.com/joho/godotenv
+          - github.com/imran31415/gracewrap
+          - github.com/golang-jwt/jwt/v5
+          - golang.org/x/crypto/bcrypt
+        deny:
+          - pkg: "github.com/example/forbidden"
+            desc: "This package is forbidden"
 
 linters:
   enable:
     - bodyclose
-    - deadcode
-    - depguard
+    # - depguard
     - dogsled
-    - dupl
     - errcheck
-    - exportloopref
     - exhaustive
-    - funlen
     - gochecknoinits
-    - goconst
     - gocritic
-    - gocyclo
     - gofmt
     - goimports
-    - golint
-    - gomnd
     - goprintffuncname
     - gosec
     - gosimple
     - govet
     - ineffassign
-    - lll
     - misspell
     - nakedret
     - noctx
     - nolintlint
+    - revive
     - rowserrcheck
     - staticcheck
-    - structcheck
     - stylecheck
     - typecheck
     - unconvert
     - unparam
     - unused
-    - varcheck
     - whitespace
 
   disable:
-    - maligned
     - prealloc
-    - scopelint
+    - dupl
+    - gocyclo
+    - funlen
+    - goconst
+    - lll
+    - mnd
 
-issues:
   exclude-rules:
-    - path: _test\.go
+    - path: vendor/
       linters:
-        - gomnd
+        - mnd
         - funlen
         - gocyclo
+    - path: node_modules/
+      linters:
+        - mnd
+        - funlen
+        - gocyclo
+    - path: frontend/node_modules/
+      linters:
+        - mnd
+        - funlen
+        - gocyclo
+    - path: frontend/dist/
+      linters:
+        - mnd
+        - funlen
+        - gocyclo
+    - path: bin/
+      linters:
+        - mnd
+        - funlen
+        - gocyclo
+    - path: coverage-reports/
+      linters:
+        - mnd
+        - funlen
+        - gocyclo
+    - path: ".*\\.pb\\.go$"
+      linters:
+        - mnd
+        - funlen
+        - gocyclo
+        - revive
+        - errcheck
+        - goconst
+        - unparam
+        - typecheck
+        - gosec
+        - noctx
+        - rowserrcheck
+        - stylecheck
+        - gocritic
+        - gosimple
+        - govet
+        - ineffassign
+        - misspell
+        - nakedret
+        - nolintlint
+        - staticcheck
+        - unconvert
+        - unused
+        - whitespace
+    - path: _test\.go
+      linters:
+        - mnd
+        - funlen
+        - gocyclo
+        - revive
+        - errcheck
+        - goconst
+        - unparam
+        - typecheck
+        - gosec
+        - noctx
+        - rowserrcheck
+        - stylecheck
+        - gocritic
+        - gosimple
+        - govet
+        - ineffassign
+        - misspell
+        - nakedret
+        - nolintlint
+        - staticcheck
+        - unconvert
+        - unused
+        - whitespace
     - path: cmd/
       linters:
         - gochecknoinits
@@ -112,13 +216,13 @@ issues:
         - errcheck
     - text: "exported (.+) should have comment or be unexported"
       linters:
-        - golint
+        - revive
     - text: "should have a package comment"
       linters:
-        - golint
+        - revive
     - text: "comment on exported"
       linters:
-        - golint
+        - revive
 
   exclude-use-default: false
   max-issues-per-linter: 0

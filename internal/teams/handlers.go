@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -16,17 +17,17 @@ import (
 )
 
 // TeamsHandler handles all team-related HTTP requests
-type TeamsHandler struct {
+type Handler struct {
 	db *sql.DB
 }
 
 // NewTeamsHandler creates a new teams handler
-func NewTeamsHandler(db *sql.DB) *TeamsHandler {
-	return &TeamsHandler{db: db}
+func NewTeamsHandler(db *sql.DB) *Handler {
+	return &Handler{db: db}
 }
 
 // HandleTeams handles operations on the base /api/teams endpoint
-func (h *TeamsHandler) HandleTeams(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleTeams(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		h.listTeams(w, r)
@@ -43,7 +44,7 @@ func (h *TeamsHandler) HandleTeams(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleTeamByID handles operations on specific teams at /api/teams/{id} and sub-routes
-func (h *TeamsHandler) HandleTeamByID(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleTeamByID(w http.ResponseWriter, r *http.Request) {
 	// Extract team ID from URL path
 	pathParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 	if len(pathParts) < 3 {
@@ -94,7 +95,7 @@ func (h *TeamsHandler) HandleTeamByID(w http.ResponseWriter, r *http.Request) {
 }
 
 // listTeams retrieves all teams for the authenticated user
-func (h *TeamsHandler) listTeams(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) listTeams(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -108,11 +109,14 @@ func (h *TeamsHandler) listTeams(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(teams)
+	if err := json.NewEncoder(w).Encode(teams); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to encode response: %v", err), http.StatusInternalServerError)
+		return
+	}
 }
 
 // createTeam creates a new team
-func (h *TeamsHandler) createTeam(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) createTeam(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -150,11 +154,14 @@ func (h *TeamsHandler) createTeam(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(team)
+	if err := json.NewEncoder(w).Encode(team); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to encode response: %v", err), http.StatusInternalServerError)
+		return
+	}
 }
 
 // createTeamWithAgents creates a new team with associated agents
-func (h *TeamsHandler) createTeamWithAgents(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) createTeamWithAgents(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -179,18 +186,29 @@ func (h *TeamsHandler) createTeamWithAgents(w http.ResponseWriter, r *http.Reque
 		http.Error(w, fmt.Sprintf("Failed to start transaction: %v", err), http.StatusInternalServerError)
 		return
 	}
-	defer tx.Rollback()
+	defer func() {
+		if err := tx.Rollback(); err != nil {
+			log.Printf("Failed to rollback transaction: %v", err)
+		}
+	}()
 
 	// Create team
 	team := types.Team{
-		ID:               uuid.New().String(),
-		UserID:           user.ID,
-		Name:             req.Name,
-		Description:      req.Description,
-		MaxTokensPerDay:  req.MaxTokensPerDay,
-		TokensUsedToday:  0,
-		TokensResetDate:  time.Now().Format("2006-01-02"),
-		AgentCount:       int32(len(req.Agents)),
+		ID:              uuid.New().String(),
+		UserID:          user.ID,
+		Name:            req.Name,
+		Description:     req.Description,
+		MaxTokensPerDay: req.MaxTokensPerDay,
+		TokensUsedToday: 0,
+		TokensResetDate: time.Now().Format("2006-01-02"),
+		AgentCount: func() int32 {
+			n := len(req.Agents)
+			// Clamp to MaxInt32 to avoid overflow (gosec G115)
+			if n > int(^uint32(0)>>1) {
+				return int32(^uint32(0) >> 1)
+			}
+			return int32(n)
+		}(),
 		ActiveAgentCount: 0, // Will be updated based on agent lifecycle status
 		CreatedAt:        time.Now(),
 		UpdatedAt:        time.Now(),
@@ -292,11 +310,13 @@ func (h *TeamsHandler) createTeamWithAgents(w http.ResponseWriter, r *http.Reque
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+	}
 }
 
 // getTeam retrieves a specific team
-func (h *TeamsHandler) getTeam(w http.ResponseWriter, r *http.Request, teamID string) {
+func (h *Handler) getTeam(w http.ResponseWriter, r *http.Request, teamID string) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -314,11 +334,13 @@ func (h *TeamsHandler) getTeam(w http.ResponseWriter, r *http.Request, teamID st
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(team)
+	if err := json.NewEncoder(w).Encode(team); err != nil {
+		log.Printf("Failed to encode team: %v", err)
+	}
 }
 
 // updateTeam updates a team
-func (h *TeamsHandler) updateTeam(w http.ResponseWriter, r *http.Request, teamID string) {
+func (h *Handler) updateTeam(w http.ResponseWriter, r *http.Request, teamID string) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -346,11 +368,13 @@ func (h *TeamsHandler) updateTeam(w http.ResponseWriter, r *http.Request, teamID
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(team)
+	if err := json.NewEncoder(w).Encode(team); err != nil {
+		log.Printf("Failed to encode team: %v", err)
+	}
 }
 
 // deleteTeam deletes a team
-func (h *TeamsHandler) deleteTeam(w http.ResponseWriter, r *http.Request, teamID string) {
+func (h *Handler) deleteTeam(w http.ResponseWriter, r *http.Request, teamID string) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -368,11 +392,13 @@ func (h *TeamsHandler) deleteTeam(w http.ResponseWriter, r *http.Request, teamID
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"message": "Team deleted successfully"})
+	if err := json.NewEncoder(w).Encode(map[string]string{"message": "Team deleted successfully"}); err != nil {
+		log.Printf("Failed to encode delete response: %v", err)
+	}
 }
 
 // handleTeamAgents handles /api/teams/{id}/agents
-func (h *TeamsHandler) handleTeamAgents(w http.ResponseWriter, r *http.Request, teamID string) {
+func (h *Handler) handleTeamAgents(w http.ResponseWriter, r *http.Request, teamID string) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -393,14 +419,16 @@ func (h *TeamsHandler) handleTeamAgents(w http.ResponseWriter, r *http.Request, 
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(teamWithAgents)
+		if err := json.NewEncoder(w).Encode(teamWithAgents); err != nil {
+			log.Printf("Failed to encode team-with-agents response: %v", err)
+		}
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
 // handleTeamAgentAssignment handles /api/teams/{id}/agents/{agentId}
-func (h *TeamsHandler) handleTeamAgentAssignment(w http.ResponseWriter, r *http.Request, teamID, agentID string) {
+func (h *Handler) handleTeamAgentAssignment(w http.ResponseWriter, r *http.Request, teamID, agentID string) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -421,14 +449,16 @@ func (h *TeamsHandler) handleTeamAgentAssignment(w http.ResponseWriter, r *http.
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(agent)
+		if err := json.NewEncoder(w).Encode(agent); err != nil {
+			log.Printf("Failed to encode agent response: %v", err)
+		}
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
 // pauseAllTeamAgents pauses all active agents in a team
-func (h *TeamsHandler) pauseAllTeamAgents(w http.ResponseWriter, r *http.Request, teamID string) {
+func (h *Handler) pauseAllTeamAgents(w http.ResponseWriter, r *http.Request, teamID string) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -447,14 +477,16 @@ func (h *TeamsHandler) pauseAllTeamAgents(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"message":       "Team agents paused successfully",
 		"affectedCount": affectedCount,
-	})
+	}); err != nil {
+		log.Printf("Failed to encode pause response: %v", err)
+	}
 }
 
 // resumeAllTeamAgents resumes all paused agents in a team
-func (h *TeamsHandler) resumeAllTeamAgents(w http.ResponseWriter, r *http.Request, teamID string) {
+func (h *Handler) resumeAllTeamAgents(w http.ResponseWriter, r *http.Request, teamID string) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -473,14 +505,16 @@ func (h *TeamsHandler) resumeAllTeamAgents(w http.ResponseWriter, r *http.Reques
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"message":       "Team agents resumed successfully",
 		"affectedCount": affectedCount,
-	})
+	}); err != nil {
+		log.Printf("Failed to encode resume response: %v", err)
+	}
 }
 
 // getTeamStats retrieves statistics for a team
-func (h *TeamsHandler) getTeamStats(w http.ResponseWriter, r *http.Request, teamID string) {
+func (h *Handler) getTeamStats(w http.ResponseWriter, r *http.Request, teamID string) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -503,11 +537,13 @@ func (h *TeamsHandler) getTeamStats(w http.ResponseWriter, r *http.Request, team
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(stats)
+	if err := json.NewEncoder(w).Encode(stats); err != nil {
+		log.Printf("Failed to encode stats response: %v", err)
+	}
 }
 
 // handleTeamMemory handles team memory operations
-func (h *TeamsHandler) handleTeamMemory(w http.ResponseWriter, r *http.Request, teamID string, pathParts []string) {
+func (h *Handler) handleTeamMemory(w http.ResponseWriter, r *http.Request, teamID string, pathParts []string) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -596,11 +632,13 @@ func (h *TeamsHandler) handleTeamMemory(w http.ResponseWriter, r *http.Request, 
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+	}
 }
 
 // validateTeamWithAgentsCreateRequest validates the team with agents creation request
-func (h *TeamsHandler) validateTeamWithAgentsCreateRequest(req *types.TeamWithAgentsCreateRequest) error {
+func (h *Handler) validateTeamWithAgentsCreateRequest(req *types.TeamWithAgentsCreateRequest) error {
 	if req.Name == "" {
 		return fmt.Errorf("name is required")
 	}
@@ -643,7 +681,7 @@ func (h *TeamsHandler) validateTeamWithAgentsCreateRequest(req *types.TeamWithAg
 }
 
 // getTemplateByIDTx retrieves a template by ID within a transaction
-func (h *TeamsHandler) getTemplateByIDTx(tx *sql.Tx, templateID string) (*types.ExecutionTemplate, error) {
+func (h *Handler) getTemplateByIDTx(tx *sql.Tx, templateID string) (*types.ExecutionTemplate, error) {
 	query := `
 		SELECT id, name, description, template_prompt, context_template,
 		       enable_function_calling, preferred_configuration_id, is_active, user_id, created_at, updated_at
@@ -696,7 +734,7 @@ func (h *TeamsHandler) getTemplateByIDTx(tx *sql.Tx, templateID string) (*types.
 }
 
 // handleTeamContextOperations handles team context update operations
-func (h *TeamsHandler) handleTeamContextOperations(w http.ResponseWriter, r *http.Request, teamID string) {
+func (h *Handler) handleTeamContextOperations(w http.ResponseWriter, r *http.Request, teamID string) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -726,17 +764,23 @@ func (h *TeamsHandler) handleTeamContextOperations(w http.ResponseWriter, r *htt
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"message": "Team context updated successfully"})
+	if err := json.NewEncoder(w).Encode(map[string]string{"message": "Team context updated successfully"}); err != nil {
+		log.Printf("Failed to encode context update response: %v", err)
+	}
 }
 
 // updateTeamContextForAllAgents updates the effective context for all agents in a team
-func (h *TeamsHandler) updateTeamContextForAllAgents(teamID, userID string, sharedContext *string) error {
+func (h *Handler) updateTeamContextForAllAgents(teamID, userID string, sharedContext *string) error {
 	// Start transaction
 	tx, err := h.db.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to start transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		if err := tx.Rollback(); err != nil {
+			log.Printf("Failed to rollback transaction: %v", err)
+		}
+	}()
 
 	// Get all agents in the team
 	agents, err := h.getTeamAgentsTx(tx, teamID, userID)
@@ -777,7 +821,7 @@ func (h *TeamsHandler) updateTeamContextForAllAgents(teamID, userID string, shar
 }
 
 // getTeamAgentsTx retrieves all agents in a team within a transaction
-func (h *TeamsHandler) getTeamAgentsTx(tx *sql.Tx, teamID, userID string) ([]types.Agent, error) {
+func (h *Handler) getTeamAgentsTx(tx *sql.Tx, teamID, userID string) ([]types.Agent, error) {
 	query := `
 		SELECT id, user_id, first_name, last_name, template_id, team_id,
 		       max_tokens_per_day, heartbeat_minutes, lifecycle_status,
@@ -830,11 +874,15 @@ func (h *TeamsHandler) getTeamAgentsTx(tx *sql.Tx, teamID, userID string) ([]typ
 		agents = append(agents, agent)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate agent rows: %w", err)
+	}
+
 	return agents, nil
 }
 
 // updateAgentEffectiveContextTx updates an agent's effective context within a transaction
-func (h *TeamsHandler) updateAgentEffectiveContextTx(tx *sql.Tx, agentID string, effectiveContext *string) error {
+func (h *Handler) updateAgentEffectiveContextTx(tx *sql.Tx, agentID string, effectiveContext *string) error {
 	query := `UPDATE agents SET effective_context = ?, updated_at = NOW() WHERE id = ?`
 	_, err := tx.Exec(query, effectiveContext, agentID)
 	return err

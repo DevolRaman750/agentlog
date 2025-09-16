@@ -51,7 +51,7 @@ export interface ExecutionTemplate {
   name: string;
   description: string;
   category: string;
-  functionIds: string[];
+  functionIDs: string[];
 }
 
 export interface MarketplaceTeam {

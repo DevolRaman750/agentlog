@@ -23,7 +23,8 @@ func NewService(apiKeyService *apikeys.Service) *Service {
 }
 
 // GetAuthCredentialsForService gets authentication credentials for a specific service
-func (s *Service) GetAuthCredentialsForService(ctx context.Context, userID, serviceName string) (*types.AuthCredentials, error) {
+func (s *Service) GetAuthCredentialsForService(ctx context.Context, userID, serviceName string) (
+	*types.AuthCredentials, error) {
 	// Get API keys for the service
 	apiKeys, err := s.apiKeyService.GetAPIKeysByService(ctx, userID, serviceName)
 	if err != nil {
@@ -38,11 +39,11 @@ func (s *Service) GetAuthCredentialsForService(ctx context.Context, userID, serv
 	// 1. GitHub App credentials (github_app auth mode) - highest priority
 	// 2. Default key (is_default = true)
 	// 3. Most recently created key
-	var selectedKey *types.UserApiKey
+	var selectedKey *types.UserAPIKey
 
 	// First, look for GitHub App credentials
 	for _, key := range apiKeys {
-		if key.AuthMode == "github_app" {
+		if key.AuthMode == AuthModeGitHubApp {
 			selectedKey = key
 			break
 		}
@@ -69,7 +70,7 @@ func (s *Service) GetAuthCredentialsForService(ctx context.Context, userID, serv
 	}
 
 	// Handle different auth modes differently
-	if selectedKey.AuthMode == "github_app" {
+	if selectedKey.AuthMode == AuthModeGitHubApp {
 		// For GitHub App, check if private_key already exists in auth_config
 		if _, exists := authConfig["private_key"]; !exists {
 			// Only use decrypted value if private_key is not already in auth_config

@@ -14,36 +14,43 @@ import (
 	"gogent/internal/types"
 )
 
+const (
+	httpTimeoutSeconds = 60
+	httpStatusOK       = 200
+	propertiesKey      = "properties"
+)
+
 // GeminiClient wraps the Google Generative AI REST API
-type GeminiClient struct {
+type Client struct {
 	apiKey     string
 	httpClient *http.Client
 }
 
 // NewGeminiClient creates a new Gemini API client using the REST API
-func NewGeminiClient(ctx context.Context, apiKey string) (*GeminiClient, error) {
+func NewGeminiClient(_ context.Context, apiKey string) (*Client, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("API key is required")
 	}
 
-	return &GeminiClient{
+	return &Client{
 		apiKey:     apiKey,
-		httpClient: &http.Client{Timeout: 60 * time.Second},
+		httpClient: &http.Client{Timeout: httpTimeoutSeconds * time.Second},
 	}, nil
 }
 
 // Close closes the Gemini client (no-op for REST API)
-func (c *GeminiClient) Close() error {
+func (c *Client) Close() error {
 	return nil
 }
 
 // GenerateContent generates content using the Gemini REST API with full function calling support
-func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APIConfiguration, prompt, contextStr string) (*types.APIResponse, error) {
+func (c *Client) GenerateContent(ctx context.Context, config *types.APIConfiguration, prompt, contextStr string) (*types.APIResponse, error) {
 	startTime := time.Now()
 
 	// Add current time context following LLM function calling best practices
 	currentTime := time.Now()
-	timeContext := fmt.Sprintf("**SYSTEM TIME CONTEXT:**\n- Current time: %s\n- UTC time: %s\n- Unix timestamp: %d\n- Timezone: %s\n\nUse this current time information for any time-sensitive operations, queries, or when interpreting relative time references like 'recent', 'today', 'last hour', etc.\n\n",
+	timeContext := fmt.Sprintf("**SYSTEM TIME CONTEXT:**\n- Current time: %s\n- UTC time: %s\n- Unix timestamp: %d\n- Timezone: %s\n\n"+
+		"Use this current time information for any time-sensitive operations, queries, or when interpreting relative time references like 'recent', 'today', 'last hour', etc.\n\n",
 		currentTime.Format("2006-01-02 15:04:05 MST"),
 		currentTime.UTC().Format("2006-01-02 15:04:05 UTC"),
 		currentTime.Unix(),
@@ -58,7 +65,8 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 		fullPrompt = fmt.Sprintf("%s\n\nContext: %s", fullPrompt, contextStr)
 	}
 
-	log.Printf("Gemini REST API call - Model: %s, Prompt length: %d, Tools: %d", config.ModelName, len(fullPrompt), len(config.Tools))
+	log.Printf("Gemini REST API call - Model: %s, Prompt length: %d, Tools: %d",
+		config.ModelName, len(fullPrompt), len(config.Tools))
 
 	// Build the REST API request (following official documentation format)
 	requestBody := map[string]interface{}{
@@ -74,12 +82,14 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 	// Add generation config with function calling optimizations
 	generationConfig := make(map[string]interface{})
 
-	// For function calling, use temperature=0 for deterministic behavior (best practice)
-	if len(config.Tools) > 0 {
-		generationConfig["temperature"] = 0.0
-		log.Printf("🎯 Using temperature=0 for function calling (best practice)")
-	} else if config.Temperature != nil {
+	// Respect user temperature configuration, with minimal override only for extreme deterministic cases
+	if config.Temperature != nil {
 		generationConfig["temperature"] = *config.Temperature
+		// Only override if user set temperature to 0.0 (completely deterministic) and we have tools
+		if *config.Temperature == 0.0 && len(config.Tools) > 0 {
+			generationConfig["temperature"] = 0.1 // Minimal variation to prevent deterministic loops
+			log.Printf("🎯 Overriding temperature from 0.0 to 0.1 for function calling (prevents deterministic loops)")
+		}
 	}
 
 	if config.MaxTokens != nil {
@@ -135,7 +145,7 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 		return &types.APIResponse{
 			ResponseStatus: types.ResponseStatusError,
 			ErrorMessage:   fmt.Sprintf("Failed to marshal request: %v", err),
-			ResponseTimeMs: int32(time.Since(startTime).Milliseconds()),
+			ResponseTimeMs: time.Since(startTime).Milliseconds(),
 		}, nil
 	}
 
@@ -147,7 +157,7 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 		return &types.APIResponse{
 			ResponseStatus: types.ResponseStatusError,
 			ErrorMessage:   fmt.Sprintf("Failed to create request: %v", err),
-			ResponseTimeMs: int32(time.Since(startTime).Milliseconds()),
+			ResponseTimeMs: time.Since(startTime).Milliseconds(),
 		}, nil
 	}
 
@@ -160,7 +170,7 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 		return &types.APIResponse{
 			ResponseStatus: types.ResponseStatusError,
 			ErrorMessage:   fmt.Sprintf("Failed to make request: %v", err),
-			ResponseTimeMs: int32(time.Since(startTime).Milliseconds()),
+			ResponseTimeMs: time.Since(startTime).Milliseconds(),
 		}, nil
 	}
 	defer resp.Body.Close()
@@ -172,19 +182,19 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 		return &types.APIResponse{
 			ResponseStatus: types.ResponseStatusError,
 			ErrorMessage:   fmt.Sprintf("Failed to read response: %v", err),
-			ResponseTimeMs: int32(time.Since(startTime).Milliseconds()),
+			ResponseTimeMs: time.Since(startTime).Milliseconds(),
 		}, nil
 	}
 
 	responseTime := time.Since(startTime)
 	log.Printf("REST API - Response status: %d, Time: %dms", resp.StatusCode, responseTime.Milliseconds())
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != httpStatusOK {
 		log.Printf("REST API - Error response: %s", string(body))
 		return &types.APIResponse{
 			ResponseStatus: types.ResponseStatusError,
 			ErrorMessage:   fmt.Sprintf("API error %d: %s", resp.StatusCode, string(body)),
-			ResponseTimeMs: int32(responseTime.Milliseconds()),
+			ResponseTimeMs: responseTime.Milliseconds(),
 		}, nil
 	}
 
@@ -214,7 +224,7 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 		return &types.APIResponse{
 			ResponseStatus: types.ResponseStatusError,
 			ErrorMessage:   fmt.Sprintf("Failed to parse response: %v", err),
-			ResponseTimeMs: int32(responseTime.Milliseconds()),
+			ResponseTimeMs: responseTime.Milliseconds(),
 		}, nil
 	}
 
@@ -244,7 +254,8 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 
 		for i, part := range candidate.Content.Parts {
 			log.Printf("🔍 DEBUG: Part %d - Text: %q, HasFunctionCall: %v", i, part.Text, part.FunctionCall != nil)
-			log.Printf("🔍 [SYNTHESIS_DEBUG] Part %d details - Text length: %d, Text preview: %.200s", i, len(part.Text), part.Text)
+			log.Printf("🔍 [SYNTHESIS_DEBUG] Part %d details - Text length: %d, Text preview: %.200s",
+				i, len(part.Text), part.Text)
 
 			if part.Text != "" {
 				// Check if the text contains tool_code blocks
@@ -290,7 +301,7 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 		ResponseText:   responseText,
 		UsageMetadata:  usageMetadata,
 		FinishReason:   finishReason,
-		ResponseTimeMs: int32(responseTime.Milliseconds()),
+		ResponseTimeMs: responseTime.Milliseconds(),
 	}
 
 	// Add function calls to response body if present
@@ -305,9 +316,9 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, config *types.APICon
 }
 
 // sanitizeToolParameters removes fields that are not supported by the Gemini API
-func (c *GeminiClient) sanitizeToolParameters(params map[string]interface{}) map[string]interface{} {
+func (c *Client) sanitizeToolParameters(params map[string]interface{}) map[string]interface{} {
 	if params == nil {
-		return params
+		return nil
 	}
 
 	// Create a copy to avoid modifying the original
@@ -323,7 +334,7 @@ func (c *GeminiClient) sanitizeToolParameters(params map[string]interface{}) map
 
 	for key, value := range params {
 		if allowedTopLevel[key] {
-			if key == "properties" {
+			if key == propertiesKey {
 				// Recursively sanitize properties
 				if props, ok := value.(map[string]interface{}); ok {
 					sanitizedProps := make(map[string]interface{})
@@ -348,7 +359,7 @@ func (c *GeminiClient) sanitizeToolParameters(params map[string]interface{}) map
 }
 
 // sanitizePropertySchema removes unsupported fields from individual property schemas
-func (c *GeminiClient) sanitizePropertySchema(propSchema map[string]interface{}) map[string]interface{} {
+func (c *Client) sanitizePropertySchema(propSchema map[string]interface{}) map[string]interface{} {
 	sanitized := make(map[string]interface{})
 
 	// Allow these fields for property definitions

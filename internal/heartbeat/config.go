@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// Config holds configuration for the HeartbeatExecutor
+// Config holds configuration for the Executor
 type Config struct {
 	// CheckInterval is how often to check for overdue agents (default: 5 minutes)
 	CheckInterval time.Duration
@@ -63,8 +63,8 @@ func LoadConfigFromEnv() *Config {
 
 	// HEARTBEAT_MAX_CONCURRENT - maximum concurrent agent executions
 	if val := os.Getenv("HEARTBEAT_MAX_CONCURRENT"); val != "" {
-		if max, err := strconv.Atoi(val); err == nil && max > 0 {
-			config.MaxConcurrentExecutions = max
+		if maxConcurrent, err := strconv.Atoi(val); err == nil && maxConcurrent > 0 {
+			config.MaxConcurrentExecutions = maxConcurrent
 		}
 	}
 

@@ -8,15 +8,15 @@ import (
 	"gogent/internal/types"
 )
 
-// TestAgentApiKeyConfiguration tests the core logic of agent API key resolution
-func TestAgentApiKeyConfiguration(t *testing.T) {
+// TestAgentAPIKeyConfiguration tests the core logic of agent API key resolution
+func TestAgentAPIKeyConfiguration(t *testing.T) {
 	// Test the key resolution logic without requiring database
-	t.Run("AgentApiKeyConfigurationStructure", func(t *testing.T) {
-		// Test that the AgentApiKeyConfiguration type works correctly
-		config := &types.AgentApiKeyConfiguration{
+	t.Run("AgentAPIKeyConfigurationStructure", func(t *testing.T) {
+		// Test that the AgentAPIKeyConfiguration type works correctly
+		config := &types.AgentAPIKeyConfiguration{
 			AgentID:           "test-agent-123",
-			ServiceApiKeys:    make(map[string]types.UserApiKey),
-			FallbackApiKeys:   make(map[string]types.UserApiKey),
+			ServiceAPIKeys:    make(map[string]types.UserAPIKey),
+			FallbackAPIKeys:   make(map[string]types.UserAPIKey),
 			UseGlobalDefaults: false,
 		}
 
@@ -25,31 +25,31 @@ func TestAgentApiKeyConfiguration(t *testing.T) {
 			t.Errorf("Expected agent ID 'test-agent-123', got '%s'", config.AgentID)
 		}
 
-		if config.ServiceApiKeys == nil {
-			t.Error("ServiceApiKeys map should not be nil")
+		if config.ServiceAPIKeys == nil {
+			t.Error("ServiceAPIKeys map should not be nil")
 		}
 
-		if config.FallbackApiKeys == nil {
-			t.Error("FallbackApiKeys map should not be nil")
+		if config.FallbackAPIKeys == nil {
+			t.Error("FallbackAPIKeys map should not be nil")
 		}
 
 		// Test adding service keys
-		testKey := types.UserApiKey{
+		testKey := types.UserAPIKey{
 			ID:          "key-123",
 			ServiceName: "github",
 			KeyName:     "test-github-key",
 			IsActive:    true,
 		}
 
-		config.ServiceApiKeys["github"] = testKey
-		
-		if len(config.ServiceApiKeys) != 1 {
-			t.Errorf("Expected 1 service key, got %d", len(config.ServiceApiKeys))
+		config.ServiceAPIKeys["github"] = testKey
+
+		if len(config.ServiceAPIKeys) != 1 {
+			t.Errorf("Expected 1 service key, got %d", len(config.ServiceAPIKeys))
 		}
 
-		githubKey, exists := config.ServiceApiKeys["github"]
+		githubKey, exists := config.ServiceAPIKeys["github"]
 		if !exists {
-			t.Error("GitHub key should exist in ServiceApiKeys")
+			t.Error("GitHub key should exist in ServiceAPIKeys")
 		}
 
 		if githubKey.ID != "key-123" {
@@ -57,22 +57,22 @@ func TestAgentApiKeyConfiguration(t *testing.T) {
 		}
 	})
 
-	t.Run("AgentApiKeyTypesValidation", func(t *testing.T) {
-		// Test AgentApiKeyCreateRequest validation
-		createReq := &types.AgentApiKeyCreateRequest{
-			AgentID:           "agent-123",
-			ApiKeyID:          "key-456",
-			IsDefault:         false,
-			UseGlobalDefault:  true,
-			Priority:          100,
+	t.Run("AgentAPIKeyTypesValidation", func(t *testing.T) {
+		// Test AgentAPIKeyCreateRequest validation
+		createReq := &types.AgentAPIKeyCreateRequest{
+			AgentID:          "agent-123",
+			APIKeyID:         "key-456",
+			IsDefault:        false,
+			UseGlobalDefault: true,
+			Priority:         100,
 		}
 
 		if createReq.AgentID != "agent-123" {
 			t.Errorf("Expected agent ID 'agent-123', got '%s'", createReq.AgentID)
 		}
 
-		if createReq.ApiKeyID != "key-456" {
-			t.Errorf("Expected API key ID 'key-456', got '%s'", createReq.ApiKeyID)
+		if createReq.APIKeyID != "key-456" {
+			t.Errorf("Expected API key ID 'key-456', got '%s'", createReq.APIKeyID)
 		}
 
 		if createReq.IsDefault {
@@ -87,11 +87,11 @@ func TestAgentApiKeyConfiguration(t *testing.T) {
 			t.Errorf("Expected priority 100, got %d", createReq.Priority)
 		}
 
-		// Test AgentApiKeyUpdateRequest
+		// Test AgentAPIKeyUpdateRequest
 		isDefaultTrue := true
 		priorityNew := 50
-		
-		updateReq := &types.AgentApiKeyUpdateRequest{
+
+		updateReq := &types.AgentAPIKeyUpdateRequest{
 			IsDefault: &isDefaultTrue,
 			Priority:  &priorityNew,
 		}
@@ -106,15 +106,15 @@ func TestAgentApiKeyConfiguration(t *testing.T) {
 	})
 }
 
-// TestAgentApiKeyHandlerMethods tests the handler method signatures
-func TestAgentApiKeyHandlerMethods(t *testing.T) {
+// TestAgentAPIKeyHandlerMethods tests the handler method signatures
+func TestAgentAPIKeyHandlerMethods(t *testing.T) {
 	t.Run("HandlerMethodExists", func(t *testing.T) {
 		// Create handler with nil db (this will work for method signature testing)
-		handler := &AgentsHandler{db: nil}
+		handler := &Handler{db: nil}
 
-		// Test that the GetAgentApiKeyConfiguration method exists and has correct signature
+		// Test that the GetAgentAPIKeyConfiguration method exists and has correct signature
 		ctx := context.Background()
-		
+
 		// This will panic due to nil db, so we need to recover from panic
 		defer func() {
 			if r := recover(); r != nil {
@@ -122,10 +122,10 @@ func TestAgentApiKeyHandlerMethods(t *testing.T) {
 				t.Logf("Got expected panic due to nil database: %v", r)
 			}
 		}()
-		
+
 		// This will panic, but that's fine - we just want to verify method exists
-		_, err := handler.GetAgentApiKeyConfiguration(ctx, "test-agent")
-		
+		_, err := handler.GetAgentAPIKeyConfiguration(ctx, "test-agent")
+
 		// If we reach here without panic, something's wrong
 		if err == nil {
 			t.Error("Expected error or panic due to nil database connection, but got none")

@@ -53,7 +53,7 @@ func (s *GRPCServer) Close() error {
 // AUTHENTICATION & USER MANAGEMENT
 // =============================================================================
 
-func (s *GRPCServer) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
+func (s *GRPCServer) Login(_ context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
 	user, token, expiresAt, err := s.businessLogic.LoginUser(req.Username, req.Password)
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, "Login failed: %v", err)
@@ -67,7 +67,7 @@ func (s *GRPCServer) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Login
 	}, nil
 }
 
-func (s *GRPCServer) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.RegisterResponse, error) {
+func (s *GRPCServer) Register(_ context.Context, req *pb.RegisterRequest) (*pb.RegisterResponse, error) {
 	user, token, err := s.businessLogic.RegisterUser(req.Username, req.Email, req.Password)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "Registration failed: %v", err)
@@ -80,7 +80,7 @@ func (s *GRPCServer) Register(ctx context.Context, req *pb.RegisterRequest) (*pb
 	}, nil
 }
 
-func (s *GRPCServer) CreateTemporaryUser(ctx context.Context, req *pb.CreateTemporaryUserRequest) (*pb.CreateTemporaryUserResponse, error) {
+func (s *GRPCServer) CreateTemporaryUser(_ context.Context, req *pb.CreateTemporaryUserRequest) (*pb.CreateTemporaryUserResponse, error) {
 	user, tempPassword, token, err := s.businessLogic.CreateTemporaryUser(req.SessionId)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Failed to create temporary user: %v", err)
@@ -94,11 +94,8 @@ func (s *GRPCServer) CreateTemporaryUser(ctx context.Context, req *pb.CreateTemp
 	}, nil
 }
 
-func (s *GRPCServer) SaveTemporaryAccount(ctx context.Context, req *pb.SaveTemporaryAccountRequest) (*pb.SaveTemporaryAccountResponse, error) {
-	user, emailSent, err := s.businessLogic.SaveTemporaryAccount(req.Email)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Failed to save temporary account: %v", err)
-	}
+func (s *GRPCServer) SaveTemporaryAccount(_ context.Context, req *pb.SaveTemporaryAccountRequest) (*pb.SaveTemporaryAccountResponse, error) {
+	user, emailSent := s.businessLogic.SaveTemporaryAccount(req.Email)
 
 	protoUser := s.convertUserToProto(user)
 	return &pb.SaveTemporaryAccountResponse{
@@ -107,11 +104,8 @@ func (s *GRPCServer) SaveTemporaryAccount(ctx context.Context, req *pb.SaveTempo
 	}, nil
 }
 
-func (s *GRPCServer) VerifyEmail(ctx context.Context, req *pb.VerifyEmailRequest) (*pb.VerifyEmailResponse, error) {
-	user, verified, err := s.businessLogic.VerifyEmail(req.Token)
-	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "Email verification failed: %v", err)
-	}
+func (s *GRPCServer) VerifyEmail(_ context.Context, req *pb.VerifyEmailRequest) (*pb.VerifyEmailResponse, error) {
+	user, verified := s.businessLogic.VerifyEmail(req.Token)
 
 	protoUser := s.convertUserToProto(user)
 	return &pb.VerifyEmailResponse{
@@ -120,11 +114,8 @@ func (s *GRPCServer) VerifyEmail(ctx context.Context, req *pb.VerifyEmailRequest
 	}, nil
 }
 
-func (s *GRPCServer) GetCurrentUser(ctx context.Context, req *pb.GetCurrentUserRequest) (*pb.GetCurrentUserResponse, error) {
-	user, err := s.businessLogic.GetCurrentUser()
-	if err != nil {
-		return nil, status.Errorf(codes.Unauthenticated, "Failed to get current user: %v", err)
-	}
+func (s *GRPCServer) GetCurrentUser(_ context.Context, _ *pb.GetCurrentUserRequest) (*pb.GetCurrentUserResponse, error) {
+	user := s.businessLogic.GetCurrentUser()
 
 	protoUser := s.convertUserToProto(user)
 	return &pb.GetCurrentUserResponse{
@@ -136,7 +127,7 @@ func (s *GRPCServer) GetCurrentUser(ctx context.Context, req *pb.GetCurrentUserR
 // EXECUTION MANAGEMENT
 // =============================================================================
 
-func (s *GRPCServer) Execute(ctx context.Context, req *pb.ExecuteRequest) (*pb.ExecuteResponse, error) {
+func (s *GRPCServer) Execute(_ context.Context, req *pb.ExecuteRequest) (*pb.ExecuteResponse, error) {
 	// Convert protobuf request to internal type
 	request, err := s.convertProtoExecuteRequestToInternal(req)
 	if err != nil {
@@ -144,34 +135,34 @@ func (s *GRPCServer) Execute(ctx context.Context, req *pb.ExecuteRequest) (*pb.E
 	}
 
 	// Extract session API keys from the request
-	sessionApiKeys := make(map[string]string)
+	sessionAPIKeys := make(map[string]string)
 
 	// Use the new session_api_keys map if available
 	if sessionKeysMap := req.GetSessionApiKeys(); len(sessionKeysMap) > 0 {
 		for key, value := range sessionKeysMap {
-			sessionApiKeys[key] = value
+			sessionAPIKeys[key] = value
 		}
 	} else {
 		// Fallback to legacy fields for backward compatibility
 		if req.GetOpenweatherApiKey() != "" {
-			sessionApiKeys["openWeatherApiKey"] = req.GetOpenweatherApiKey()
+			sessionAPIKeys["openWeatherAPIKey"] = req.GetOpenweatherApiKey()
 		}
 		if req.GetNeo4JUrl() != "" {
-			sessionApiKeys["neo4jUrl"] = req.GetNeo4JUrl()
+			sessionAPIKeys["neo4jURL"] = req.GetNeo4JUrl()
 		}
 		if req.GetNeo4JUsername() != "" {
-			sessionApiKeys["neo4jUsername"] = req.GetNeo4JUsername()
+			sessionAPIKeys["neo4jUsername"] = req.GetNeo4JUsername()
 		}
 		if req.GetNeo4JPassword() != "" {
-			sessionApiKeys["neo4jPassword"] = req.GetNeo4JPassword()
+			sessionAPIKeys["neo4jPassword"] = req.GetNeo4JPassword()
 		}
 		if req.GetNeo4JDatabase() != "" {
-			sessionApiKeys["neo4jDatabase"] = req.GetNeo4JDatabase()
+			sessionAPIKeys["neo4jDatabase"] = req.GetNeo4JDatabase()
 		}
 	}
 
 	// Start execution with session API keys
-	executionID, executionRun, err := s.businessLogic.StartExecution(request, req.GetUseMock(), sessionApiKeys)
+	executionID, executionRun, err := s.businessLogic.StartExecution(request, req.GetUseMock(), sessionAPIKeys)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Failed to start execution: %v", err)
 	}
@@ -264,7 +255,7 @@ func (s *GRPCServer) DeleteExecutionRun(ctx context.Context, req *pb.DeleteExecu
 // CONFIGURATION MANAGEMENT
 // =============================================================================
 
-func (s *GRPCServer) ListConfigurations(ctx context.Context, req *pb.ListConfigurationsRequest) (*pb.ListConfigurationsResponse, error) {
+func (s *GRPCServer) ListConfigurations(ctx context.Context, _ *pb.ListConfigurationsRequest) (*pb.ListConfigurationsResponse, error) {
 	// TODO: Extract user ID from gRPC metadata/context when authentication is implemented
 	// For now, use the business logic's user ID (typically "system-user" for gRPC)
 	userID := s.businessLogic.userID
@@ -287,13 +278,10 @@ func (s *GRPCServer) ListConfigurations(ctx context.Context, req *pb.ListConfigu
 	}, nil
 }
 
-func (s *GRPCServer) CreateConfiguration(ctx context.Context, req *pb.CreateConfigurationRequest) (*pb.CreateConfigurationResponse, error) {
+func (s *GRPCServer) CreateConfiguration(_ context.Context, req *pb.CreateConfigurationRequest) (*pb.CreateConfigurationResponse, error) {
 	config := s.convertProtoConfigurationToInternal(req.Configuration)
 
-	createdConfig, err := s.businessLogic.CreateConfiguration(config)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Failed to create configuration: %v", err)
-	}
+	createdConfig := s.businessLogic.CreateConfiguration(config)
 
 	protoConfig := s.convertConfigurationToProto(createdConfig)
 	return &pb.CreateConfigurationResponse{
@@ -301,7 +289,7 @@ func (s *GRPCServer) CreateConfiguration(ctx context.Context, req *pb.CreateConf
 	}, nil
 }
 
-func (s *GRPCServer) UpdateConfiguration(ctx context.Context, req *pb.UpdateConfigurationRequest) (*pb.UpdateConfigurationResponse, error) {
+func (s *GRPCServer) UpdateConfiguration(_ context.Context, req *pb.UpdateConfigurationRequest) (*pb.UpdateConfigurationResponse, error) {
 	config := s.convertProtoConfigurationToInternal(req.Configuration)
 
 	updatedConfig, err := s.businessLogic.UpdateConfiguration(req.Id, config)
@@ -315,7 +303,7 @@ func (s *GRPCServer) UpdateConfiguration(ctx context.Context, req *pb.UpdateConf
 	}, nil
 }
 
-func (s *GRPCServer) DeleteConfiguration(ctx context.Context, req *pb.DeleteConfigurationRequest) (*pb.DeleteConfigurationResponse, error) {
+func (s *GRPCServer) DeleteConfiguration(_ context.Context, req *pb.DeleteConfigurationRequest) (*pb.DeleteConfigurationResponse, error) {
 	err := s.businessLogic.DeleteConfiguration(req.Id)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Failed to delete configuration: %v", err)
@@ -330,7 +318,7 @@ func (s *GRPCServer) DeleteConfiguration(ctx context.Context, req *pb.DeleteConf
 // FUNCTION MANAGEMENT
 // =============================================================================
 
-func (s *GRPCServer) ListFunctions(ctx context.Context, req *pb.ListFunctionsRequest) (*pb.ListFunctionsResponse, error) {
+func (s *GRPCServer) ListFunctions(ctx context.Context, _ *pb.ListFunctionsRequest) (*pb.ListFunctionsResponse, error) {
 	functions, err := s.businessLogic.ListFunctions(ctx)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Failed to list functions: %v", err)
@@ -347,7 +335,7 @@ func (s *GRPCServer) ListFunctions(ctx context.Context, req *pb.ListFunctionsReq
 	}, nil
 }
 
-func (s *GRPCServer) GetFunction(ctx context.Context, req *pb.GetFunctionRequest) (*pb.GetFunctionResponse, error) {
+func (s *GRPCServer) GetFunction(_ context.Context, req *pb.GetFunctionRequest) (*pb.GetFunctionResponse, error) {
 	function, err := s.businessLogic.GetFunction(req.Id)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "Function not found: %v", err)
@@ -359,13 +347,10 @@ func (s *GRPCServer) GetFunction(ctx context.Context, req *pb.GetFunctionRequest
 	}, nil
 }
 
-func (s *GRPCServer) CreateFunction(ctx context.Context, req *pb.CreateFunctionRequest) (*pb.CreateFunctionResponse, error) {
+func (s *GRPCServer) CreateFunction(_ context.Context, req *pb.CreateFunctionRequest) (*pb.CreateFunctionResponse, error) {
 	function := s.convertProtoFunctionToInternal(req.Function)
 
-	createdFunction, err := s.businessLogic.CreateFunction(function)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Failed to create function: %v", err)
-	}
+	createdFunction := s.businessLogic.CreateFunction(function)
 
 	protoFunction := s.convertFunctionToProto(createdFunction)
 	return &pb.CreateFunctionResponse{
@@ -373,7 +358,7 @@ func (s *GRPCServer) CreateFunction(ctx context.Context, req *pb.CreateFunctionR
 	}, nil
 }
 
-func (s *GRPCServer) UpdateFunction(ctx context.Context, req *pb.UpdateFunctionRequest) (*pb.UpdateFunctionResponse, error) {
+func (s *GRPCServer) UpdateFunction(_ context.Context, req *pb.UpdateFunctionRequest) (*pb.UpdateFunctionResponse, error) {
 	function := s.convertProtoFunctionToInternal(req.Function)
 
 	updatedFunction, err := s.businessLogic.UpdateFunction(req.Id, function)
@@ -387,7 +372,7 @@ func (s *GRPCServer) UpdateFunction(ctx context.Context, req *pb.UpdateFunctionR
 	}, nil
 }
 
-func (s *GRPCServer) DeleteFunction(ctx context.Context, req *pb.DeleteFunctionRequest) (*pb.DeleteFunctionResponse, error) {
+func (s *GRPCServer) DeleteFunction(_ context.Context, req *pb.DeleteFunctionRequest) (*pb.DeleteFunctionResponse, error) {
 	err := s.businessLogic.DeleteFunction(req.Id)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Failed to delete function: %v", err)
@@ -398,7 +383,7 @@ func (s *GRPCServer) DeleteFunction(ctx context.Context, req *pb.DeleteFunctionR
 	}, nil
 }
 
-func (s *GRPCServer) TestFunction(ctx context.Context, req *pb.TestFunctionRequest) (*pb.TestFunctionResponse, error) {
+func (s *GRPCServer) TestFunction(_ context.Context, req *pb.TestFunctionRequest) (*pb.TestFunctionResponse, error) {
 	success, usedMockData, executionTimeMs, responseData, errorMessage, err := s.businessLogic.TestFunction(req.FunctionId, req.UseMockData)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Failed to test function: %v", err)
@@ -418,20 +403,20 @@ func (s *GRPCServer) TestFunction(ctx context.Context, req *pb.TestFunctionReque
 // DATABASE MANAGEMENT
 // =============================================================================
 
-func (s *GRPCServer) GetDatabaseStats(ctx context.Context, req *pb.GetDatabaseStatsRequest) (*pb.GetDatabaseStatsResponse, error) {
-	totalExecutionRuns, totalApiRequests, totalApiResponses, totalFunctionCalls, avgResponseTime, successRate := s.businessLogic.GetDatabaseStats()
+func (s *GRPCServer) GetDatabaseStats(_ context.Context, _ *pb.GetDatabaseStatsRequest) (*pb.GetDatabaseStatsResponse, error) {
+	totalExecutionRuns, totalAPIRequests, totalAPIResponses, totalFunctionCalls, avgResponseTime, successRate := s.businessLogic.GetDatabaseStats()
 
 	return &pb.GetDatabaseStatsResponse{
 		TotalExecutionRuns: totalExecutionRuns,
-		TotalApiRequests:   totalApiRequests,
-		TotalApiResponses:  totalApiResponses,
+		TotalApiRequests:   totalAPIRequests,
+		TotalApiResponses:  totalAPIResponses,
 		TotalFunctionCalls: totalFunctionCalls,
 		AvgResponseTime:    avgResponseTime,
 		SuccessRate:        successRate,
 	}, nil
 }
 
-func (s *GRPCServer) ListDatabaseTables(ctx context.Context, req *pb.ListDatabaseTablesRequest) (*pb.ListDatabaseTablesResponse, error) {
+func (s *GRPCServer) ListDatabaseTables(_ context.Context, _ *pb.ListDatabaseTablesRequest) (*pb.ListDatabaseTablesResponse, error) {
 	tables := s.businessLogic.ListDatabaseTables()
 
 	return &pb.ListDatabaseTablesResponse{
@@ -439,7 +424,7 @@ func (s *GRPCServer) ListDatabaseTables(ctx context.Context, req *pb.ListDatabas
 	}, nil
 }
 
-func (s *GRPCServer) GetTableData(ctx context.Context, req *pb.GetTableDataRequest) (*pb.GetTableDataResponse, error) {
+func (s *GRPCServer) GetTableData(_ context.Context, req *pb.GetTableDataRequest) (*pb.GetTableDataResponse, error) {
 	columns, rows, totalRows, err := s.businessLogic.GetTableData(req.TableName)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Failed to get table data: %v", err)
@@ -466,7 +451,7 @@ func (s *GRPCServer) GetTableData(ctx context.Context, req *pb.GetTableDataReque
 // HEALTH & SYSTEM
 // =============================================================================
 
-func (s *GRPCServer) Health(ctx context.Context, req *pb.HealthRequest) (*pb.HealthResponse, error) {
+func (s *GRPCServer) Health(_ context.Context, _ *pb.HealthRequest) (*pb.HealthResponse, error) {
 	status, version, database, geminiAPI := s.businessLogic.GetHealthStatus()
 
 	return &pb.HealthResponse{
@@ -574,7 +559,7 @@ func (s *GRPCServer) convertFunctionToProto(function *types.FunctionDefinition) 
 		DisplayName: function.DisplayName,
 		Description: function.Description,
 		EndpointUrl: function.EndpointURL,
-		HttpMethod:  function.HttpMethod,
+		HttpMethod:  function.HTTPMethod,
 		IsActive:    function.IsActive,
 		CreatedAt:   timestamppb.New(function.CreatedAt),
 		UpdatedAt:   timestamppb.New(function.UpdatedAt),
@@ -603,7 +588,7 @@ func (s *GRPCServer) convertProtoFunctionToInternal(pf *pb.FunctionDefinition) *
 		DisplayName: pf.DisplayName,
 		Description: pf.Description,
 		EndpointURL: pf.EndpointUrl,
-		HttpMethod:  pf.HttpMethod,
+		HTTPMethod:  pf.HttpMethod,
 		IsActive:    pf.IsActive,
 	}
 
@@ -629,6 +614,7 @@ func (s *GRPCServer) convertProtoConfigurations(protoConfigs []*pb.APIConfigurat
 	return configs
 }
 
+//nolint:unparam // error return kept for interface compatibility
 func (s *GRPCServer) convertExecutionResultToProto(result *types.ExecutionResult) (*pb.ExecutionResult, error) {
 	// Convert execution run
 	protoRun := s.convertExecutionRunToProto(&result.ExecutionRun)
@@ -659,7 +645,7 @@ func (s *GRPCServer) convertExecutionResultToProto(result *types.ExecutionResult
 			ResponseText:   vr.Response.ResponseText,
 			FinishReason:   vr.Response.FinishReason,
 			ErrorMessage:   vr.Response.ErrorMessage,
-			ResponseTimeMs: vr.Response.ResponseTimeMs,
+			ResponseTimeMs: int32(vr.Response.ResponseTimeMs),
 			UsageMetadata:  usageStruct,
 			CreatedAt:      timestamppb.New(vr.Response.CreatedAt),
 		}
@@ -853,7 +839,8 @@ func runGRPCServer() {
 
 	lis, err := net.Listen("tcp", ":"+port)
 	if err != nil {
-		log.Fatalf("Failed to listen on port %s: %v", port, err)
+		server.Close()
+		log.Fatalf("Failed to listen on port %s: %v", port, err) //nolint:gocritic // exitAfterDefer - cleanup before exit
 	}
 
 	grpcServer := grpc.NewServer()

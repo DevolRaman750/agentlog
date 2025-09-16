@@ -1,33 +1,33 @@
 package apikeys
 
 import (
-    "context"
-    "database/sql"
-    "os"
-    "testing"
-    "time"
+	"context"
+	"database/sql"
+	"os"
+	"testing"
+	"time"
 
-    "gogent/internal/types"
+	"gogent/internal/types"
 
-    _ "github.com/go-sql-driver/mysql"
-    "github.com/stretchr/testify/assert"
-    "github.com/stretchr/testify/require"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func setupTestDB(t *testing.T) *sql.DB {
-    dsn := os.Getenv("TEST_MYSQL_DSN")
-    if dsn == "" {
-        t.Skip("TEST_MYSQL_DSN not set; skipping DB integration tests")
-    }
+	dsn := os.Getenv("TEST_MYSQL_DSN")
+	if dsn == "" {
+		t.Skip("TEST_MYSQL_DSN not set; skipping DB integration tests")
+	}
 
-    db, err := sql.Open("mysql", dsn)
-    require.NoError(t, err, "Failed to connect to test database")
+	db, err := sql.Open("mysql", dsn)
+	require.NoError(t, err, "Failed to connect to test database")
 
-    if err := db.Ping(); err != nil {
-        t.Skipf("Cannot reach test database: %v", err)
-    }
+	if err := db.Ping(); err != nil {
+		t.Skipf("Cannot reach test database: %v", err)
+	}
 
-    return db
+	return db
 }
 
 func cleanupTestData(t *testing.T, db *sql.DB, userID string) {
@@ -94,7 +94,7 @@ func TestCreateAPIKey(t *testing.T) {
 	ctx := context.Background()
 
 	// Test valid API key creation
-	req := &types.CreateApiKeyRequest{
+	req := &types.CreateAPIKeyRequest{
 		KeyName:     "test_gemini_key",
 		ServiceName: "gemini",
 		KeyType:     "api_key",
@@ -132,7 +132,7 @@ func TestCreateAPIKey(t *testing.T) {
 	assert.Contains(t, err.Error(), "already exists", "Error should mention key already exists")
 
 	// Test invalid request
-	invalidReq := &types.CreateApiKeyRequest{
+	invalidReq := &types.CreateAPIKeyRequest{
 		KeyName: "", // Missing required field
 	}
 	_, err = service.CreateAPIKey(ctx, userID, invalidReq)
@@ -160,7 +160,7 @@ func TestGetAPIKeys(t *testing.T) {
 	// Create some test API keys
 	services := []string{"gemini", "openweather", "stripe"}
 	for i, serviceName := range services {
-		req := &types.CreateApiKeyRequest{
+		req := &types.CreateAPIKeyRequest{
 			KeyName:     serviceName + "_key_" + time.Now().Format("150405"),
 			ServiceName: serviceName,
 			KeyType:     "api_key",
@@ -204,7 +204,7 @@ func TestGetAPIKeyByID(t *testing.T) {
 	ctx := context.Background()
 
 	// Create a test API key
-	req := &types.CreateApiKeyRequest{
+	req := &types.CreateAPIKeyRequest{
 		KeyName:     "test_key_for_id",
 		ServiceName: "gemini",
 		KeyType:     "api_key",
@@ -251,7 +251,7 @@ func TestGetDecryptedAPIKey(t *testing.T) {
 	originalKey := "sk-test-decryption-key-12345"
 
 	// Create a test API key
-	req := &types.CreateApiKeyRequest{
+	req := &types.CreateAPIKeyRequest{
 		KeyName:     "test_decryption_key",
 		ServiceName: "gemini",
 		KeyType:     "api_key",
@@ -286,7 +286,7 @@ func TestValidateCreateRequest(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test valid request
-	validReq := &types.CreateApiKeyRequest{
+	validReq := &types.CreateAPIKeyRequest{
 		KeyName:     "valid_key",
 		ServiceName: "gemini",
 		KeyValue:    "sk-valid-key-12345",
@@ -301,12 +301,12 @@ func TestValidateCreateRequest(t *testing.T) {
 	// Test missing required fields
 	testCases := []struct {
 		name          string
-		req           *types.CreateApiKeyRequest
+		req           *types.CreateAPIKeyRequest
 		expectedError string
 	}{
 		{
 			name: "Missing key name",
-			req: &types.CreateApiKeyRequest{
+			req: &types.CreateAPIKeyRequest{
 				ServiceName: "gemini",
 				KeyValue:    "sk-key-12345",
 				DisplayName: "Test Key",
@@ -315,7 +315,7 @@ func TestValidateCreateRequest(t *testing.T) {
 		},
 		{
 			name: "Missing service name",
-			req: &types.CreateApiKeyRequest{
+			req: &types.CreateAPIKeyRequest{
 				KeyName:     "test_key",
 				KeyValue:    "sk-key-12345",
 				DisplayName: "Test Key",
@@ -324,7 +324,7 @@ func TestValidateCreateRequest(t *testing.T) {
 		},
 		{
 			name: "Missing key value",
-			req: &types.CreateApiKeyRequest{
+			req: &types.CreateAPIKeyRequest{
 				KeyName:     "test_key",
 				ServiceName: "gemini",
 				DisplayName: "Test Key",
@@ -333,7 +333,7 @@ func TestValidateCreateRequest(t *testing.T) {
 		},
 		{
 			name: "Missing display name",
-			req: &types.CreateApiKeyRequest{
+			req: &types.CreateAPIKeyRequest{
 				KeyName:     "test_key",
 				ServiceName: "gemini",
 				KeyValue:    "sk-key-12345",
@@ -342,7 +342,7 @@ func TestValidateCreateRequest(t *testing.T) {
 		},
 		{
 			name: "Invalid access level",
-			req: &types.CreateApiKeyRequest{
+			req: &types.CreateAPIKeyRequest{
 				KeyName:     "test_key",
 				ServiceName: "gemini",
 				KeyValue:    "sk-key-12345",
@@ -353,7 +353,7 @@ func TestValidateCreateRequest(t *testing.T) {
 		},
 		{
 			name: "Invalid key type",
-			req: &types.CreateApiKeyRequest{
+			req: &types.CreateAPIKeyRequest{
 				KeyName:     "test_key",
 				ServiceName: "gemini",
 				KeyValue:    "sk-key-12345",
@@ -373,7 +373,7 @@ func TestValidateCreateRequest(t *testing.T) {
 	}
 
 	// Test default value setting
-	reqWithDefaults := &types.CreateApiKeyRequest{
+	reqWithDefaults := &types.CreateAPIKeyRequest{
 		KeyName:     "test_defaults",
 		ServiceName: "gemini",
 		KeyValue:    "sk-key-12345",
@@ -400,7 +400,7 @@ func TestDefaultKeyManagement(t *testing.T) {
 	ctx := context.Background()
 
 	// Create first key as default
-	req1 := &types.CreateApiKeyRequest{
+	req1 := &types.CreateAPIKeyRequest{
 		KeyName:     "gemini_key_1",
 		ServiceName: "gemini",
 		KeyType:     "api_key",
@@ -416,7 +416,7 @@ func TestDefaultKeyManagement(t *testing.T) {
 	assert.True(t, key1.IsDefault, "First key should be default")
 
 	// Create second key as default (should unset the first)
-	req2 := &types.CreateApiKeyRequest{
+	req2 := &types.CreateAPIKeyRequest{
 		KeyName:     "gemini_key_2",
 		ServiceName: "gemini",
 		KeyType:     "api_key",

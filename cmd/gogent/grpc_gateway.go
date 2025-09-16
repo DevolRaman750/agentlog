@@ -98,7 +98,7 @@ func (g *GRPCGateway) Close() error {
 }
 
 // Health check endpoint
-func (g *GRPCGateway) healthHandler(w http.ResponseWriter, r *http.Request) {
+func (g *GRPCGateway) healthHandler(w http.ResponseWriter, _ *http.Request) {
 	ctx := context.Background()
 
 	req := &pb.HealthRequest{}
@@ -117,7 +117,9 @@ func (g *GRPCGateway) healthHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+	}
 }
 
 // Execute multi-variation endpoint
@@ -182,15 +184,15 @@ func (g *GRPCGateway) executeHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Fallback: Collect legacy plain-text API keys from headers (for backward compatibility)
 	if geminiKey := r.Header.Get("X-Gemini-API-Key"); geminiKey != "" {
-		grpcReq.SessionApiKeys["geminiApiKey"] = geminiKey
+		grpcReq.SessionApiKeys["geminiAPIKey"] = geminiKey
 		log.Printf("⚠️ Using legacy plain-text Gemini API key")
 	}
 	if openWeatherKey := r.Header.Get("X-OpenWeather-API-Key"); openWeatherKey != "" {
-		grpcReq.SessionApiKeys["openWeatherApiKey"] = openWeatherKey
+		grpcReq.SessionApiKeys["openWeatherAPIKey"] = openWeatherKey
 		log.Printf("⚠️ Using legacy plain-text OpenWeather API key")
 	}
-	if neo4jUrl := r.Header.Get("X-Neo4j-URL"); neo4jUrl != "" {
-		grpcReq.SessionApiKeys["neo4jUrl"] = neo4jUrl
+	if neo4jURL := r.Header.Get("X-Neo4j-URL"); neo4jURL != "" {
+		grpcReq.SessionApiKeys["neo4jURL"] = neo4jURL
 		log.Printf("⚠️ Using legacy plain-text Neo4j URL")
 	}
 	if neo4jUsername := r.Header.Get("X-Neo4j-Username"); neo4jUsername != "" {
@@ -250,7 +252,9 @@ func (g *GRPCGateway) executeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+	}
 }
 
 // Get execution status endpoint
@@ -300,7 +304,9 @@ func (g *GRPCGateway) executionStatusHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+	}
 }
 
 // List execution runs endpoint
@@ -356,7 +362,9 @@ func (g *GRPCGateway) executionRunsHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(runs)
+	if err := json.NewEncoder(w).Encode(runs); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+	}
 }
 
 // List configurations endpoint
@@ -382,7 +390,7 @@ func (g *GRPCGateway) configurationByIDHandler(w http.ResponseWriter, r *http.Re
 	}
 }
 
-func (g *GRPCGateway) listConfigurations(w http.ResponseWriter, r *http.Request) {
+func (g *GRPCGateway) listConfigurations(w http.ResponseWriter, _ *http.Request) {
 	// Call gRPC service
 	ctx := context.Background()
 	req := &pb.ListConfigurationsRequest{}
@@ -411,7 +419,9 @@ func (g *GRPCGateway) listConfigurations(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(configs)
+	if err := json.NewEncoder(w).Encode(configs); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+	}
 }
 
 func (g *GRPCGateway) createConfiguration(w http.ResponseWriter, r *http.Request) {
@@ -458,7 +468,9 @@ func (g *GRPCGateway) createConfiguration(w http.ResponseWriter, r *http.Request
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(resultConfig)
+	if err := json.NewEncoder(w).Encode(resultConfig); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+	}
 }
 
 func (g *GRPCGateway) updateConfiguration(w http.ResponseWriter, r *http.Request) {
@@ -516,7 +528,9 @@ func (g *GRPCGateway) updateConfiguration(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resultConfig)
+	if err := json.NewEncoder(w).Encode(resultConfig); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+	}
 }
 
 func (g *GRPCGateway) deleteConfiguration(w http.ResponseWriter, r *http.Request) {
@@ -546,7 +560,9 @@ func (g *GRPCGateway) deleteConfiguration(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	if err := json.NewEncoder(w).Encode(result); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+	}
 }
 
 // Database stats endpoint
@@ -569,15 +585,17 @@ func (g *GRPCGateway) databaseStatsHandler(w http.ResponseWriter, r *http.Reques
 	// Convert gRPC response to HTTP response
 	response := map[string]interface{}{
 		"totalExecutionRuns": resp.TotalExecutionRuns,
-		"totalApiRequests":   resp.TotalApiRequests,
-		"totalApiResponses":  resp.TotalApiResponses,
+		"totalAPIRequests":   resp.TotalApiRequests,
+		"totalAPIResponses":  resp.TotalApiResponses,
 		"totalFunctionCalls": resp.TotalFunctionCalls,
 		"avgResponseTime":    resp.AvgResponseTime,
 		"successRate":        resp.SuccessRate,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+	}
 }
 
 // CORS middleware
@@ -816,7 +834,8 @@ func runGRPCGateway() {
 
 	// Wrap HTTP server with graceful shutdown
 	if err := graceful.WrapHTTP(httpServer); err != nil {
-		log.Fatalf("Failed to wrap HTTP server: %v", err)
+		gateway.Close()
+		log.Fatalf("Failed to wrap HTTP server: %v", err) //nolint:gocritic // exitAfterDefer - cleanup before exit
 	}
 
 	log.Printf("🚀 GoGent gRPC Gateway starting on port %s with graceful shutdown support", port)

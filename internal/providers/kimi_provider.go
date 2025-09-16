@@ -13,6 +13,11 @@ import (
 	"gogent/internal/types"
 )
 
+const (
+	// HTTPClientTimeoutSeconds is the timeout for HTTP client requests in seconds
+	HTTPClientTimeoutSeconds = 120
+)
+
 // KimiProvider implements the ModelProvider interface for OpenRouter models (including Kimi K2)
 type KimiProvider struct {
 	apiKey     string
@@ -21,7 +26,7 @@ type KimiProvider struct {
 }
 
 // NewKimiProvider creates a new Kimi provider instance (actually OpenRouter provider)
-func NewKimiProvider(apiKey string, baseURL string) (*KimiProvider, error) {
+func NewKimiProvider(apiKey, baseURL string) (*KimiProvider, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("API key is required for OpenRouter provider")
 	}
@@ -31,9 +36,10 @@ func NewKimiProvider(apiKey string, baseURL string) (*KimiProvider, error) {
 	}
 
 	return &KimiProvider{
-		apiKey:     apiKey,
-		baseURL:    baseURL,
-		httpClient: &http.Client{Timeout: 120 * time.Second}, // Longer timeout for complex function calls
+		apiKey:  apiKey,
+		baseURL: baseURL,
+		// Longer timeout for complex function calls
+		httpClient: &http.Client{Timeout: HTTPClientTimeoutSeconds * time.Second},
 	}, nil
 }
 
@@ -85,7 +91,11 @@ func (p *KimiProvider) ValidateConfig(config *types.APIConfiguration) error {
 }
 
 // GenerateContent generates content using Kimi K2 with function calling support
-func (p *KimiProvider) GenerateContent(ctx context.Context, config *types.APIConfiguration, request *ModelRequest) (*ModelResponse, error) {
+func (p *KimiProvider) GenerateContent(
+	ctx context.Context,
+	config *types.APIConfiguration,
+	request *ModelRequest,
+) (*ModelResponse, error) {
 	startTime := time.Now()
 
 	log.Printf("🤖 Kimi K2 request - Model: %s, Tools: %d, Prompt length: %d",
@@ -114,7 +124,7 @@ func (p *KimiProvider) GenerateContent(ctx context.Context, config *types.APICon
 	// Make API request
 	response, err := p.makeAPIRequest(ctx, requestBody)
 	if err != nil {
-		return nil, fmt.Errorf("Kimi API request failed: %w", err)
+		return nil, fmt.Errorf("kimi API request failed: %w", err)
 	}
 
 	// Parse response
@@ -279,7 +289,7 @@ func (p *KimiProvider) parseKimiResponse(response map[string]interface{}, durati
 	}
 
 	result := &ModelResponse{
-		ResponseTimeMs: int32(duration.Milliseconds()),
+		ResponseTimeMs: duration.Milliseconds(),
 		FunctionCalls:  []FunctionCall{},
 	}
 

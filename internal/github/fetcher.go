@@ -1,9 +1,15 @@
 package github
 
 import (
+	"context"
 	"io"
 	"log"
 	"net/http"
+)
+
+const (
+	// HTTP status codes
+	httpStatusOK = 200
 )
 
 // Fetcher handles fetching files from GitHub
@@ -19,7 +25,7 @@ func NewFetcher() *Fetcher {
 }
 
 // FetchFileContent fetches the content of a single file from GitHub API
-func (f *Fetcher) FetchFileContent(fileItem map[string]interface{}) map[string]interface{} {
+func (f *Fetcher) FetchFileContent(ctx context.Context, fileItem map[string]interface{}) map[string]interface{} {
 	downloadURL := getStringFromResult(fileItem, "download_url")
 	if downloadURL == "" {
 		log.Printf("⚠️ No download_url found for file")
@@ -27,14 +33,19 @@ func (f *Fetcher) FetchFileContent(fileItem map[string]interface{}) map[string]i
 	}
 
 	// Make HTTP request to fetch file content
-	resp, err := f.httpClient.Get(downloadURL)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, http.NoBody)
+	if err != nil {
+		log.Printf("⚠️ Failed to build request for file content: %v", err)
+		return nil
+	}
+	resp, err := f.httpClient.Do(req)
 	if err != nil {
 		log.Printf("⚠️ Failed to fetch file content: %v", err)
 		return nil
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != httpStatusOK {
 		log.Printf("⚠️ Failed to fetch file content, status: %d", resp.StatusCode)
 		return nil
 	}

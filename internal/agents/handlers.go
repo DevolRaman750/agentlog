@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -16,18 +17,18 @@ import (
 	"github.com/google/uuid"
 )
 
-// AgentsHandler handles all agent-related HTTP requests
-type AgentsHandler struct {
+// Handler handles all agent-related HTTP requests
+type Handler struct {
 	db *sql.DB
 }
 
-// NewAgentsHandler creates a new agents handler
-func NewAgentsHandler(db *sql.DB) *AgentsHandler {
-	return &AgentsHandler{db: db}
+// NewHandler creates a new agents handler
+func NewHandler(db *sql.DB) *Handler {
+	return &Handler{db: db}
 }
 
 // HandleAgents handles operations on the base /api/agents endpoint
-func (h *AgentsHandler) HandleAgents(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleAgents(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		h.listAgents(w, r)
@@ -39,7 +40,7 @@ func (h *AgentsHandler) HandleAgents(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleAgentByID handles operations on specific agents at /api/agents/{id} and sub-routes
-func (h *AgentsHandler) HandleAgentByID(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleAgentByID(w http.ResponseWriter, r *http.Request) {
 	// Extract agent ID from URL path
 	pathParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 	if len(pathParts) < 3 {
@@ -68,7 +69,7 @@ func (h *AgentsHandler) HandleAgentByID(w http.ResponseWriter, r *http.Request) 
 
 	// Check for API key sub-routes /api/agents/{id}/api-keys/*
 	if len(pathParts) >= 4 && pathParts[3] == "api-keys" {
-		h.handleAgentApiKeys(w, r, agentID, pathParts)
+		h.handleAgentAPIKeys(w, r, agentID, pathParts)
 		return
 	}
 
@@ -85,7 +86,7 @@ func (h *AgentsHandler) HandleAgentByID(w http.ResponseWriter, r *http.Request) 
 }
 
 // listAgents lists all agents for the authenticated user
-func (h *AgentsHandler) listAgents(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) listAgents(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -110,11 +111,13 @@ func (h *AgentsHandler) listAgents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(agents)
+	if err := json.NewEncoder(w).Encode(agents); err != nil {
+		log.Printf("encode response failed: %v", err)
+	}
 }
 
 // createAgent creates a new agent
-func (h *AgentsHandler) createAgent(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) createAgent(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -175,11 +178,13 @@ func (h *AgentsHandler) createAgent(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(createdAgent)
+	if err := json.NewEncoder(w).Encode(createdAgent); err != nil {
+		log.Printf("encode response failed: %v", err)
+	}
 }
 
 // getAgent retrieves a specific agent
-func (h *AgentsHandler) getAgent(w http.ResponseWriter, r *http.Request, agentID string) {
+func (h *Handler) getAgent(w http.ResponseWriter, r *http.Request, agentID string) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -197,11 +202,13 @@ func (h *AgentsHandler) getAgent(w http.ResponseWriter, r *http.Request, agentID
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(agent)
+	if err := json.NewEncoder(w).Encode(agent); err != nil {
+		log.Printf("encode response failed: %v", err)
+	}
 }
 
 // updateAgent updates an existing agent
-func (h *AgentsHandler) updateAgent(w http.ResponseWriter, r *http.Request, agentID string) {
+func (h *Handler) updateAgent(w http.ResponseWriter, r *http.Request, agentID string) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -246,11 +253,13 @@ func (h *AgentsHandler) updateAgent(w http.ResponseWriter, r *http.Request, agen
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(updatedAgent)
+	if err := json.NewEncoder(w).Encode(updatedAgent); err != nil {
+		log.Printf("encode response failed: %v", err)
+	}
 }
 
 // deleteAgent deletes an agent
-func (h *AgentsHandler) deleteAgent(w http.ResponseWriter, r *http.Request, agentID string) {
+func (h *Handler) deleteAgent(w http.ResponseWriter, r *http.Request, agentID string) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -278,7 +287,7 @@ func (h *AgentsHandler) deleteAgent(w http.ResponseWriter, r *http.Request, agen
 }
 
 // getAgentExecutions retrieves executions for a specific agent
-func (h *AgentsHandler) getAgentExecutions(w http.ResponseWriter, r *http.Request, agentID string) {
+func (h *Handler) getAgentExecutions(w http.ResponseWriter, r *http.Request, agentID string) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -321,14 +330,16 @@ func (h *AgentsHandler) getAgentExecutions(w http.ResponseWriter, r *http.Reques
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(executions)
+	if err := json.NewEncoder(w).Encode(executions); err != nil {
+		log.Printf("encode response failed: %v", err)
+	}
 }
 
 // Database helper methods would go here...
 // (I'll implement these in the next part)
 
 // validateCreateRequest validates the agent creation request
-func (h *AgentsHandler) validateCreateRequest(req *types.AgentCreateRequest) error {
+func (h *Handler) validateCreateRequest(req *types.AgentCreateRequest) error {
 	if req.FirstName == "" {
 		return fmt.Errorf("firstName is required")
 	}
@@ -357,7 +368,7 @@ func (h *AgentsHandler) validateCreateRequest(req *types.AgentCreateRequest) err
 }
 
 // validateUpdateRequest validates the agent update request
-func (h *AgentsHandler) validateUpdateRequest(req *types.AgentUpdateRequest) error {
+func (h *Handler) validateUpdateRequest(req *types.AgentUpdateRequest) error {
 	if req.FirstName != nil && *req.FirstName == "" {
 		return fmt.Errorf("firstName cannot be empty")
 	}
@@ -386,7 +397,7 @@ func (h *AgentsHandler) validateUpdateRequest(req *types.AgentUpdateRequest) err
 }
 
 // handleAgentTeamAssignment handles team assignment operations for an agent
-func (h *AgentsHandler) handleAgentTeamAssignment(w http.ResponseWriter, r *http.Request, agentID string) {
+func (h *Handler) handleAgentTeamAssignment(w http.ResponseWriter, r *http.Request, agentID string) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -414,14 +425,16 @@ func (h *AgentsHandler) handleAgentTeamAssignment(w http.ResponseWriter, r *http
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(agent)
+		if err := json.NewEncoder(w).Encode(agent); err != nil {
+			log.Printf("encode response failed: %v", err)
+		}
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
 // handleAgentMemory handles all memory-related operations for an agent
-func (h *AgentsHandler) handleAgentMemory(w http.ResponseWriter, r *http.Request, agentID string, pathParts []string) {
+func (h *Handler) handleAgentMemory(w http.ResponseWriter, r *http.Request, agentID string, pathParts []string) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -510,11 +523,13 @@ func (h *AgentsHandler) handleAgentMemory(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("encode response failed: %v", err)
+	}
 }
 
-// handleAgentApiKeys handles API key operations for agents
-func (h *AgentsHandler) handleAgentApiKeys(w http.ResponseWriter, r *http.Request, agentID string, pathParts []string) {
+// handleAgentAPIKeys handles API key operations for agents
+func (h *Handler) handleAgentAPIKeys(w http.ResponseWriter, r *http.Request, agentID string, pathParts []string) {
 	user, ok := auth.GetUserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusUnauthorized)
@@ -535,46 +550,48 @@ func (h *AgentsHandler) handleAgentApiKeys(w http.ResponseWriter, r *http.Reques
 	// Check for specific API key ID in path: /api/agents/{id}/api-keys/{keyId}
 	if len(pathParts) >= 5 {
 		keyMappingID := pathParts[4]
-		h.handleAgentApiKeyByID(w, r, agentID, keyMappingID, user.ID)
+		h.handleAgentAPIKeyByID(w, r, agentID, keyMappingID, user.ID)
 		return
 	}
 
 	// Handle base API key operations
 	switch r.Method {
 	case http.MethodGet:
-		h.listAgentApiKeys(w, r, agentID, user.ID)
+		h.listAgentAPIKeys(w, r, agentID, user.ID)
 	case http.MethodPost:
-		h.createAgentApiKey(w, r, agentID, user.ID)
+		h.createAgentAPIKey(w, r, agentID, user.ID)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-// listAgentApiKeys lists all API keys for an agent
-func (h *AgentsHandler) listAgentApiKeys(w http.ResponseWriter, r *http.Request, agentID, userID string) {
-	agentApiKeys, err := h.getAgentApiKeys(agentID)
+// listAgentAPIKeys lists all API keys for an agent
+func (h *Handler) listAgentAPIKeys(w http.ResponseWriter, _ *http.Request, agentID, _ string) {
+	agentAPIKeys, err := h.getAgentAPIKeys(agentID)
 	if err != nil {
 		http.Error(w, "Failed to get agent API keys", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success":  true,
-		"apiKeys": agentApiKeys,
-	})
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"apiKeys": agentAPIKeys,
+	}); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
-// createAgentApiKey creates a new API key mapping for an agent
-func (h *AgentsHandler) createAgentApiKey(w http.ResponseWriter, r *http.Request, agentID, userID string) {
-	var req types.AgentApiKeyCreateRequest
+// createAgentAPIKey creates a new API key mapping for an agent
+func (h *Handler) createAgentAPIKey(w http.ResponseWriter, r *http.Request, agentID, _ string) {
+	var req types.AgentAPIKeyCreateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	// Validate required fields
-	if req.AgentID == "" || req.ApiKeyID == "" {
+	if req.AgentID == "" || req.APIKeyID == "" {
 		http.Error(w, "Agent ID and API key ID are required", http.StatusBadRequest)
 		return
 	}
@@ -586,16 +603,16 @@ func (h *AgentsHandler) createAgentApiKey(w http.ResponseWriter, r *http.Request
 	}
 
 	// Verify API key access
-	if err := h.verifyApiKeyAccess(agentID, req.ApiKeyID); err != nil {
+	if err := h.verifyAPIKeyAccess(agentID, req.APIKeyID); err != nil {
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}
 
 	// Create the mapping
-	agentApiKey := &types.AgentApiKey{
+	agentAPIKey := &types.AgentAPIKey{
 		ID:               uuid.New().String(),
 		AgentID:          req.AgentID,
-		ApiKeyID:         req.ApiKeyID,
+		APIKeyID:         req.APIKeyID,
 		IsDefault:        req.IsDefault,
 		UseGlobalDefault: req.UseGlobalDefault,
 		Priority:         req.Priority,
@@ -603,7 +620,7 @@ func (h *AgentsHandler) createAgentApiKey(w http.ResponseWriter, r *http.Request
 		UpdatedAt:        time.Now(),
 	}
 
-	if err := h.insertAgentApiKey(agentApiKey); err != nil {
+	if err := h.insertAgentAPIKey(agentAPIKey); err != nil {
 		if strings.Contains(err.Error(), "Duplicate entry") {
 			http.Error(w, "API key already assigned to this agent", http.StatusConflict)
 		} else {
@@ -613,33 +630,35 @@ func (h *AgentsHandler) createAgentApiKey(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
-		"apiKey":  agentApiKey,
-	})
+		"apiKey":  agentAPIKey,
+	}); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
-// handleAgentApiKeyByID handles operations on specific agent API key mappings
-func (h *AgentsHandler) handleAgentApiKeyByID(w http.ResponseWriter, r *http.Request, agentID, keyMappingID, userID string) {
+// handleAgentAPIKeyByID handles operations on specific agent API key mappings
+func (h *Handler) handleAgentAPIKeyByID(w http.ResponseWriter, r *http.Request, agentID, keyMappingID, userID string) {
 	switch r.Method {
 	case http.MethodPut:
-		h.updateAgentApiKey(w, r, agentID, keyMappingID, userID)
+		h.updateAgentAPIKey(w, r, agentID, keyMappingID, userID)
 	case http.MethodDelete:
-		h.deleteAgentApiKeyHandler(w, r, agentID, keyMappingID, userID)
+		h.deleteAgentAPIKeyHandler(w, r, agentID, keyMappingID, userID)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-// updateAgentApiKey updates an agent API key mapping
-func (h *AgentsHandler) updateAgentApiKey(w http.ResponseWriter, r *http.Request, agentID, keyMappingID, userID string) {
-	var req types.AgentApiKeyUpdateRequest
+// updateAgentAPIKey updates an agent API key mapping
+func (h *Handler) updateAgentAPIKey(w http.ResponseWriter, r *http.Request, agentID, keyMappingID, _ string) {
+	var req types.AgentAPIKeyUpdateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	if err := h.updateAgentApiKeyFields(agentID, keyMappingID, &req); err != nil {
+	if err := h.updateAgentAPIKeyFields(agentID, keyMappingID, &req); err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "Agent API key mapping not found", http.StatusNotFound)
 		} else {
@@ -649,15 +668,17 @@ func (h *AgentsHandler) updateAgentApiKey(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"message": "Agent API key mapping updated successfully",
-	})
+	}); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
-// deleteAgentApiKeyHandler removes an agent API key mapping
-func (h *AgentsHandler) deleteAgentApiKeyHandler(w http.ResponseWriter, r *http.Request, agentID, keyMappingID, userID string) {
-	if err := h.deleteAgentApiKey(agentID, keyMappingID); err != nil {
+// deleteAgentAPIKeyHandler removes an agent API key mapping
+func (h *Handler) deleteAgentAPIKeyHandler(w http.ResponseWriter, _ *http.Request, agentID, keyMappingID, _ string) {
+	if err := h.deleteAgentAPIKey(agentID, keyMappingID); err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "Agent API key mapping not found", http.StatusNotFound)
 		} else {
@@ -667,14 +688,16 @@ func (h *AgentsHandler) deleteAgentApiKeyHandler(w http.ResponseWriter, r *http.
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"message": "Agent API key mapping deleted successfully",
-	})
+	}); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
-// GetAgentApiKeyConfiguration gets the complete API key configuration for an agent
+// GetAgentAPIKeyConfiguration gets the complete API key configuration for an agent
 // This is used internally by the execution engine to resolve agent-specific API keys
-func (h *AgentsHandler) GetAgentApiKeyConfiguration(ctx context.Context, agentID string) (*types.AgentApiKeyConfiguration, error) {
-	return h.getAgentApiKeyConfiguration(ctx, agentID)
+func (h *Handler) GetAgentAPIKeyConfiguration(ctx context.Context, agentID string) (*types.AgentAPIKeyConfiguration, error) {
+	return h.getAgentAPIKeyConfiguration(ctx, agentID)
 }

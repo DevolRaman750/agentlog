@@ -71,8 +71,8 @@ const ExecutionTemplatesScreen: React.FC = () => {
     console.log('🔄 Processing createFromExecution params:', templateData);
     
     // Set selected functions
-    if (templateData.functionIds && Array.isArray(templateData.functionIds)) {
-      console.log('✅ Setting selected functions from functionIds:', templateData.functionIds);
+    if (templateData.functionIDs && Array.isArray(templateData.functionIDs)) {
+      console.log('✅ Setting selected functions from functionIDs:', templateData.functionIDs);
     } else if (templateData.functions && Array.isArray(templateData.functions)) {
       console.log('🔄 Using fallback functions format:', templateData.functions);
     }
@@ -89,7 +89,7 @@ const ExecutionTemplatesScreen: React.FC = () => {
           isActive: true,
       tags: templateData.tags || [],
       createdAt: new Date().toISOString(),
-      functionIds: templateData.functionIds || [],
+      functionIDs: templateData.functionIDs || [],
     });
     
     setIsEditMode(false);
@@ -172,7 +172,7 @@ const ExecutionTemplatesScreen: React.FC = () => {
       }
 
       // Get function tools for the template
-      const functionTools = template.functionIds?.map(functionId => {
+      const functionTools = template.functionIDs?.map(functionId => {
         const func = availableFunctions.find(f => f.id === functionId);
         if (func) {
           return {

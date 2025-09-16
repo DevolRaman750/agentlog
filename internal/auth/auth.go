@@ -40,22 +40,22 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-// AuthService handles authentication and user management
-type AuthService struct {
+// Service handles authentication and user management
+type Service struct {
 	db          *sql.DB
 	jwtSecret   []byte
 	tokenExpiry time.Duration
 }
 
-// NewAuthService creates a new authentication service
-func NewAuthService(db *sql.DB, jwtSecret string) *AuthService {
+// NewService creates a new authentication service
+func NewService(db *sql.DB, jwtSecret string) *Service {
 	if jwtSecret == "" {
 		// Generate a random secret if none provided
 		jwtSecret = generateRandomSecret()
 		log.Printf("🔐 Generated random JWT secret")
 	}
 
-	return &AuthService{
+	return &Service{
 		db:          db,
 		jwtSecret:   []byte(jwtSecret),
 		tokenExpiry: 24 * time.Hour, // 24 hours
@@ -63,7 +63,9 @@ func NewAuthService(db *sql.DB, jwtSecret string) *AuthService {
 }
 
 // CreateTemporaryUser creates a temporary user for anonymous access
-func (as *AuthService) CreateTemporaryUser(sessionID string) (*User, string, string, error) {
+//
+//nolint:gocritic // unnamedResult - returns are self-documenting
+func (as *Service) CreateTemporaryUser(_ string) (*User, string, string, error) {
 	// Generate temporary username
 	tempUsername := fmt.Sprintf("temp_%s", generateRandomString(8))
 
@@ -71,9 +73,9 @@ func (as *AuthService) CreateTemporaryUser(sessionID string) (*User, string, str
 	tempPassword := generateRandomString(12)
 
 	// Hash the password
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(tempPassword), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, "", "", fmt.Errorf("failed to hash password: %w", err)
+	hashedPassword, hashErr := bcrypt.GenerateFromPassword([]byte(tempPassword), bcrypt.DefaultCost)
+	if hashErr != nil {
+		return nil, "", "", fmt.Errorf("failed to hash password: %w", hashErr)
 	}
 
 	userID := uuid.New().String()
@@ -85,9 +87,9 @@ func (as *AuthService) CreateTemporaryUser(sessionID string) (*User, string, str
 		VALUES (?, ?, ?, TRUE, ?, ?)
 	`
 
-	_, err = as.db.Exec(query, userID, tempUsername, string(hashedPassword), now, now)
-	if err != nil {
-		return nil, "", "", fmt.Errorf("failed to create temporary user: %w", err)
+	_, dbErr := as.db.Exec(query, userID, tempUsername, string(hashedPassword), now, now)
+	if dbErr != nil {
+		return nil, "", "", fmt.Errorf("failed to create temporary user: %w", dbErr)
 	}
 
 	user := &User{
@@ -99,9 +101,9 @@ func (as *AuthService) CreateTemporaryUser(sessionID string) (*User, string, str
 	}
 
 	// Generate JWT token
-	token, err := as.generateToken(user)
-	if err != nil {
-		return nil, "", "", fmt.Errorf("failed to generate token: %w", err)
+	token, tokenErr := as.generateToken(user)
+	if tokenErr != nil {
+		return nil, "", "", fmt.Errorf("failed to generate token: %w", tokenErr)
 	}
 
 	log.Printf("✅ Created temporary user: %s", tempUsername)
@@ -109,7 +111,7 @@ func (as *AuthService) CreateTemporaryUser(sessionID string) (*User, string, str
 }
 
 // Login authenticates a user and returns a JWT token
-func (as *AuthService) Login(usernameOrEmail, password string) (*User, string, error) {
+func (as *Service) Login(usernameOrEmail, password string) (*User, string, error) {
 	// Get user from database - try both username and email
 	query := `
 		SELECT id, username, email, password_hash, email_verified, is_temporary, 
@@ -168,7 +170,7 @@ func (as *AuthService) Login(usernameOrEmail, password string) (*User, string, e
 }
 
 // Register creates a new permanent user account
-func (as *AuthService) Register(username, email, password string) (*User, string, error) {
+func (as *Service) Register(username, email, password string) (*User, string, error) {
 	// Check if username already exists
 	var exists bool
 	err := as.db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE username = ?)", username).Scan(&exists)
@@ -235,7 +237,7 @@ func (as *AuthService) Register(username, email, password string) (*User, string
 }
 
 // SaveTemporaryAccount converts a temporary account to a permanent one
-func (as *AuthService) SaveTemporaryAccount(userID, email, currentPassword string) (*User, error) {
+func (as *Service) SaveTemporaryAccount(userID, email, currentPassword string) (*User, error) {
 	// Get current user
 	user, err := as.GetUserByID(userID)
 	if err != nil {
@@ -292,7 +294,7 @@ func (as *AuthService) SaveTemporaryAccount(userID, email, currentPassword strin
 }
 
 // ConnectTemporaryAccount connects a temporary account to an email with a new password
-func (as *AuthService) ConnectTemporaryAccount(userID, email, newPassword string) (*User, string, error) {
+func (as *Service) ConnectTemporaryAccount(userID, email, newPassword string) (*User, string, error) {
 	// Get current user
 	user, err := as.GetUserByID(userID)
 	if err != nil {
@@ -354,7 +356,7 @@ func (as *AuthService) ConnectTemporaryAccount(userID, email, newPassword string
 }
 
 // VerifyEmail verifies a user's email address
-func (as *AuthService) VerifyEmail(token string) (*User, error) {
+func (as *Service) VerifyEmail(token string) (*User, error) {
 	// Find user by verification token
 	var userID string
 	var expiresAt time.Time
@@ -403,7 +405,7 @@ func (as *AuthService) VerifyEmail(token string) (*User, error) {
 }
 
 // GetUserByID retrieves a user by ID
-func (as *AuthService) GetUserByID(userID string) (*User, error) {
+func (as *Service) GetUserByID(userID string) (*User, error) {
 	query := `
 		SELECT id, username, email, email_verified, is_temporary, 
 		       created_at, updated_at, last_login_at
@@ -437,9 +439,9 @@ func (as *AuthService) GetUserByID(userID string) (*User, error) {
 }
 
 // ValidateToken validates a JWT token and returns the user
-func (as *AuthService) ValidateToken(tokenString string) (*User, error) {
+func (as *Service) ValidateToken(tokenString string) (*User, error) {
 	// Parse and validate token
-	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(_ *jwt.Token) (interface{}, error) {
 		return as.jwtSecret, nil
 	})
 	if err != nil {
@@ -465,7 +467,7 @@ func (as *AuthService) ValidateToken(tokenString string) (*User, error) {
 }
 
 // generateToken generates a JWT token for a user
-func (as *AuthService) generateToken(user *User) (string, error) {
+func (as *Service) generateToken(user *User) (string, error) {
 	now := time.Now()
 	expiresAt := now.Add(as.tokenExpiry)
 
@@ -493,7 +495,9 @@ func generateRandomString(length int) string {
 	for i := range b {
 		// Use crypto/rand for better randomness
 		randBytes := make([]byte, 1)
-		rand.Read(randBytes)
+		if _, err := rand.Read(randBytes); err != nil {
+			panic(fmt.Errorf("failed to generate random bytes: %w", err))
+		}
 		b[i] = charset[int(randBytes[0])%len(charset)]
 	}
 	return string(b)
@@ -502,7 +506,9 @@ func generateRandomString(length int) string {
 // generateRandomSecret generates a random JWT secret
 func generateRandomSecret() string {
 	bytes := make([]byte, 32)
-	rand.Read(bytes)
+	if _, err := rand.Read(bytes); err != nil {
+		panic(fmt.Errorf("failed to generate random secret: %w", err))
+	}
 	return hex.EncodeToString(bytes)
 }
 
@@ -662,7 +668,7 @@ func (he *HeaderEncryption) GetDecryptedAPIKeysFromHeaders(headers map[string][]
 	// Decrypt each API key using exact header names from frontend
 	if encryptedKey := getHeader("X-Encrypted-Gemini-Api-Key"); encryptedKey != "" {
 		if decrypted, err := he.DecryptAPIKey(encryptedKey); err == nil && decrypted != "" {
-			apiKeys["geminiApiKey"] = decrypted
+			apiKeys["geminiAPIKey"] = decrypted
 			log.Printf("🔓 Successfully decrypted Gemini API key: %s...", decrypted[:10])
 		} else {
 			// Only log decryption errors if not in test environment
@@ -674,7 +680,7 @@ func (he *HeaderEncryption) GetDecryptedAPIKeysFromHeaders(headers map[string][]
 
 	if encryptedKey := getHeader("X-Encrypted-Openweather-Api-Key"); encryptedKey != "" {
 		if decrypted, err := he.DecryptAPIKey(encryptedKey); err == nil && decrypted != "" {
-			apiKeys["openWeatherApiKey"] = decrypted
+			apiKeys["openWeatherAPIKey"] = decrypted
 			log.Printf("🔓 Successfully decrypted OpenWeather API key: %s...", decrypted[:10])
 		} else {
 			if os.Getenv("GO_ENV") != "test" && !strings.Contains(os.Args[0], ".test") {
@@ -685,7 +691,7 @@ func (he *HeaderEncryption) GetDecryptedAPIKeysFromHeaders(headers map[string][]
 
 	if encryptedKey := getHeader("X-Encrypted-Neo4j-Url"); encryptedKey != "" {
 		if decrypted, err := he.DecryptAPIKey(encryptedKey); err == nil && decrypted != "" {
-			apiKeys["neo4jUrl"] = decrypted
+			apiKeys["neo4jURL"] = decrypted
 			log.Printf("🔓 Successfully decrypted Neo4j URL")
 		} else {
 			if os.Getenv("GO_ENV") != "test" && !strings.Contains(os.Args[0], ".test") {
@@ -729,7 +735,7 @@ func (he *HeaderEncryption) GetDecryptedAPIKeysFromHeaders(headers map[string][]
 
 	if encryptedKey := getHeader("X-Encrypted-Github-Api-Key"); encryptedKey != "" {
 		if decrypted, err := he.DecryptAPIKey(encryptedKey); err == nil && decrypted != "" {
-			apiKeys["githubApiKey"] = decrypted
+			apiKeys["githubAPIKey"] = decrypted
 			log.Printf("🔓 Successfully decrypted GitHub API key: %s...", decrypted[:10])
 		} else {
 			if os.Getenv("GO_ENV") != "test" && !strings.Contains(os.Args[0], ".test") {
@@ -740,7 +746,7 @@ func (he *HeaderEncryption) GetDecryptedAPIKeysFromHeaders(headers map[string][]
 
 	if encryptedKey := getHeader("X-Encrypted-Openrouter-Api-Key"); encryptedKey != "" {
 		if decrypted, err := he.DecryptAPIKey(encryptedKey); err == nil && decrypted != "" {
-			apiKeys["openRouterApiKey"] = decrypted
+			apiKeys["openRouterAPIKey"] = decrypted
 			log.Printf("🔓 Successfully decrypted OpenRouter API key: %s...", decrypted[:10])
 		} else {
 			if os.Getenv("GO_ENV") != "test" && !strings.Contains(os.Args[0], ".test") {

@@ -18,6 +18,40 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	DefaultMaxLength = 500
+
+	// Error classification constants
+	ErrorTypeTimeout        = "timeout"
+	ErrorTypeRateLimit      = "rate_limit"
+	ErrorTypeAuthentication = "authentication"
+	ErrorTypePermission     = "permission"
+	ErrorTypeNotFound       = "not_found"
+	ErrorTypeValidation     = "validation"
+	ErrorTypeNetwork        = "network"
+	ErrorTypeServerError    = "server_error"
+	ErrorTypeUnknown        = "unknown"
+
+	// Status constants
+	StatusError  = "error"
+	StatusStatus = "status"
+
+	// Function results prompt
+	FunctionResultsPrompt = "**Function Results:**\n"
+
+	// Timeout constants
+	SynthesisTimeoutSeconds = 300 // 5 minutes
+
+	// Summary limits
+	MaxIssuesToShow         = 3
+	MaxCommitsToShow        = 2
+	MaxItemsToShow          = 5
+	MaxItemsToShowInSummary = 3
+	MaxPRsToShow            = 3
+	MaxMessagesToShow       = 2
+	MaxKeysToShow           = 5
+)
+
 // ExecuteMultiVariation executes the same prompt with multiple configurations
 func (c *Client) ExecuteMultiVariation(ctx context.Context, userID string, request *types.MultiExecutionRequest) (*types.ExecutionResult, error) {
 	// Create execution run
@@ -42,7 +76,6 @@ func (c *Client) ExecuteMultiVariationWithExistingRun(ctx context.Context, userI
 
 // executeMultiVariationWithRun is the shared implementation for both methods
 func (c *Client) executeMultiVariationWithRun(ctx context.Context, userID string, executionRun *types.ExecutionRun, request *types.MultiExecutionRequest) (*types.ExecutionResult, error) {
-
 	// Set execution context for logging
 	c.setExecutionContext(&executionRun.ID, nil, nil)
 	defer c.clearExecutionContext()
@@ -68,8 +101,8 @@ func (c *Client) executeMultiVariationWithRun(ctx context.Context, userID string
 		"comparisonEnabled":     request.ComparisonConfig.Enabled,
 		"userID":                userID,
 		"executionRunID":        executionRun.ID,
-		"promptPreview":         c.truncateString(request.BasePrompt, 200),
-		"contextPreview":        c.truncateString(request.Context, 200),
+		"promptPreview":         c.truncateString(request.BasePrompt, DefaultMaxTokens),
+		"contextPreview":        c.truncateString(request.Context, DefaultMaxTokens),
 		"functionList":          c.extractFunctionNames(request.FunctionTools),
 		"configModels":          c.extractModelNames(request.Configurations),
 	}, nil, nil)
@@ -229,7 +262,13 @@ func (c *Client) executeMultiVariationWithRun(ctx context.Context, userID string
 		})
 
 	// Log execution complete flow event
-	totalTimeMs := int32(result.TotalTime)
+	// Guard against int64 -> int32 overflow
+	var totalTimeMs int32
+	if result.TotalTime > int64(^uint32(0)>>1) {
+		totalTimeMs = int32(^uint32(0) >> 1) // MaxInt32
+	} else {
+		totalTimeMs = int32(result.TotalTime)
+	}
 	c.logExecutionFlowEvent("execution_complete", len(request.Configurations)+1, "success", nil, map[string]interface{}{
 		"successCount": result.SuccessCount,
 		"errorCount":   result.ErrorCount,
@@ -241,63 +280,11 @@ func (c *Client) executeMultiVariationWithRun(ctx context.Context, userID string
 	return result, nil
 }
 
-// executeSingleVariation executes a single variation and logs everything
-func (c *Client) executeSingleVariation(ctx context.Context, userID string, executionRunID string, config *types.APIConfiguration, prompt, context string) (*types.VariationResult, error) {
-	// Always delegate to the engine implementation
-	return c.newEngine().ExecuteSingle(ctx, userID, executionRunID, config, prompt, context)
-}
-
 // compareResults compares the results of multiple variations with comprehensive metrics
 // Legacy comparison helpers removed; engine handles comparison and storage via adapters.
 
-// Helper functions for calculating different metrics
-func (c *Client) calculateResponseTimeScore(responseTimeMs int32) float64 {
-	return engine.ResponseTimeScore(responseTimeMs)
-}
-
-func (c *Client) calculateCreativityScore(config types.APIConfiguration, response types.APIResponse) float64 {
-	return engine.CreativityScore(config, response)
-}
-
-func (c *Client) calculateCoherenceScore(responseText string) float64 {
-	return engine.CoherenceScore(responseText)
-}
-
-func (c *Client) calculateTokenEfficiencyScore(response types.APIResponse) float64 {
-	return engine.TokenEfficiencyScore(response)
-}
-
-func (c *Client) calculateSafetyScore(responseText string) float64 {
-	return engine.SafetyScore(responseText)
-}
-
-func (c *Client) calculateCostEffectivenessScore(response types.APIResponse) float64 {
-	return engine.CostEffectivenessScore(response)
-}
-
-func (c *Client) calculateEstimatedCost(response types.APIResponse) float64 {
-	return engine.EstimatedCost(response)
-}
-
-// Helper functions
-func (c *Client) getScoreFromMap(scores map[string]interface{}, configName, scoreKey string) float64 {
-	return engine.GetScoreFromMap(scores, configName, scoreKey)
-}
-
-func (c *Client) getTokenCount(metadata map[string]interface{}, key string) int {
-	return engine.GetTokenCount(metadata, key)
-}
-
-func (c *Client) findFastest(results []types.VariationResult) *types.VariationResult {
-	return engine.FindFastest(results)
-}
-
-func (c *Client) findMostCreative(scores map[string]interface{}) string {
-	return engine.FindMostCreative(scores)
-}
-
 // StoreComparisonResult stores a comparison result in the database
-func (c *Client) StoreComparisonResult(ctx context.Context, userID string, comparison *types.ComparisonResult) error {
+func (c *Client) StoreComparisonResult(ctx context.Context, _ string, comparison *types.ComparisonResult) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
@@ -340,17 +327,23 @@ func (c *Client) GetComparisonResult(ctx context.Context, executionRunID string)
 	// Parse JSON fields
 	var configurationScores map[string]interface{}
 	if len(row.ConfigurationScores) > 0 {
-		json.Unmarshal(row.ConfigurationScores, &configurationScores)
+		if err := json.Unmarshal(row.ConfigurationScores, &configurationScores); err != nil {
+			log.Printf("Failed to unmarshal configuration scores: %v", err)
+		}
 	}
 
 	var bestConfiguration *types.APIConfiguration
-	if bestConfigData, ok := row.BestConfigurationData.(string); ok && len(bestConfigData) > 0 {
-		json.Unmarshal([]byte(bestConfigData), &bestConfiguration)
+	if bestConfigData, ok := row.BestConfigurationData.(string); ok && bestConfigData != "" {
+		if err := json.Unmarshal([]byte(bestConfigData), &bestConfiguration); err != nil {
+			log.Printf("⚠️ Failed to parse best configuration JSON: %v", err)
+		}
 	}
 
 	var allConfigurations []types.APIConfiguration
-	if allConfigData, ok := row.AllConfigurationsData.(string); ok && len(allConfigData) > 0 {
-		json.Unmarshal([]byte(allConfigData), &allConfigurations)
+	if allConfigData, ok := row.AllConfigurationsData.(string); ok && allConfigData != "" {
+		if err := json.Unmarshal([]byte(allConfigData), &allConfigurations); err != nil {
+			log.Printf("⚠️ Failed to parse all configurations JSON: %v", err)
+		}
 	}
 
 	result := &types.ComparisonResult{
@@ -384,17 +377,23 @@ func (c *Client) ListComparisonResults(ctx context.Context, executionRunID strin
 		// Parse JSON fields
 		var configurationScores map[string]interface{}
 		if len(row.ConfigurationScores) > 0 {
-			json.Unmarshal(row.ConfigurationScores, &configurationScores)
+			if err := json.Unmarshal(row.ConfigurationScores, &configurationScores); err != nil {
+				log.Printf("⚠️ Failed to parse configuration scores JSON: %v", err)
+			}
 		}
 
 		var bestConfiguration *types.APIConfiguration
-		if bestConfigData, ok := row.BestConfigurationData.(string); ok && len(bestConfigData) > 0 {
-			json.Unmarshal([]byte(bestConfigData), &bestConfiguration)
+		if bestConfigData, ok := row.BestConfigurationData.(string); ok && bestConfigData != "" {
+			if err := json.Unmarshal([]byte(bestConfigData), &bestConfiguration); err != nil {
+				log.Printf("⚠️ Failed to parse best configuration JSON: %v", err)
+			}
 		}
 
 		var allConfigurations []types.APIConfiguration
-		if allConfigData, ok := row.AllConfigurationsData.(string); ok && len(allConfigData) > 0 {
-			json.Unmarshal([]byte(allConfigData), &allConfigurations)
+		if allConfigData, ok := row.AllConfigurationsData.(string); ok && allConfigData != "" {
+			if err := json.Unmarshal([]byte(allConfigData), &allConfigurations); err != nil {
+				log.Printf("⚠️ Failed to parse all configurations JSON: %v", err)
+			}
 		}
 
 		result := &types.ComparisonResult{
@@ -421,9 +420,9 @@ func (c *Client) callGeminiAPI(ctx context.Context, config *types.APIConfigurati
 	// Use provider abstraction to determine which provider to use
 	providerType := c.providerFactory.GetProviderForModel(config.ModelName)
 	log.Printf("🤖 Using %s provider for model: %s", providerType, config.ModelName)
-	effectiveKeys := c.getEffectiveApiKeys()
+	effectiveKeys := c.getEffectiveAPIKeys()
 	log.Printf("🔑 API keys available: Gemini=%v, OpenRouter=%v",
-		effectiveKeys.GeminiApiKey != "", effectiveKeys.OpenRouterApiKey != "")
+		effectiveKeys.GeminiAPIKey != "", effectiveKeys.OpenRouterAPIKey != "")
 
 	// TEMPORARY FIX: For Gemini models, use the original working implementation instead of the broken provider
 	if providerType == "gemini" {
@@ -447,7 +446,7 @@ func (c *Client) callGeminiAPI(ctx context.Context, config *types.APIConfigurati
 		SystemPrompt:        config.SystemPrompt,
 		Tools:               config.Tools,
 		ConversationHistory: []providers.ConversationMessage{}, // TODO: Add conversation history support
-		SessionApiKeys:      effectiveKeys,
+		SessionAPIKeys:      effectiveKeys,
 	}
 
 	// Call the provider
@@ -498,7 +497,7 @@ func (c *Client) callGeminiAPI(ctx context.Context, config *types.APIConfigurati
 }
 
 // callMockGeminiAPI provides mock responses for testing/demo purposes
-func (c *Client) callMockGeminiAPI(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest) (*types.APIResponse, error) {
+func (c *Client) callMockGeminiAPI(_ context.Context, config *types.APIConfiguration, request *types.APIRequest) (*types.APIResponse, error) {
 	// For demo purposes when no API key is available
 	response := &types.APIResponse{
 		ID:             uuid.New().String(),
@@ -518,8 +517,8 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 	log.Printf("🔧 USING ORIGINAL GEMINI IMPLEMENTATION (REST API)")
 
 	// Use the existing Gemini client from internal/gemini
-	effectiveKeys := c.getEffectiveApiKeys()
-	if effectiveKeys.GeminiApiKey == "" {
+	effectiveKeys := c.getEffectiveAPIKeys()
+	if effectiveKeys.GeminiAPIKey == "" {
 		log.Printf("❌ No Gemini API key available for REST API call")
 		return &types.APIResponse{
 			ID:             uuid.New().String(),
@@ -532,7 +531,7 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 	}
 
 	// Create a Gemini client instance
-	geminiClient, err := gemini.NewGeminiClient(ctx, effectiveKeys.GeminiApiKey)
+	geminiClient, err := gemini.NewGeminiClient(ctx, effectiveKeys.GeminiAPIKey)
 	if err != nil {
 		log.Printf("❌ Failed to create Gemini client: %v", err)
 		return &types.APIResponse{
@@ -621,8 +620,8 @@ func (c *Client) callGeminiRestAPIForSynthesis(ctx context.Context, config *type
 	log.Printf("🔧 USING GEMINI REST API FOR SYNTHESIS (no function processing)")
 
 	// Use the existing Gemini client from internal/gemini
-	effectiveKeys := c.getEffectiveApiKeys()
-	if effectiveKeys.GeminiApiKey == "" {
+	effectiveKeys := c.getEffectiveAPIKeys()
+	if effectiveKeys.GeminiAPIKey == "" {
 		log.Printf("❌ No Gemini API key available for REST API call")
 		return &types.APIResponse{
 			ID:             uuid.New().String(),
@@ -635,7 +634,7 @@ func (c *Client) callGeminiRestAPIForSynthesis(ctx context.Context, config *type
 	}
 
 	// Create a Gemini client instance
-	geminiClient, err := gemini.NewGeminiClient(ctx, effectiveKeys.GeminiApiKey)
+	geminiClient, err := gemini.NewGeminiClient(ctx, effectiveKeys.GeminiAPIKey)
 	if err != nil {
 		log.Printf("❌ Failed to create Gemini client: %v", err)
 		return &types.APIResponse{
@@ -720,15 +719,14 @@ func (c *Client) processIterativeFunctionCallsWithProvider(ctx context.Context, 
 		currentTime.UTC().Format("2006-01-02 15:04:05 UTC"),
 		currentTime.Unix())
 
-	synthesisPrompt := fmt.Sprintf("User's original request: \"%s\"\n\n%s\n\n", originalPrompt, timeContext)
+	synthesisPrompt := fmt.Sprintf("User's original request: %q\n\n%s\n\n", originalPrompt, timeContext)
 
 	// Add function results to synthesis prompt so LLM can see what data it already has
 	if len(functionResults) > 0 {
-		synthesisPrompt += "**Function Results:**\n"
+		synthesisPrompt += FunctionResultsPrompt
 		for i, result := range functionResults {
 			if i < len(functionCalls) {
 				functionName := functionCalls[i].FunctionCall.Name
-
 				// Create intelligent summaries instead of truncating raw JSON
 				summary := c.createIntelligentResultSummary(functionName, result)
 				synthesisPrompt += fmt.Sprintf("- %s: %s\n", functionName, summary)
@@ -741,7 +739,7 @@ func (c *Client) processIterativeFunctionCallsWithProvider(ctx context.Context, 
 	synthesisPrompt += "**IMPORTANT: Respond in natural language. Summarize what you found and what actions you took to fulfill the user's request.**"
 
 	// Get effective API keys for the synthesis request
-	effectiveKeys := c.getEffectiveApiKeys()
+	effectiveKeys := c.getEffectiveAPIKeys()
 
 	// Use SynthesisManager for provider-based synthesis (Kimi K2, etc.)
 	synthesisManager := NewSynthesisManager()
@@ -764,11 +762,11 @@ func (c *Client) processIterativeFunctionCallsWithProvider(ctx context.Context, 
 		SystemPrompt:        config.SystemPrompt,
 		Tools:               decision.Tools, // Use intelligent tool decision
 		ConversationHistory: []providers.ConversationMessage{},
-		SessionApiKeys:      effectiveKeys,
+		SessionAPIKeys:      effectiveKeys,
 	}
 
 	// Create a longer timeout context specifically for synthesis (may take longer due to large function results)
-	synthesisCtx, cancel := context.WithTimeout(ctx, 300*time.Second) // 5 minutes for synthesis
+	synthesisCtx, cancel := context.WithTimeout(ctx, SynthesisTimeoutSeconds*time.Second) // 5 minutes for synthesis
 	defer cancel()
 
 	// Call the provider for synthesis with iterative support
@@ -811,79 +809,64 @@ func (c *Client) processProviderSynthesisWithIteration(ctx context.Context, conf
 
 		// Use SynthesisManager to determine if we should continue
 		synthesisManager := NewSynthesisManager()
-		allFunctionCalls := append(functionCalls, convertFunctionCallsToResponseParts(synthesisResponse.FunctionCalls)...)
-		allFunctionResults := append(functionResults, additionalResults...)
+		functionCalls = append(functionCalls, convertFunctionCallsToResponseParts(synthesisResponse.FunctionCalls)...)
+		functionResults = append(functionResults, additionalResults...)
 
-		synthesisConfig := &SynthesisConfig{
-			ProviderType:    providerType,
-			Depth:           depth + 1,
-			ShouldComplete:  false,
-			FunctionCalls:   allFunctionCalls,
-			FunctionResults: allFunctionResults,
-			OriginalConfig:  config,
-		}
+		// Decide whether to continue synthesizing based on progress
+		shouldContinue := depth < maxDepth
 
-		decision := synthesisManager.DetermineSynthesisStrategy(synthesisConfig)
+		if shouldContinue {
+			log.Printf("🔄 Continuing synthesis at depth %d", depth)
+			// Create a clean synthesis prompt focused on task guidance
+			newSynthesisPrompt := fmt.Sprintf("User's original request: %q\n\n", originalPrompt)
 
-		if decision.ForceCompletion {
-			log.Printf("🛑 %s synthesis manager forcing completion at depth %d: %s", providerType, depth, decision.Reason)
-			if synthesisResponse.ResponseText != "" {
-				return synthesisResponse.ResponseText, nil
+			// Add accumulated function results to synthesis prompt so LLM can see what data it already has
+			if len(functionResults) > 0 {
+				newSynthesisPrompt += "**Function Results:**\n"
+				for i, result := range functionResults {
+					if i < len(functionCalls) {
+						functionName := functionCalls[i].FunctionCall.Name
+						summary := c.createIntelligentResultSummary(functionName, result)
+						newSynthesisPrompt += fmt.Sprintf("- %s: %s\n", functionName, summary)
+					}
+				}
+				newSynthesisPrompt += "\n"
 			}
-			return c.createFallbackSummary(allFunctionCalls, allFunctionResults), nil
-		}
 
-		// Create a clean synthesis prompt focused on task guidance
-		newSynthesisPrompt := fmt.Sprintf("User's original request: \"%s\"\n\n", originalPrompt)
-
-		// Add accumulated function results to synthesis prompt so LLM can see what data it already has
-		if len(allFunctionResults) > 0 {
-			newSynthesisPrompt += "**Function Results:**\n"
-			for i, result := range allFunctionResults {
-				if i < len(allFunctionCalls) {
-					functionName := allFunctionCalls[i].FunctionCall.Name
-
-					// Create intelligent summaries instead of truncating raw JSON
-					summary := c.createIntelligentResultSummary(functionName, result)
-					newSynthesisPrompt += fmt.Sprintf("- %s: %s\n", functionName, summary)
+			var hasErrors bool
+			// Check for errors without duplicating function data in the prompt
+			for i := range functionResults {
+				if status, ok := functionResults[i]["status"].(string); ok && (status == "failed" || status == "validation_failed") {
+					hasErrors = true
 				}
 			}
-			newSynthesisPrompt += "\n"
-		}
 
-		var hasErrors bool
-		// Check for errors without duplicating function data in the prompt
-		for i := range allFunctionResults {
-			if status, ok := allFunctionResults[i]["status"].(string); ok && (status == "failed" || status == "validation_failed") {
-				hasErrors = true
+			// Detect if we have sufficient data to complete the task
+			shouldComplete := c.detectTaskCompletion(functionCalls, functionResults, depth+1, originalPrompt)
+
+			// Add intelligent prompt suffix with context awareness
+			if hasErrors {
+				newSynthesisPrompt += "\n**ERROR HANDLING:** Some functions failed with errors. Please analyze the available data and provide your best response. DO NOT make additional function calls that might fail with the same errors.\n\n**IMPORTANT: Respond in natural language - DO NOT echo the function names or raw data above. Instead, analyze the successful results and provide a human-readable response explaining what you were able to accomplish. CRITICAL: Use ONLY natural language - no code blocks or tool_code.**"
+			} else if shouldComplete {
+				newSynthesisPrompt += "\n**FINAL RESPONSE REQUIRED:** You now have all the necessary data to complete the user's request. STOP calling functions and provide a comprehensive final response using the data above. \n\n**IMPORTANT: Respond in natural language - DO NOT echo the function names or raw data above. Instead, analyze the results and provide a human-readable response that directly addresses the user's original request. Summarize what you found and what actions you took. CRITICAL: Use ONLY natural language - no code blocks or tool_code.**"
+			} else {
+				promptSuffix := synthesisManager.GetSynthesisPromptSuffix(&SynthesisDecision{ForceCompletion: false}, providerType)
+				newSynthesisPrompt += promptSuffix
 			}
+
+			// Create new synthesis request
+			newSynthesisRequest := &providers.ModelRequest{
+				Prompt:              newSynthesisPrompt,
+				Context:             synthesisRequest.Context,
+				SystemPrompt:        synthesisRequest.SystemPrompt,
+				Tools:               config.Tools,
+				ConversationHistory: synthesisRequest.ConversationHistory,
+				SessionAPIKeys:      synthesisRequest.SessionAPIKeys,
+			}
+
+			// Recursively continue synthesis
+			return c.processProviderSynthesisWithIteration(ctx, config, newSynthesisRequest, provider, providerType, functionCalls, functionResults, originalPrompt, depth+1, maxDepth)
 		}
-
-		// Detect if we have sufficient data to complete the task
-		shouldComplete := c.detectTaskCompletion(allFunctionCalls, allFunctionResults, depth+1, originalPrompt)
-
-		// Add intelligent prompt suffix with context awareness
-		if hasErrors {
-			newSynthesisPrompt += "\n**ERROR HANDLING:** Some functions failed with errors. Please analyze the available data and provide your best response. DO NOT make additional function calls that might fail with the same errors.\n\n**IMPORTANT: Respond in natural language - DO NOT echo the function names or raw data above. Instead, analyze the successful results and provide a human-readable response explaining what you were able to accomplish. CRITICAL: Use ONLY natural language - no code blocks or tool_code.**"
-		} else if shouldComplete {
-			newSynthesisPrompt += "\n**FINAL RESPONSE REQUIRED:** You now have all the necessary data to complete the user's request. STOP calling functions and provide a comprehensive final response using the data above. \n\n**IMPORTANT: Respond in natural language - DO NOT echo the function names or raw data above. Instead, analyze the results and provide a human-readable response that directly addresses the user's original request. Summarize what you found and what actions you took. CRITICAL: Use ONLY natural language - no code blocks or tool_code.**"
-		} else {
-			promptSuffix := synthesisManager.GetSynthesisPromptSuffix(decision, providerType)
-			newSynthesisPrompt += promptSuffix
-		}
-
-		// Create new synthesis request
-		newSynthesisRequest := &providers.ModelRequest{
-			Prompt:              newSynthesisPrompt,
-			Context:             synthesisRequest.Context,
-			SystemPrompt:        synthesisRequest.SystemPrompt,
-			Tools:               decision.Tools,
-			ConversationHistory: synthesisRequest.ConversationHistory,
-			SessionApiKeys:      synthesisRequest.SessionApiKeys,
-		}
-
-		// Recursively continue synthesis
-		return c.processProviderSynthesisWithIteration(ctx, config, newSynthesisRequest, provider, providerType, allFunctionCalls, allFunctionResults, originalPrompt, depth+1, maxDepth)
 	}
 
 	// No additional function calls - provide final response
@@ -965,8 +948,7 @@ func (c *Client) executeFunctionCall(ctx context.Context, functionName string, a
 	}
 
 	// Normalize common argument aliases (e.g. node_label → label)
-	switch functionName {
-	case "neo4j_node_lookup":
+	if functionName == "neo4j_node_lookup" {
 		if _, ok := args["label"]; !ok {
 			if nodeLabel, hasNL := args["node_label"]; hasNL {
 				args["label"] = nodeLabel
@@ -999,7 +981,7 @@ func (c *Client) executeFunctionCall(ctx context.Context, functionName string, a
 			"functionName":    functionName,
 			"arguments":       args,
 			"resultSize":      len(resultStr),
-			"resultPreview":   c.truncateString(resultStr, 500),
+			"resultPreview":   c.truncateString(resultStr, DefaultMaxLength),
 			"executionTimeMs": executionTimeMs,
 			"hasData":         c.resultHasData(result),
 		}, &executionTimeMs, nil)
@@ -1122,47 +1104,10 @@ func (c *Client) createFallbackSummary(functionCalls []ResponsePart, functionRes
 	return fmt.Sprintf("I executed %d functions to process your request. The functions completed successfully.", len(functionCalls))
 }
 
-// processIterativeFunctionCalls handles function calls with proper dependency support
-func (c *Client) processIterativeFunctionCalls(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest, functionCalls []ResponsePart, originalPrompt string) (string, map[string]interface{}) {
-	log.Printf("🔧 Starting iterative function calling with %d initial function(s)", len(functionCalls))
-
-	// For now, execute all function calls and provide a basic summary
-	var functionNames []string
-	functionResults := make([]map[string]interface{}, len(functionCalls))
-
-	for i, funcCall := range functionCalls {
-		functionNames = append(functionNames, funcCall.FunctionCall.Name)
-		result, err := c.executeFunctionCall(ctx, funcCall.FunctionCall.Name, funcCall.FunctionCall.Args)
-		if err != nil {
-			log.Printf("⚠️ Function %s failed: %v", funcCall.FunctionCall.Name, err)
-			result = map[string]interface{}{
-				"error":  err.Error(),
-				"status": "failed",
-			}
-		}
-		functionResults[i] = result
-	}
-
-	// Create a simple summary
-	summary := fmt.Sprintf("I executed %d functions: %s", len(functionNames), strings.Join(functionNames, ", "))
-
-	// Return the first function call info for legacy compatibility
-	var firstFunctionResponse map[string]interface{}
-	if len(functionCalls) > 0 {
-		firstFunctionResponse = map[string]interface{}{
-			"function_name": functionCalls[0].FunctionCall.Name,
-			"arguments":     functionCalls[0].FunctionCall.Args,
-			"result":        functionResults[0],
-		}
-	}
-
-	return summary, firstFunctionResponse
-}
-
 // processIterativeFunctionCallsWithSynthesis executes functions and gets LLM synthesis using Gemini REST API
-// Allow natural workflow completion without artificial depth limits
+// Add reasonable limits to prevent infinite loops while allowing natural workflow completion
 func (c *Client) processIterativeFunctionCallsWithSynthesis(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest, functionCalls []ResponsePart, originalPrompt string) string {
-	const maxIterationDepth = 20 // Allow natural workflow completion
+	const maxIterationDepth = 12 // Reasonable limit that allows complex workflows but prevents infinite loops
 
 	return c.processIterativeFunctionCallsWithSynthesisRecursive(ctx, config, request, functionCalls, originalPrompt, 0, maxIterationDepth)
 }
@@ -1176,7 +1121,7 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursive(ctx context
 func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(ctx context.Context, config *types.APIConfiguration, request *types.APIRequest, functionCalls []ResponsePart, originalPrompt string, depth int, maxDepth int, allFunctionCalls []ResponsePart, allFunctionResults []map[string]interface{}) string {
 	if depth >= maxDepth {
 		log.Printf("⚠️ Maximum function calling depth (%d) reached, stopping iteration", maxDepth)
-		return fmt.Sprintf("I executed %d functions but reached maximum iteration depth. Results may be incomplete.", len(functionCalls))
+		return fmt.Sprintf("I executed %d functions but reached maximum iteration depth. Results may be incomplete.", len(allFunctionCalls))
 	}
 	log.Printf("🔧 Starting function calling with Gemini synthesis for %d function(s)", len(functionCalls))
 
@@ -1290,7 +1235,7 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 					"resultSummary": resultSummary,
 					"resultKeys":    c.getMapKeys(result),
 					"executionEnd":  time.Now().Format("15:04:05.000"),
-					"resultPreview": c.truncateString(fmt.Sprintf("%v", result), 500),
+					"resultPreview": c.truncateString(fmt.Sprintf("%v", result), DefaultMaxLength),
 				})
 
 			// Log success in flow
@@ -1311,8 +1256,16 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 	}
 
 	// Accumulate all function calls and results across iterations
-	currentAllFunctionCalls := append(allFunctionCalls, functionCalls...)
-	currentAllFunctionResults := append(allFunctionResults, functionResults...)
+	currentAllFunctionCalls := append([]ResponsePart{}, allFunctionCalls...)
+	currentAllFunctionCalls = append(currentAllFunctionCalls, functionCalls...)
+	currentAllFunctionResults := append([]map[string]interface{}{}, allFunctionResults...)
+	currentAllFunctionResults = append(currentAllFunctionResults, functionResults...)
+
+	// Enhanced loop detection for Gemini - check for patterns earlier
+	if c.detectGeminiLoopPattern(currentAllFunctionCalls, depth) {
+		log.Printf("🛑 Gemini loop pattern detected at depth %d, forcing completion", depth)
+		return c.createFallbackSummary(currentAllFunctionCalls, currentAllFunctionResults)
+	}
 
 	// Create a clean synthesis prompt with current time context
 	currentTime := time.Now()
@@ -1321,16 +1274,14 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 		currentTime.UTC().Format("2006-01-02 15:04:05 UTC"),
 		currentTime.Unix())
 
-	synthesisPrompt := fmt.Sprintf("User's original request: \"%s\"\n\n%s\n\n", originalPrompt, timeContext)
+	synthesisPrompt := fmt.Sprintf("User's original request: %q\n\n%s\n\n", originalPrompt, timeContext)
 
 	// Add function results to synthesis prompt so LLM can see what data it already has
 	if len(currentAllFunctionResults) > 0 {
-		synthesisPrompt += "**Function Results:**\n"
+		synthesisPrompt += FunctionResultsPrompt
 		for i, result := range currentAllFunctionResults {
 			if i < len(currentAllFunctionCalls) {
 				functionName := currentAllFunctionCalls[i].FunctionCall.Name
-
-				// Create intelligent summaries instead of truncating raw JSON
 				summary := c.createIntelligentResultSummary(functionName, result)
 				synthesisPrompt += fmt.Sprintf("- %s: %s\n", functionName, summary)
 			}
@@ -1357,9 +1308,16 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 	} else if shouldComplete {
 		synthesisPrompt += "\n**FINAL RESPONSE REQUIRED:** You now have all the necessary data to complete the user's request. STOP calling functions and provide a comprehensive final response using the data above.\n\n**CRITICAL: You must respond ONLY in natural language. DO NOT return code blocks, function calls, or tool_code. Do not use markdown code blocks or backticks. Provide a clear, human-readable summary that directly addresses the user's original request. Explain what you found and what actions you took.**"
 	} else {
+		// Add depth awareness to prevent loops
+		depthWarning := ""
+		if depth >= 3 {
+			depthWarning = "\n**IMPORTANT:** You have already made several function calls. Consider if you have enough information to complete the user's request. Avoid making unnecessary additional function calls.\n"
+		}
+
 		// Add state management instructions based on research best practices
 		synthesisPrompt += "\n**PROGRESS TRACKING:** Before making any function calls, briefly recap what you have already accomplished in this task. Consider whether you have enough data to complete the user's request.\n\n"
 		synthesisPrompt += "**IMPORTANT:** If you have already gathered the necessary data (channel info, messages, GitHub data), proceed to complete the task (send replies, add reactions) rather than repeating data collection functions."
+		synthesisPrompt += depthWarning
 	}
 
 	// Create a new API request for synthesis
@@ -1413,7 +1371,7 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 
 	// Add intelligent prompt suffix if not already handled by error/completion logic
 	if !hasErrors && !shouldComplete {
-		promptSuffix := synthesisManager.GetSynthesisPromptSuffix(decision, "gemini")
+		promptSuffix := synthesisManager.GetSynthesisPromptSuffix(&SynthesisDecision{ForceCompletion: false}, "gemini")
 		synthesisPrompt += promptSuffix
 	}
 
@@ -1445,7 +1403,7 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 		})
 
 	// Create a longer timeout context specifically for Gemini synthesis (may take longer due to large function results)
-	synthesisCtx, synthesisCancel := context.WithTimeout(ctx, 300*time.Second) // 5 minutes for synthesis
+	synthesisCtx, synthesisCancel := context.WithTimeout(ctx, SynthesisTimeoutSeconds*time.Second) // 5 minutes for synthesis
 	defer synthesisCancel()
 
 	synthesisResponse, err := c.callGeminiRestAPIForSynthesis(synthesisCtx, &configForSynthesis, synthesisRequest)
@@ -1525,6 +1483,18 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 						summary += synthesisResponse.ResponseText
 					} else {
 						summary += "The functions executed successfully but some calls failed validation."
+					}
+					return summary
+				}
+
+				// Only prevent additional function calls at very high depth (safety net)
+				if depth >= 8 {
+					log.Printf("🛑 Gemini safety net: depth limit reached (%d), preventing additional function calls", depth)
+					summary := "I completed the analysis but reached the safety depth limit. "
+					if synthesisResponse.ResponseText != "" {
+						summary += synthesisResponse.ResponseText
+					} else {
+						summary += "The functions executed successfully."
 					}
 					return summary
 				}
@@ -1618,25 +1588,25 @@ func (c *Client) classifyError(errorMsg string) string {
 
 	switch {
 	case strings.Contains(errorLower, "timeout"):
-		return "timeout"
+		return ErrorTypeTimeout
 	case strings.Contains(errorLower, "rate limit"):
-		return "rate_limit"
+		return ErrorTypeRateLimit
 	case strings.Contains(errorLower, "quota"):
 		return "quota_exceeded"
 	case strings.Contains(errorLower, "authentication") || strings.Contains(errorLower, "unauthorized"):
-		return "authentication"
+		return ErrorTypeAuthentication
 	case strings.Contains(errorLower, "permission") || strings.Contains(errorLower, "forbidden"):
-		return "permission"
+		return ErrorTypePermission
 	case strings.Contains(errorLower, "not found") || strings.Contains(errorLower, "404"):
-		return "not_found"
+		return ErrorTypeNotFound
 	case strings.Contains(errorLower, "invalid") || strings.Contains(errorLower, "bad request"):
-		return "validation"
+		return ErrorTypeValidation
 	case strings.Contains(errorLower, "network") || strings.Contains(errorLower, "connection"):
-		return "network"
+		return ErrorTypeNetwork
 	case strings.Contains(errorLower, "server error") || strings.Contains(errorLower, "500"):
-		return "server_error"
+		return ErrorTypeServerError
 	default:
-		return "unknown"
+		return ErrorTypeUnknown
 	}
 }
 
@@ -1654,31 +1624,6 @@ func (c *Client) isRetryableError(errorMsg string) bool {
 	}
 }
 
-// extractTokenUsage attempts to extract token usage information from API response
-func (c *Client) extractTokenUsage(response *types.APIResponse) map[string]interface{} {
-	if response.UsageMetadata == nil {
-		return map[string]interface{}{"available": false}
-	}
-
-	// Usage metadata is already a map, no need to unmarshal
-	usage := response.UsageMetadata
-
-	result := map[string]interface{}{"available": true}
-
-	// Extract common token fields
-	if promptTokens, ok := usage["promptTokenCount"]; ok {
-		result["promptTokens"] = promptTokens
-	}
-	if candidateTokens, ok := usage["candidatesTokenCount"]; ok {
-		result["candidateTokens"] = candidateTokens
-	}
-	if totalTokens, ok := usage["totalTokenCount"]; ok {
-		result["totalTokens"] = totalTokens
-	}
-
-	return result
-}
-
 // resultHasData checks if a function result contains meaningful data
 func (c *Client) resultHasData(result map[string]interface{}) bool {
 	if result == nil {
@@ -1688,7 +1633,7 @@ func (c *Client) resultHasData(result map[string]interface{}) bool {
 	// Check for common indicators of meaningful data
 	for key, value := range result {
 		switch key {
-		case "error", "status":
+		case StatusError, StatusStatus:
 			continue // Skip error/status fields
 		default:
 			if value != nil {
@@ -1908,14 +1853,14 @@ func (c *Client) createDetailedGitHubIssuesSummary(result map[string]interface{}
 	summary.WriteString(fmt.Sprintf("Found %d issues: ", len(issues)))
 
 	for i, issue := range issues {
-		if i >= 3 { // Limit to first 3 for logging
-			summary.WriteString(fmt.Sprintf("... and %d more", len(issues)-3))
+		if i >= MaxIssuesToShow { // Limit to first 3 for logging
+			summary.WriteString(fmt.Sprintf("... and %d more", len(issues)-MaxIssuesToShow))
 			break
 		}
 
 		if issueMap, ok := issue.(map[string]interface{}); ok {
 			number := "unknown"
-			title := "No title"
+			title := NoTitleText
 			state := "unknown"
 
 			if num, ok := issueMap["number"].(float64); ok {
@@ -1960,8 +1905,8 @@ func (c *Client) createDetailedGitHubCommitsSummary(result map[string]interface{
 	summary.WriteString(fmt.Sprintf("Retrieved %d commits: ", len(commits)))
 
 	for i, commit := range commits {
-		if i >= 2 { // Limit to first 2 for logging
-			summary.WriteString(fmt.Sprintf("... and %d more", len(commits)-2))
+		if i >= MaxCommitsToShow { // Limit to first 2 for logging
+			summary.WriteString(fmt.Sprintf("... and %d more", len(commits)-MaxCommitsToShow))
 			break
 		}
 
@@ -2029,8 +1974,8 @@ func (c *Client) createDetailedGitHubCodeSummary(result map[string]interface{}) 
 			if items, ok := data["items"].([]interface{}); ok {
 				var itemNames []string
 				for i, item := range items {
-					if i >= 5 { // Limit to first 5 items
-						itemNames = append(itemNames, fmt.Sprintf("... and %d more", len(items)-5))
+					if i >= MaxItemsToShow { // Limit to first 5 items
+						itemNames = append(itemNames, fmt.Sprintf("... and %d more", len(items)-MaxItemsToShow))
 						break
 					}
 					if itemMap, ok := item.(map[string]interface{}); ok {
@@ -2065,8 +2010,8 @@ func (c *Client) createDetailedGitHubSearchSummary(result map[string]interface{}
 		summary.WriteString(fmt.Sprintf("Found %d code matches: ", len(items)))
 
 		for i, item := range items {
-			if i >= 3 { // Limit to first 3 for logging
-				summary.WriteString(fmt.Sprintf("... and %d more", len(items)-3))
+			if i >= MaxItemsToShowInSummary { // Limit to first 3 for logging
+				summary.WriteString(fmt.Sprintf("... and %d more", len(items)-MaxItemsToShowInSummary))
 				break
 			}
 
@@ -2113,14 +2058,14 @@ func (c *Client) createDetailedGitHubPullRequestsSummary(result map[string]inter
 	summary.WriteString(fmt.Sprintf("Found %d pull requests: ", len(prs)))
 
 	for i, pr := range prs {
-		if i >= 3 { // Limit to first 3 for logging
-			summary.WriteString(fmt.Sprintf("... and %d more", len(prs)-3))
+		if i >= MaxPRsToShow { // Limit to first 3 for logging
+			summary.WriteString(fmt.Sprintf("... and %d more", len(prs)-MaxPRsToShow))
 			break
 		}
 
 		if prMap, ok := pr.(map[string]interface{}); ok {
 			number := "unknown"
-			title := "No title"
+			title := NoTitleText
 			state := "unknown"
 			author := "unknown"
 
@@ -2164,7 +2109,7 @@ func (c *Client) createDetailedGitHubClosePRSummary(result map[string]interface{
 
 	if state, ok := data["state"].(string); ok && state == "closed" {
 		number := "unknown"
-		title := "No title"
+		title := NoTitleText
 
 		if num, ok := data["number"].(float64); ok {
 			number = fmt.Sprintf("#%.0f", num)
@@ -2232,8 +2177,8 @@ func (c *Client) createDetailedSlackMessagesSummary(result map[string]interface{
 	summary.WriteString(fmt.Sprintf("Retrieved %d messages: ", len(messages)))
 
 	for i, message := range messages {
-		if i >= 2 { // Limit to first 2 for logging
-			summary.WriteString(fmt.Sprintf("... and %d more", len(messages)-2))
+		if i >= MaxMessagesToShow { // Limit to first 2 for logging
+			summary.WriteString(fmt.Sprintf("... and %d more", len(messages)-MaxMessagesToShow))
 			break
 		}
 
@@ -2296,8 +2241,8 @@ func (c *Client) createDetailedGenericSummary(result map[string]interface{}) str
 	summary.WriteString(fmt.Sprintf("Result with %d fields: ", len(result)))
 
 	keys := c.getMapKeys(result)
-	if len(keys) > 5 {
-		summary.WriteString(fmt.Sprintf("%s ... and %d more", strings.Join(keys[:5], ", "), len(keys)-5))
+	if len(keys) > MaxKeysToShow {
+		summary.WriteString(fmt.Sprintf("%s ... and %d more", strings.Join(keys[:MaxKeysToShow], ", "), len(keys)-MaxKeysToShow))
 	} else {
 		summary.WriteString(strings.Join(keys, ", "))
 	}
@@ -2312,19 +2257,9 @@ func (c *Client) createIntelligentResultSummary(functionName string, result map[
 	return engine.SummarizeResult(functionName, result)
 }
 
-// createFullDataSummary is kept for compatibility; delegate to engine
-func (c *Client) createFullDataSummary(result map[string]interface{}) string {
-	s := engine.CreateFullDataSummary(result)
-	// When marshaling fails, engine falls back to generic; we log for observability
-	if s == engine.CreateGenericSummary(result) {
-		log.Printf("⚠️ Failed to marshal result to JSON; using generic summary")
-	}
-	return s
-}
-
 // autoExtractParameters automatically extracts missing parameters from previous function results
 // Following LLM function calling best practices - minimal intervention, let LLM handle parameter selection
-func (c *Client) autoExtractParameters(ctx context.Context, funcCall *ResponsePart, previousResults []map[string]interface{}) {
+func (c *Client) autoExtractParameters(_ context.Context, funcCall *ResponsePart, previousResults []map[string]interface{}) {
 	// Minimal parameter extraction - only for truly generic cases where the LLM clearly needs help
 	// Most parameter selection should be handled by the LLM itself using the function results
 
@@ -2348,27 +2283,68 @@ func (c *Client) autoExtractParameters(ctx context.Context, funcCall *ResponsePa
 	}
 }
 
+// detectGeminiLoopPattern detects problematic loop patterns for Gemini execution
+func (c *Client) detectGeminiLoopPattern(functionCalls []ResponsePart, depth int) bool {
+	// Only detect loops at higher depths to avoid false positives
+	if len(functionCalls) < 4 || depth < 3 {
+		return false
+	}
+
+	// Check for excessive repetition of the same function (4+ times in last 5 calls)
+	if len(functionCalls) >= 5 {
+		last5 := functionCalls[len(functionCalls)-5:]
+		sameFunctionCount := 0
+		for i := 1; i < len(last5); i++ {
+			if last5[i].FunctionCall.Name == last5[0].FunctionCall.Name {
+				sameFunctionCount++
+			}
+		}
+		if sameFunctionCount >= 3 { // 4+ times total
+			log.Printf("🔄 Gemini excessive repetition detected: %s called %d times in last 5 calls", last5[0].FunctionCall.Name, sameFunctionCount+1)
+			return true
+		}
+	}
+
+	// Check for alternating pattern only at high depth (A-B-A-B-A-B)
+	if len(functionCalls) >= 6 && depth >= 5 {
+		last6 := functionCalls[len(functionCalls)-6:]
+		if last6[0].FunctionCall.Name == last6[2].FunctionCall.Name &&
+			last6[2].FunctionCall.Name == last6[4].FunctionCall.Name &&
+			last6[1].FunctionCall.Name == last6[3].FunctionCall.Name &&
+			last6[3].FunctionCall.Name == last6[5].FunctionCall.Name &&
+			last6[0].FunctionCall.Name != last6[1].FunctionCall.Name {
+			log.Printf("🔄 Gemini alternating loop detected: %s <-> %s (6+ calls)", last6[0].FunctionCall.Name, last6[1].FunctionCall.Name)
+			return true
+		}
+	}
+
+	// Check for excessive function calls only at very high depth
+	if depth >= 6 && len(functionCalls) >= 15 {
+		log.Printf("🔄 Gemini excessive calls detected: %d calls at depth %d", len(functionCalls), depth)
+		return true
+	}
+
+	return false
+}
+
 // detectTaskCompletion determines if we have enough data to complete the user's task
-func (c *Client) detectTaskCompletion(functionCalls []ResponsePart, functionResults []map[string]interface{}, depth int, originalPrompt string) bool {
-	// Safety net: prevent runaway execution at very high depths
-	if depth >= 15 {
-		log.Printf("🛑 Safety net: Force completion at depth %d to prevent runaway execution", depth)
+func (c *Client) detectTaskCompletion(functionCalls []ResponsePart, _ []map[string]interface{}, depth int, _ string) bool {
+	// Safety net only at very high depth to prevent runaway execution
+	if depth >= 10 {
+		log.Printf("🛑 Gemini safety net: Force completion at depth %d to prevent runaway execution", depth)
 		return true
 	}
 
 	// Let the LLM decide when it's done - no artificial task completion detection
-	// The synthesis manager and infinite loop detection will handle edge cases
+	// The synthesis manager and loop detection will handle edge cases
 	log.Printf("🔍 Task completion check: depth=%d, functions=%d - letting LLM decide naturally", depth, len(functionCalls))
 	return false
 }
 
-// smartTruncateJSON truncates JSON at logical boundaries to avoid malformed JSON
-func (c *Client) smartTruncateJSON(jsonStr string, maxLength int) string {
-	return engine.SmartTruncateJSON(jsonStr, maxLength)
-}
-
 // autoExtractParametersFromContext extracts parameters for next iteration function calls using current results
-func (c *Client) autoExtractParametersFromContext(ctx context.Context, funcCall *ResponsePart, previousResults []map[string]interface{}) {
+// autoExtractParametersFromContext is kept for potential future use
+/*
+func (c *Client) autoExtractParametersFromContext(_ context.Context, funcCall *ResponsePart, previousResults []map[string]interface{}) {
 	if funcCall.FunctionCall.Args == nil {
 		funcCall.FunctionCall.Args = make(map[string]interface{})
 	}
@@ -2382,20 +2358,4 @@ func (c *Client) autoExtractParametersFromContext(ctx context.Context, funcCall 
 		log.Printf("✅ Auto-extraction: %s already has channel parameter", funcCall.FunctionCall.Name)
 	}
 }
-
-// createGenericSummary provides a fallback summary for unknown functions
-func (c *Client) createGenericSummary(result map[string]interface{}) string {
-	if len(result) == 0 {
-		return "No data returned"
-	}
-
-	// Count data elements
-	dataCount := 0
-	for key, value := range result {
-		if key != "metadata" && key != "_metadata" && value != nil {
-			dataCount++
-		}
-	}
-
-	return fmt.Sprintf("Retrieved data with %d fields", dataCount)
-}
+*/

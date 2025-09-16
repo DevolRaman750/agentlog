@@ -12,7 +12,7 @@ import (
 
 // GeminiProvider implements the ModelProvider interface for Google Gemini models
 type GeminiProvider struct {
-	client *gemini.GeminiClient
+	client *gemini.Client
 }
 
 // NewGeminiProvider creates a new Gemini provider instance
@@ -69,7 +69,11 @@ func (p *GeminiProvider) ValidateConfig(config *types.APIConfiguration) error {
 }
 
 // GenerateContent generates content using Gemini with function calling support
-func (p *GeminiProvider) GenerateContent(ctx context.Context, config *types.APIConfiguration, request *ModelRequest) (*ModelResponse, error) {
+func (p *GeminiProvider) GenerateContent(
+	ctx context.Context,
+	config *types.APIConfiguration,
+	request *ModelRequest,
+) (*ModelResponse, error) {
 	log.Printf("🤖 Gemini request - Model: %s, Tools: %d, Prompt length: %d",
 		config.ModelName, len(request.Tools), len(request.Prompt))
 
@@ -77,7 +81,7 @@ func (p *GeminiProvider) GenerateContent(ctx context.Context, config *types.APIC
 	if len(request.Tools) == 0 {
 		response, err := p.generateSimpleContent(ctx, config, request)
 		if err != nil {
-			return nil, fmt.Errorf("Gemini simple generation failed: %w", err)
+			return nil, fmt.Errorf("gemini simple generation failed: %w", err)
 		}
 		return response, nil
 	}
@@ -128,7 +132,7 @@ func (p *GeminiProvider) generateWithFunctionCalling(ctx context.Context, config
 	// Use existing Gemini client for function calling
 	response, err := p.callGeminiWithTools(ctx, &configWithTools, request, conversationHistory)
 	if err != nil {
-		return nil, fmt.Errorf("Gemini function calling failed: %w", err)
+		return nil, fmt.Errorf("gemini function calling failed: %w", err)
 	}
 
 	return response, nil
@@ -159,7 +163,7 @@ func (p *GeminiProvider) buildGeminiConversationHistory(request *ModelRequest) [
 }
 
 // callGeminiWithTools makes API calls with function calling support using the existing sophisticated logic
-func (p *GeminiProvider) callGeminiWithTools(ctx context.Context, config *types.APIConfiguration, request *ModelRequest, conversationHistory []map[string]interface{}) (*ModelResponse, error) {
+func (p *GeminiProvider) callGeminiWithTools(ctx context.Context, config *types.APIConfiguration, request *ModelRequest, _ []map[string]interface{}) (*ModelResponse, error) {
 	// Build full prompt with system prompt and context
 	fullPrompt := request.Prompt
 	if config.SystemPrompt != "" {
@@ -195,8 +199,6 @@ func (p *GeminiProvider) callGeminiWithTools(ctx context.Context, config *types.
 // This is a simplified parser - in full implementation, this would integrate
 // with your existing sophisticated function calling logic
 func (p *GeminiProvider) parseFunctionCallsFromResponse(responseText string) []FunctionCall {
-	var functionCalls []FunctionCall
-
 	// Simple detection for function calls in text
 	// Your existing implementation in internal/gogent/client.go has much more sophisticated parsing
 	if strings.Contains(responseText, "function_call") || strings.Contains(responseText, "tool_call") {
@@ -204,7 +206,8 @@ func (p *GeminiProvider) parseFunctionCallsFromResponse(responseText string) []F
 		// TODO: Integrate with existing function call parsing from internal/gogent/client.go
 	}
 
-	return functionCalls
+	// Return empty slice - this is intentional for the placeholder implementation
+	return []FunctionCall{}
 }
 
 // Close cleans up the Gemini provider resources

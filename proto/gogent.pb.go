@@ -763,7 +763,7 @@ type ExecuteRequest struct {
 	// Deprecated: Marked as deprecated in proto/gogent.proto.
 	OpenweatherApiKey string `protobuf:"bytes,10,opt,name=openweather_api_key,json=openweatherApiKey,proto3" json:"openweather_api_key,omitempty"`
 	// Deprecated: Marked as deprecated in proto/gogent.proto.
-	Neo4JUrl string `protobuf:"bytes,11,opt,name=neo4j_url,json=neo4jUrl,proto3" json:"neo4j_url,omitempty"`
+	Neo4JUrl string `protobuf:"bytes,11,opt,name=neo4j_url,json=neo4jURL,proto3" json:"neo4j_url,omitempty"`
 	// Deprecated: Marked as deprecated in proto/gogent.proto.
 	Neo4JUsername string `protobuf:"bytes,12,opt,name=neo4j_username,json=neo4jUsername,proto3" json:"neo4j_username,omitempty"`
 	// Deprecated: Marked as deprecated in proto/gogent.proto.
@@ -2380,8 +2380,8 @@ func (*GetDatabaseStatsRequest) Descriptor() ([]byte, []int) {
 type GetDatabaseStatsResponse struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	TotalExecutionRuns int32                  `protobuf:"varint,1,opt,name=total_execution_runs,json=totalExecutionRuns,proto3" json:"total_execution_runs,omitempty"`
-	TotalApiRequests   int32                  `protobuf:"varint,2,opt,name=total_api_requests,json=totalApiRequests,proto3" json:"total_api_requests,omitempty"`
-	TotalApiResponses  int32                  `protobuf:"varint,3,opt,name=total_api_responses,json=totalApiResponses,proto3" json:"total_api_responses,omitempty"`
+	TotalApiRequests   int32                  `protobuf:"varint,2,opt,name=total_api_requests,json=totalAPIRequests,proto3" json:"total_api_requests,omitempty"`
+	TotalApiResponses  int32                  `protobuf:"varint,3,opt,name=total_api_responses,json=totalAPIResponses,proto3" json:"total_api_responses,omitempty"`
 	TotalFunctionCalls int32                  `protobuf:"varint,4,opt,name=total_function_calls,json=totalFunctionCalls,proto3" json:"total_function_calls,omitempty"`
 	AvgResponseTime    float64                `protobuf:"fixed64,5,opt,name=avg_response_time,json=avgResponseTime,proto3" json:"avg_response_time,omitempty"`
 	SuccessRate        float64                `protobuf:"fixed64,6,opt,name=success_rate,json=successRate,proto3" json:"success_rate,omitempty"`
@@ -6889,7 +6889,7 @@ const file_proto_gogent_proto_rawDesc = "" +
 	"\x10session_api_keys\x18\x0f \x03(\v2*.gogent.ExecuteRequest.SessionApiKeysEntryR\x0esessionApiKeys\x122\n" +
 	"\x13openweather_api_key\x18\n" +
 	" \x01(\tB\x02\x18\x01R\x11openweatherApiKey\x12\x1f\n" +
-	"\tneo4j_url\x18\v \x01(\tB\x02\x18\x01R\bneo4jUrl\x12)\n" +
+	"\tneo4j_url\x18\v \x01(\tB\x02\x18\x01R\bneo4jURL\x12)\n" +
 	"\x0eneo4j_username\x18\f \x01(\tB\x02\x18\x01R\rneo4jUsername\x12)\n" +
 	"\x0eneo4j_password\x18\r \x01(\tB\x02\x18\x01R\rneo4jPassword\x12)\n" +
 	"\x0eneo4j_database\x18\x0e \x01(\tB\x02\x18\x01R\rneo4jDatabase\x1aA\n" +
@@ -6976,8 +6976,8 @@ const file_proto_gogent_proto_rawDesc = "" +
 	"\x17GetDatabaseStatsRequest\"\xab\x02\n" +
 	"\x18GetDatabaseStatsResponse\x120\n" +
 	"\x14total_execution_runs\x18\x01 \x01(\x05R\x12totalExecutionRuns\x12,\n" +
-	"\x12total_api_requests\x18\x02 \x01(\x05R\x10totalApiRequests\x12.\n" +
-	"\x13total_api_responses\x18\x03 \x01(\x05R\x11totalApiResponses\x120\n" +
+	"\x12total_api_requests\x18\x02 \x01(\x05R\x10totalAPIRequests\x12.\n" +
+	"\x13total_api_responses\x18\x03 \x01(\x05R\x11totalAPIResponses\x120\n" +
 	"\x14total_function_calls\x18\x04 \x01(\x05R\x12totalFunctionCalls\x12*\n" +
 	"\x11avg_response_time\x18\x05 \x01(\x01R\x0favgResponseTime\x12!\n" +
 	"\fsuccess_rate\x18\x06 \x01(\x01R\vsuccessRate\"\x1b\n" +

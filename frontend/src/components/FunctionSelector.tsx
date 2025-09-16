@@ -9,7 +9,7 @@ interface FunctionSelectorProps {
   onClose: () => void;
   functions: FunctionDefinition[];
   selectedFunctions: string[];
-  onSelectionChange: (functionIds: string[]) => void;
+  onSelectionChange: (functionIDs: string[]) => void;
   title?: string;
   subtitle?: string;
 }

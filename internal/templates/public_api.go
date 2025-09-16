@@ -21,7 +21,7 @@ type PublicAPIHandler struct {
 
 // ExecutionEngine interface for integrating with existing execution system
 type ExecutionEngine interface {
-	StartExecution(request *types.MultiExecutionRequest, useMock bool, sessionApiKeys map[string]string) (string, *types.ExecutionRun, error)
+	StartExecution(request *types.MultiExecutionRequest, useMock bool, sessionAPIKeys map[string]string) (string, *types.ExecutionRun, error)
 	GetExecutionStatus(executionID string) (string, string, *time.Time, *time.Time, *types.ExecutionResult, error)
 }
 
@@ -152,10 +152,12 @@ func (pah *PublicAPIHandler) ExecuteTemplate(w http.ResponseWriter, r *http.Requ
 	if len(validationErrors) > 0 {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		if err := json.NewEncoder(w).Encode(map[string]interface{}{
 			"error":  "Parameter validation failed",
 			"errors": validationErrors,
-		})
+		}); err != nil {
+			log.Printf("Failed to encode JSON response: %v", err)
+		}
 		return
 	}
 
@@ -208,7 +210,7 @@ func (pah *PublicAPIHandler) ExecuteTemplate(w http.ResponseWriter, r *http.Requ
 		Context:               resolvedContext,
 		EnableFunctionCalling: template.EnableFunctionCalling,
 		Configurations:        []types.APIConfiguration{}, // Use default configuration
-		SessionApiKeys:        &types.SessionApiKeys{},    // No API keys for public execution
+		SessionAPIKeys:        &types.SessionAPIKeys{},    // No API keys for public execution
 	}
 
 	// Start execution using existing system
@@ -217,10 +219,12 @@ func (pah *PublicAPIHandler) ExecuteTemplate(w http.ResponseWriter, r *http.Requ
 		log.Printf("Failed to start execution: %v", err)
 
 		// Update template execution status
-		templateExecution.Status = "failed"
+		templateExecution.Status = failedStatus
 		templateExecution.ErrorMessage = err.Error()
 		templateExecution.CompletedAt = &[]time.Time{time.Now()}[0]
-		pah.updateTemplateExecution(templateExecution)
+		if err := pah.updateTemplateExecution(templateExecution); err != nil {
+			log.Printf("Failed to update template execution: %v", err)
+		}
 
 		http.Error(w, "Failed to start execution", http.StatusInternalServerError)
 		return
@@ -229,7 +233,9 @@ func (pah *PublicAPIHandler) ExecuteTemplate(w http.ResponseWriter, r *http.Requ
 	// Update template execution with execution run ID
 	templateExecution.ExecutionRunID = &executionID
 	templateExecution.Status = "running"
-	pah.updateTemplateExecution(templateExecution)
+	if err := pah.updateTemplateExecution(templateExecution); err != nil {
+		log.Printf("Failed to update template execution: %v", err)
+	}
 
 	// Prepare response
 	response := &types.TemplateExecutionResponse{
@@ -250,7 +256,9 @@ func (pah *PublicAPIHandler) ExecuteTemplate(w http.ResponseWriter, r *http.Requ
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted) // 202 for async operation
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // GetTemplateExecutionStatus handles GET /api/public/templates/executions/{id}/status
@@ -300,8 +308,7 @@ func (pah *PublicAPIHandler) GetTemplateExecutionStatus(w http.ResponseWriter, r
 	// Get execution result if completed
 	var executionResult *types.ExecutionResult
 	if templateExecution.ExecutionRunID != nil &&
-		(templateExecution.Status == "completed" || templateExecution.Status == "failed") {
-
+		(templateExecution.Status == completedStatus || templateExecution.Status == failedStatus) {
 		_, _, _, _, result, err := pah.executionEngine.GetExecutionStatus(*templateExecution.ExecutionRunID)
 		if err == nil {
 			executionResult = result
@@ -314,7 +321,9 @@ func (pah *PublicAPIHandler) GetTemplateExecutionStatus(w http.ResponseWriter, r
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // GetTemplateInfo handles GET /api/public/templates/{id}/info (minimal template info for public use)
@@ -362,7 +371,9 @@ func (pah *PublicAPIHandler) GetTemplateInfo(w http.ResponseWriter, r *http.Requ
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(publicInfo)
+	if err := json.NewEncoder(w).Encode(publicInfo); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 // =============================================================================
@@ -375,7 +386,7 @@ func (pah *PublicAPIHandler) extractTemplateID(path string) string {
 	// /api/public/templates/{id}/execute
 	// /api/public/templates/{id}/info
 	parts := strings.Split(strings.Trim(path, "/"), "/")
-	if len(parts) >= 4 && parts[0] == "api" && parts[1] == "public" && parts[2] == "templates" {
+	if len(parts) >= 4 && parts[0] == apiPrefix && parts[1] == publicPrefix && parts[2] == templatesPath {
 		return parts[3]
 	}
 	return ""
@@ -439,9 +450,9 @@ func (pah *PublicAPIHandler) recordTemplateExecution(execution *types.ExecutionT
 			error_message, execution_run_id, created_at
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
-	
+
 	parametersJSON, _ := json.Marshal(execution.ParametersProvided)
-	
+
 	_, err := pah.templateService.db.Exec(query,
 		execution.ID,
 		execution.TemplateID,
@@ -457,12 +468,12 @@ func (pah *PublicAPIHandler) recordTemplateExecution(execution *types.ExecutionT
 		execution.ExecutionRunID,
 		execution.CreatedAt,
 	)
-	
+
 	if err != nil {
 		log.Printf("Failed to record template execution: %v", err)
 		return err
 	}
-	
+
 	log.Printf("Recorded template execution: %s", execution.ID)
 	return nil
 }
@@ -473,13 +484,13 @@ func (pah *PublicAPIHandler) updateTemplateExecution(execution *types.ExecutionT
 		SET status = ?, error_message = ?, execution_run_id = ?, completed_at = ?
 		WHERE id = ?
 	`
-	
+
 	now := time.Now()
 	var completedAt *time.Time
 	if execution.Status == "completed" || execution.Status == "failed" {
 		completedAt = &now
 	}
-	
+
 	_, err := pah.templateService.db.Exec(query,
 		execution.Status,
 		execution.ErrorMessage,
@@ -487,12 +498,12 @@ func (pah *PublicAPIHandler) updateTemplateExecution(execution *types.ExecutionT
 		completedAt,
 		execution.ID,
 	)
-	
+
 	if err != nil {
 		log.Printf("Failed to update template execution: %v", err)
 		return err
 	}
-	
+
 	log.Printf("Updated template execution: %s, status: %s", execution.ID, execution.Status)
 	return nil
 }
@@ -505,13 +516,13 @@ func (pah *PublicAPIHandler) getTemplateExecution(executionID string) (*types.Ex
 		FROM execution_template_executions 
 		WHERE id = ?
 	`
-	
+
 	execution := &types.ExecutionTemplateExecution{}
 	var parametersJSON string
 	var authTokenID *string
 	var executionRunID *string
 	var completedAt *time.Time
-	
+
 	err := pah.templateService.db.QueryRow(query, executionID).Scan(
 		&execution.ID,
 		&execution.TemplateID,
@@ -528,7 +539,7 @@ func (pah *PublicAPIHandler) getTemplateExecution(executionID string) (*types.Ex
 		&execution.CreatedAt,
 		&completedAt,
 	)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("template execution not found: %s", executionID)
@@ -536,7 +547,7 @@ func (pah *PublicAPIHandler) getTemplateExecution(executionID string) (*types.Ex
 		log.Printf("Failed to get template execution: %v", err)
 		return nil, err
 	}
-	
+
 	// Parse JSON parameters
 	if parametersJSON != "" {
 		err = json.Unmarshal([]byte(parametersJSON), &execution.ParametersProvided)
@@ -544,12 +555,12 @@ func (pah *PublicAPIHandler) getTemplateExecution(executionID string) (*types.Ex
 			log.Printf("Failed to parse parameters JSON: %v", err)
 		}
 	}
-	
+
 	// Set nullable fields
 	execution.AuthTokenID = authTokenID
 	execution.ExecutionRunID = executionRunID
 	execution.CompletedAt = completedAt
-	
+
 	return execution, nil
 }
 

@@ -12,7 +12,8 @@ type MultiVariationExecutor interface {
 	ExecuteMultiVariation(ctx context.Context, request *types.MultiExecutionRequest) (*types.ExecutionResult, error)
 
 	// ExecuteSingleVariation runs a single variation (useful for custom implementations)
-	ExecuteSingleVariation(ctx context.Context, config *types.APIConfiguration, prompt, context string) (*types.VariationResult, error)
+	ExecuteSingleVariation(ctx context.Context, config *types.APIConfiguration, prompt, context string) (
+		*types.VariationResult, error)
 
 	// Close releases any resources held by the executor
 	Close() error
@@ -21,7 +22,8 @@ type MultiVariationExecutor interface {
 // ExecutionLogger defines the interface for logging AI interactions
 type ExecutionLogger interface {
 	// CreateExecutionRun creates a new execution run for grouping related API calls
-	CreateExecutionRun(ctx context.Context, name, description string, enableFunctionCalling bool) (*types.ExecutionRun, error)
+	CreateExecutionRun(ctx context.Context, name, description string, enableFunctionCalling bool) (
+		*types.ExecutionRun, error)
 
 	// LogAPIRequest logs an API request to storage
 	LogAPIRequest(ctx context.Context, request *types.APIRequest) error
@@ -75,7 +77,8 @@ type ResultComparator interface {
 // AIProvider defines the interface for different AI service providers
 type AIProvider interface {
 	// GenerateContent generates content using the AI service
-	GenerateContent(ctx context.Context, config *types.APIConfiguration, prompt, context string) (*types.APIResponse, error)
+	GenerateContent(ctx context.Context, config *types.APIConfiguration, prompt, context string) (
+		*types.APIResponse, error)
 
 	// CountTokens counts tokens for cost estimation
 	CountTokens(ctx context.Context, modelName, text string) (int32, error)
@@ -138,7 +141,8 @@ type ProcurementManager interface {
 	EvaluateVendorProposals(ctx context.Context, rfp map[string]interface{}) (map[string]interface{}, error)
 
 	// GenerateNegotiationStrategies creates negotiation strategies with different approaches
-	GenerateNegotiationStrategies(ctx context.Context, vendorProfile map[string]interface{}) (map[string]interface{}, error)
+	GenerateNegotiationStrategies(ctx context.Context, vendorProfile map[string]interface{}) (
+		map[string]interface{}, error)
 
 	// AnalyzeContractTerms analyzes contract terms with different risk profiles
 	AnalyzeContractTerms(ctx context.Context, contract map[string]interface{}) (map[string]interface{}, error)
@@ -156,7 +160,8 @@ type GoGentFactory interface {
 	CreateProcurementManager(config *types.GeminiClientConfig, dbURL string) (ProcurementManager, error)
 
 	// CreateCustomExecutor creates a custom use-case executor
-	CreateCustomExecutor(useCaseName string, config *types.GeminiClientConfig, dbURL string) (UseCaseSpecificExecutor, error)
+	CreateCustomExecutor(useCaseName string, config *types.GeminiClientConfig, dbURL string) (
+		UseCaseSpecificExecutor, error)
 
 	// CreateAnalyticsProvider creates an analytics provider
 	CreateAnalyticsProvider(dbURL string) (AnalyticsProvider, error)

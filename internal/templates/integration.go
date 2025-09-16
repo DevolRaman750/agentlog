@@ -17,11 +17,11 @@ type TemplateIntegration struct {
 	rateLimiter      *RateLimiter
 	templateHandler  *TemplateHandler
 	publicAPIHandler *PublicAPIHandler
-	authService      *auth.AuthService
+	authService      *auth.Service
 }
 
 // NewTemplateIntegration creates a new template integration instance
-func NewTemplateIntegration(db *sql.DB, authService *auth.AuthService, executionEngine ExecutionEngine) *TemplateIntegration {
+func NewTemplateIntegration(db *sql.DB, authService *auth.Service, executionEngine ExecutionEngine) *TemplateIntegration {
 	// Create core services
 	templateService := NewTemplateService(db)
 	rateLimiter := NewRateLimiter(db)
@@ -219,14 +219,14 @@ func splitPath(path string) []string {
 	return strings.Split(path, "/")
 }
 
-// AdapterToExistingExecutionEngine creates an adapter to integrate with the existing execution engine
+// ExecutionEngineAdapter creates an adapter to integrate with the existing execution engine
 type ExecutionEngineAdapter struct {
 	businessLogic BusinessLogicInterface
 }
 
 // BusinessLogicInterface represents the interface to the existing business logic
 type BusinessLogicInterface interface {
-	StartExecution(request *types.MultiExecutionRequest, useMock bool, sessionApiKeys map[string]string) (string, *types.ExecutionRun, error)
+	StartExecution(request *types.MultiExecutionRequest, useMock bool, sessionAPIKeys map[string]string) (string, *types.ExecutionRun, error)
 	GetExecutionStatus(executionID string) (string, error)
 }
 
@@ -238,11 +238,13 @@ func NewExecutionEngineAdapter(businessLogic BusinessLogicInterface) *ExecutionE
 }
 
 // StartExecution implements the ExecutionEngine interface
-func (adapter *ExecutionEngineAdapter) StartExecution(request *types.MultiExecutionRequest, useMock bool, sessionApiKeys map[string]string) (string, *types.ExecutionRun, error) {
-	return adapter.businessLogic.StartExecution(request, useMock, sessionApiKeys)
+func (adapter *ExecutionEngineAdapter) StartExecution(request *types.MultiExecutionRequest, useMock bool, sessionAPIKeys map[string]string) (string, *types.ExecutionRun, error) {
+	return adapter.businessLogic.StartExecution(request, useMock, sessionAPIKeys)
 }
 
 // GetExecutionStatus implements the ExecutionEngine interface
+//
+//nolint:gocritic // tooManyResultsChecker - required for template interface
 func (adapter *ExecutionEngineAdapter) GetExecutionStatus(executionID string) (string, string, *time.Time, *time.Time, *types.ExecutionResult, error) {
 	status, err := adapter.businessLogic.GetExecutionStatus(executionID)
 	if err != nil {

@@ -2,10 +2,11 @@ package auth
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 )
 
-// Request/Response types for auth handlers
+// LoginRequest represents the request payload for user login
 type LoginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -73,20 +74,20 @@ type GetCurrentUserResponse struct {
 	User User `json:"user"`
 }
 
-// AuthHandlers provides HTTP handlers for authentication endpoints
-type AuthHandlers struct {
-	authService *AuthService
+// Handlers provides HTTP handlers for authentication endpoints
+type Handlers struct {
+	authService *Service
 }
 
-// NewAuthHandlers creates a new AuthHandlers instance
-func NewAuthHandlers(authService *AuthService) *AuthHandlers {
-	return &AuthHandlers{
+// NewHandlers creates a new Handlers instance
+func NewHandlers(authService *Service) *Handlers {
+	return &Handlers{
 		authService: authService,
 	}
 }
 
 // RegisterHandler handles user registration requests
-func (h *AuthHandlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -110,11 +111,14 @@ func (h *AuthHandlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
 }
 
 // LoginHandler handles user login requests
-func (h *AuthHandlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -139,11 +143,14 @@ func (h *AuthHandlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
 }
 
 // CreateTemporaryUserHandler handles temporary user creation
-func (h *AuthHandlers) CreateTemporaryUserHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) CreateTemporaryUserHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -168,11 +175,14 @@ func (h *AuthHandlers) CreateTemporaryUserHandler(w http.ResponseWriter, r *http
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
 }
 
 // VerifyEmailHandler handles email verification
-func (h *AuthHandlers) VerifyEmailHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) VerifyEmailHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -197,11 +207,14 @@ func (h *AuthHandlers) VerifyEmailHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
 }
 
 // GetCurrentUserHandler handles getting current user info
-func (h *AuthHandlers) GetCurrentUserHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) GetCurrentUserHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -218,11 +231,14 @@ func (h *AuthHandlers) GetCurrentUserHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
 }
 
 // SaveTemporaryAccountHandler handles saving temporary accounts
-func (h *AuthHandlers) SaveTemporaryAccountHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) SaveTemporaryAccountHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -251,11 +267,14 @@ func (h *AuthHandlers) SaveTemporaryAccountHandler(w http.ResponseWriter, r *htt
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
 }
 
 // ConnectTemporaryAccountHandler handles connecting temporary accounts
-func (h *AuthHandlers) ConnectTemporaryAccountHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) ConnectTemporaryAccountHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -285,5 +304,7 @@ func (h *AuthHandlers) ConnectTemporaryAccountHandler(w http.ResponseWriter, r *
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }

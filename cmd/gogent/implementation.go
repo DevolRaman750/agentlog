@@ -84,7 +84,8 @@ func (bl *BusinessLogic) GetDB() *sql.DB {
 // AUTHENTICATION & USER MANAGEMENT
 // =============================================================================
 
-func (bl *BusinessLogic) LoginUser(username, password string) (*auth.User, string, time.Time, error) {
+//nolint:unparam // error return kept for interface compatibility
+func (bl *BusinessLogic) LoginUser(username, _ string) (*auth.User, string, time.Time, error) {
 	// TODO: Implement actual authentication logic
 	log.Printf("🔐 Login attempt for user: %s", username)
 
@@ -107,7 +108,8 @@ func (bl *BusinessLogic) LoginUser(username, password string) (*auth.User, strin
 	return user, token, expiresAt, nil
 }
 
-func (bl *BusinessLogic) RegisterUser(username, email, password string) (*auth.User, string, error) {
+//nolint:unparam // error return kept for interface compatibility
+func (bl *BusinessLogic) RegisterUser(username, email, _ string) (*auth.User, string, error) {
 	// TODO: Implement actual registration logic
 	log.Printf("📝 Registration attempt for user: %s", username)
 
@@ -126,6 +128,7 @@ func (bl *BusinessLogic) RegisterUser(username, email, password string) (*auth.U
 	return user, token, nil
 }
 
+//nolint:unparam,gocritic // error always nil, unnamedResult acceptable here
 func (bl *BusinessLogic) CreateTemporaryUser(sessionID string) (*auth.User, string, string, error) {
 	log.Printf("👤 Creating temporary user with session ID: %s", sessionID)
 
@@ -146,7 +149,7 @@ func (bl *BusinessLogic) CreateTemporaryUser(sessionID string) (*auth.User, stri
 	return user, tempPassword, token, nil
 }
 
-func (bl *BusinessLogic) SaveTemporaryAccount(email string) (*auth.User, bool, error) {
+func (bl *BusinessLogic) SaveTemporaryAccount(email string) (*auth.User, bool) {
 	log.Printf("💾 Saving temporary account with email: %s", email)
 
 	now := time.Now()
@@ -161,10 +164,10 @@ func (bl *BusinessLogic) SaveTemporaryAccount(email string) (*auth.User, bool, e
 	}
 
 	emailSent := true
-	return user, emailSent, nil
+	return user, emailSent
 }
 
-func (bl *BusinessLogic) VerifyEmail(token string) (*auth.User, bool, error) {
+func (bl *BusinessLogic) VerifyEmail(token string) (*auth.User, bool) {
 	log.Printf("✅ Verifying email with token: %s", token)
 
 	email := "user@example.com"
@@ -179,10 +182,10 @@ func (bl *BusinessLogic) VerifyEmail(token string) (*auth.User, bool, error) {
 	}
 
 	verified := true
-	return user, verified, nil
+	return user, verified
 }
 
-func (bl *BusinessLogic) GetCurrentUser() (*auth.User, error) {
+func (bl *BusinessLogic) GetCurrentUser() *auth.User {
 	log.Printf("👤 Getting current user")
 
 	// TODO: Extract user from JWT token in context
@@ -200,14 +203,15 @@ func (bl *BusinessLogic) GetCurrentUser() (*auth.User, error) {
 		LastLoginAt:   &lastLogin,
 	}
 
-	return user, nil
+	return user
 }
 
 // =============================================================================
 // EXECUTION MANAGEMENT
 // =============================================================================
 
-func (bl *BusinessLogic) StartExecution(request *types.MultiExecutionRequest, useMock bool, sessionApiKeys map[string]string) (string, *types.ExecutionRun, error) {
+//nolint:unparam // error return kept for interface compatibility
+func (bl *BusinessLogic) StartExecution(request *types.MultiExecutionRequest, useMock bool, sessionAPIKeys map[string]string) (string, *types.ExecutionRun, error) {
 	log.Printf("🚀 Starting execution: %s", request.ExecutionRunName)
 
 	// Generate execution run ID
@@ -234,11 +238,12 @@ func (bl *BusinessLogic) StartExecution(request *types.MultiExecutionRequest, us
 	}
 
 	// Start async execution with session API keys
-	go bl.runAsyncExecution(executionID, request, useMock, sessionApiKeys)
+	go bl.runAsyncExecution(executionID, request, useMock, sessionAPIKeys)
 
 	return executionID, executionRun, nil
 }
 
+//nolint:gocritic // tooManyResultsChecker - required for gRPC interface
 func (bl *BusinessLogic) GetExecutionStatus(ctx context.Context, executionID string) (string, time.Time, *time.Time, string, *types.ExecutionResult, error) {
 	log.Printf("📊 Getting execution status for: %s", executionID)
 
@@ -289,7 +294,7 @@ func (bl *BusinessLogic) ListExecutionRuns(ctx context.Context, limit, offset in
 	return bl.client.ListExecutionRuns(ctx, bl.userID, limit, offset)
 }
 
-func (bl *BusinessLogic) DeleteExecutionRun(ctx context.Context, executionRunID string) error {
+func (bl *BusinessLogic) DeleteExecutionRun(_ context.Context, executionRunID string) error {
 	log.Printf("🗑️ Deleting execution run: %s", executionRunID)
 
 	// TODO: Implement actual deletion logic
@@ -349,16 +354,17 @@ func (bl *BusinessLogic) GetDefaultConfigurations() []types.APIConfiguration {
 	}
 }
 
-func (bl *BusinessLogic) CreateConfiguration(config *types.APIConfiguration) (*types.APIConfiguration, error) {
+func (bl *BusinessLogic) CreateConfiguration(config *types.APIConfiguration) *types.APIConfiguration {
 	log.Printf("➕ Creating configuration: %s", config.VariationName)
 
 	// TODO: Implement actual creation logic
 	config.ID = fmt.Sprintf("config-%d", time.Now().Unix())
 	config.CreatedAt = time.Now()
 
-	return config, nil
+	return config
 }
 
+//nolint:unparam // error return kept for interface compatibility
 func (bl *BusinessLogic) UpdateConfiguration(id string, config *types.APIConfiguration) (*types.APIConfiguration, error) {
 	log.Printf("✏️ Updating configuration: %s", id)
 
@@ -411,7 +417,7 @@ func (bl *BusinessLogic) ListFunctions(ctx context.Context) ([]*types.FunctionDe
 			&dbFunction.ParametersSchema,
 			&dbFunction.MockResponse,
 			&dbFunction.EndpointUrl,
-			&dbFunction.HttpMethod,
+			&dbFunction.HTTPMethod,
 			&dbFunction.Headers,
 			&dbFunction.AuthConfig,
 			&dbFunction.IsActive,
@@ -440,8 +446,8 @@ func (bl *BusinessLogic) ListFunctions(ctx context.Context) ([]*types.FunctionDe
 		if dbFunction.EndpointUrl.Valid {
 			function.EndpointURL = dbFunction.EndpointUrl.String
 		}
-		if dbFunction.HttpMethod.Valid {
-			function.HttpMethod = dbFunction.HttpMethod.String
+		if dbFunction.HTTPMethod.Valid {
+			function.HTTPMethod = dbFunction.HTTPMethod.String
 		}
 
 		// Handle JSON fields - no longer nullable after schema fix
@@ -465,6 +471,10 @@ func (bl *BusinessLogic) ListFunctions(ctx context.Context) ([]*types.FunctionDe
 		functions = append(functions, &function)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("row iteration error: %v", err)
+	}
+
 	return functions, nil
 }
 
@@ -479,7 +489,7 @@ func (bl *BusinessLogic) GetFunction(id string) (*types.FunctionDefinition, erro
 			DisplayName: "Get Weather",
 			Description: "Get current weather information for a location",
 			EndpointURL: "https://api.weather.com/v1/current",
-			HttpMethod:  "GET",
+			HTTPMethod:  "GET",
 			IsActive:    true,
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
@@ -491,7 +501,7 @@ func (bl *BusinessLogic) GetFunction(id string) (*types.FunctionDefinition, erro
 	return nil, fmt.Errorf("function not found: %s", id)
 }
 
-func (bl *BusinessLogic) CreateFunction(function *types.FunctionDefinition) (*types.FunctionDefinition, error) {
+func (bl *BusinessLogic) CreateFunction(function *types.FunctionDefinition) *types.FunctionDefinition {
 	log.Printf("➕ Creating function: %s", function.DisplayName)
 
 	// TODO: Implement actual database insertion
@@ -500,9 +510,10 @@ func (bl *BusinessLogic) CreateFunction(function *types.FunctionDefinition) (*ty
 	function.UpdatedAt = time.Now()
 	function.IsActive = true
 
-	return function, nil
+	return function
 }
 
+//nolint:unparam // error return kept for interface compatibility
 func (bl *BusinessLogic) UpdateFunction(id string, function *types.FunctionDefinition) (*types.FunctionDefinition, error) {
 	log.Printf("✏️ Updating function: %s", id)
 
@@ -520,6 +531,7 @@ func (bl *BusinessLogic) DeleteFunction(id string) error {
 	return nil
 }
 
+//nolint:gocritic,unparam // tooManyResultsChecker - required for gRPC interface, error always nil for now
 func (bl *BusinessLogic) TestFunction(functionID string, useMockData bool) (bool, bool, int32, map[string]interface{}, string, error) {
 	log.Printf("🧪 Testing function: %s", functionID)
 
@@ -548,6 +560,7 @@ func (bl *BusinessLogic) TestFunction(functionID string, useMockData bool) (bool
 // DATABASE MANAGEMENT
 // =============================================================================
 
+//nolint:gocritic // tooManyResultsChecker - required for gRPC interface
 func (bl *BusinessLogic) GetDatabaseStats() (int32, int32, int32, int32, float64, float64) {
 	log.Printf("📊 Getting database stats")
 
@@ -571,6 +584,7 @@ func (bl *BusinessLogic) ListDatabaseTables() []string {
 	}
 }
 
+//nolint:unparam,gocritic // error always nil, unnamedResult acceptable here
 func (bl *BusinessLogic) GetTableData(tableName string) ([]string, [][]interface{}, int32, error) {
 	log.Printf("📊 Getting table data for: %s", tableName)
 
@@ -580,14 +594,16 @@ func (bl *BusinessLogic) GetTableData(tableName string) ([]string, [][]interface
 	rows := [][]interface{}{
 		{"1", "Sample data", time.Now().Format(time.RFC3339)},
 	}
+	totalRows := int32(1)
 
-	return columns, rows, 1, nil
+	return columns, rows, totalRows, nil
 }
 
 // =============================================================================
 // HEALTH & SYSTEM
 // =============================================================================
 
+//nolint:gocritic // unnamedResult - status, version, database, geminiAPI are clear
 func (bl *BusinessLogic) GetHealthStatus() (string, string, bool, bool) {
 	log.Printf("🏥 Health check")
 
@@ -599,7 +615,7 @@ func (bl *BusinessLogic) GetHealthStatus() (string, string, bool, bool) {
 	return status, version, database, geminiAPI
 }
 
-func (bl *BusinessLogic) TestConnection() (*types.APIResponse, error) {
+func (bl *BusinessLogic) TestConnection() *types.APIResponse {
 	log.Printf("🔍 Testing connection")
 
 	response := &types.APIResponse{
@@ -611,7 +627,7 @@ func (bl *BusinessLogic) TestConnection() (*types.APIResponse, error) {
 	// Note: Since we no longer store API keys, we can only test basic connectivity
 	// Real API testing would require session API keys to be passed in
 	log.Printf("✅ Connection test completed (mock mode)")
-	return response, nil
+	return response
 }
 
 // =============================================================================
@@ -619,7 +635,7 @@ func (bl *BusinessLogic) TestConnection() (*types.APIResponse, error) {
 // =============================================================================
 
 // runAsyncExecution runs the execution in a goroutine
-func (bl *BusinessLogic) runAsyncExecution(executionID string, request *types.MultiExecutionRequest, useMock bool, sessionApiKeys map[string]string) {
+func (bl *BusinessLogic) runAsyncExecution(executionID string, request *types.MultiExecutionRequest, useMock bool, sessionAPIKeys map[string]string) {
 	// Update status to running
 	bl.executionMutex.Lock()
 	if status, exists := bl.executions[executionID]; exists {
@@ -635,21 +651,21 @@ func (bl *BusinessLogic) runAsyncExecution(executionID string, request *types.Mu
 		TimeoutSecs: bl.config.TimeoutSecs,
 	}
 
-	// Convert session API keys map to SessionApiKeys struct
-	var sessionKeys *types.SessionApiKeys
-	if sessionApiKeys != nil {
-		sessionKeys = &types.SessionApiKeys{
-			GeminiApiKey:      sessionApiKeys["geminiApiKey"],
-			OpenWeatherApiKey: sessionApiKeys["openWeatherApiKey"],
-			Neo4jUrl:          sessionApiKeys["neo4jUrl"],
-			Neo4jUsername:     sessionApiKeys["neo4jUsername"],
-			Neo4jPassword:     sessionApiKeys["neo4jPassword"],
-			Neo4jDatabase:     sessionApiKeys["neo4jDatabase"],
-			GithubApiKey:      sessionApiKeys["githubApiKey"],
+	// Convert session API keys map to SessionAPIKeys struct
+	var sessionKeys *types.SessionAPIKeys
+	if sessionAPIKeys != nil {
+		sessionKeys = &types.SessionAPIKeys{
+			GeminiAPIKey:      sessionAPIKeys["geminiAPIKey"],
+			OpenWeatherAPIKey: sessionAPIKeys["openWeatherAPIKey"],
+			Neo4jURL:          sessionAPIKeys["neo4jURL"],
+			Neo4jUsername:     sessionAPIKeys["neo4jUsername"],
+			Neo4jPassword:     sessionAPIKeys["neo4jPassword"],
+			Neo4jDatabase:     sessionAPIKeys["neo4jDatabase"],
+			GithubAPIKey:      sessionAPIKeys["githubAPIKey"],
 		}
 	}
 
-	if useMock || (sessionKeys == nil || sessionKeys.GeminiApiKey == "") {
+	if useMock || (sessionKeys == nil || sessionKeys.GeminiAPIKey == "") {
 		log.Printf("Using mock mode for execution (no Gemini API key)")
 	} else {
 		log.Printf("Using real Gemini API for execution")
@@ -666,7 +682,7 @@ func (bl *BusinessLogic) runAsyncExecution(executionID string, request *types.Mu
 
 	// Load API keys from database for this user
 	ctx := context.Background()
-	if loadErr := tempClient.LoadDatabaseApiKeys(ctx, bl.userID); loadErr != nil {
+	if loadErr := tempClient.LoadDatabaseAPIKeys(ctx, bl.userID); loadErr != nil {
 		log.Printf("⚠️ Failed to load API keys from database: %v", loadErr)
 		// Continue execution - the client will use mock responses if no keys available
 	}

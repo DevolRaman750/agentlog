@@ -16,10 +16,19 @@ import (
 	"gogent/internal/types"
 )
 
+const (
+	// Service and method constants
+	slackServiceName = "slack"
+	httpMethodGET    = "GET"
+
+	// HTTP status codes
+	httpStatusBadRequest = 400
+)
+
 // Integration implements the Slack API integration
 type Integration struct {
 	baseURL         string
-	apiKeys         *types.SessionApiKeys // Legacy support
+	apiKeys         *types.SessionAPIKeys // Legacy support
 	authService     *apiauth.Service
 	userID          string
 	headerProcessor *base.HeaderProcessor
@@ -28,7 +37,7 @@ type Integration struct {
 }
 
 // NewIntegration creates a new Slack integration
-func NewIntegration(apiKeys *types.SessionApiKeys) *Integration {
+func NewIntegration(apiKeys *types.SessionAPIKeys) *Integration {
 	return &Integration{
 		baseURL:         "https://slack.com/api",
 		apiKeys:         apiKeys,
@@ -48,7 +57,7 @@ func NewIntegrationWithAuth(authService *apiauth.Service, userID string) *Integr
 
 // Name returns the integration name
 func (s *Integration) Name() string {
-	return "slack"
+	return slackServiceName
 }
 
 // BuildURL constructs the Slack API URL for a given function
@@ -60,12 +69,12 @@ func (s *Integration) BuildURL(funcDef *db.FunctionDefinition, args map[string]i
 	}
 
 	// For GET requests, add parameters as query parameters
-	httpMethod := "GET"
-	if funcDef.HttpMethod.Valid {
-		httpMethod = funcDef.HttpMethod.String
+	httpMethod := httpMethodGET
+	if funcDef.HTTPMethod.Valid {
+		httpMethod = funcDef.HTTPMethod.String
 	}
 
-	if httpMethod == "GET" {
+	if httpMethod == httpMethodGET {
 		// Replace any {parameter} placeholders in the URL with actual values
 		finalURL := baseURL
 		usedParams := make(map[string]bool)
@@ -112,7 +121,12 @@ func (s *Integration) BuildURL(funcDef *db.FunctionDefinition, args map[string]i
 }
 
 // PrepareRequest prepares the HTTP request with Slack authentication and headers
-func (s *Integration) PrepareRequest(ctx context.Context, req *http.Request, funcDef *db.FunctionDefinition, args map[string]interface{}) error {
+func (s *Integration) PrepareRequest(
+	ctx context.Context,
+	req *http.Request,
+	funcDef *db.FunctionDefinition,
+	args map[string]interface{},
+) error {
 	log.Printf("🔍 [SLACK_DEBUG] Preparing request for function: %s", funcDef.Name)
 	log.Printf("🔍 [SLACK_DEBUG] Request URL: %s", req.URL.String())
 	log.Printf("🔍 [SLACK_DEBUG] Request method: %s", req.Method)
@@ -201,7 +215,7 @@ func (s *Integration) ProcessResponse(resp *http.Response, funcDef *db.FunctionD
 	}
 
 	// Check for HTTP errors
-	if resp.StatusCode >= 400 {
+	if resp.StatusCode >= httpStatusBadRequest {
 		log.Printf("❌ [SLACK_DEBUG] HTTP error status %d: %s", resp.StatusCode, string(body))
 		return nil, fmt.Errorf("slack API request failed with status %d: %s", resp.StatusCode, string(body))
 	}
@@ -261,7 +275,11 @@ func getMapKeys(m map[string]interface{}) []string {
 }
 
 // filterChannelsByName filters channels by the channel_name parameter
-func (s *Integration) filterChannelsByName(slackResponse map[string]interface{}, funcDef *db.FunctionDefinition, channelName string) (map[string]interface{}, error) {
+func (s *Integration) filterChannelsByName(
+	slackResponse map[string]interface{},
+	_ *db.FunctionDefinition,
+	channelName string,
+) (map[string]interface{}, error) {
 	channels, ok := slackResponse["channels"].([]interface{})
 	if !ok {
 		log.Printf("❌ [SLACK_DEBUG] No channels array found in response")

@@ -17,11 +17,28 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// String constants for auth modes
+const (
+	AuthModeGitHubApp = "github_app"
+)
+
+// Timeout and rate limit constants
+const (
+	DefaultHTTPTimeoutSeconds = 10
+	LongHTTPTimeoutSeconds    = 30
+	JWTExpirationMinutes      = 10
+	GitHubRateLimitPerHour    = 5000
+	SlackRateLimitPerHour     = 100
+	GeminiRateLimitPerHour    = 60
+	GeminiRateLimitPerDay     = 1500
+	MaxLineLength             = 64
+)
+
 // AuthHandler interface for different authentication modes
 type AuthHandler interface {
-	GetAuthHeaders(ctx context.Context, apiKey *types.UserApiKey) (map[string]string, error)
-	ValidateCredentials(ctx context.Context, apiKey *types.UserApiKey) error
-	RefreshCredentials(ctx context.Context, apiKey *types.UserApiKey) (*types.AuthCredentials, error)
+	GetAuthHeaders(ctx context.Context, apiKey *types.UserAPIKey) (map[string]string, error)
+	ValidateCredentials(ctx context.Context, apiKey *types.UserAPIKey) error
+	RefreshCredentials(ctx context.Context, apiKey *types.UserAPIKey) (*types.AuthCredentials, error)
 	GetRateLimit() *types.RateLimit
 	GetAuthMode() string
 }
@@ -40,7 +57,7 @@ func NewAuthResolver() *AuthResolver {
 
 	// Register default handlers
 	resolver.RegisterHandler("github", "personal_access_token", NewGitHubPATHandler())
-	resolver.RegisterHandler("github", "github_app", NewGitHubAppHandler())
+	resolver.RegisterHandler("github", AuthModeGitHubApp, NewGitHubAppHandler())
 	resolver.RegisterHandler("slack", "bot_token", NewSlackBotTokenHandler())
 	resolver.RegisterHandler("slack", "personal_access_token", NewSlackBotTokenHandler()) // Alias for bot_token
 	resolver.RegisterHandler("gemini", "api_key", NewGeminiAPIKeyHandler())
@@ -78,7 +95,7 @@ func (r *AuthResolver) GetHandler(provider, authMode string) (AuthHandler, error
 }
 
 // ResolveAuth resolves authentication for a given API key
-func (r *AuthResolver) ResolveAuth(ctx context.Context, apiKey *types.UserApiKey) (*types.AuthCredentials, error) {
+func (r *AuthResolver) ResolveAuth(ctx context.Context, apiKey *types.UserAPIKey) (*types.AuthCredentials, error) {
 	handler, err := r.GetHandler(apiKey.ServiceName, apiKey.AuthMode)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get auth handler: %w", err)
@@ -107,7 +124,7 @@ func (h *GitHubPATHandler) GetAuthMode() string {
 	return "personal_access_token"
 }
 
-func (h *GitHubPATHandler) GetAuthHeaders(ctx context.Context, apiKey *types.UserApiKey) (map[string]string, error) {
+func (h *GitHubPATHandler) GetAuthHeaders(_ context.Context, apiKey *types.UserAPIKey) (map[string]string, error) {
 	// For PAT, the token should be in the auth config under "decrypted_token"
 	// This is set by the auth service when it decrypts the key value
 
@@ -119,6 +136,7 @@ func (h *GitHubPATHandler) GetAuthHeaders(ctx context.Context, apiKey *types.Use
 	}
 
 	if token == "" {
+		// Keep proper-noun capitalization to match existing tests
 		return nil, fmt.Errorf("GitHub PAT token not found - decrypted token not provided")
 	}
 
@@ -130,14 +148,14 @@ func (h *GitHubPATHandler) GetAuthHeaders(ctx context.Context, apiKey *types.Use
 	}, nil
 }
 
-func (h *GitHubPATHandler) ValidateCredentials(ctx context.Context, apiKey *types.UserApiKey) error {
+func (h *GitHubPATHandler) ValidateCredentials(ctx context.Context, apiKey *types.UserAPIKey) error {
 	headers, err := h.GetAuthHeaders(ctx, apiKey)
 	if err != nil {
 		return err
 	}
 
 	// Make a test request to GitHub API
-	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/user", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/user", http.NoBody)
 	if err != nil {
 		return fmt.Errorf("failed to create validation request: %w", err)
 	}
@@ -146,7 +164,7 @@ func (h *GitHubPATHandler) ValidateCredentials(ctx context.Context, apiKey *type
 		req.Header.Set(key, value)
 	}
 
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := &http.Client{Timeout: DefaultHTTPTimeoutSeconds * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("validation request failed: %w", err)
@@ -160,7 +178,8 @@ func (h *GitHubPATHandler) ValidateCredentials(ctx context.Context, apiKey *type
 	return nil
 }
 
-func (h *GitHubPATHandler) RefreshCredentials(ctx context.Context, apiKey *types.UserApiKey) (*types.AuthCredentials, error) {
+func (h *GitHubPATHandler) RefreshCredentials(ctx context.Context, apiKey *types.UserAPIKey) (
+	*types.AuthCredentials, error) {
 	// PAT doesn't need refresh, just return current credentials
 	headers, err := h.GetAuthHeaders(ctx, apiKey)
 	if err != nil {
@@ -176,7 +195,7 @@ func (h *GitHubPATHandler) RefreshCredentials(ctx context.Context, apiKey *types
 
 func (h *GitHubPATHandler) GetRateLimit() *types.RateLimit {
 	return &types.RateLimit{
-		RequestsPerHour: 5000,
+		RequestsPerHour: GitHubRateLimitPerHour,
 		ResetTime:       "top of the hour",
 	}
 }
@@ -194,10 +213,10 @@ func NewGitHubAppHandler() *GitHubAppHandler {
 }
 
 func (h *GitHubAppHandler) GetAuthMode() string {
-	return "github_app"
+	return AuthModeGitHubApp
 }
 
-func (h *GitHubAppHandler) GetAuthHeaders(ctx context.Context, apiKey *types.UserApiKey) (map[string]string, error) {
+func (h *GitHubAppHandler) GetAuthHeaders(ctx context.Context, apiKey *types.UserAPIKey) (map[string]string, error) {
 	// Parse GitHub App config
 	appConfig, err := h.parseAppConfig(apiKey.AuthConfig)
 	if err != nil {
@@ -274,7 +293,8 @@ func (h *GitHubAppHandler) parseAppConfig(authConfig map[string]interface{}) (*t
 	}, nil
 }
 
-func (h *GitHubAppHandler) getInstallationToken(ctx context.Context, config *types.GitHubAppConfig) (*types.InstallationToken, error) {
+func (h *GitHubAppHandler) getInstallationToken(ctx context.Context, config *types.GitHubAppConfig) (
+	*types.InstallationToken, error) {
 	h.cacheMutex.RLock()
 	if token, exists := h.tokenCache[config.InstallationID]; exists {
 		// Check if token is still valid (expires in 1 hour, refresh 5 minutes early)
@@ -308,7 +328,6 @@ func (h *GitHubAppHandler) getInstallationToken(ctx context.Context, config *typ
 func (h *GitHubAppHandler) generateJWT(config *types.GitHubAppConfig) (string, error) {
 	// Debug: Log private key info (first/last 50 chars for security)
 
-	
 	// Parse private key
 	block, _ := pem.Decode([]byte(config.PrivateKey))
 	if block == nil {
@@ -335,7 +354,7 @@ func (h *GitHubAppHandler) generateJWT(config *types.GitHubAppConfig) (string, e
 	now := time.Now()
 	claims := jwt.MapClaims{
 		"iat": now.Unix(),
-		"exp": now.Add(10 * time.Minute).Unix(), // JWT expires in 10 minutes
+		"exp": now.Add(JWTExpirationMinutes * time.Minute).Unix(), // JWT expires in 10 minutes
 		"iss": config.AppID,
 	}
 
@@ -344,10 +363,11 @@ func (h *GitHubAppHandler) generateJWT(config *types.GitHubAppConfig) (string, e
 	return token.SignedString(privateKey)
 }
 
-func (h *GitHubAppHandler) requestInstallationToken(ctx context.Context, installationID int64, jwtToken string) (*types.InstallationToken, error) {
+func (h *GitHubAppHandler) requestInstallationToken(ctx context.Context, installationID int64, jwtToken string) (
+	*types.InstallationToken, error) {
 	url := fmt.Sprintf("https://api.github.com/app/installations/%d/access_tokens", installationID)
 
-	req, err := http.NewRequestWithContext(ctx, "POST", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "POST", url, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -357,7 +377,7 @@ func (h *GitHubAppHandler) requestInstallationToken(ctx context.Context, install
 	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
 	req.Header.Set("User-Agent", "GoGent/1.0")
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := &http.Client{Timeout: LongHTTPTimeoutSeconds * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
@@ -387,7 +407,7 @@ func (h *GitHubAppHandler) requestInstallationToken(ctx context.Context, install
 func (h *GitHubAppHandler) normalizePEMKey(key string) string {
 	// Remove any extra whitespace
 	key = strings.TrimSpace(key)
-	
+
 	// If the key doesn't have proper line breaks, add them
 	if !strings.Contains(key, "\n") {
 		// Split on common PEM markers and rejoin with newlines
@@ -395,17 +415,17 @@ func (h *GitHubAppHandler) normalizePEMKey(key string) string {
 		key = strings.ReplaceAll(key, "-----END RSA PRIVATE KEY-----", "\n-----END RSA PRIVATE KEY-----")
 		key = strings.ReplaceAll(key, "-----BEGIN PRIVATE KEY-----", "-----BEGIN PRIVATE KEY-----\n")
 		key = strings.ReplaceAll(key, "-----END PRIVATE KEY-----", "\n-----END PRIVATE KEY-----")
-		
+
 		// Add newlines every 64 characters for the key content (standard PEM format)
 		lines := strings.Split(key, "\n")
 		var normalizedLines []string
 		for _, line := range lines {
 			if strings.HasPrefix(line, "-----") {
 				normalizedLines = append(normalizedLines, line)
-			} else if len(line) > 64 {
+			} else if len(line) > MaxLineLength {
 				// Split long lines into 64-character chunks
-				for i := 0; i < len(line); i += 64 {
-					end := i + 64
+				for i := 0; i < len(line); i += MaxLineLength {
+					end := i + MaxLineLength
 					if end > len(line) {
 						end = len(line)
 					}
@@ -417,12 +437,12 @@ func (h *GitHubAppHandler) normalizePEMKey(key string) string {
 		}
 		key = strings.Join(normalizedLines, "\n")
 	}
-	
+
 	fmt.Printf("🔧 [PEM_DEBUG] Normalized PEM key length: %d\n", len(key))
 	return key
 }
 
-func (h *GitHubAppHandler) ValidateCredentials(ctx context.Context, apiKey *types.UserApiKey) error {
+func (h *GitHubAppHandler) ValidateCredentials(ctx context.Context, apiKey *types.UserAPIKey) error {
 	headers, err := h.GetAuthHeaders(ctx, apiKey)
 	if err != nil {
 		return err
@@ -436,7 +456,7 @@ func (h *GitHubAppHandler) ValidateCredentials(ctx context.Context, apiKey *type
 
 	// Make a test request to validate the installation
 	url := fmt.Sprintf("https://api.github.com/app/installations/%d", appConfig.InstallationID)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, http.NoBody)
 	if err != nil {
 		return fmt.Errorf("failed to create validation request: %w", err)
 	}
@@ -445,7 +465,7 @@ func (h *GitHubAppHandler) ValidateCredentials(ctx context.Context, apiKey *type
 		req.Header.Set(key, value)
 	}
 
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := &http.Client{Timeout: DefaultHTTPTimeoutSeconds * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("validation request failed: %w", err)
@@ -459,7 +479,8 @@ func (h *GitHubAppHandler) ValidateCredentials(ctx context.Context, apiKey *type
 	return nil
 }
 
-func (h *GitHubAppHandler) RefreshCredentials(ctx context.Context, apiKey *types.UserApiKey) (*types.AuthCredentials, error) {
+func (h *GitHubAppHandler) RefreshCredentials(ctx context.Context, apiKey *types.UserAPIKey) (
+	*types.AuthCredentials, error) {
 	// Parse config and force refresh token
 	appConfig, err := h.parseAppConfig(apiKey.AuthConfig)
 	if err != nil {
@@ -486,7 +507,7 @@ func (h *GitHubAppHandler) RefreshCredentials(ctx context.Context, apiKey *types
 
 func (h *GitHubAppHandler) GetRateLimit() *types.RateLimit {
 	return &types.RateLimit{
-		RequestsPerHour: 5000,
+		RequestsPerHour: GitHubRateLimitPerHour,
 		ResetTime:       "top of the hour",
 	}
 }
@@ -502,7 +523,7 @@ func (h *SlackBotTokenHandler) GetAuthMode() string {
 	return "bot_token"
 }
 
-func (h *SlackBotTokenHandler) GetAuthHeaders(ctx context.Context, apiKey *types.UserApiKey) (map[string]string, error) {
+func (h *SlackBotTokenHandler) GetAuthHeaders(_ context.Context, apiKey *types.UserAPIKey) (map[string]string, error) {
 	// For Slack, the token should be in the encrypted key value or auth config
 	var token string
 
@@ -523,7 +544,7 @@ func (h *SlackBotTokenHandler) GetAuthHeaders(ctx context.Context, apiKey *types
 	}
 
 	if token == "" {
-		return nil, fmt.Errorf("Slack bot token not found in auth config (checked 'decrypted_token' and 'token' fields)")
+		return nil, fmt.Errorf("slack bot token not found in auth config (checked 'decrypted_token' and 'token' fields)")
 	}
 
 	return map[string]string{
@@ -533,12 +554,13 @@ func (h *SlackBotTokenHandler) GetAuthHeaders(ctx context.Context, apiKey *types
 	}, nil
 }
 
-func (h *SlackBotTokenHandler) ValidateCredentials(ctx context.Context, apiKey *types.UserApiKey) error {
+func (h *SlackBotTokenHandler) ValidateCredentials(_ context.Context, _ *types.UserAPIKey) error {
 	// Implementation would validate Slack token
 	return nil
 }
 
-func (h *SlackBotTokenHandler) RefreshCredentials(ctx context.Context, apiKey *types.UserApiKey) (*types.AuthCredentials, error) {
+func (h *SlackBotTokenHandler) RefreshCredentials(ctx context.Context, apiKey *types.UserAPIKey) (
+	*types.AuthCredentials, error) {
 	headers, err := h.GetAuthHeaders(ctx, apiKey)
 	if err != nil {
 		return nil, err
@@ -553,7 +575,7 @@ func (h *SlackBotTokenHandler) RefreshCredentials(ctx context.Context, apiKey *t
 
 func (h *SlackBotTokenHandler) GetRateLimit() *types.RateLimit {
 	return &types.RateLimit{
-		RequestsPerHour: 100, // Slack has tier-based limits
+		RequestsPerHour: SlackRateLimitPerHour, // Slack has tier-based limits
 		ResetTime:       "per minute",
 	}
 }
@@ -569,7 +591,7 @@ func (h *GeminiAPIKeyHandler) GetAuthMode() string {
 	return "api_key"
 }
 
-func (h *GeminiAPIKeyHandler) GetAuthHeaders(ctx context.Context, apiKey *types.UserApiKey) (map[string]string, error) {
+func (h *GeminiAPIKeyHandler) GetAuthHeaders(_ context.Context, apiKey *types.UserAPIKey) (map[string]string, error) {
 	var token string
 	if tokenVal, exists := apiKey.AuthConfig["api_key"]; exists {
 		if tokenStr, ok := tokenVal.(string); ok {
@@ -578,7 +600,7 @@ func (h *GeminiAPIKeyHandler) GetAuthHeaders(ctx context.Context, apiKey *types.
 	}
 
 	if token == "" {
-		return nil, fmt.Errorf("Gemini API key not found in auth config")
+		return nil, fmt.Errorf("gemini API key not found in auth config")
 	}
 
 	return map[string]string{
@@ -588,12 +610,13 @@ func (h *GeminiAPIKeyHandler) GetAuthHeaders(ctx context.Context, apiKey *types.
 	}, nil
 }
 
-func (h *GeminiAPIKeyHandler) ValidateCredentials(ctx context.Context, apiKey *types.UserApiKey) error {
+func (h *GeminiAPIKeyHandler) ValidateCredentials(_ context.Context, _ *types.UserAPIKey) error {
 	// Implementation would validate Gemini API key
 	return nil
 }
 
-func (h *GeminiAPIKeyHandler) RefreshCredentials(ctx context.Context, apiKey *types.UserApiKey) (*types.AuthCredentials, error) {
+func (h *GeminiAPIKeyHandler) RefreshCredentials(ctx context.Context, apiKey *types.UserAPIKey) (
+	*types.AuthCredentials, error) {
 	headers, err := h.GetAuthHeaders(ctx, apiKey)
 	if err != nil {
 		return nil, err
@@ -608,8 +631,8 @@ func (h *GeminiAPIKeyHandler) RefreshCredentials(ctx context.Context, apiKey *ty
 
 func (h *GeminiAPIKeyHandler) GetRateLimit() *types.RateLimit {
 	return &types.RateLimit{
-		RequestsPerHour: 60,
-		RequestsPerDay:  1500,
+		RequestsPerHour: GeminiRateLimitPerHour,
+		RequestsPerDay:  GeminiRateLimitPerDay,
 		ResetTime:       "per minute",
 	}
 }

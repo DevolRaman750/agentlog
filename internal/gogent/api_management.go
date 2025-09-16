@@ -14,8 +14,17 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	DefaultTimeoutSeconds = 30
+	DefaultMaxRetries     = 3
+
+	// Status constants
+	StatusPending = "pending"
+)
+
 // CreateExecutionRun creates a new execution run for grouping related API calls
-func (c *Client) CreateExecutionRun(ctx context.Context, userID, name, description string, enableFunctionCalling bool, agentID *string) (*types.ExecutionRun, error) {
+func (c *Client) CreateExecutionRun(ctx context.Context, userID, name, description string,
+	enableFunctionCalling bool, agentID *string) (*types.ExecutionRun, error) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
@@ -75,7 +84,7 @@ func (c *Client) UpdateExecutionRunStatus(ctx context.Context, userID, execution
 
 	var statusEnum db.ExecutionRunsStatus
 	switch status {
-	case "pending":
+	case StatusPending:
 		statusEnum = db.ExecutionRunsStatusPending
 	case "running":
 		statusEnum = db.ExecutionRunsStatusRunning
@@ -221,7 +230,7 @@ func (c *Client) LogAPIResponse(ctx context.Context, userID string, response *ty
 		SafetyRatings:        convertStringToRawMessage(safetyRatingsJSON),
 		FinishReason:         sql.NullString{String: response.FinishReason, Valid: response.FinishReason != ""},
 		ErrorMessage:         sql.NullString{String: response.ErrorMessage, Valid: response.ErrorMessage != ""},
-		ResponseTimeMs:       sql.NullInt32{Int32: response.ResponseTimeMs, Valid: true},
+		ResponseTimeMs:       sql.NullInt64{Int64: response.ResponseTimeMs, Valid: true},
 		ResponseHeaders:      convertStringToRawMessage(responseHeadersJSON),
 		ResponseBody:         convertStringToRawMessage(responseBodyJSON),
 	})
@@ -248,7 +257,7 @@ func (c *Client) LogFunctionCall(ctx context.Context, call *types.FunctionCall) 
 }
 
 // ListAPIConfigurationsByUser lists API configurations for a user
-func (c *Client) ListAPIConfigurationsByUser(ctx context.Context, userID string, limit, offset int32) ([]types.APIConfiguration, error) {
+func (c *Client) ListAPIConfigurationsByUser(ctx context.Context, userID string, _ int32, _ int32) ([]types.APIConfiguration, error) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 
@@ -275,7 +284,7 @@ func (c *Client) ListAPIConfigurationsByUser(ctx context.Context, userID string,
 			}
 		}
 		if config.MaxTokens.Valid {
-			maxTokens := int32(config.MaxTokens.Int32)
+			maxTokens := config.MaxTokens.Int32
 			apiConfig.MaxTokens = &maxTokens
 		}
 		if config.TopP.Valid {
@@ -284,7 +293,7 @@ func (c *Client) ListAPIConfigurationsByUser(ctx context.Context, userID string,
 			}
 		}
 		if config.TopK.Valid {
-			topK := int32(config.TopK.Int32)
+			topK := config.TopK.Int32
 			apiConfig.TopK = &topK
 		}
 
@@ -310,11 +319,13 @@ func (c *Client) ListAPIConfigurationsByUser(ctx context.Context, userID string,
 
 // GetSystemConfigurations gets system-level API configurations
 func (c *Client) GetSystemConfigurations(ctx context.Context) ([]types.APIConfiguration, error) {
-	return c.ListAPIConfigurationsByUser(ctx, "system", 100, 0)
+	return c.ListAPIConfigurationsByUser(ctx, SystemUserID, DefaultLimit, DefaultOffset)
 }
 
 // storeFunctionExecutionConfigs stores function tools for replay functionality
-func (c *Client) storeFunctionExecutionConfigs(ctx context.Context, userID string, executionRunID string, functionTools []types.Tool) error {
+//
+//nolint:unparam // error return kept for interface compatibility
+func (c *Client) storeFunctionExecutionConfigs(_ context.Context, _ string, executionRunID string, functionTools []types.Tool) error {
 	// TODO: Implement function execution config storage
 	// This would require a new database table and corresponding queries
 	log.Printf("🔧 Storing %d function tools for execution run %s", len(functionTools), executionRunID)

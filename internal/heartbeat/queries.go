@@ -266,7 +266,7 @@ func (aq *AgentQueries) GetConfiguration(ctx context.Context, configID string) (
 		config.Temperature = &temp
 	}
 	if maxTokens.Valid {
-		tokens := int32(maxTokens.Int32)
+		tokens := maxTokens.Int32
 		config.MaxTokens = &tokens
 	}
 	if topP.Valid {
@@ -274,7 +274,7 @@ func (aq *AgentQueries) GetConfiguration(ctx context.Context, configID string) (
 		config.TopP = &p
 	}
 	if topK.Valid {
-		k := int32(topK.Int32)
+		k := topK.Int32
 		config.TopK = &k
 	}
 

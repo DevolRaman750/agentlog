@@ -115,7 +115,7 @@ func (adapter *GoGentClientAdapter) GetConfiguration(ctx context.Context, id str
 	return nil, fmt.Errorf("configuration with ID %s not found", id)
 }
 
-func (adapter *GoGentClientAdapter) ListConfigurations(ctx context.Context, executionRunID string) ([]*types.APIConfiguration, error) {
+func (adapter *GoGentClientAdapter) ListConfigurations(ctx context.Context, _ string) ([]*types.APIConfiguration, error) {
 	// List all configurations for user (filtered by execution run if needed)
 	configs, err := adapter.client.ListAPIConfigurationsByUser(ctx, adapter.userID, 1000, 0)
 	if err != nil {
@@ -141,7 +141,7 @@ func (adapter *GoGentClientAdapter) DeleteConfiguration(ctx context.Context, id 
 
 // ResultComparator interface implementation
 
-func (adapter *GoGentClientAdapter) CompareResults(ctx context.Context, result *types.ExecutionResult, metrics []string) (*types.ComparisonResult, error) {
+func (adapter *GoGentClientAdapter) CompareResults(_ context.Context, result *types.ExecutionResult, metrics []string) (*types.ComparisonResult, error) {
 	// Basic comparison implementation - this could be enhanced later
 	comparison := &types.ComparisonResult{
 		ID:                  uuid.New().String(),

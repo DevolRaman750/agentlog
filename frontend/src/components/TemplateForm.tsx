@@ -216,8 +216,8 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
       hasTemplate: !!template,
       templateId: template?.id,
       preferredConfigurationId: template?.preferredConfigurationId,
-      functionIds: template?.functionIds,
-      functionCount: template?.functionIds?.length || 0,
+      functionIDs: template?.functionIDs,
+      functionCount: template?.functionIDs?.length || 0,
       isEditMode,
       hasInitialFormData: !!initialFormData
     });
@@ -245,15 +245,15 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
         setParameters(sanitizedParams);
       }
 
-      if (template?.functionIds) {
+      if (template?.functionIDs) {
         console.log('🔥 TEMPLATEFORM: Setting initial functions from template:', {
           templateId: template.id,
-          functionIds: template.functionIds,
-          functionCount: template.functionIds.length
+          functionIDs: template.functionIDs,
+          functionCount: template.functionIDs.length
         });
-        setSelectedFunctions(template.functionIds);
+        setSelectedFunctions(template.functionIDs);
       } else {
-        console.log('🔥 TEMPLATEFORM: No functionIds found in template:', {
+        console.log('🔥 TEMPLATEFORM: No functionIDs found in template:', {
           templateId: template?.id,
           templateKeys: template ? Object.keys(template) : [],
           template: template
@@ -397,7 +397,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
       
       console.log('🔥 TEMPLATEFORM: About to save with data:', {
         templateId: template?.id,
-        functionIds: selectedFunctions,
+        functionIDs: selectedFunctions,
         functionCount: selectedFunctions.length,
         configurationId: sanitizedFormData.configurationId
       });

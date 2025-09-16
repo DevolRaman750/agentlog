@@ -2,6 +2,7 @@ package providers
 
 import (
 	"context"
+
 	"gogent/internal/types"
 )
 
@@ -30,7 +31,7 @@ type ModelRequest struct {
 	SystemPrompt        string                `json:"systemPrompt,omitempty"`
 	Tools               []types.Tool          `json:"tools,omitempty"`
 	ConversationHistory []ConversationMessage `json:"conversationHistory,omitempty"`
-	SessionApiKeys      *types.SessionApiKeys `json:"sessionApiKeys,omitempty"`
+	SessionAPIKeys      *types.SessionAPIKeys `json:"sessionAPIKeys,omitempty"`
 }
 
 // ModelResponse represents a standardized response format
@@ -39,7 +40,7 @@ type ModelResponse struct {
 	FunctionCalls     []FunctionCall         `json:"functionCalls,omitempty"`
 	UsageMetadata     map[string]interface{} `json:"usageMetadata,omitempty"`
 	FinishReason      string                 `json:"finishReason,omitempty"`
-	ResponseTimeMs    int32                  `json:"responseTimeMs"`
+	ResponseTimeMs    int64                  `json:"responseTimeMs"`
 	ConversationState []ConversationMessage  `json:"conversationState,omitempty"` // For iterative calling
 }
 
@@ -59,7 +60,7 @@ type FunctionCall struct {
 // ProviderConfig holds provider-specific configuration
 type ProviderConfig struct {
 	ProviderType string                 `json:"providerType"` // "gemini", "kimi", etc.
-	ApiKey       string                 `json:"apiKey"`
+	APIKey       string                 `json:"apiKey"`
 	BaseURL      string                 `json:"baseUrl,omitempty"`
 	ExtraConfig  map[string]interface{} `json:"extraConfig,omitempty"`
 }

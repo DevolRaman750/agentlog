@@ -12,11 +12,11 @@ import (
 
 // HeaderProcessor handles database header processing with token replacement
 type HeaderProcessor struct {
-	apiKeys *types.SessionApiKeys
+	apiKeys *types.SessionAPIKeys
 }
 
 // NewHeaderProcessor creates a new header processor
-func NewHeaderProcessor(apiKeys *types.SessionApiKeys) *HeaderProcessor {
+func NewHeaderProcessor(apiKeys *types.SessionAPIKeys) *HeaderProcessor {
 	return &HeaderProcessor{
 		apiKeys: apiKeys,
 	}
@@ -62,11 +62,11 @@ func (h *HeaderProcessor) replaceTokenPlaceholders(headerValue string) string {
 	// Replace all known token placeholders
 	replacements := map[string]string{
 		"{SLACK_BOT_TOKEN}":      h.apiKeys.SlackBotToken,
-		"{GITHUB_API_KEY}":       h.apiKeys.GithubApiKey,
-		"{GOOGLE_DRIVE_API_KEY}": h.apiKeys.GoogleDriveApiKey,
-		"{OPENWEATHER_API_KEY}":  h.apiKeys.OpenWeatherApiKey,
-		"{OPENROUTER_API_KEY}":   h.apiKeys.OpenRouterApiKey,
-		"{GEMINI_API_KEY}":       h.apiKeys.GeminiApiKey,
+		"{GITHUB_API_KEY}":       h.apiKeys.GithubAPIKey,
+		"{GOOGLE_DRIVE_API_KEY}": h.apiKeys.GoogleDriveAPIKey,
+		"{OPENWEATHER_API_KEY}":  h.apiKeys.OpenWeatherAPIKey,
+		"{OPENROUTER_API_KEY}":   h.apiKeys.OpenRouterAPIKey,
+		"{GEMINI_API_KEY}":       h.apiKeys.GeminiAPIKey,
 	}
 
 	result := headerValue
@@ -83,7 +83,7 @@ func (h *HeaderProcessor) replaceTokenPlaceholders(headerValue string) string {
 func (h *HeaderProcessor) maskHeaderValue(key, value string) string {
 	// Mask Authorization headers and other sensitive headers
 	sensitiveHeaders := []string{"Authorization", "X-API-Key", "Bearer", "Token"}
-	
+
 	for _, sensitive := range sensitiveHeaders {
 		if strings.Contains(strings.ToLower(key), strings.ToLower(sensitive)) {
 			if len(value) > 20 {
@@ -92,7 +92,7 @@ func (h *HeaderProcessor) maskHeaderValue(key, value string) string {
 			return value + "...***"
 		}
 	}
-	
+
 	return value
 }
 
