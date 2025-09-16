@@ -17,6 +17,16 @@ export const useTemplateManagement = () => {
       const response = await goGentAPI.getTemplates();
       
       if (response.success && response.data) {
+        // Debug: Log raw response
+        console.log('📋 Raw API response:', response.data.templates?.slice(0, 1).map(t => ({
+          id: t.id,
+          name: t.name,
+          functionIDs: t.functionIDs,
+          functionIDsType: typeof t.functionIDs,
+          functionIDsLength: t.functionIDs?.length,
+          allKeys: Object.keys(t)
+        })));
+        
         const templatesWithDefaults = (response.data.templates || []).map(template => ({
           ...template,
           parameters: template.parameters || [],
@@ -24,14 +34,16 @@ export const useTemplateManagement = () => {
           tags: template.tags || [],
           enableFunctionCalling: template.enableFunctionCalling || false,
           isActive: template.isActive !== false,
+          functionIDs: template.functionIDs || [], // Explicitly preserve functionIDs
         }));
 
-        console.log('📋 Templates loaded:', templatesWithDefaults.map(t => ({
+        console.log('📄 Templates loaded:', templatesWithDefaults.map(t => ({
           id: t.id,
           name: t.name,
           userId: t.userId,
           parametersCount: t.parameters?.length || 0,
           tokensCount: t.authTokens?.length || 0,
+          functionIDs: t.functionIDs, // Include actual functionIDs
           functionsCount: t.functionIDs?.length || 0,
           isActive: t.isActive,
           enableFunctionCalling: t.enableFunctionCalling

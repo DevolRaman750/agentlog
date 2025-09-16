@@ -27,6 +27,18 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
   onTokenManager,
   onCopy,
 }) => {
+  // Debug logging for template
+  React.useEffect(() => {
+    console.log('🎯 TemplateCard rendered for:', {
+      name: template.name,
+      id: template.id,
+      functionIDs: template.functionIDs,
+      functionIDsLength: template.functionIDs?.length || 0,
+      hasParameters: !!template.parameters,
+      parametersLength: template.parameters?.length || 0
+    });
+  }, [template]);
+  
   // Detect system templates by userId
   const isSystem = template.userId === 'system';
 

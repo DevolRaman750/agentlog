@@ -1038,6 +1038,17 @@ class GoGentAPI {
   async getTemplates(): Promise<ApiResponse<{ templates: any[] }>> {
     try {
       const response: AxiosResponse = await this.api.get('/api/templates?include_tokens=true');
+      
+      // Debug logging
+      console.log('🔍 API RAW RESPONSE (first template):', {
+        firstTemplate: response.data?.templates?.[0] ? {
+          name: response.data.templates[0].name,
+          functionIDs: response.data.templates[0].functionIDs,
+          functionIDsType: typeof response.data.templates[0].functionIDs,
+          allKeys: Object.keys(response.data.templates[0])
+        } : 'No templates'
+      });
+      
       return {
         success: true,
         data: response.data,
