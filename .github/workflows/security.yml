@@ -75,6 +75,11 @@ jobs:
   code-security:
     name: Code Security Analysis
     runs-on: ubuntu-latest
+    permissions:
+      # Required for uploading SARIF results to GitHub code scanning
+      security-events: write
+      # Required for actions to read repository contents
+      contents: read
     
     steps:
     - name: Checkout code
