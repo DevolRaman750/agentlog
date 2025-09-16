@@ -21,21 +21,40 @@ export const useTemplateManagement = () => {
         console.log('📋 Raw API response:', response.data.templates?.slice(0, 1).map(t => ({
           id: t.id,
           name: t.name,
-          functionIDs: t.functionIDs,
-          functionIDsType: typeof t.functionIDs,
-          functionIDsLength: t.functionIDs?.length,
+          functionIDs: (t as any).functionIDs,
+          functionIDsType: typeof (t as any).functionIDs,
+          functionIDsLength: (t as any).functionIDs?.length,
           allKeys: Object.keys(t)
         })));
         
-        const templatesWithDefaults = (response.data.templates || []).map(template => ({
+        let templatesWithDefaults: ExecutionTemplate[] = (response.data.templates || []).map((template: any) => ({
           ...template,
           parameters: template.parameters || [],
           authTokens: template.authTokens || [],
           tags: template.tags || [],
           enableFunctionCalling: template.enableFunctionCalling || false,
           isActive: template.isActive !== false,
-          functionIDs: template.functionIDs || [], // Explicitly preserve functionIDs
+          // Be resilient to different casings/keys from backend
+          functionIDs: template.functionIDs || template.functionIds || template.function_ids || [],
         }));
+
+        // Hydrate functionIDs if missing/empty by fetching each template individually
+        const missingFn = templatesWithDefaults.filter(t => !Array.isArray(t.functionIDs) || t.functionIDs.length === 0);
+        if (missingFn.length > 0) {
+          console.log(`🔄 Hydrating functionIDs for ${missingFn.length} template(s)...`, missingFn.map(t => t.id));
+          try {
+            const results = await Promise.all(missingFn.map(t => goGentAPI.getTemplateById(t.id)));
+            const fnMap = new Map<string, string[]>();
+            results.forEach(r => {
+              if (r.success && r.data) {
+                fnMap.set(r.data.id, r.data.functionIDs || r.data.functionIds || r.data.function_ids || []);
+              }
+            });
+            templatesWithDefaults = templatesWithDefaults.map(t => fnMap.has(t.id) ? { ...t, functionIDs: fnMap.get(t.id)! } : t);
+          } catch (e) {
+            console.warn('⚠️ Failed to hydrate functionIDs:', e);
+          }
+        }
 
         console.log('📄 Templates loaded:', templatesWithDefaults.map(t => ({
           id: t.id,
