@@ -62,13 +62,43 @@ jobs:
         go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
         go tool cover -html=coverage.out -o coverage.html
 
+    - name: Display coverage report
+      run: |
+        echo "📊 Test Coverage Report"
+        echo "========================"
+        go tool cover -func=coverage.out | tail -n 10
+        echo "========================"
+
     - name: Check coverage threshold
       run: |
         COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
-        echo "Coverage: ${COVERAGE}%"
+        echo "## 📊 Test Coverage Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+        echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+        echo "| **Total Coverage** | ${COVERAGE}% |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Threshold** | ${COVERAGE_THRESHOLD}% |" >> $GITHUB_STEP_SUMMARY
+        
+        if (( $(echo "$COVERAGE >= 80" | bc -l) )); then
+          STATUS="🟢 Excellent"
+        elif (( $(echo "$COVERAGE >= 70" | bc -l) )); then
+          STATUS="🟡 Good"
+        elif (( $(echo "$COVERAGE >= 60" | bc -l) )); then
+          STATUS="🟠 Fair"
+        else
+          STATUS="🔴 Needs Improvement"
+        fi
+        
+        echo "| **Status** | $STATUS |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        echo "::notice title=Test Coverage::Coverage is ${COVERAGE}% (Threshold: ${COVERAGE_THRESHOLD}%)"
+        
         if (( $(echo "$COVERAGE < $COVERAGE_THRESHOLD" | bc -l) )); then
-          echo "Coverage ${COVERAGE}% is below threshold ${COVERAGE_THRESHOLD}%"
+          echo "::error title=Coverage Below Threshold::Coverage ${COVERAGE}% is below threshold ${COVERAGE_THRESHOLD}%"
           exit 1
+        else
+          echo "✅ Coverage ${COVERAGE}% meets threshold ${COVERAGE_THRESHOLD}%"
         fi
 
     - name: Upload coverage to Codecov

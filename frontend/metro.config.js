@@ -6,4 +6,7 @@ const config = getDefaultConfig(__dirname);
 config.resolver.resolverMainFields = ['react-native', 'browser', 'main'];
 config.resolver.platforms = ['ios', 'android', 'native', 'web'];
 
-module.exports = config; 
+// Web-specific configuration for Expo 52
+config.resolver.sourceExts = [...config.resolver.sourceExts, 'mjs'];
+
+module.exports = config;

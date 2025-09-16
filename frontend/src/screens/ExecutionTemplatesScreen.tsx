@@ -29,6 +29,22 @@ const ExecutionTemplatesScreen: React.FC = () => {
 
   // Template management
   const { templates, loading, error, fetchTemplates, createTemplate, updateTemplate, deleteTemplate } = useTemplateManagement();
+  
+  // Debug: Log whenever templates change
+  useEffect(() => {
+    if (templates.length > 0) {
+      console.log('🔄 Templates state updated in ExecutionTemplatesScreen:', {
+        count: templates.length,
+        firstTemplate: {
+          id: templates[0].id,
+          name: templates[0].name,
+          functionIDs: templates[0].functionIDs,
+          functionIDsLength: templates[0].functionIDs?.length || 0,
+          hasField: 'functionIDs' in templates[0]
+        }
+      });
+    }
+  }, [templates]);
 
   // UI state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -42,7 +58,15 @@ const ExecutionTemplatesScreen: React.FC = () => {
   const processedParamsRef = useRef<string | null>(null);
 
   useEffect(() => {
-    fetchTemplates();
+    fetchTemplates().then(() => {
+      console.log('🔍 ExecutionTemplatesScreen - templates loaded, first template:', templates[0] ? {
+        id: templates[0].id,
+        name: templates[0].name,
+        functionIDs: templates[0].functionIDs,
+        functionIDsLength: templates[0].functionIDs?.length || 0,
+        allKeys: Object.keys(templates[0])
+      } : 'No templates');
+    });
     fetchAvailableFunctions();
     
     // Handle creating template from execution (only process once per unique param set)
@@ -98,7 +122,27 @@ const ExecutionTemplatesScreen: React.FC = () => {
   };
 
   const handleTemplatePress = (template: ExecutionTemplate) => {
-    setSelectedTemplate(template);
+    console.log('🔍 handleTemplatePress - template data:', {
+      id: template.id,
+      name: template.name,
+      functionIDs: template.functionIDs,
+      functionIDsLength: template.functionIDs?.length || 0,
+      allKeys: Object.keys(template)
+    });
+    
+    // Ensure functionIDs is preserved when setting selected template
+    const templateWithFunctionIDs = {
+      ...template,
+      functionIDs: template.functionIDs || []
+    };
+    
+    console.log('🎯 Setting selectedTemplate with functionIDs:', {
+      id: templateWithFunctionIDs.id,
+      functionIDs: templateWithFunctionIDs.functionIDs,
+      functionIDsLength: templateWithFunctionIDs.functionIDs?.length || 0
+    });
+    
+    setSelectedTemplate(templateWithFunctionIDs);
     setIsViewMode(true);
     setIsEditMode(false);
     setShowCreateModal(true);
@@ -107,15 +151,39 @@ const ExecutionTemplatesScreen: React.FC = () => {
   const handleTemplateEdit = async (template: ExecutionTemplate) => {
     // Always fetch fresh templates before editing to ensure we have the latest data
     console.log('🔄 Fetching fresh template data before edit...');
+    console.log('🔍 handleTemplateEdit - original template:', {
+      id: template.id,
+      name: template.name,
+      functionIDs: template.functionIDs,
+      functionIDsLength: template.functionIDs?.length || 0
+    });
     const freshTemplates = await fetchTemplates();
     const freshTemplate = freshTemplates.find(t => t.id === template.id);
     
     if (freshTemplate) {
-      console.log('✅ Using fresh template data for edit:', freshTemplate.preferredConfigurationId);
-      setSelectedTemplate(freshTemplate);
+      console.log('✅ Using fresh template data for edit:', {
+        preferredConfigurationId: freshTemplate.preferredConfigurationId,
+        functionIDs: freshTemplate.functionIDs,
+        functionIDsLength: freshTemplate.functionIDs?.length || 0
+      });
+      
+      // Ensure functionIDs is preserved
+      const templateWithFunctionIDs = {
+        ...freshTemplate,
+        functionIDs: freshTemplate.functionIDs || []
+      };
+      
+      setSelectedTemplate(templateWithFunctionIDs);
     } else {
       console.log('⚠️ Could not find fresh template, using original');
-      setSelectedTemplate(template);
+      
+      // Ensure functionIDs is preserved even for original template
+      const templateWithFunctionIDs = {
+        ...template,
+        functionIDs: template.functionIDs || []
+      };
+      
+      setSelectedTemplate(templateWithFunctionIDs);
     }
     
     setIsViewMode(false);

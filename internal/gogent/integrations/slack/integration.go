@@ -70,8 +70,8 @@ func (s *Integration) BuildURL(funcDef *db.FunctionDefinition, args map[string]i
 
 	// For GET requests, add parameters as query parameters
 	httpMethod := httpMethodGET
-	if funcDef.HTTPMethod.Valid {
-		httpMethod = funcDef.HTTPMethod.String
+	if funcDef.HttpMethod.Valid {
+		httpMethod = funcDef.HttpMethod.String
 	}
 
 	if httpMethod == httpMethodGET {

@@ -3,14 +3,6 @@ run:
   issues-exit-code: 1
   tests: false
 
-issues:
-  exclude-dirs:
-    - vendor
-    - coverage-reports
-  exclude-files:
-    - ".*\\.pb\\.go$"
-    - ".*_test\\.go$"
-
 linters-settings:
   gocyclo:
     min-complexity: 50
@@ -66,28 +58,27 @@ linters-settings:
   depguard:
     rules:
       main:
-        packages:
-          - github.com/go-sql-driver/mysql
-          - github.com/stretchr/testify/assert
-          - github.com/stretchr/testify/require
-          - github.com/golang-migrate/migrate/v4
-          - github.com/golang-migrate/migrate/v4/database/mysql
-          - github.com/google/uuid
-          - google.golang.org/grpc/status
-          - google.golang.org/protobuf/types/known/structpb
-          - google.golang.org/protobuf/types/known/timestamppb
-          - github.com/joho/godotenv
-          - github.com/imran31415/gracewrap
-          - github.com/golang-jwt/jwt/v5
-          - golang.org/x/crypto/bcrypt
         deny:
           - pkg: "github.com/example/forbidden"
             desc: "This package is forbidden"
+        allow:
+          - $gostd
+          - github.com/go-sql-driver/mysql
+          - github.com/stretchr/testify
+          - github.com/golang-migrate/migrate
+          - github.com/google/uuid
+          - google.golang.org/grpc
+          - google.golang.org/protobuf
+          - github.com/joho/godotenv
+          - github.com/imran31415/gracewrap
+          - github.com/golang-jwt/jwt
+          - golang.org/x/crypto
+          - gogent
 
 linters:
   enable:
     - bodyclose
-    # - depguard
+    - depguard
     - dogsled
     - errcheck
     - exhaustive
@@ -123,6 +114,17 @@ linters:
     - lll
     - mnd
 
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-dirs:
+    - vendor
+    - coverage-reports
+  exclude-files:
+    - ".*\\.pb\\.go$"
+    - ".*_test\\.go$"
+  
   exclude-rules:
     - path: vendor/
       linters:
@@ -223,7 +225,15 @@ linters:
     - text: "comment on exported"
       linters:
         - revive
-
-  exclude-use-default: false
-  max-issues-per-linter: 0
-  max-same-issues: 0
+    - text: "ST1000"
+      linters:
+        - stylecheck
+    - text: "at least one file in a package should have a package comment"
+      linters:
+        - stylecheck
+    - text: "exported const .* should have comment"
+      linters:
+        - revive
+    - text: "exported: exported const .* should have comment \\(or a comment on this block\\) or be unexported"
+      linters:
+        - revive

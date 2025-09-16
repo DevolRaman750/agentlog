@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"time"
 
 	"gogent/internal/db"
@@ -323,12 +324,55 @@ func (c *Client) GetSystemConfigurations(ctx context.Context) ([]types.APIConfig
 }
 
 // storeFunctionExecutionConfigs stores function tools for replay functionality
-//
-//nolint:unparam // error return kept for interface compatibility
-func (c *Client) storeFunctionExecutionConfigs(_ context.Context, _ string, executionRunID string, functionTools []types.Tool) error {
-	// TODO: Implement function execution config storage
-	// This would require a new database table and corresponding queries
+func (c *Client) storeFunctionExecutionConfigs(ctx context.Context, userID string, executionRunID string, functionTools []types.Tool) error {
 	log.Printf("🔧 Storing %d function tools for execution run %s", len(functionTools), executionRunID)
+
+	// First, get available function definitions to map tools to function IDs
+	functionDefs, err := c.queries.ListFunctionDefinitions(ctx, userID)
+	if err != nil {
+		log.Printf("⚠️ Failed to get function definitions: %v", err)
+		// Try system functions as fallback
+		functionDefs, err = c.queries.ListSystemFunctionDefinitions(ctx, "system")
+		if err != nil {
+			return fmt.Errorf("failed to get function definitions: %w", err)
+		}
+	}
+
+	// Create a map for quick lookup
+	funcDefMap := make(map[string]string) // name -> id
+	for _, fd := range functionDefs {
+		funcDefMap[fd.Name] = fd.ID
+	}
+
+	// Store each function tool as an execution function config
+	for i, tool := range functionTools {
+		funcDefID, exists := funcDefMap[tool.Name]
+		if !exists {
+			log.Printf("⚠️ Function definition not found for tool: %s", tool.Name)
+			continue
+		}
+
+		// Check for potential integer overflow
+		if i > math.MaxInt32 {
+			log.Printf("⚠️ Function index %d exceeds int32 max value, skipping", i)
+			continue
+		}
+
+		configID := uuid.New().String()
+		err := c.queries.CreateExecutionFunctionConfig(ctx, db.CreateExecutionFunctionConfigParams{
+			ID:                   configID,
+			UserID:               userID,
+			ExecutionRunID:       executionRunID,
+			FunctionDefinitionID: funcDefID,
+			UseMockResponse:      sql.NullBool{Bool: false, Valid: true}, // Default to real execution
+			ExecutionOrder:       sql.NullInt32{Int32: int32(i), Valid: true},
+		})
+		if err != nil {
+			log.Printf("⚠️ Failed to store function config for %s: %v", tool.Name, err)
+			// Continue with other functions instead of failing completely
+		}
+	}
+
 	return nil
 }
 

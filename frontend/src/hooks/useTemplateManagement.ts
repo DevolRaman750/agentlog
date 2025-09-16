@@ -17,25 +17,66 @@ export const useTemplateManagement = () => {
       const response = await goGentAPI.getTemplates();
       
       if (response.success && response.data) {
-        const templatesWithDefaults = (response.data.templates || []).map(template => ({
-          ...template,
-          parameters: template.parameters || [],
-          authTokens: template.authTokens || [],
-          tags: template.tags || [],
-          enableFunctionCalling: template.enableFunctionCalling || false,
-          isActive: template.isActive !== false,
-        }));
+        // Debug: Log raw template to see what's coming from API
+        if (response.data.templates?.length > 0) {
+          console.log('🔍 RAW API Template (first):', {
+            ...response.data.templates[0],
+            functionIDsCheck: {
+              functionIDs: response.data.templates[0].functionIDs,
+              functionIds: response.data.templates[0].functionIds,
+              function_ids: response.data.templates[0].function_ids,
+              hasField: 'functionIDs' in response.data.templates[0]
+            }
+          });
+        }
+        
+        const templatesWithDefaults = (response.data.templates || []).map(template => {
+          // Explicitly preserve functionIDs from the API response
+          const processedTemplate = {
+            ...template,
+            parameters: template.parameters || [],
+            authTokens: template.authTokens || [],
+            tags: template.tags || [],
+            enableFunctionCalling: template.enableFunctionCalling || false,
+            isActive: template.isActive !== false,
+            // Check multiple possible field names for functions
+            functionIDs: template.functionIDs || template.functionIds || template.function_ids || [],
+          };
+          
+          // Debug log for first template
+          if (template.id === 'template-software-engineer') {
+            console.log('🔍 Processing Software Engineer template:', {
+              originalFunctionIDs: template.functionIDs,
+              processedFunctionIDs: processedTemplate.functionIDs,
+              allKeys: Object.keys(template)
+            });
+          }
+          
+          return processedTemplate;
+        });
 
-        console.log('📋 Templates loaded:', templatesWithDefaults.map(t => ({
+        console.log('📄 Templates loaded:', templatesWithDefaults.map(t => ({
           id: t.id,
           name: t.name,
           userId: t.userId,
           parametersCount: t.parameters?.length || 0,
           tokensCount: t.authTokens?.length || 0,
+          functionIDs: t.functionIDs,
           functionsCount: t.functionIDs?.length || 0,
           isActive: t.isActive,
-          enableFunctionCalling: t.enableFunctionCalling
+          enableFunctionCalling: t.enableFunctionCalling,
+          hasFunctionIDsField: 'functionIDs' in t
         })));
+        
+        // Verify functionIDs is present before setting state
+        const softwareEngineerTemplate = templatesWithDefaults.find(t => t.id === 'template-software-engineer');
+        if (softwareEngineerTemplate) {
+          console.log('🎯 Software Engineer template before setState:', {
+            id: softwareEngineerTemplate.id,
+            functionIDs: softwareEngineerTemplate.functionIDs,
+            functionIDsLength: softwareEngineerTemplate.functionIDs?.length || 0
+          });
+        }
 
         setTemplates(templatesWithDefaults);
         return templatesWithDefaults;

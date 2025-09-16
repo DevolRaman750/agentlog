@@ -258,6 +258,19 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
           templateKeys: template ? Object.keys(template) : [],
           template: template
         });
+        // Log each key explicitly
+        if (template) {
+          console.log('🔍 TEMPLATEFORM: Template keys analysis:');
+          Object.keys(template).forEach(key => {
+            console.log(`  - ${key}:`, (template as any)[key]);
+          });
+          // Check for case variations
+          console.log('🔍 Checking case variations:');
+          console.log('  - functionIDs:', (template as any).functionIDs);
+          console.log('  - functionIds:', (template as any).functionIds);
+          console.log('  - function_ids:', (template as any).function_ids);
+          console.log('  - functions:', (template as any).functions);
+        }
       }
     }
   }, [initialFormData, template]);
