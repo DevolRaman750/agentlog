@@ -17,44 +17,15 @@ export const useTemplateManagement = () => {
       const response = await goGentAPI.getTemplates();
       
       if (response.success && response.data) {
-        // Debug: Log raw response
-        console.log('📋 Raw API response:', response.data.templates?.slice(0, 1).map(t => ({
-          id: t.id,
-          name: t.name,
-          functionIDs: (t as any).functionIDs,
-          functionIDsType: typeof (t as any).functionIDs,
-          functionIDsLength: (t as any).functionIDs?.length,
-          allKeys: Object.keys(t)
-        })));
-        
-        let templatesWithDefaults: ExecutionTemplate[] = (response.data.templates || []).map((template: any) => ({
+        const templatesWithDefaults = (response.data.templates || []).map(template => ({
           ...template,
           parameters: template.parameters || [],
           authTokens: template.authTokens || [],
           tags: template.tags || [],
           enableFunctionCalling: template.enableFunctionCalling || false,
           isActive: template.isActive !== false,
-          // Be resilient to different casings/keys from backend
-          functionIDs: template.functionIDs || template.functionIds || template.function_ids || [],
+          functionIDs: template.functionIDs || [], // Ensure functionIDs is always an array
         }));
-
-        // Hydrate functionIDs if missing/empty by fetching each template individually
-        const missingFn = templatesWithDefaults.filter(t => !Array.isArray(t.functionIDs) || t.functionIDs.length === 0);
-        if (missingFn.length > 0) {
-          console.log(`🔄 Hydrating functionIDs for ${missingFn.length} template(s)...`, missingFn.map(t => t.id));
-          try {
-            const results = await Promise.all(missingFn.map(t => goGentAPI.getTemplateById(t.id)));
-            const fnMap = new Map<string, string[]>();
-            results.forEach(r => {
-              if (r.success && r.data) {
-                fnMap.set(r.data.id, r.data.functionIDs || r.data.functionIds || r.data.function_ids || []);
-              }
-            });
-            templatesWithDefaults = templatesWithDefaults.map(t => fnMap.has(t.id) ? { ...t, functionIDs: fnMap.get(t.id)! } : t);
-          } catch (e) {
-            console.warn('⚠️ Failed to hydrate functionIDs:', e);
-          }
-        }
 
         console.log('📄 Templates loaded:', templatesWithDefaults.map(t => ({
           id: t.id,
@@ -62,7 +33,7 @@ export const useTemplateManagement = () => {
           userId: t.userId,
           parametersCount: t.parameters?.length || 0,
           tokensCount: t.authTokens?.length || 0,
-          functionIDs: t.functionIDs, // Include actual functionIDs
+          functionIDs: t.functionIDs,
           functionsCount: t.functionIDs?.length || 0,
           isActive: t.isActive,
           enableFunctionCalling: t.enableFunctionCalling

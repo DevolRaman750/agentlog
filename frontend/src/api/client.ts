@@ -1037,23 +1037,7 @@ class GoGentAPI {
   // Template management methods
   async getTemplates(): Promise<ApiResponse<{ templates: any[] }>> {
     try {
-      // Temporarily removed include_tokens to debug functionIDs issue
-      const response: AxiosResponse = await this.api.get('/api/templates');
-      
-      // Debug logging - More detailed
-      console.log('🔍 API RAW RESPONSE - Full first template:', response.data?.templates?.[0]);
-      console.log('🔍 API RAW RESPONSE - functionIDs specifically:', response.data?.templates?.[0]?.functionIDs);
-      console.log('🔍 API RAW RESPONSE - All keys:', response.data?.templates?.[0] ? Object.keys(response.data.templates[0]) : 'No templates');
-      
-      // Check if functionIDs exists in the raw response
-      if (response.data?.templates?.[0]) {
-        const hasField = 'functionIDs' in response.data.templates[0];
-        console.log('🔍 API RAW RESPONSE - Has functionIDs field:', hasField);
-        if (!hasField) {
-          console.log('🔍 API RAW RESPONSE - Available fields:', Object.keys(response.data.templates[0]));
-        }
-      }
-      
+      const response: AxiosResponse = await this.api.get('/api/templates?include_tokens=true');
       return {
         success: true,
         data: response.data,
