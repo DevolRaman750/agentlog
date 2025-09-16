@@ -328,6 +328,31 @@ const AgentsScreen: React.FC = () => {
         console.log('ℹ️ Template has no preferred configuration, using first available:', selectedConfig.variationName);
       }
 
+      // Load functions if template has function IDs
+      let functionTools = [];
+      if (template.functionIDs && template.functionIDs.length > 0) {
+        console.log('🔧 Loading functions for agent execution, functionIDs:', template.functionIDs);
+        
+        // Get available functions
+        const functionsResponse = await goGentAPI.getFunctions();
+        if (functionsResponse.success && functionsResponse.data) {
+          const availableFunctions = functionsResponse.data;
+          
+          // Filter functions that match the template's function IDs
+          functionTools = availableFunctions
+            .filter(func => template.functionIDs?.includes(func.id))
+            .map(func => ({
+              name: func.name,
+              description: func.description,
+              parameters: func.parametersSchema || {}
+            }));
+          
+          console.log('✅ Loaded', functionTools.length, 'functions for agent execution');
+        } else {
+          console.warn('⚠️ Failed to load functions for agent execution');
+        }
+      }
+
       // Prepare execution data for the Execute screen
       const agentExecutionData = {
         executionRunName: `Execute Agent: ${agent.firstName} ${agent.lastName}`,
@@ -336,7 +361,8 @@ const AgentsScreen: React.FC = () => {
         context: template.contextTemplate || template.context || '',
         configurations: [selectedConfig],
         enableFunctionCalling: template.enableFunctionCalling || false,
-        functionTools: [], // Will be loaded by Execute screen
+        functionTools: functionTools, // Pass loaded function tools
+        functionIDs: template.functionIDs || [], // Also pass function IDs for Execute screen to use
         isTemplateExecution: true, // Mark as template execution for read-only prompt
         isAgentExecution: true,
         agentId: agent.id,

@@ -1030,7 +1030,13 @@ const ExecuteScreen: React.FC = () => {
     });
     
     // Set function selection if any
-    if (reExecutionData.functionTools && reExecutionData.functionTools.length > 0) {
+    // Priority 1: Use functionIDs if provided (from agent/template execution)
+    if (reExecutionData.functionIDs && reExecutionData.functionIDs.length > 0) {
+      console.log('🎯 Using functionIDs from re-execution data:', reExecutionData.functionIDs);
+      updateField('selectedFunctions', reExecutionData.functionIDs);
+    }
+    // Priority 2: Map functionTools to IDs (from history re-execution)
+    else if (reExecutionData.functionTools && reExecutionData.functionTools.length > 0) {
       const functionIDs = reExecutionData.functionTools
         .map((tool: any) => {
           const foundFunc = availableFunctions.find(f => f.name === tool.name);
@@ -1042,7 +1048,7 @@ const ExecuteScreen: React.FC = () => {
       console.log('🎯 Final function IDs to select:', functionIDs);
       updateField('selectedFunctions', functionIDs);
     } else {
-      console.log('⚠️ No function tools in re-execution data');
+      console.log('⚠️ No function tools or IDs in re-execution data');
     }
     
     // Close the results viewer
