@@ -51,7 +51,6 @@
     "expo-constants": "~17.0.8",
     "expo-font": "~13.0.4",
     "expo-linking": "~7.0.5",
-    "expo-router": "~4.0.21",
     "expo-status-bar": "~2.0.0",
     "google-protobuf": "^3.21.4",
     "grpc-web": "^1.5.0",

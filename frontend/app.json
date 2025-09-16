@@ -59,9 +59,7 @@
       "output": "single",
       "lang": "en"
     },
-    "plugins": [
-      "expo-router"
-    ],
+    "plugins": [],
     "extra": {
       "eas": {
         "projectId": "YOUR_EAS_PROJECT_ID_HERE"
