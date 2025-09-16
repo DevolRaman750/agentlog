@@ -23,7 +23,7 @@ func TestGitHubWorkflowFunctions(t *testing.T) {
 	t.Run("github_update_file_on_branch_validation", func(t *testing.T) {
 		funcDef := &db.FunctionDefinition{
 			Name:       "github_update_file_on_branch",
-			HTTPMethod: sql.NullString{String: "PUT", Valid: true},
+			HttpMethod: sql.NullString{String: "PUT", Valid: true},
 		}
 
 		tests := []struct {

@@ -48,7 +48,7 @@ const (
 	oneMillion                = 1_000_000.0
 )
 
-// ResponseTimeScore: lower response time => higher score (cap at 1.0)
+// ResponseTimeScore returns a score where lower response time => higher score (cap at 1.0)
 func ResponseTimeScore(responseTimeMs int64) float64 {
 	if responseTimeMs <= 0 {
 		return 0.0
@@ -141,7 +141,7 @@ func SafetyScore(responseText string) float64 {
 	return base - penalty
 }
 
-// CostEffectivenessScore: fewer tokens => higher score
+// CostEffectivenessScore returns a score where fewer tokens => higher score
 func CostEffectivenessScore(response types.APIResponse) float64 {
 	if response.UsageMetadata == nil {
 		return tokenEffDefault

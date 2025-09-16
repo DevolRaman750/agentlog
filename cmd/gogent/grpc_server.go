@@ -839,7 +839,9 @@ func runGRPCServer() {
 
 	lis, err := net.Listen("tcp", ":"+port)
 	if err != nil {
-		server.Close()
+		if closeErr := server.Close(); closeErr != nil {
+			log.Printf("⚠️ Warning: failed to close server: %v", closeErr)
+		}
 		log.Fatalf("Failed to listen on port %s: %v", port, err) //nolint:gocritic // exitAfterDefer - cleanup before exit
 	}
 

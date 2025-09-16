@@ -462,7 +462,9 @@ func (g *Integration) encodeFileContent(req *http.Request, _ map[string]interfac
 	if err != nil {
 		return fmt.Errorf("failed to read request body: %w", err)
 	}
-	req.Body.Close()
+	if closeErr := req.Body.Close(); closeErr != nil {
+		log.Printf("⚠️ Warning: failed to close request body: %v", closeErr)
+	}
 
 	// Parse the JSON body
 	var bodyData map[string]interface{}

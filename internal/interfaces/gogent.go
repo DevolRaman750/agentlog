@@ -151,7 +151,7 @@ type ProcurementManager interface {
 	OptimizeProcurementProcess(ctx context.Context, requirements map[string]interface{}) (map[string]interface{}, error)
 }
 
-// Factory interface for creating different implementations
+// GoGentFactory interface for creating different implementations
 type GoGentFactory interface {
 	// CreateClient creates a standard GoGent client
 	CreateClient(config *types.GeminiClientConfig, dbURL string) (GoGentClient, error)
@@ -167,7 +167,7 @@ type GoGentFactory interface {
 	CreateAnalyticsProvider(dbURL string) (AnalyticsProvider, error)
 }
 
-// Plugin interface for extending functionality
+// GoGentPlugin interface for extending functionality
 type GoGentPlugin interface {
 	// GetName returns the plugin name
 	GetName() string

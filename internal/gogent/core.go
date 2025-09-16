@@ -383,7 +383,9 @@ func (c *Client) SetOptions(opts ClientOptions) { c.options = opts }
 // Close closes the database connection and Gemini client
 func (c *Client) Close() error {
 	if c.geminiClient != nil {
-		c.geminiClient.Close()
+		if err := c.geminiClient.Close(); err != nil {
+			log.Printf("⚠️ Warning: failed to close Gemini client: %v", err)
+		}
 	}
 	return c.db.Close()
 }

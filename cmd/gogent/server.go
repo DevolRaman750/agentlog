@@ -1990,7 +1990,7 @@ func runServer() {
 
 	// Start Executor
 	if err := server.heartbeatExecutor.Start(); err != nil {
-		_ = server.Close() // Best effort cleanup before exit
+		_ = server.Close()                              // Best effort cleanup before exit
 		log.Fatalf("Failed to start Executor: %v", err) //nolint:gocritic // exitAfterDefer - cleanup before exit
 	}
 
