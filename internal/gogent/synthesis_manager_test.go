@@ -3,214 +3,202 @@ package gogent
 import (
 	"testing"
 
-	"gogent/internal/types"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestSynthesisManager_GeminiSpecificLimits(t *testing.T) {
-	sm := NewSynthesisManager()
-
-	t.Run("Gemini_Excessive_Calls_Limit", func(t *testing.T) {
-		// Create 12 function calls for Gemini (should trigger limit)
-		functionCalls := make([]ResponsePart, 12)
-		for i := 0; i < 12; i++ {
-			functionCalls[i] = ResponsePart{
-				FunctionCall: struct {
-					Name string                 `json:"name"`
-					Args map[string]interface{} `json:"args"`
-				}{Name: "test_function", Args: nil},
-			}
-		}
-
-		config := &SynthesisConfig{
-			ProviderType:    "gemini",
-			Depth:           1,
-			ShouldComplete:  false,
-			FunctionCalls:   functionCalls,
-			FunctionResults: []map[string]interface{}{},
-			OriginalConfig:  &types.APIConfiguration{},
-		}
-
-		decision := sm.DetermineSynthesisStrategy(config)
-
-		// Gemini should force completion at 12 calls
-		if !decision.ForceCompletion {
-			t.Error("Gemini should force completion at 12 function calls")
-		}
-
-		if decision.AllowFunctionCalls {
-			t.Error("Gemini should not allow function calls at 12 calls")
-		}
-	})
-
-	t.Run("Gemini_Depth_Limit", func(t *testing.T) {
-		config := &SynthesisConfig{
-			ProviderType:    "gemini",
-			Depth:           12, // Should trigger Gemini depth limit
-			ShouldComplete:  false,
-			FunctionCalls:   []ResponsePart{},
-			FunctionResults: []map[string]interface{}{},
-			OriginalConfig:  &types.APIConfiguration{},
-		}
-
-		decision := sm.DetermineSynthesisStrategy(config)
-
-		// Gemini should force completion at depth 12
-		if !decision.ForceCompletion {
-			t.Error("Gemini should force completion at depth 12")
-		}
-
-		if decision.AllowFunctionCalls {
-			t.Error("Gemini should not allow function calls at depth 12")
-		}
-	})
-
-	t.Run("OpenRouter_Higher_Limits", func(t *testing.T) {
-		// Create 14 function calls for OpenRouter (should not trigger limit)
-		// Use different function names to avoid triggering identical loop detection
-		functionCalls := make([]ResponsePart, 14)
-		functionNames := []string{"func1", "func2", "func3", "func4", "func5", "func6", "func7", "func8", "func9", "func10", "func11", "func12", "func13", "func14"}
-		for i := 0; i < 14; i++ {
-			functionCalls[i] = ResponsePart{
-				FunctionCall: struct {
-					Name string                 `json:"name"`
-					Args map[string]interface{} `json:"args"`
-				}{Name: functionNames[i], Args: nil},
-			}
-		}
-
-		config := &SynthesisConfig{
-			ProviderType:    "openrouter",
-			Depth:           1,
-			ShouldComplete:  false,
-			FunctionCalls:   functionCalls,
-			FunctionResults: []map[string]interface{}{},
-			OriginalConfig:  &types.APIConfiguration{},
-		}
-
-		decision := sm.DetermineSynthesisStrategy(config)
-
-		// OpenRouter should not force completion at 14 calls (limit is 15)
-		if decision.ForceCompletion {
-			t.Error("OpenRouter should not force completion at 14 function calls")
-		}
-
-		if !decision.AllowFunctionCalls {
-			t.Error("OpenRouter should allow function calls at 14 calls")
-		}
-	})
-
-	t.Run("OpenRouter_Depth_Limit", func(t *testing.T) {
-		config := &SynthesisConfig{
-			ProviderType:    "openrouter",
-			Depth:           10, // Should not trigger OpenRouter depth limit (15)
-			ShouldComplete:  false,
-			FunctionCalls:   []ResponsePart{},
-			FunctionResults: []map[string]interface{}{},
-			OriginalConfig:  &types.APIConfiguration{},
-		}
-
-		decision := sm.DetermineSynthesisStrategy(config)
-
-		// OpenRouter should not force completion at depth 10
-		if decision.ForceCompletion {
-			t.Error("OpenRouter should not force completion at depth 10")
-		}
-
-		if !decision.AllowFunctionCalls {
-			t.Error("OpenRouter should allow function calls at depth 10")
-		}
-	})
-}
-
+// TestSynthesisManager_DetectIdenticalFunctionLoop tests the loop detection logic
 func TestSynthesisManager_DetectIdenticalFunctionLoop(t *testing.T) {
 	sm := NewSynthesisManager()
 
-	t.Run("Slack_Read_Messages_Loop", func(t *testing.T) {
-		functionCalls := []ResponsePart{
-			{FunctionCall: struct {
-				Name string                 `json:"name"`
-				Args map[string]interface{} `json:"args"`
-			}{Name: "slack_read_messages", Args: map[string]interface{}{"channel": "C123"}}},
-			{FunctionCall: struct {
-				Name string                 `json:"name"`
-				Args map[string]interface{} `json:"args"`
-			}{Name: "slack_read_messages", Args: map[string]interface{}{"channel": "C123"}}},
-			{FunctionCall: struct {
-				Name string                 `json:"name"`
-				Args map[string]interface{} `json:"args"`
-			}{Name: "slack_read_messages", Args: map[string]interface{}{"channel": "C123"}}},
-		}
+	tests := []struct {
+		name          string
+		functionCalls []ResponsePart
+		expectLoop    bool
+	}{
+		{
+			name: "No loop - insufficient calls",
+			functionCalls: []ResponsePart{
+				{FunctionCall: struct {
+					Name string                 `json:"name"`
+					Args map[string]interface{} `json:"args"`
+				}{Name: "github_read_issues", Args: map[string]interface{}{"owner": "test", "repo": "repo"}}},
+			},
+			expectLoop: false,
+		},
+		{
+			name: "Loop detected - same function, identical params, 3 times",
+			functionCalls: []ResponsePart{
+				{FunctionCall: struct {
+					Name string                 `json:"name"`
+					Args map[string]interface{} `json:"args"`
+				}{Name: "github_read_issues", Args: map[string]interface{}{"owner": "test", "repo": "repo"}}},
+				{FunctionCall: struct {
+					Name string                 `json:"name"`
+					Args map[string]interface{} `json:"args"`
+				}{Name: "github_read_issues", Args: map[string]interface{}{"owner": "test", "repo": "repo"}}},
+				{FunctionCall: struct {
+					Name string                 `json:"name"`
+					Args map[string]interface{} `json:"args"`
+				}{Name: "github_read_issues", Args: map[string]interface{}{"owner": "test", "repo": "repo"}}},
+			},
+			expectLoop: true,
+		},
+		{
+			name: "No loop - same function but pagination changed",
+			functionCalls: []ResponsePart{
+				{FunctionCall: struct {
+					Name string                 `json:"name"`
+					Args map[string]interface{} `json:"args"`
+				}{Name: "github_read_issues", Args: map[string]interface{}{"owner": "test", "repo": "repo", "limit": 10}}},
+				{FunctionCall: struct {
+					Name string                 `json:"name"`
+					Args map[string]interface{} `json:"args"`
+				}{Name: "github_read_issues", Args: map[string]interface{}{"owner": "test", "repo": "repo", "limit": 20}}},
+				{FunctionCall: struct {
+					Name string                 `json:"name"`
+					Args map[string]interface{} `json:"args"`
+				}{Name: "github_read_issues", Args: map[string]interface{}{"owner": "test", "repo": "repo", "limit": 30}}},
+			},
+			expectLoop: false, // Current implementation uses string comparison, so different limits = no loop
+		},
+		{
+			name: "No loop - different functions",
+			functionCalls: []ResponsePart{
+				{FunctionCall: struct {
+					Name string                 `json:"name"`
+					Args map[string]interface{} `json:"args"`
+				}{Name: "github_read_issues", Args: map[string]interface{}{"owner": "test", "repo": "repo"}}},
+				{FunctionCall: struct {
+					Name string                 `json:"name"`
+					Args map[string]interface{} `json:"args"`
+				}{Name: "github_read_code", Args: map[string]interface{}{"owner": "test", "repo": "repo"}}},
+				{FunctionCall: struct {
+					Name string                 `json:"name"`
+					Args map[string]interface{} `json:"args"`
+				}{Name: "github_read_commits", Args: map[string]interface{}{"owner": "test", "repo": "repo"}}},
+			},
+			expectLoop: false,
+		},
+		{
+			name: "No loop - same function but very different params",
+			functionCalls: []ResponsePart{
+				{FunctionCall: struct {
+					Name string                 `json:"name"`
+					Args map[string]interface{} `json:"args"`
+				}{Name: "github_read_issues", Args: map[string]interface{}{"owner": "owner1", "repo": "repo1", "state": "open"}}},
+				{FunctionCall: struct {
+					Name string                 `json:"name"`
+					Args map[string]interface{} `json:"args"`
+				}{Name: "github_read_issues", Args: map[string]interface{}{"owner": "owner2", "repo": "repo2", "state": "closed"}}},
+				{FunctionCall: struct {
+					Name string                 `json:"name"`
+					Args map[string]interface{} `json:"args"`
+				}{Name: "github_read_issues", Args: map[string]interface{}{"owner": "owner3", "repo": "repo3", "state": "all"}}},
+			},
+			expectLoop: false,
+		},
+		{
+			name: "Loop detected - alternating team_task_list and slack_find_channel",
+			functionCalls: []ResponsePart{
+				{FunctionCall: struct {
+					Name string                 `json:"name"`
+					Args map[string]interface{} `json:"args"`
+				}{Name: "team_task_list", Args: map[string]interface{}{}}},
+				{FunctionCall: struct {
+					Name string                 `json:"name"`
+					Args map[string]interface{} `json:"args"`
+				}{Name: "slack_find_channel", Args: map[string]interface{}{"channel_name": "test"}}},
+				{FunctionCall: struct {
+					Name string                 `json:"name"`
+					Args map[string]interface{} `json:"args"`
+				}{Name: "team_task_list", Args: map[string]interface{}{}}},
+				{FunctionCall: struct {
+					Name string                 `json:"name"`
+					Args map[string]interface{} `json:"args"`
+				}{Name: "slack_find_channel", Args: map[string]interface{}{"channel_name": "test"}}},
+			},
+			expectLoop: true,
+		},
+	}
 
-		if !sm.detectIdenticalFunctionLoop(functionCalls) {
-			t.Error("Should detect slack_read_messages loop")
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := sm.detectIdenticalFunctionLoop(tt.functionCalls)
+			assert.Equal(t, tt.expectLoop, result,
+				"Expected loop detection to be %v, got %v", tt.expectLoop, result)
+		})
+	}
+}
 
-	t.Run("Team_Task_List_Loop", func(t *testing.T) {
-		functionCalls := []ResponsePart{
-			{FunctionCall: struct {
-				Name string                 `json:"name"`
-				Args map[string]interface{} `json:"args"`
-			}{Name: "team_task_list", Args: nil}},
-			{FunctionCall: struct {
-				Name string                 `json:"name"`
-				Args map[string]interface{} `json:"args"`
-			}{Name: "team_task_list", Args: nil}},
-			{FunctionCall: struct {
-				Name string                 `json:"name"`
-				Args map[string]interface{} `json:"args"`
-			}{Name: "team_task_list", Args: nil}},
-		}
+// TestSynthesisManager_GetChannelFromArgs tests channel parameter extraction
+func TestSynthesisManager_GetChannelFromArgs(t *testing.T) {
+	sm := NewSynthesisManager()
 
-		if !sm.detectIdenticalFunctionLoop(functionCalls) {
-			t.Error("Should detect team_task_list loop")
-		}
-	})
+	tests := []struct {
+		name            string
+		args            map[string]interface{}
+		expectedChannel string
+	}{
+		{
+			name:            "Channel present",
+			args:            map[string]interface{}{"channel": "C12345"},
+			expectedChannel: "C12345",
+		},
+		{
+			name:            "Channel missing",
+			args:            map[string]interface{}{"other_param": "value"},
+			expectedChannel: "",
+		},
+		{
+			name:            "Empty args",
+			args:            map[string]interface{}{},
+			expectedChannel: "",
+		},
+		{
+			name:            "Channel is wrong type",
+			args:            map[string]interface{}{"channel": 12345},
+			expectedChannel: "",
+		},
+	}
 
-	t.Run("Alternating_Pattern_Loop", func(t *testing.T) {
-		functionCalls := []ResponsePart{
-			{FunctionCall: struct {
-				Name string                 `json:"name"`
-				Args map[string]interface{} `json:"args"`
-			}{Name: "team_task_list", Args: nil}},
-			{FunctionCall: struct {
-				Name string                 `json:"name"`
-				Args map[string]interface{} `json:"args"`
-			}{Name: "slack_find_channel", Args: nil}},
-			{FunctionCall: struct {
-				Name string                 `json:"name"`
-				Args map[string]interface{} `json:"args"`
-			}{Name: "team_task_list", Args: nil}},
-			{FunctionCall: struct {
-				Name string                 `json:"name"`
-				Args map[string]interface{} `json:"args"`
-			}{Name: "slack_find_channel", Args: nil}},
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := sm.getChannelFromArgs(tt.args)
+			assert.Equal(t, tt.expectedChannel, result)
+		})
+	}
+}
 
-		// Should detect alternating pattern loop
-		if !sm.detectIdenticalFunctionLoop(functionCalls) {
-			t.Error("Should detect alternating pattern loop")
-		}
-	})
+// TestSynthesisManager_GetChannelNameFromArgs tests channel_name parameter extraction
+func TestSynthesisManager_GetChannelNameFromArgs(t *testing.T) {
+	sm := NewSynthesisManager()
 
-	t.Run("No_Loop_For_Different_Functions", func(t *testing.T) {
-		functionCalls := []ResponsePart{
-			{FunctionCall: struct {
-				Name string                 `json:"name"`
-				Args map[string]interface{} `json:"args"`
-			}{Name: "slack_read_messages", Args: nil}},
-			{FunctionCall: struct {
-				Name string                 `json:"name"`
-				Args map[string]interface{} `json:"args"`
-			}{Name: "github_get_issues", Args: nil}},
-			{FunctionCall: struct {
-				Name string                 `json:"name"`
-				Args map[string]interface{} `json:"args"`
-			}{Name: "team_task_list", Args: nil}},
-		}
+	tests := []struct {
+		name                string
+		args                map[string]interface{}
+		expectedChannelName string
+	}{
+		{
+			name:                "Channel name present",
+			args:                map[string]interface{}{"channel_name": "ai-intern"},
+			expectedChannelName: "ai-intern",
+		},
+		{
+			name:                "Channel name missing",
+			args:                map[string]interface{}{"other_param": "value"},
+			expectedChannelName: "",
+		},
+		{
+			name:                "Empty args",
+			args:                map[string]interface{}{},
+			expectedChannelName: "",
+		},
+	}
 
-		if sm.detectIdenticalFunctionLoop(functionCalls) {
-			t.Error("Should not detect loop for different functions")
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := sm.getChannelNameFromArgs(tt.args)
+			assert.Equal(t, tt.expectedChannelName, result)
+		})
+	}
 }

@@ -1,0 +1,23 @@
+# Coverage Analysis Summary
+
+## Package Coverage Overview
+pkg/engine: 85.2% ✅ (Excellent)
+providers: 35.1% ⚠️  (Needs improvement)
+apiauth: 27.7% ⚠️  (Needs improvement)
+auth: 25.6% ⚠️  (Needs improvement)
+types: 17.1% ⚠️  (Needs improvement)
+heartbeat: 17.0% ⚠️  (Needs improvement)
+gogent/integrations/github: 9.4% ❌ (Low)
+gogent: 6.7% ❌ (Low - CRITICAL)
+teams: 0.7% ❌ (Almost none)
+agents: 0.4% ❌ (Almost none)
+templates: 0.0% ❌ (None)
+apikeys: 0.0% ❌ (None)
+
+## Priority Areas for Testing (High Impact)
+1. internal/gogent - Core execution engine (6.7% coverage)
+2. internal/agents - Agent management (0.4% coverage)  
+3. internal/teams - Team memory & tasks (0.7% coverage)
+4. internal/templates - Template management (0.0% coverage)
+5. internal/apikeys - API key management (0.0% coverage)
+

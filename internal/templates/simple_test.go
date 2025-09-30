@@ -16,10 +16,11 @@ import (
 
 // setupSimpleTestDB creates a simple test database connection without migrations
 func setupSimpleTestDB(t *testing.T) *sql.DB {
-	// Get database URL from environment or use default test database
+	// Get database URL from environment (use TEST_DATABASE_URL to match other tests)
 	testDatabaseURL := os.Getenv("TEST_DATABASE_URL")
 	if testDatabaseURL == "" {
-		testDatabaseURL = "root:Password123!@tcp(localhost:3306)/gogent_test?parseTime=true"
+		// Default test database - you can override with TEST_DATABASE_URL env var
+		testDatabaseURL = "root:@tcp(localhost:3306)/gogent_test?parseTime=true"
 	}
 
 	db, err := sql.Open("mysql", testDatabaseURL)

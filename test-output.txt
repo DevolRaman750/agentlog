@@ -1,0 +1,25 @@
+	gogent/internal/github		coverage: 0.0% of statements
+	gogent/internal/db		coverage: 0.0% of statements
+	gogent/internal/codeanalysis		coverage: 0.0% of statements
+	gogent/cmd/gogent		coverage: 0.0% of statements
+	gogent/internal/adapters		coverage: 0.0% of statements
+	gogent/internal/gemini		coverage: 0.0% of statements
+ok  	gogent/internal/agents	0.604s	coverage: 0.4% of statements
+ok  	gogent/internal/apiauth	0.391s	coverage: 27.7% of statements
+ok  	gogent/internal/apikeys	0.199s	coverage: 0.0% of statements
+?   	gogent/internal/interfaces	[no test files]
+	gogent/internal/gogent/integrations		coverage: 0.0% of statements
+	gogent/internal/gogent/integrations/base		coverage: 0.0% of statements
+	gogent/internal/gogent/integrations/slack		coverage: 0.0% of statements
+ok  	gogent/internal/auth	0.891s	coverage: 25.6% of statements
+ok  	gogent/internal/gogent	0.266s	coverage: 6.7% of statements
+	gogent/tests		coverage: 0.0% of statements
+	gogent/proto		coverage: 0.0% of statements
+ok  	gogent/internal/gogent/integrations/github	1.031s	coverage: 9.4% of statements
+ok  	gogent/internal/heartbeat	0.587s	coverage: 17.0% of statements
+ok  	gogent/internal/providers	0.414s	coverage: 35.1% of statements
+ok  	gogent/internal/teams	0.734s	coverage: 0.7% of statements
+ok  	gogent/internal/templates	0.861s	coverage: 0.0% of statements
+ok  	gogent/internal/tests	0.952s	coverage: [no statements]
+ok  	gogent/internal/types	1.236s	coverage: 17.1% of statements
+ok  	gogent/pkg/engine	1.095s	coverage: 85.2% of statements
