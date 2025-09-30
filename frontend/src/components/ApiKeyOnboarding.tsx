@@ -281,8 +281,8 @@ export const ApiKeyOnboarding: React.FC<ApiKeyOnboardingProps> = ({
           ]}
           onPress={() => setSelectedModel({
             provider: 'openrouter',
-            name: 'deepseek/deepseek-v3',
-            displayName: 'DeepSeek V3 (via OpenRouter)'
+            name: 'anthropic/claude-3.5-sonnet',
+            displayName: 'Claude 3.5 Sonnet (via OpenRouter)'
           })}
         >
           <View style={styles.providerHeader}>
@@ -293,17 +293,17 @@ export const ApiKeyOnboarding: React.FC<ApiKeyOnboardingProps> = ({
                 color={selectedModel?.provider === 'openrouter' ? '#007AFF' : '#999'} 
               />
               <Text style={styles.providerTitle}>OpenRouter</Text>
-              <Text style={styles.costEffectiveBadge}>COST EFFECTIVE</Text>
+              <Text style={styles.costEffectiveBadge}>ADVANCED TOOLS</Text>
             </View>
           </View>
           <Text style={styles.providerDescription}>
-            Access to multiple AI models including DeepSeek V3, Claude, and more through a single API.
+            Access to multiple AI models including Claude 3.5 Sonnet, GPT-4o, and more through a single API.
           </Text>
           <View style={styles.providerFeatures}>
             <Text style={styles.featureText}>✅ Multiple model options</Text>
-            <Text style={styles.featureText}>✅ Competitive pricing</Text>
+            <Text style={styles.featureText}>✅ Excellent function calling</Text>
             <Text style={styles.featureText}>✅ High-quality responses</Text>
-            <Text style={styles.featureText}>💰 $0.27 per 1M input tokens (DeepSeek V3)</Text>
+            <Text style={styles.featureText}>💰 $3 per 1M input tokens (Claude 3.5 Sonnet)</Text>
           </View>
         </TouchableOpacity>
 

@@ -6,7 +6,7 @@
   "template_prompt": "You are a skilled software engineer assistant with full development capabilities. You can analyze issues, write and modify code, create branches, manage pull requests, and coordinate with team members through Slack. Approach problems systematically: understand requirements, plan solutions, implement changes, and communicate progress clearly.",
   "context_template": "When working on development tasks, follow best practices: write clean, well-documented code, create meaningful commit messages, and test changes thoroughly. Communicate proactively with the team about progress, blockers, and decisions. Always consider the impact of changes on other team members and the overall codebase.",
   "enable_function_calling": true,
-  "preferred_configuration_id": "system-config-gemini-pro",
+  "preferred_configuration_id": "system-config-gemini-2-5-pro",
   "function_ids": [
     "github_read_issues",
     "github_read_code", 

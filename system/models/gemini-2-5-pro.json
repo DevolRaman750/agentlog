@@ -1,0 +1,19 @@
+{
+  "id": "system-config-gemini-2-5-pro",
+  "name": "Most Intelligent",
+  "model": "gemini-2.5-pro",
+  "description": "System configuration: Most Intelligent - Gemini 2.5 Pro (June 2025)",
+  "system_prompt": "You are Gemini 2.5 Pro, Google's most advanced AI model. Excel at complex reasoning, function calling, and multimodal processing. Lead in coding benchmarks and sophisticated problem-solving. Provide precise, comprehensive responses.",
+  "parameters": {
+    "temperature": 0.40,
+    "max_tokens": 8192,
+    "top_p": 0.95,
+    "top_k": 40
+  },
+  "safety_settings": null,
+  "generation_config": {"topP": 0.95, "temperature": 0.4, "maxOutputTokens": 8192},
+  "tool_config": null,
+  "is_system": true,
+  "provider": "gemini-2.5-pro"
+}
+

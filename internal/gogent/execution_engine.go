@@ -2336,7 +2336,7 @@ func (c *Client) detectTaskCompletion(functionCalls []ResponsePart, _ []map[stri
 	}
 
 	// Let the LLM decide when it's done - no artificial task completion detection
-	// The synthesis manager and loop detection will handle edge cases
+	// The agent should use agent_task_progress_read and team_task functions to determine completion
 	log.Printf("🔍 Task completion check: depth=%d, functions=%d - letting LLM decide naturally", depth, len(functionCalls))
 	return false
 }
