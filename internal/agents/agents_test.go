@@ -947,6 +947,189 @@ func TestHandler_DatabaseOperations(t *testing.T) {
 	assert.Equal(t, sql.ErrNoRows, err)
 }
 
+// TestHandler_GetAgentExecutionsWithLimits tests the optimized query with various limits
+func TestHandler_GetAgentExecutionsWithLimits(t *testing.T) {
+	db := setupTestDB(t)
+	if db == nil {
+		return
+	}
+	defer db.Close()
+
+	authService := auth.NewService(db, "test-secret")
+	user, _ := createTestUser(t, authService)
+	templateID := createTestTemplate(t, db, user.ID)
+
+	handler := NewHandler(db)
+
+	// Create test agent
+	agent := &types.Agent{
+		ID:               "test-agent-limits",
+		UserID:           user.ID,
+		FirstName:        "Test",
+		LastName:         "Agent",
+		TemplateID:       templateID,
+		MaxTokensPerDay:  1000,
+		HeartbeatMinutes: 10,
+		LifecycleStatus:  types.LifecycleStatusStandby,
+		TokensUsedToday:  0,
+		TokensResetDate:  time.Now().Format("2006-01-02"),
+		TotalExecutions:  0,
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
+	}
+	require.NoError(t, handler.insertAgent(agent))
+
+	// Create 50 test execution runs for this agent
+	for i := 0; i < 50; i++ {
+		executionID := fmt.Sprintf("exec-%d", i)
+		executionName := fmt.Sprintf("Execution %d", i)
+		executionDesc := fmt.Sprintf("Test execution %d", i)
+		createdAt := time.Now().Add(-time.Duration(50-i) * time.Hour)
+
+		_, err := db.Exec(`
+			INSERT INTO execution_runs (id, user_id, agent_id, name, description, base_prompt, 
+				context_prompt, enable_function_calling, status, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`, executionID, user.ID, agent.ID, executionName, executionDesc,
+			"Test prompt", "Test context", false, "completed", createdAt, time.Now())
+		require.NoError(t, err)
+	}
+
+	tests := []struct {
+		name          string
+		limit         int
+		offset        int
+		expectedCount int
+		expectError   bool
+	}{
+		{
+			name:          "Default limit (20)",
+			limit:         0,
+			offset:        0,
+			expectedCount: 20,
+			expectError:   false,
+		},
+		{
+			name:          "Request 10 executions",
+			limit:         10,
+			offset:        0,
+			expectedCount: 10,
+			expectError:   false,
+		},
+		{
+			name:          "Request 50 executions",
+			limit:         50,
+			offset:        0,
+			expectedCount: 50,
+			expectError:   false,
+		},
+		{
+			name:          "Request over limit (150) - should cap at 100",
+			limit:         150,
+			offset:        0,
+			expectedCount: 50, // Only 50 exist, so return 50
+			expectError:   false,
+		},
+		{
+			name:          "Pagination - second page",
+			limit:         20,
+			offset:        20,
+			expectedCount: 20,
+			expectError:   false,
+		},
+		{
+			name:          "Pagination - third page (remaining 10)",
+			limit:         20,
+			offset:        40,
+			expectedCount: 10,
+			expectError:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			executions, err := handler.getExecutionsByAgentID(agent.ID, tt.limit, tt.offset)
+
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				assert.Len(t, executions, tt.expectedCount)
+
+				// Verify executions are ordered by created_at DESC
+				for i := 1; i < len(executions); i++ {
+					assert.True(t, executions[i-1].ExecutionRun.CreatedAt.After(executions[i].ExecutionRun.CreatedAt) ||
+						executions[i-1].ExecutionRun.CreatedAt.Equal(executions[i].ExecutionRun.CreatedAt),
+						"Executions should be ordered by created_at DESC")
+				}
+			}
+		})
+	}
+}
+
+// TestHandler_GetAgentExecutionsPerformance tests the performance of the optimized query
+func TestHandler_GetAgentExecutionsPerformance(t *testing.T) {
+	db := setupTestDB(t)
+	if db == nil {
+		return
+	}
+	defer db.Close()
+
+	authService := auth.NewService(db, "test-secret")
+	user, _ := createTestUser(t, authService)
+	templateID := createTestTemplate(t, db, user.ID)
+
+	handler := NewHandler(db)
+
+	// Create test agent
+	agent := &types.Agent{
+		ID:               "test-agent-perf",
+		UserID:           user.ID,
+		FirstName:        "Perf",
+		LastName:         "Test",
+		TemplateID:       templateID,
+		MaxTokensPerDay:  1000,
+		HeartbeatMinutes: 10,
+		LifecycleStatus:  types.LifecycleStatusStandby,
+		TokensUsedToday:  0,
+		TokensResetDate:  time.Now().Format("2006-01-02"),
+		TotalExecutions:  0,
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
+	}
+	require.NoError(t, handler.insertAgent(agent))
+
+	// Create 100 test execution runs to simulate a heavy load
+	for i := 0; i < 100; i++ {
+		executionID := fmt.Sprintf("perf-exec-%d", i)
+		executionName := fmt.Sprintf("Perf Execution %d", i)
+		executionDesc := fmt.Sprintf("Performance test execution %d", i)
+		createdAt := time.Now().Add(-time.Duration(100-i) * time.Hour)
+
+		_, err := db.Exec(`
+			INSERT INTO execution_runs (id, user_id, agent_id, name, description, base_prompt, 
+				context_prompt, enable_function_calling, status, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`, executionID, user.ID, agent.ID, executionName, executionDesc,
+			"Test prompt", "Test context", false, "completed", createdAt, time.Now())
+		require.NoError(t, err)
+	}
+
+	// Measure query performance
+	start := time.Now()
+	executions, err := handler.getExecutionsByAgentID(agent.ID, 20, 0)
+	duration := time.Since(start)
+
+	require.NoError(t, err)
+	assert.Len(t, executions, 20)
+
+	// Query should complete in less than 1 second even with 100 executions
+	assert.Less(t, duration.Milliseconds(), int64(1000),
+		"Query took %dms - should be under 1000ms", duration.Milliseconds())
+
+	t.Logf("Query completed in %dms", duration.Milliseconds())
+}
+
 // Benchmark tests for performance
 func BenchmarkHandler_CreateAgent(b *testing.B) {
 	db := setupTestDB(&testing.T{})

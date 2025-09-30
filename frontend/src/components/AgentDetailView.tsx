@@ -61,7 +61,8 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({
       setLoadError(null);
       console.log('🔍 Loading executions for agent:', agent.id);
       
-      const response = await goGentAPI.getAgentExecutions(agent.id, 50, 0);
+      // Use reasonable limits - only load 20 recent executions initially
+      const response = await goGentAPI.getAgentExecutions(agent.id, 20, 0);
       console.log('📡 Agent executions response:', response);
       
       if (response.success && response.data) {

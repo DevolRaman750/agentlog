@@ -40,7 +40,9 @@ const getModelCategory = (modelName: string): ModelInfo['category'] => {
 const isRecommendedModel = (modelName: string): boolean => {
   const recommendedModels = [
     'gemini-1.5-pro',
+    'gemini-2.5-pro',
     'moonshotai/kimi-k2-instruct',
+    'moonshotai/kimi-k2',
     'anthropic/claude-3.5-sonnet',
     'openai/gpt-4o'
   ];
@@ -50,11 +52,9 @@ const isRecommendedModel = (modelName: string): boolean => {
 // Helper function to determine if a model should be marked as new
 const isNewModel = (modelName: string): boolean => {
   const newModels = [
+    'gemini-2.5-pro',
     'anthropic/claude-3.5-sonnet',
-    'openai/gpt-4o',
-    'qwen/qwen-2.5-coder-32b-instruct',
-    'deepseek/deepseek-v3',
-    'meta-llama/llama-3.1-405b-instruct'
+    'openai/gpt-4o'
   ];
   return newModels.includes(modelName);
 };
@@ -98,7 +98,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
           (config.id && config.id.startsWith('system-config-')) || 
           config.variationName.includes('System configuration:') ||
           // Also include configs that look like system configs based on naming patterns
-          (config.id && ['gemini-1-5-pro', 'kimi-k2', 'claude-3-5-sonnet', 'gpt-4o', 'qwen-2-5-coder', 'deepseek-v3', 'llama-3-1-405b'].includes(config.id))
+          (config.id && ['gemini-1-5-pro', 'gemini-2-5-pro', 'kimi-k2', 'claude-3-5-sonnet', 'gpt-4o'].includes(config.id))
         );
         
         const models = systemConfigs.map(transformConfigurationToModel);
