@@ -379,23 +379,24 @@ func (h *Handler) verifyTemplateAccess(userID, templateID string) error {
 }
 
 // getExecutionsByAgentID retrieves executions for an agent with pagination
+// Optimized version that avoids expensive JOINs and JSON operations for better performance
 func (h *Handler) getExecutionsByAgentID(agentID string, limit, offset int) ([]ExecutionRunWithTokens, error) {
+	// Apply reasonable limits to prevent excessive data loading
+	if limit > 100 {
+		limit = 100 // Cap at 100 executions per page
+	}
+	if limit <= 0 {
+		limit = 20 // Default to 20 if not specified
+	}
+
+	// Use a lightweight query that only fetches essential execution data
+	// Token information can be loaded separately if needed for specific executions
 	query := `
 		SELECT 
-			er.id, er.name, er.description, er.base_prompt, er.context_prompt,
-			er.enable_function_calling, er.status, er.error_message,
-			er.created_at, er.updated_at,
-			COALESCE(SUM(CAST(JSON_UNQUOTE(JSON_EXTRACT(resp.usage_metadata, '$.total_tokens')) AS UNSIGNED)), 0) as total_tokens,
-			COALESCE(SUM(CAST(JSON_UNQUOTE(JSON_EXTRACT(resp.usage_metadata, '$.prompt_tokens')) AS UNSIGNED)), 0) as prompt_tokens,
-			COALESCE(SUM(CAST(JSON_UNQUOTE(JSON_EXTRACT(resp.usage_metadata, '$.completion_tokens')) AS UNSIGNED)), 0) as completion_tokens,
-					COALESCE(AVG(resp.response_time_ms), 0) as avg_response_time
-	FROM execution_runs er
-	LEFT JOIN api_requests req ON er.id = req.execution_run_id
-	LEFT JOIN api_responses resp ON req.id = resp.request_id
+			er.id, er.name, er.description, er.status, er.error_message,
+			er.created_at, er.updated_at, er.enable_function_calling
+		FROM execution_runs er
 		WHERE er.agent_id = ?
-		GROUP BY er.id, er.name, er.description, er.base_prompt, er.context_prompt,
-		         er.enable_function_calling, er.status, er.error_message,
-		         er.created_at, er.updated_at
 		ORDER BY er.created_at DESC
 		LIMIT ? OFFSET ?
 	`
@@ -409,15 +410,13 @@ func (h *Handler) getExecutionsByAgentID(agentID string, limit, offset int) ([]E
 	var executions []ExecutionRunWithTokens
 	for rows.Next() {
 		var exec ExecutionRunWithTokens
-		var description, basePrompt, contextPrompt, errorMessage sql.NullString
-		var totalTokens, promptTokens, completionTokens sql.NullInt64
-		var avgResponseTime sql.NullFloat64
+		var description, errorMessage sql.NullString
 
 		err := rows.Scan(
-			&exec.ExecutionRun.ID, &exec.ExecutionRun.Name, &description, &basePrompt, &contextPrompt,
-			&exec.ExecutionRun.EnableFunctionCalling, &exec.ExecutionRun.Status, &errorMessage,
+			&exec.ExecutionRun.ID, &exec.ExecutionRun.Name, &description, 
+			&exec.ExecutionRun.Status, &errorMessage,
 			&exec.ExecutionRun.CreatedAt, &exec.ExecutionRun.UpdatedAt,
-			&totalTokens, &promptTokens, &completionTokens, &avgResponseTime,
+			&exec.ExecutionRun.EnableFunctionCalling,
 		)
 		if err != nil {
 			return nil, err
@@ -427,34 +426,44 @@ func (h *Handler) getExecutionsByAgentID(agentID string, limit, offset int) ([]E
 		if description.Valid {
 			exec.ExecutionRun.Description = description.String
 		}
-		if basePrompt.Valid {
-			exec.ExecutionRun.BasePrompt = basePrompt.String
-		}
-		if contextPrompt.Valid {
-			exec.ExecutionRun.ContextPrompt = contextPrompt.String
-		}
 		if errorMessage.Valid {
 			exec.ExecutionRun.ErrorMessage = errorMessage.String
 		}
 
-		// Set token information
-		if totalTokens.Valid {
-			exec.TotalTokens = int(totalTokens.Int64)
-		}
-		if promptTokens.Valid {
-			exec.PromptTokens = int(promptTokens.Int64)
-		}
-		if completionTokens.Valid {
-			exec.CompletionTokens = int(completionTokens.Int64)
-		}
-		if avgResponseTime.Valid {
-			exec.AvgResponseTime = avgResponseTime.Float64
-		}
+		// Set token information to 0 for now (can be loaded separately if needed)
+		exec.TotalTokens = 0
+		exec.PromptTokens = 0
+		exec.CompletionTokens = 0
+		exec.AvgResponseTime = 0
 
 		executions = append(executions, exec)
 	}
 
 	return executions, rows.Err()
+}
+
+// getExecutionTokens retrieves token information for a specific execution (optional, for detailed view)
+func (h *Handler) getExecutionTokens(executionID string) (int, int, int, float64, error) {
+	query := `
+		SELECT 
+			COALESCE(SUM(CAST(JSON_UNQUOTE(JSON_EXTRACT(resp.usage_metadata, '$.total_tokens')) AS UNSIGNED)), 0) as total_tokens,
+			COALESCE(SUM(CAST(JSON_UNQUOTE(JSON_EXTRACT(resp.usage_metadata, '$.prompt_tokens')) AS UNSIGNED)), 0) as prompt_tokens,
+			COALESCE(SUM(CAST(JSON_UNQUOTE(JSON_EXTRACT(resp.usage_metadata, '$.completion_tokens')) AS UNSIGNED)), 0) as completion_tokens,
+			COALESCE(AVG(resp.response_time_ms), 0) as avg_response_time
+		FROM api_requests req
+		LEFT JOIN api_responses resp ON req.id = resp.request_id
+		WHERE req.execution_run_id = ?
+	`
+
+	var totalTokens, promptTokens, completionTokens sql.NullInt64
+	var avgResponseTime sql.NullFloat64
+
+	err := h.db.QueryRow(query, executionID).Scan(&totalTokens, &promptTokens, &completionTokens, &avgResponseTime)
+	if err != nil {
+		return 0, 0, 0, 0, err
+	}
+
+	return int(totalTokens.Int64), int(promptTokens.Int64), int(completionTokens.Int64), avgResponseTime.Float64, nil
 }
 
 // removeAgentFromTeam removes an agent from its team

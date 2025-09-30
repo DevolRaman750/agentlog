@@ -1283,7 +1283,7 @@ class GoGentAPI {
     }
   }
 
-  async getAgentExecutions(id: string, limit: number = 50, offset: number = 0): Promise<ApiResponse<ExecutionRun[]>> {
+  async getAgentExecutions(id: string, limit: number = 20, offset: number = 0): Promise<ApiResponse<ExecutionRun[]>> {
     try {
       const response: AxiosResponse = await this.api.get(`/api/agents/${id}/executions`, {
         params: { limit, offset }
