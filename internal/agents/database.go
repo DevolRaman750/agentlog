@@ -413,7 +413,7 @@ func (h *Handler) getExecutionsByAgentID(agentID string, limit, offset int) ([]E
 		var description, errorMessage sql.NullString
 
 		err := rows.Scan(
-			&exec.ExecutionRun.ID, &exec.ExecutionRun.Name, &description, 
+			&exec.ExecutionRun.ID, &exec.ExecutionRun.Name, &description,
 			&exec.ExecutionRun.Status, &errorMessage,
 			&exec.ExecutionRun.CreatedAt, &exec.ExecutionRun.UpdatedAt,
 			&exec.ExecutionRun.EnableFunctionCalling,
@@ -440,30 +440,6 @@ func (h *Handler) getExecutionsByAgentID(agentID string, limit, offset int) ([]E
 	}
 
 	return executions, rows.Err()
-}
-
-// getExecutionTokens retrieves token information for a specific execution (optional, for detailed view)
-func (h *Handler) getExecutionTokens(executionID string) (int, int, int, float64, error) {
-	query := `
-		SELECT 
-			COALESCE(SUM(CAST(JSON_UNQUOTE(JSON_EXTRACT(resp.usage_metadata, '$.total_tokens')) AS UNSIGNED)), 0) as total_tokens,
-			COALESCE(SUM(CAST(JSON_UNQUOTE(JSON_EXTRACT(resp.usage_metadata, '$.prompt_tokens')) AS UNSIGNED)), 0) as prompt_tokens,
-			COALESCE(SUM(CAST(JSON_UNQUOTE(JSON_EXTRACT(resp.usage_metadata, '$.completion_tokens')) AS UNSIGNED)), 0) as completion_tokens,
-			COALESCE(AVG(resp.response_time_ms), 0) as avg_response_time
-		FROM api_requests req
-		LEFT JOIN api_responses resp ON req.id = resp.request_id
-		WHERE req.execution_run_id = ?
-	`
-
-	var totalTokens, promptTokens, completionTokens sql.NullInt64
-	var avgResponseTime sql.NullFloat64
-
-	err := h.db.QueryRow(query, executionID).Scan(&totalTokens, &promptTokens, &completionTokens, &avgResponseTime)
-	if err != nil {
-		return 0, 0, 0, 0, err
-	}
-
-	return int(totalTokens.Int64), int(promptTokens.Int64), int(completionTokens.Int64), avgResponseTime.Float64, nil
 }
 
 // removeAgentFromTeam removes an agent from its team

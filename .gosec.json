@@ -1,0 +1,16 @@
+{
+  "global": {
+    "nosec": false,
+    "audit": false
+  },
+  "excludes": [
+    "G103",
+    "G501"
+  ],
+  "exclude-generated": true,
+  "exclude-dirs": [
+    "proto",
+    "internal/db"
+  ]
+}
+
