@@ -2,6 +2,7 @@ import React, { createContext, useContext, useReducer, useEffect, ReactNode, use
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { AppConfig, APIConfiguration, ExecutionRun, Tool, ExecutionResult } from '../types';
+import { TemplateParameter } from '../types/templates';
 import { goGentAPI } from '../api/client';
 import { useAuth } from './AuthContext';
 
@@ -28,6 +29,8 @@ interface AppState {
     isAgentExecution?: boolean;
     agentId?: string;
     templateId?: string;
+    isTemplateExecution?: boolean;
+    templateParameters?: TemplateParameter[];
   };
   currentExecution?: {
     isExecuting: boolean;
@@ -52,7 +55,7 @@ type AppAction =
   | { type: 'ADD_EXECUTION'; payload: ExecutionRun }
   | { type: 'DELETE_EXECUTION'; payload: string }
   | { type: 'SET_CONNECTION_STATUS'; payload: { connected: boolean; latency: number } }
-  | { type: 'SET_RE_EXECUTION_DATA'; payload: { executionRunName: string; description: string; basePrompt: string; context?: string; configurations: APIConfiguration[]; enableFunctionCalling?: boolean; functionTools?: Tool[]; comparisonEnabled?: boolean; selectedMetrics?: string[]; functionExecutionMode?: 'mock' | 'real' | 'auto' } }
+  | { type: 'SET_RE_EXECUTION_DATA'; payload: { executionRunName: string; description: string; basePrompt: string; context?: string; configurations: APIConfiguration[]; enableFunctionCalling?: boolean; functionTools?: Tool[]; comparisonEnabled?: boolean; selectedMetrics?: string[]; functionExecutionMode?: 'mock' | 'real' | 'auto'; isTemplateExecution?: boolean; templateParameters?: TemplateParameter[] } }
   | { type: 'CLEAR_RE_EXECUTION_DATA' }
   | { type: 'START_EXECUTION'; payload: { executionId: string; maxPolls: number } }
   | { type: 'UPDATE_EXECUTION_PROGRESS'; payload: { pollCount: number } }
@@ -156,7 +159,7 @@ interface AppContextType {
   clearSession: () => Promise<void>;
   exportSessionData: () => Promise<any>;
   importSessionData: (sessionData: any) => Promise<void>;
-  setReExecutionData: (data: { executionRunName: string; description: string; basePrompt: string; context?: string; configurations: APIConfiguration[]; enableFunctionCalling?: boolean; functionTools?: Tool[]; comparisonEnabled?: boolean; selectedMetrics?: string[]; functionExecutionMode?: 'mock' | 'real' | 'auto' }) => void;
+  setReExecutionData: (data: { executionRunName: string; description: string; basePrompt: string; context?: string; configurations: APIConfiguration[]; enableFunctionCalling?: boolean; functionTools?: Tool[]; comparisonEnabled?: boolean; selectedMetrics?: string[]; functionExecutionMode?: 'mock' | 'real' | 'auto'; isTemplateExecution?: boolean; templateParameters?: TemplateParameter[] }) => void;
   clearReExecutionData: () => void;
   refreshAllData: () => Promise<void>; // New global refresh function
   // Execution management
@@ -742,7 +745,7 @@ export function AppProvider({ children }: AppProviderProps) {
   };
 
   // Set re-execution data for cross-screen communication
-  const setReExecutionData = useCallback((data: { executionRunName: string; description: string; basePrompt: string; context?: string; configurations: APIConfiguration[]; enableFunctionCalling?: boolean; functionTools?: Tool[]; comparisonEnabled?: boolean; selectedMetrics?: string[]; functionExecutionMode?: 'mock' | 'real' | 'auto' }) => {
+  const setReExecutionData = useCallback((data: { executionRunName: string; description: string; basePrompt: string; context?: string; configurations: APIConfiguration[]; enableFunctionCalling?: boolean; functionTools?: Tool[]; comparisonEnabled?: boolean; selectedMetrics?: string[]; functionExecutionMode?: 'mock' | 'real' | 'auto'; isTemplateExecution?: boolean; templateParameters?: TemplateParameter[] }) => {
     dispatch({ type: 'SET_RE_EXECUTION_DATA', payload: data });
   }, []);
 

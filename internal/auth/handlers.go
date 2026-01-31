@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 )
 
 // LoginRequest represents the request payload for user login
@@ -139,7 +140,7 @@ func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	response := LoginResponse{
 		Token:     token,
 		User:      *user,
-		ExpiresAt: "2024-12-31T23:59:59Z", // TODO: Get actual expiry from token
+		ExpiresAt: time.Now().Add(h.authService.tokenExpiry).UTC().Format(time.RFC3339),
 	}
 
 	w.Header().Set("Content-Type", "application/json")

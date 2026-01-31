@@ -424,13 +424,13 @@ func (c *Client) callGeminiAPI(ctx context.Context, config *types.APIConfigurati
 	log.Printf("🔑 API keys available: Gemini=%v, OpenRouter=%v",
 		effectiveKeys.GeminiAPIKey != "", effectiveKeys.OpenRouterAPIKey != "")
 
-	// TEMPORARY FIX: For Gemini models, use the original working implementation instead of the broken provider
+	// Gemini uses the direct REST implementation which supports full function calling.
+	// The provider abstraction is used for non-Gemini models (e.g., Kimi via OpenRouter).
 	if providerType == "gemini" {
-		log.Printf("🔧 USING ORIGINAL GEMINI IMPLEMENTATION (bypassing broken provider)")
 		return c.callGeminiRestAPI(ctx, config, request)
 	}
 
-	// For non-Gemini models, use the provider pattern
+	// For non-Gemini models, use the provider abstraction
 	provider, err := c.providerFactory.CreateProvider(ctx, config.ModelName, effectiveKeys)
 	if err != nil {
 		log.Printf("❌ Failed to create %s provider: %v", providerType, err)

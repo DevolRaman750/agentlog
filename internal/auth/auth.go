@@ -539,7 +539,12 @@ func NewHeaderEncryption() *HeaderEncryption {
 		secret = "gogent_shared_secret_v1_default"
 	}
 
-	log.Printf("🔑 DEBUG: HeaderEncryption using key: %s", secret)
+	if os.Getenv("API_ENCRYPTION_KEY") != "" {
+		log.Printf("🔑 HeaderEncryption initialized (key source: environment)")
+	} else {
+		log.Printf("🔑 HeaderEncryption initialized (key source: default)")
+		log.Printf("⚠️  WARNING: Using default encryption secret. Set API_ENCRYPTION_KEY environment variable for production")
+	}
 
 	return &HeaderEncryption{
 		sharedSecret: secret,

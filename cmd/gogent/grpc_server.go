@@ -491,7 +491,7 @@ func (s *GRPCServer) convertUserToProto(user *auth.User) *pb.User {
 func (s *GRPCServer) convertExecutionRunToProto(run *types.ExecutionRun) *pb.ExecutionRun {
 	return &pb.ExecutionRun{
 		Id:                    run.ID,
-		UserId:                "current-user-1", // TODO: Get from actual data
+		UserId:                s.businessLogic.userID,
 		Name:                  run.Name,
 		Description:           run.Description,
 		EnableFunctionCalling: run.EnableFunctionCalling,
@@ -554,7 +554,7 @@ func (s *GRPCServer) convertFunctionToProto(function *types.FunctionDefinition) 
 	// Create basic proto function
 	protoFunction := &pb.FunctionDefinition{
 		Id:          function.ID,
-		UserId:      "current-user-1", // TODO: Get from actual user context
+		UserId:      function.UserID,
 		Name:        function.Name,
 		DisplayName: function.DisplayName,
 		Description: function.Description,
