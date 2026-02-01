@@ -2,12 +2,12 @@ import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   Animated,
   Dimensions,
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme, useThemedStyles } from '../theme';
 
 interface SuccessTooltipProps {
   visible: boolean;
@@ -24,9 +24,50 @@ const SuccessTooltip: React.FC<SuccessTooltipProps> = ({
   onHide,
   duration = 3000,
 }) => {
+  const { colors } = useTheme();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(-100)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
+
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      position: 'absolute' as const,
+      top: Platform.OS === 'ios' ? 60 : 40,
+      left: 0,
+      right: 0,
+      zIndex: 9999,
+      alignItems: 'center' as const,
+      paddingHorizontal: 20,
+    },
+    tooltip: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: colors.statusSuccess,
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      maxWidth: screenWidth - 40,
+      minWidth: 200,
+      shadowColor: colors.shadowColor,
+      shadowOffset: {
+        width: 0,
+        height: 4,
+      },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    iconContainer: {
+      marginRight: 12,
+    },
+    message: {
+      color: colors.textInverse,
+      fontSize: 16,
+      fontWeight: '600' as const,
+      flex: 1,
+      textAlign: 'left' as const,
+    },
+  }));
 
   useEffect(() => {
     if (visible) {
@@ -105,52 +146,12 @@ const SuccessTooltip: React.FC<SuccessTooltipProps> = ({
         ]}
       >
         <View style={styles.iconContainer}>
-          <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
+          <Ionicons name="checkmark-circle" size={24} color={colors.textInverse} />
         </View>
         <Text style={styles.message}>{message}</Text>
       </Animated.View>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : 40, // Account for status bar
-    left: 0,
-    right: 0,
-    zIndex: 9999,
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  tooltip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#34C759',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    maxWidth: screenWidth - 40,
-    minWidth: 200,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  iconContainer: {
-    marginRight: 12,
-  },
-  message: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-    flex: 1,
-    textAlign: 'left',
-  },
-});
 
 export default SuccessTooltip;

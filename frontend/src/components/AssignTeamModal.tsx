@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   Modal,
   ScrollView,
@@ -10,6 +9,7 @@ import {
   FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme, useThemedStyles } from '../theme';
 import { goGentAPI } from '../api/client';
 import { Team, Agent } from '../types';
 import { AlertAPI } from './CustomAlert';
@@ -28,10 +28,240 @@ const AssignTeamModal: React.FC<AssignTeamModalProps> = ({
   onClose,
   onAssigned,
 }) => {
+  const { colors } = useTheme();
   const [teams, setTeams] = useState<Team[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const [showCreateTeam, setShowCreateTeam] = useState(false);
+
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bgApp,
+    },
+    header: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      backgroundColor: colors.bgCard,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    closeButton: {
+      padding: 8,
+    },
+    closeButtonText: {
+      fontSize: 16,
+      color: colors.accent,
+    },
+    headerTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    headerSpacer: {
+      width: 50,
+    },
+    agentInfo: {
+      backgroundColor: colors.bgCard,
+      padding: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    agentName: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    agentSubtitle: {
+      fontSize: 14,
+      color: '#6B6B6B',
+      marginTop: 4,
+    },
+    currentTeamSection: {
+      backgroundColor: colors.bgCard,
+      margin: 16,
+      borderRadius: 12,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 12,
+    },
+    currentTeamContainer: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+    },
+    currentTeamInfo: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      flex: 1,
+    },
+    currentTeamName: {
+      fontSize: 16,
+      color: colors.textPrimary,
+      marginLeft: 8,
+    },
+    removeButton: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: colors.statusError,
+      minWidth: 70,
+      alignItems: 'center' as const,
+    },
+    removeButtonText: {
+      fontSize: 14,
+      color: colors.statusError,
+      fontWeight: '500' as const,
+    },
+    teamsSection: {
+      flex: 1,
+      margin: 16,
+    },
+    sectionHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      marginBottom: 12,
+    },
+    createButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: colors.accent,
+    },
+    createButtonText: {
+      fontSize: 14,
+      color: colors.accent,
+      marginLeft: 4,
+      fontWeight: '500' as const,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 32,
+    },
+    loadingText: {
+      fontSize: 16,
+      color: '#6B6B6B',
+      marginTop: 12,
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 32,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginTop: 16,
+    },
+    emptySubtitle: {
+      fontSize: 14,
+      color: '#6B6B6B',
+      textAlign: 'center' as const,
+      marginTop: 8,
+      lineHeight: 20,
+    },
+    emptyCreateButton: {
+      backgroundColor: colors.accent,
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      borderRadius: 8,
+      marginTop: 16,
+    },
+    emptyCreateButtonText: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textInverse,
+    },
+    teamsList: {
+      paddingBottom: 20,
+    },
+    teamCard: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    currentTeamCard: {
+      borderColor: colors.accent,
+      backgroundColor: colors.bgHover,
+    },
+    teamHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+    },
+    teamIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.bgHover,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+    },
+    teamInfo: {
+      flex: 1,
+      marginLeft: 12,
+    },
+    teamName: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    teamDescription: {
+      fontSize: 14,
+      color: '#6B6B6B',
+      marginTop: 2,
+      lineHeight: 18,
+    },
+    teamStats: {
+      flexDirection: 'row' as const,
+      marginTop: 8,
+    },
+    statItem: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginRight: 16,
+    },
+    statText: {
+      fontSize: 12,
+      color: '#6B6B6B',
+      marginLeft: 4,
+    },
+    currentBadge: {
+      backgroundColor: colors.accent,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 4,
+    },
+    currentBadgeText: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: colors.textInverse,
+    },
+  }));
 
   useEffect(() => {
     if (visible) {
@@ -101,7 +331,7 @@ const AssignTeamModal: React.FC<AssignTeamModalProps> = ({
 
   const renderTeamCard = ({ item: team }: { item: Team }) => {
     const isCurrentTeam = agent.teamId === team.id;
-    
+
     return (
       <TouchableOpacity
         style={[styles.teamCard, isCurrentTeam && styles.currentTeamCard]}
@@ -110,7 +340,7 @@ const AssignTeamModal: React.FC<AssignTeamModalProps> = ({
       >
         <View style={styles.teamHeader}>
           <View style={styles.teamIcon}>
-            <Ionicons name="people" size={24} color="#007AFF" />
+            <Ionicons name="people" size={24} color={colors.accent} />
           </View>
           <View style={styles.teamInfo}>
             <Text style={styles.teamName}>{team.name}</Text>
@@ -137,7 +367,7 @@ const AssignTeamModal: React.FC<AssignTeamModalProps> = ({
               <Text style={styles.currentBadgeText}>Current</Text>
             </View>
           ) : (
-            <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+            <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
           )}
         </View>
       </TouchableOpacity>
@@ -178,7 +408,7 @@ const AssignTeamModal: React.FC<AssignTeamModalProps> = ({
               <Text style={styles.sectionTitle}>Current Team</Text>
               <View style={styles.currentTeamContainer}>
                 <View style={styles.currentTeamInfo}>
-                  <Ionicons name="people" size={20} color="#007AFF" />
+                  <Ionicons name="people" size={20} color={colors.accent} />
                   <Text style={styles.currentTeamName}>{agent.teamName}</Text>
                 </View>
                 <TouchableOpacity
@@ -187,7 +417,7 @@ const AssignTeamModal: React.FC<AssignTeamModalProps> = ({
                   disabled={isAssigning}
                 >
                   {isAssigning ? (
-                    <ActivityIndicator size="small" color="#FF3B30" />
+                    <ActivityIndicator size="small" color={colors.statusError} />
                   ) : (
                     <Text style={styles.removeButtonText}>Remove</Text>
                   )}
@@ -204,19 +434,19 @@ const AssignTeamModal: React.FC<AssignTeamModalProps> = ({
                 style={styles.createButton}
                 onPress={() => setShowCreateTeam(true)}
               >
-                <Ionicons name="add" size={20} color="#007AFF" />
+                <Ionicons name="add" size={20} color={colors.accent} />
                 <Text style={styles.createButtonText}>Create Team</Text>
               </TouchableOpacity>
             </View>
 
             {isLoading ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#007AFF" />
+                <ActivityIndicator size="large" color={colors.accent} />
                 <Text style={styles.loadingText}>Loading teams...</Text>
               </View>
             ) : teams.length === 0 ? (
               <View style={styles.emptyContainer}>
-                <Ionicons name="people-outline" size={48} color="#C7C7CC" />
+                <Ionicons name="people-outline" size={48} color={colors.textTertiary} />
                 <Text style={styles.emptyTitle}>No teams yet</Text>
                 <Text style={styles.emptySubtitle}>
                   Create your first team to organize your agents
@@ -251,233 +481,4 @@ const AssignTeamModal: React.FC<AssignTeamModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  closeButton: {
-    padding: 8,
-  },
-  closeButtonText: {
-    fontSize: 16,
-    color: '#007AFF',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  headerSpacer: {
-    width: 50,
-  },
-  agentInfo: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  agentName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  agentSubtitle: {
-    fontSize: 14,
-    color: '#6B6B6B',
-    marginTop: 4,
-  },
-  currentTeamSection: {
-    backgroundColor: '#FFFFFF',
-    margin: 16,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 12,
-  },
-  currentTeamContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  currentTeamInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  currentTeamName: {
-    fontSize: 16,
-    color: '#1A1A1A',
-    marginLeft: 8,
-  },
-  removeButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#FF3B30',
-    minWidth: 70,
-    alignItems: 'center',
-  },
-  removeButtonText: {
-    fontSize: 14,
-    color: '#FF3B30',
-    fontWeight: '500',
-  },
-  teamsSection: {
-    flex: 1,
-    margin: 16,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  createButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#007AFF',
-  },
-  createButtonText: {
-    fontSize: 14,
-    color: '#007AFF',
-    marginLeft: 4,
-    fontWeight: '500',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 32,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#6B6B6B',
-    marginTop: 12,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 32,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginTop: 16,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: '#6B6B6B',
-    textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 20,
-  },
-  emptyCreateButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-    marginTop: 16,
-  },
-  emptyCreateButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  teamsList: {
-    paddingBottom: 20,
-  },
-  teamCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  currentTeamCard: {
-    borderColor: '#007AFF',
-    backgroundColor: '#F0F8FF',
-  },
-  teamHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  teamIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F0F8FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  teamInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  teamName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  teamDescription: {
-    fontSize: 14,
-    color: '#6B6B6B',
-    marginTop: 2,
-    lineHeight: 18,
-  },
-  teamStats: {
-    flexDirection: 'row',
-    marginTop: 8,
-  },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  statText: {
-    fontSize: 12,
-    color: '#6B6B6B',
-    marginLeft: 4,
-  },
-  currentBadge: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  currentBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-});
-
-export default AssignTeamModal; 
+export default AssignTeamModal;

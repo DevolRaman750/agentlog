@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, FlatList, Modal, Clipboard } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, FlatList, Modal, Clipboard } from 'react-native';
 import {
   ExecutionLog,
   LogLevel,
@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { AlertAPI } from './CustomAlert';
 import { goGentAPI } from '../api/client';
 import { generateRerunName } from '../utils/executionNaming';
+import { useTheme, useThemedStyles } from '../theme';
 
 export interface ExecutionLogsCardProps {
   executionResult: ExecutionResult;
@@ -19,24 +20,401 @@ export interface ExecutionLogsCardProps {
   configurationId?: string; // Optional - if provided, filter logs by this configuration
 }
 
-const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({ 
+const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
   executionResult,
   visible,
   onClose,
   onReExecute,
   configurationId,
 }) => {
+  const { colors } = useTheme();
   const [expandedLog, setExpandedLog] = useState<string | null>(null);
   const [levelFilter, setLevelFilter] = useState<LogLevel | 'ALL'>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<LogCategory | 'ALL'>('ALL');
   const [expandedConfigurations, setExpandedConfigurations] = useState<Set<string>>(new Set());
   const [configFilteredLogs, setConfigFilteredLogs] = useState<ExecutionLog[] | null>(null);
   const [isLoadingFilteredLogs, setIsLoadingFilteredLogs] = useState(false);
-  const [filtersExpanded, setFiltersExpanded] = useState(true); // Start expanded by default for better discoverability
+  const [filtersExpanded, setFiltersExpanded] = useState(true);
+
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bgSurface,
+    },
+    header: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      backgroundColor: colors.bgCard,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 2,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      flex: 1,
+      marginRight: 16,
+    },
+    closeButton: {
+      padding: 8,
+      borderRadius: 8,
+      backgroundColor: colors.bgApp,
+    },
+    headerLeft: {
+      flex: 1,
+    },
+    headerActions: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 12,
+    },
+    copyAllButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: colors.bgHover,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      gap: 6,
+    },
+    copyAllText: {
+      fontSize: 14,
+      color: colors.accent,
+      fontWeight: '600' as const,
+    },
+    copyLogButton: {
+      padding: 4,
+      borderRadius: 4,
+      backgroundColor: colors.bgHover,
+      marginRight: 8,
+    },
+    statsContainer: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      backgroundColor: colors.bgCard,
+    },
+    statPill: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      backgroundColor: colors.bgSurface,
+    },
+    activeFilterPill: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+    },
+    statText: {
+      fontSize: 12,
+      fontWeight: '500' as const,
+      color: colors.textSecondary,
+    },
+    activeStatText: {
+      color: colors.textInverse,
+      fontWeight: '600' as const,
+    },
+    filtersContainer: {
+      backgroundColor: colors.bgCard,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    filterSection: {
+      marginBottom: 12,
+    },
+    filterSectionTitle: {
+      fontSize: 13,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+      textTransform: 'uppercase' as const,
+      letterSpacing: 0.5,
+    },
+    listContainer: {
+      paddingHorizontal: 16,
+      paddingTop: 8,
+      paddingBottom: 80,
+    },
+    logItem: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 8,
+      borderLeftWidth: 3,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.04,
+      shadowRadius: 2,
+      elevation: 1,
+    },
+    logHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+    },
+    logIconContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginRight: 12,
+      minWidth: 40,
+    },
+    logIndicator: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      marginRight: 6,
+    },
+    logEmoji: {
+      fontSize: 16,
+    },
+    logMainContent: {
+      flex: 1,
+      minHeight: 40,
+    },
+    logTitleRow: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'flex-start' as const,
+      marginBottom: 4,
+    },
+    logCategory: {
+      fontSize: 11,
+      color: colors.textSecondary,
+      fontWeight: '600' as const,
+      textTransform: 'uppercase' as const,
+      letterSpacing: 0.5,
+    },
+    logMetaCompact: {
+      alignItems: 'flex-end' as const,
+    },
+    logMessage: {
+      fontSize: 14,
+      color: colors.textPrimary,
+      lineHeight: 20,
+      fontWeight: '400' as const,
+    },
+    logTimestamp: {
+      fontSize: 10,
+      color: colors.textSecondary,
+      fontFamily: 'monospace',
+      marginBottom: 2,
+    },
+    logLevel: {
+      fontSize: 10,
+      fontWeight: '700' as const,
+      textTransform: 'uppercase' as const,
+      letterSpacing: 0.3,
+    },
+    expandIcon: {
+      marginLeft: 8,
+      paddingTop: 2,
+    },
+    logDetails: {
+      marginTop: 12,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: colors.bgApp,
+    },
+    detailsTitle: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    detailsScrollContainer: {
+      maxHeight: 120,
+      backgroundColor: colors.bgSurface,
+      borderRadius: 6,
+      padding: 8,
+    },
+    detailsContent: {
+      fontSize: 11,
+      color: colors.textPrimary,
+      fontFamily: 'monospace',
+      lineHeight: 16,
+    },
+    footer: {
+      position: 'absolute' as const,
+      bottom: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: colors.bgCard,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderTopWidth: 1,
+      borderTopColor: colors.borderLight,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: -1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 3,
+    },
+    footerSpacer: {
+      height: 20,
+    },
+    reExecuteButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: colors.accent,
+      paddingVertical: 12,
+      paddingHorizontal: 20,
+      borderRadius: 8,
+      justifyContent: 'center' as const,
+      shadowColor: colors.accent,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    reExecuteButtonText: {
+      color: colors.textInverse,
+      fontSize: 15,
+      fontWeight: '600' as const,
+      marginLeft: 8,
+    },
+    configurationSection: {
+      marginBottom: 16,
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      overflow: 'hidden' as const,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 1,
+    },
+    configurationHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      padding: 16,
+      backgroundColor: colors.bgSurface,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    configHeaderLeft: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      flex: 1,
+    },
+    configIconContainer: {
+      marginRight: 12,
+      width: 24,
+      alignItems: 'center' as const,
+    },
+    configHeaderContent: {
+      flex: 1,
+    },
+    configTitle: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 2,
+    },
+    configSubtitle: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginBottom: 4,
+    },
+    configLogCount: {
+      fontSize: 11,
+      color: colors.textSecondary,
+      fontWeight: '500' as const,
+    },
+    configHeaderRight: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 12,
+    },
+    copyConfigButton: {
+      padding: 8,
+      borderRadius: 6,
+      backgroundColor: colors.bgHover,
+    },
+    configurationLogs: {
+      paddingHorizontal: 12,
+      paddingBottom: 8,
+    },
+    filtersHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      padding: 16,
+      backgroundColor: colors.bgSurface,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    filtersHeaderContent: {
+      flex: 1,
+    },
+    filtersHeaderTitle: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    filtersHeaderStats: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 8,
+    },
+    filtersHeaderSubtitle: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      fontWeight: '500' as const,
+    },
+    activeFiltersCompact: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: 6,
+    },
+    activeFilterChip: {
+      backgroundColor: colors.borderLight,
+      borderRadius: 12,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+    },
+    activeFilterChipText: {
+      fontSize: 11,
+      color: colors.textPrimary,
+      fontWeight: '600' as const,
+    },
+    filtersExpandedContent: {
+      paddingHorizontal: 16,
+      paddingBottom: 12,
+      backgroundColor: colors.bgSurface,
+    },
+    clearFiltersButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      backgroundColor: '#FFE0E0',
+      borderRadius: 8,
+      paddingVertical: 10,
+      marginTop: 12,
+    },
+    clearFiltersText: {
+      color: colors.statusError,
+      fontSize: 14,
+      fontWeight: '600' as const,
+      marginLeft: 8,
+    },
+  }));
 
   // Helper function to create proper reExecutionData structure
   const createReExecutionData = () => {
-    // Extract function tools from the execution data
     const functionTools: any[] = [];
     if (executionResult.results && executionResult.results.length > 0) {
       executionResult.results.forEach(result => {
@@ -55,7 +433,6 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
       });
     }
 
-    // Extract the original base prompt and context
     const basePrompt = executionResult.results?.[0]?.request?.prompt || executionResult.executionRun.basePrompt || '';
     const context = executionResult.results?.[0]?.request?.context || executionResult.executionRun.contextPrompt || '';
 
@@ -67,7 +444,6 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
       configurations: executionResult.results?.map(r => r.configuration) || [],
       enableFunctionCalling: executionResult.executionRun.enableFunctionCalling || functionTools.length > 0,
       functionTools: functionTools,
-      // Pass agent information if this was an agent execution
       agentId: executionResult.executionRun.agentId || undefined
     };
   };
@@ -82,18 +458,18 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
             setConfigFilteredLogs(response.data);
           } else {
             console.warn('Failed to fetch filtered logs:', response.error);
-            setConfigFilteredLogs([]); // Use empty array as fallback
+            setConfigFilteredLogs([]);
           }
         })
         .catch((error) => {
           console.error('Error fetching filtered logs:', error);
-          setConfigFilteredLogs([]); // Use empty array as fallback
+          setConfigFilteredLogs([]);
         })
         .finally(() => {
           setIsLoadingFilteredLogs(false);
         });
     } else {
-      setConfigFilteredLogs(null); // Reset when not filtering by config
+      setConfigFilteredLogs(null);
     }
   }, [visible, configurationId, executionResult.executionRun.id]);
 
@@ -122,10 +498,8 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
     return levelMatch && categoryMatch;
   });
 
-  // Group logs by configuration
   const groupedLogs = useMemo(() => {
     const groups: Record<string, ExecutionLog[]> = {};
-    
     filteredLogs.forEach(log => {
       const configId = log.configurationId || 'general';
       if (!groups[configId]) {
@@ -133,14 +507,11 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
       }
       groups[configId].push(log);
     });
-    
     return groups;
   }, [filteredLogs]);
 
-  // Get configuration details for each group
   const configurationDetails = useMemo(() => {
     const details: Record<string, any> = {};
-    
     if (executionResult.results) {
       executionResult.results.forEach(result => {
         if (result.configuration.id) {
@@ -148,7 +519,6 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
         }
       });
     }
-    
     return details;
   }, [executionResult.results]);
 
@@ -179,21 +549,21 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
     try {
       const allLogsText = Object.entries(groupedLogs)
         .map(([configId, configLogs]) => {
-          const configName = configId === 'general' 
-            ? 'General Execution Logs' 
+          const configName = configId === 'general'
+            ? 'General Execution Logs'
             : configurationDetails[configId]?.variationName || `Configuration ${configId}`;
-          
+
           const configHeader = `=== ${configName} ===`;
           const configLogsText = configLogs.map(log => {
             const timestamp = formatTimestamp(log.timestamp);
             const details = typeof log.details === 'string' ? log.details : JSON.stringify(log.details, null, 2);
             return `[${timestamp}] ${log.logLevel} - ${log.logCategory}\n${log.message}\n${details ? `Details: ${details}` : ''}\n---`;
           }).join('\n\n');
-          
+
           return `${configHeader}\n\n${configLogsText}`;
         })
         .join('\n\n\n');
-      
+
       await Clipboard.setString(allLogsText);
       AlertAPI.alert('Copied!', `All ${filteredLogs.length} logs copied to clipboard`);
     } catch (error) {
@@ -203,12 +573,12 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
 
   const getLogLevelColor = (level: LogLevel): string => {
     switch (level) {
-      case 'SUCCESS': return '#34C759';
-      case 'ERROR': return '#FF3B30';
-      case 'WARN': return '#FF9500';
-      case 'INFO': return '#007AFF';
-      case 'DEBUG': return '#8E8E93';
-      default: return '#8E8E93';
+      case 'SUCCESS': return colors.statusSuccess;
+      case 'ERROR': return colors.statusError;
+      case 'WARN': return colors.statusWarning;
+      case 'INFO': return colors.accent;
+      case 'DEBUG': return colors.textSecondary;
+      default: return colors.textSecondary;
     }
   };
 
@@ -245,13 +615,13 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
 
   const getCategoryColor = (category: LogCategory): string => {
     switch (category) {
-      case 'FUNCTION_CALL': return '#FF6B6B'; // Red for function calls
-      case 'API_CALL': return '#4ECDC4';      // Teal for API calls
-      case 'SETUP': return '#45B7D1';         // Blue for setup
-      case 'EXECUTION': return '#F9A825';     // Amber for execution
-      case 'COMPLETION': return '#66BB6A';    // Green for completion
-      case 'ERROR': return '#EF5350';         // Red for errors
-      default: return '#8E8E93';              // Gray for others
+      case 'FUNCTION_CALL': return '#FF6B6B';
+      case 'API_CALL': return '#4ECDC4';
+      case 'SETUP': return '#45B7D1';
+      case 'EXECUTION': return '#F9A825';
+      case 'COMPLETION': return '#66BB6A';
+      case 'ERROR': return '#EF5350';
+      default: return colors.textSecondary;
     }
   };
 
@@ -275,9 +645,8 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
 
     return (
       <View style={styles.filtersContainer}>
-        {/* Collapsible Header */}
-        <TouchableOpacity 
-          style={styles.filtersHeader} 
+        <TouchableOpacity
+          style={styles.filtersHeader}
           onPress={() => setFiltersExpanded(!filtersExpanded)}
           activeOpacity={0.7}
         >
@@ -300,32 +669,30 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
               )}
             </View>
           </View>
-          <Ionicons 
-            name={filtersExpanded ? "chevron-up" : "chevron-down"} 
-            size={20} 
-            color="#666" 
+          <Ionicons
+            name={filtersExpanded ? "chevron-up" : "chevron-down"}
+            size={20}
+            color={colors.textSecondary}
           />
         </TouchableOpacity>
 
-        {/* Expandable Filter Section */}
         {filtersExpanded && (
           <View style={styles.filtersExpandedContent}>
-            {/* Log Level Filters */}
             <View style={styles.filterSection}>
               <Text style={styles.filterSectionTitle}>Log Levels:</Text>
               <View style={styles.statsContainer}>
                 {Object.entries(levelStats).map(([level, count]) => (
-                  <TouchableOpacity 
-                    key={level} 
+                  <TouchableOpacity
+                    key={level}
                     style={[
-                      styles.statPill, 
+                      styles.statPill,
                       levelFilter === level && styles.activeFilterPill,
                       { borderColor: getLogLevelColor(level as LogLevel) }
                     ]}
                     onPress={() => setLevelFilter(level as LogLevel)}
                   >
                     <Text style={[
-                      styles.statText, 
+                      styles.statText,
                       { color: getLogLevelColor(level as LogLevel) },
                       levelFilter === level && styles.activeStatText
                     ]}>
@@ -333,7 +700,7 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
                     </Text>
                   </TouchableOpacity>
                 ))}
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.statPill, levelFilter === 'ALL' && styles.activeFilterPill]}
                   onPress={() => setLevelFilter('ALL')}
                 >
@@ -342,22 +709,21 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
               </View>
             </View>
 
-            {/* Category Filters */}
             <View style={styles.filterSection}>
               <Text style={styles.filterSectionTitle}>Categories:</Text>
               <View style={styles.statsContainer}>
                 {Object.entries(categoryStats).map(([category, count]) => (
-                  <TouchableOpacity 
-                    key={category} 
+                  <TouchableOpacity
+                    key={category}
                     style={[
-                      styles.statPill, 
+                      styles.statPill,
                       categoryFilter === category && styles.activeFilterPill,
                       { borderColor: getCategoryColor(category as LogCategory) }
                     ]}
                     onPress={() => setCategoryFilter(category as LogCategory)}
                   >
                     <Text style={[
-                      styles.statText, 
+                      styles.statText,
                       { color: getCategoryColor(category as LogCategory) },
                       categoryFilter === category && styles.activeStatText
                     ]}>
@@ -365,7 +731,7 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
                     </Text>
                   </TouchableOpacity>
                 ))}
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.statPill, categoryFilter === 'ALL' && styles.activeFilterPill]}
                   onPress={() => setCategoryFilter('ALL')}
                 >
@@ -374,16 +740,15 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
               </View>
             </View>
 
-            {/* Clear Filters Button */}
             {activeFilters.length > 0 && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.clearFiltersButton}
                 onPress={() => {
                   setLevelFilter('ALL');
                   setCategoryFilter('ALL');
                 }}
               >
-                <Ionicons name="refresh" size={16} color="#FF3B30" />
+                <Ionicons name="refresh" size={16} color={colors.statusError} />
                 <Text style={styles.clearFiltersText}>Clear All Filters</Text>
               </TouchableOpacity>
             )}
@@ -399,9 +764,9 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
     const emoji = getLogEmoji(log.logLevel, log.logCategory);
 
     return (
-      <TouchableOpacity 
-        key={log.id} 
-        style={[styles.logItem, { borderLeftColor: color }]} 
+      <TouchableOpacity
+        key={log.id}
+        style={[styles.logItem, { borderLeftColor: color }]}
         onPress={() => toggleLogExpansion(log.id)}
         activeOpacity={0.7}
       >
@@ -410,19 +775,19 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
             <View style={[styles.logIndicator, { backgroundColor: color }]} />
             <Text style={styles.logEmoji}>{emoji}</Text>
           </View>
-          
+
           <View style={styles.logMainContent}>
             <View style={styles.logTitleRow}>
               <Text style={styles.logCategory}>{log.logCategory}</Text>
               <View style={styles.logMetaCompact}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.copyLogButton}
                   onPress={() => {
                     const logText = `[${formatTimestamp(log.timestamp)}] ${log.logLevel} - ${log.logCategory}\n${log.message}${log.details ? `\nDetails: ${typeof log.details === 'string' ? log.details : JSON.stringify(log.details, null, 2)}` : ''}`;
                     copyToClipboard(logText, 'Log entry');
                   }}
                 >
-                  <Ionicons name="copy" size={14} color="#007AFF" />
+                  <Ionicons name="copy" size={14} color={colors.accent} />
                 </TouchableOpacity>
                 <Text style={styles.logTimestamp}>
                   {formatTimestamp(log.timestamp)}
@@ -436,19 +801,19 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
               {log.message}
             </Text>
           </View>
-          
-          <Ionicons 
-            name={isExpanded ? "chevron-up" : "chevron-down"} 
-            size={16} 
-            color="#C7C7CC" 
+
+          <Ionicons
+            name={isExpanded ? "chevron-up" : "chevron-down"}
+            size={16}
+            color={colors.textTertiary}
             style={styles.expandIcon}
           />
         </View>
-        
+
         {isExpanded && log.details && (
           <View style={styles.logDetails}>
             <Text style={styles.detailsTitle}>Details</Text>
-            <ScrollView 
+            <ScrollView
               style={styles.detailsScrollContainer}
               showsVerticalScrollIndicator={false}
               nestedScrollEnabled={true}
@@ -467,30 +832,30 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
     const isExpanded = expandedConfigurations.has(configId);
     const config = configurationDetails[configId];
     const isGeneral = configId === 'general';
-    
-    const configName = isGeneral 
-      ? 'General Execution Logs' 
+
+    const configName = isGeneral
+      ? 'General Execution Logs'
       : config?.variationName || `Configuration ${configId}`;
-    
+
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.configurationHeader}
         onPress={() => toggleConfigurationExpansion(configId)}
         activeOpacity={0.7}
       >
         <View style={styles.configHeaderLeft}>
           <View style={styles.configIconContainer}>
-            <Ionicons 
-              name={isGeneral ? "settings" : "hardware-chip"} 
-              size={18} 
-              color={isGeneral ? "#8E8E93" : "#007AFF"} 
+            <Ionicons
+              name={isGeneral ? "settings" : "hardware-chip"}
+              size={18}
+              color={isGeneral ? colors.textSecondary : colors.accent}
             />
           </View>
           <View style={styles.configHeaderContent}>
             <Text style={styles.configTitle}>{configName}</Text>
             {!isGeneral && config && (
               <Text style={styles.configSubtitle}>
-                {config.modelName} • Temp: {config.temperature || 0}
+                {config.modelName} - Temp: {config.temperature || 0}
               </Text>
             )}
             <Text style={styles.configLogCount}>
@@ -499,7 +864,7 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
           </View>
         </View>
         <View style={styles.configHeaderRight}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.copyConfigButton}
             onPress={(e) => {
               e.stopPropagation();
@@ -511,12 +876,12 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
               copyToClipboard(configLogsText, `${configName} logs`);
             }}
           >
-            <Ionicons name="copy" size={16} color="#007AFF" />
+            <Ionicons name="copy" size={16} color={colors.accent} />
           </TouchableOpacity>
-          <Ionicons 
-            name={isExpanded ? "chevron-up" : "chevron-down"} 
-            size={20} 
-            color="#8E8E93" 
+          <Ionicons
+            name={isExpanded ? "chevron-up" : "chevron-down"}
+            size={20}
+            color={colors.textSecondary}
           />
         </View>
       </TouchableOpacity>
@@ -525,7 +890,7 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
 
   const renderConfigurationSection = (configId: string, configLogs: ExecutionLog[]) => {
     const isExpanded = expandedConfigurations.has(configId);
-    
+
     return (
       <View key={configId} style={styles.configurationSection}>
         {renderConfigurationHeader(configId, configLogs)}
@@ -552,34 +917,34 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
           </View>
           <View style={styles.headerActions}>
             <TouchableOpacity onPress={copyAllLogs} style={styles.copyAllButton}>
-              <Ionicons name="copy" size={20} color="#007AFF" />
+              <Ionicons name="copy" size={20} color={colors.accent} />
               <Text style={styles.copyAllText}>Copy All</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color="#8E8E93" />
+              <Ionicons name="close" size={24} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
         </View>
-        
+
         {renderLogStats()}
-        
-        <ScrollView 
+
+        <ScrollView
           style={styles.listContainer}
           showsVerticalScrollIndicator={true}
           bounces={true}
         >
-          {Object.entries(groupedLogs).map(([configId, configLogs]) => 
+          {Object.entries(groupedLogs).map(([configId, configLogs]) =>
             renderConfigurationSection(configId, configLogs)
           )}
           <View style={styles.footerSpacer} />
         </ScrollView>
-        
+
         <View style={styles.footer}>
-          <TouchableOpacity 
-            style={styles.reExecuteButton} 
+          <TouchableOpacity
+            style={styles.reExecuteButton}
             onPress={() => onReExecute(createReExecutionData())}
           >
-            <Ionicons name="repeat" size={18} color="#FFFFFF" />
+            <Ionicons name="repeat" size={18} color={colors.textInverse} />
             <Text style={styles.reExecuteButtonText}>Re-Execute</Text>
           </TouchableOpacity>
         </View>
@@ -588,383 +953,4 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8F9FA',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1D1D1F',
-    flex: 1,
-    marginRight: 16,
-  },
-  closeButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#F2F2F7',
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  copyAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F0F8FF',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 6,
-  },
-  copyAllText: {
-    fontSize: 14,
-    color: '#007AFF',
-    fontWeight: '600',
-  },
-  copyLogButton: {
-    padding: 4,
-    borderRadius: 4,
-    backgroundColor: '#F0F8FF',
-    marginRight: 8,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-  },
-  statPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    backgroundColor: '#F8F9FA',
-  },
-  activeFilterPill: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
-  },
-  statText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#6B7280',
-  },
-  activeStatText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  filtersContainer: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  filterSection: {
-    marginBottom: 12,
-  },
-  filterSectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1D1D1F',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  listContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 80, // Space for footer
-  },
-  logItem: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
-    borderLeftWidth: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  logHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  logIconContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 12,
-    minWidth: 40,
-  },
-  logIndicator: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 6,
-  },
-  logEmoji: {
-    fontSize: 16,
-  },
-  logMainContent: {
-    flex: 1,
-    minHeight: 40,
-  },
-  logTitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 4,
-  },
-  logCategory: {
-    fontSize: 11,
-    color: '#8E8E93',
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  logMetaCompact: {
-    alignItems: 'flex-end',
-  },
-  logMessage: {
-    fontSize: 14,
-    color: '#1D1D1F',
-    lineHeight: 20,
-    fontWeight: '400',
-  },
-  logTimestamp: {
-    fontSize: 10,
-    color: '#8E8E93',
-    fontFamily: 'monospace',
-    marginBottom: 2,
-  },
-  logLevel: {
-    fontSize: 10,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
-  expandIcon: {
-    marginLeft: 8,
-    paddingTop: 2,
-  },
-  logDetails: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F2F2F7',
-  },
-  detailsTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  detailsScrollContainer: {
-    maxHeight: 120,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 6,
-    padding: 8,
-  },
-  detailsContent: {
-    fontSize: 11,
-    color: '#374151',
-    fontFamily: 'monospace',
-    lineHeight: 16,
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5EA',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 3,
-  },
-  footerSpacer: {
-    height: 20,
-  },
-  reExecuteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#007AFF',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    justifyContent: 'center',
-    shadowColor: '#007AFF',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  reExecuteButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  // Configuration section styles
-  configurationSection: {
-    marginBottom: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  configurationHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#F8F9FA',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  configHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  configIconContainer: {
-    marginRight: 12,
-    width: 24,
-    alignItems: 'center',
-  },
-  configHeaderContent: {
-    flex: 1,
-  },
-  configTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1D1D1F',
-    marginBottom: 2,
-  },
-  configSubtitle: {
-    fontSize: 12,
-    color: '#8E8E93',
-    marginBottom: 4,
-  },
-  configLogCount: {
-    fontSize: 11,
-    color: '#8E8E93',
-    fontWeight: '500',
-  },
-  configHeaderRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  copyConfigButton: {
-    padding: 8,
-    borderRadius: 6,
-    backgroundColor: '#F0F8FF',
-  },
-  configurationLogs: {
-    paddingHorizontal: 12,
-    paddingBottom: 8,
-  },
-  // New styles for filters
-  filtersHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#F8F9FA',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  filtersHeaderContent: {
-    flex: 1,
-  },
-  filtersHeaderTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1D1D1F',
-    marginBottom: 4,
-  },
-  filtersHeaderStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  filtersHeaderSubtitle: {
-    fontSize: 12,
-    color: '#8E8E93',
-    fontWeight: '500',
-  },
-  activeFiltersCompact: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  activeFilterChip: {
-    backgroundColor: '#E0E0E0',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  activeFilterChipText: {
-    fontSize: 11,
-    color: '#374151',
-    fontWeight: '600',
-  },
-  filtersExpandedContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    backgroundColor: '#F8F9FA',
-  },
-  clearFiltersButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFE0E0',
-    borderRadius: 8,
-    paddingVertical: 10,
-    marginTop: 12,
-  },
-  clearFiltersText: {
-    color: '#FF3B30',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-});
-
-export default ExecutionLogsCard; 
+export default ExecutionLogsCard;

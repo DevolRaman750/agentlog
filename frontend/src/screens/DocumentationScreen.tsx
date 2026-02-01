@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
@@ -14,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useToast } from '../context/ToastContext';
+import { useThemedStyles } from '../theme';
 import type { DocumentationStackParamList } from '../navigation/DocumentationNavigator';
 
 // Import documentation data
@@ -62,6 +62,756 @@ const DocumentationScreen: React.FC = () => {
   const { width } = Dimensions.get('window');
 
   const documentation = documentationIndex as DocumentationData;
+
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bgApp,
+    },
+    header: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      backgroundColor: colors.bgCard,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderSubtle,
+    },
+    headerTitleContainer: {
+      flex: 1,
+    },
+    headerTitle: {
+      fontSize: 24,
+      fontWeight: '700' as const,
+      color: colors.textPrimary,
+    },
+    headerSubtitle: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    backButton: {
+      padding: 8,
+      marginRight: 12,
+    },
+    searchButton: {
+      padding: 8,
+    },
+    searchContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: colors.bgCard,
+      marginHorizontal: 16,
+      marginTop: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    searchIcon: {
+      marginRight: 12,
+    },
+    searchInput: {
+      flex: 1,
+      fontSize: 16,
+      color: colors.textPrimary,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+    },
+    loadingText: {
+      fontSize: 16,
+      color: colors.textSecondary,
+    },
+    mainContainer: {
+      flex: 1,
+    },
+    welcomeSection: {
+      padding: 20,
+      backgroundColor: colors.bgCard,
+      marginHorizontal: 16,
+      marginTop: 16,
+      borderRadius: 12,
+    },
+    welcomeTitle: {
+      fontSize: 28,
+      fontWeight: '700' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    welcomeDescription: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      lineHeight: 24,
+    },
+    sectionGrid: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      paddingHorizontal: 16,
+      paddingTop: 16,
+    },
+    sectionCard: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 16,
+      padding: 20,
+      marginBottom: 16,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 2,
+    },
+    sectionCardMargin: {
+      marginRight: 16,
+    },
+    sectionIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      marginBottom: 12,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    sectionDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+      marginBottom: 16,
+    },
+    sectionFooter: {
+      alignItems: 'flex-end' as const,
+    },
+    footer: {
+      padding: 20,
+      alignItems: 'center' as const,
+    },
+    footerText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    contentContainer: {
+      flex: 1,
+    },
+    contentSection: {
+      marginBottom: 24,
+    },
+    heroSection: {
+      backgroundColor: colors.bgCard,
+      margin: 16,
+      padding: 24,
+      borderRadius: 16,
+    },
+    heroTitle: {
+      fontSize: 32,
+      fontWeight: '700' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    heroSubtitle: {
+      fontSize: 18,
+      color: colors.accent,
+      marginBottom: 16,
+    },
+    heroContent: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      lineHeight: 24,
+      marginBottom: 24,
+    },
+    highlightsContainer: {
+      gap: 16,
+    },
+    highlightItem: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+    },
+    highlightIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.bgHover,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      marginRight: 12,
+    },
+    highlightText: {
+      flex: 1,
+    },
+    highlightTitle: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    highlightDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+    },
+    topologySection: {
+      backgroundColor: colors.bgCard,
+      margin: 16,
+      padding: 24,
+      borderRadius: 16,
+    },
+    sectionHeader: {
+      fontSize: 24,
+      fontWeight: '700' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    sectionSubtitle: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      marginBottom: 16,
+    },
+    sectionContent: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      lineHeight: 24,
+      marginBottom: 24,
+    },
+    conceptsContainer: {
+      gap: 20,
+    },
+    conceptCard: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+      padding: 20,
+    },
+    conceptIcon: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      marginBottom: 16,
+    },
+    conceptContent: {
+      flex: 1,
+    },
+    conceptTitle: {
+      fontSize: 20,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    conceptDescription: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      marginBottom: 12,
+    },
+    conceptDetails: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+      marginBottom: 16,
+    },
+    examplesContainer: {
+      marginBottom: 16,
+    },
+    examplesTitle: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    exampleItem: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+      marginBottom: 4,
+    },
+    conceptActions: {
+      flexDirection: 'row' as const,
+      gap: 12,
+    },
+    actionButton: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+      borderWidth: 1,
+    },
+    actionButtonText: {
+      fontSize: 14,
+      fontWeight: '500' as const,
+    },
+    workflowSection: {
+      backgroundColor: colors.bgCard,
+      margin: 16,
+      padding: 24,
+      borderRadius: 16,
+    },
+    stepsContainer: {
+      gap: 24,
+    },
+    stepItem: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+    },
+    stepNumber: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      marginRight: 16,
+    },
+    stepNumberText: {
+      fontSize: 16,
+      fontWeight: '700' as const,
+      color: colors.textInverse,
+    },
+    stepContent: {
+      flex: 1,
+    },
+    stepTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    stepDescription: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      marginBottom: 8,
+    },
+    stepDetails: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+      marginBottom: 12,
+    },
+    stepAction: {
+      alignSelf: 'flex-start' as const,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+    },
+    stepActionText: {
+      fontSize: 14,
+      fontWeight: '500' as const,
+      color: colors.textInverse,
+    },
+    benefitsSection: {
+      backgroundColor: colors.bgCard,
+      margin: 16,
+      padding: 24,
+      borderRadius: 16,
+    },
+    benefitsContainer: {
+      gap: 20,
+    },
+    benefitCard: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+      padding: 20,
+    },
+    benefitIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      marginBottom: 12,
+    },
+    benefitCategory: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 16,
+    },
+    benefitItems: {
+      gap: 8,
+    },
+    benefitItem: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+    },
+    benefitItemText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginLeft: 8,
+    },
+    ctaSection: {
+      backgroundColor: colors.bgCard,
+      margin: 16,
+      padding: 24,
+      borderRadius: 16,
+    },
+    ctaTitle: {
+      fontSize: 24,
+      fontWeight: '700' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+      textAlign: 'center' as const,
+    },
+    ctaSubtitle: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      marginBottom: 16,
+      textAlign: 'center' as const,
+    },
+    ctaContent: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      lineHeight: 24,
+      marginBottom: 24,
+      textAlign: 'center' as const,
+    },
+    ctaActions: {
+      gap: 16,
+    },
+    ctaButton: {
+      padding: 20,
+      borderRadius: 16,
+      alignItems: 'center' as const,
+    },
+    ctaButtonText: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      marginTop: 8,
+      marginBottom: 4,
+    },
+    ctaButtonDescription: {
+      fontSize: 14,
+    },
+    defaultSection: {
+      backgroundColor: colors.bgCard,
+      margin: 16,
+      padding: 24,
+      borderRadius: 16,
+    },
+    overviewSection: {
+      backgroundColor: colors.bgCard,
+      margin: 16,
+      padding: 24,
+      borderRadius: 16,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    featuresSection: {
+      backgroundColor: colors.bgCard,
+      margin: 16,
+      padding: 24,
+      borderRadius: 16,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    featuresContainer: {
+      gap: 16,
+      marginTop: 16,
+    },
+    featureCard: {
+      backgroundColor: colors.bgSurface,
+      padding: 20,
+      borderRadius: 12,
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+    },
+    featureIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 12,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      marginRight: 16,
+    },
+    featureTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 6,
+      flex: 1,
+    },
+    featureDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+      flex: 1,
+    },
+    walkthroughSection: {
+      backgroundColor: colors.bgCard,
+      margin: 16,
+      padding: 24,
+      borderRadius: 16,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    walkthroughSteps: {
+      gap: 20,
+      marginTop: 20,
+    },
+    walkthroughStep: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+    },
+    stepIndicator: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: colors.accent,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      marginRight: 16,
+      marginTop: 4,
+    },
+    stepNumberTextAlt: {
+      color: colors.textInverse,
+      fontSize: 16,
+      fontWeight: '600' as const,
+    },
+    stepDetailsAlt: {
+      flex: 1,
+    },
+    stepSubtext: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+      marginBottom: 12,
+    },
+    stepActionButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      backgroundColor: colors.bgHover,
+      borderRadius: 8,
+      alignSelf: 'flex-start' as const,
+      marginTop: 8,
+    },
+    stepActionTextAlt: {
+      color: colors.accent,
+      fontSize: 14,
+      fontWeight: '500' as const,
+      marginRight: 6,
+    },
+    useCasesSection: {
+      backgroundColor: colors.bgCard,
+      margin: 16,
+      padding: 24,
+      borderRadius: 16,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    useCasesContainer: {
+      gap: 16,
+      marginTop: 16,
+    },
+    useCaseCard: {
+      backgroundColor: colors.bgSurface,
+      padding: 20,
+      borderRadius: 12,
+      borderLeftWidth: 4,
+      borderLeftColor: colors.statusSuccess,
+    },
+    useCaseTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    useCaseDescription: {
+      fontSize: 14,
+      color: colors.textPrimary,
+      lineHeight: 20,
+      marginBottom: 8,
+    },
+    useCaseExample: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      fontStyle: 'italic' as const,
+      marginBottom: 12,
+    },
+    useCaseSteps: {
+      marginTop: 8,
+    },
+    useCaseStep: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+      marginBottom: 4,
+    },
+    bestPracticesSection: {
+      backgroundColor: colors.bgCard,
+      margin: 16,
+      padding: 24,
+      borderRadius: 16,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    practicesContainer: {
+      gap: 16,
+      marginTop: 16,
+    },
+    practiceItem: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+      backgroundColor: '#FFF9E6',
+      padding: 16,
+      borderRadius: 12,
+      borderLeftWidth: 4,
+      borderLeftColor: colors.statusWarning,
+    },
+    practiceIcon: {
+      marginRight: 12,
+      marginTop: 2,
+    },
+    practiceText: {
+      fontSize: 14,
+      color: colors.textPrimary,
+      lineHeight: 20,
+      flex: 1,
+    },
+    troubleshootingSection: {
+      backgroundColor: colors.bgCard,
+      margin: 16,
+      padding: 24,
+      borderRadius: 16,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    troubleshootingContainer: {
+      gap: 20,
+      marginTop: 16,
+    },
+    troubleshootingItem: {
+      backgroundColor: '#FFF5F5',
+      padding: 16,
+      borderRadius: 12,
+      borderLeftWidth: 4,
+      borderLeftColor: colors.statusError,
+    },
+    problemHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 12,
+    },
+    problemTitle: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginLeft: 8,
+      flex: 1,
+    },
+    solutionsTitle: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    solutionText: {
+      fontSize: 14,
+      color: colors.textPrimary,
+      lineHeight: 20,
+      marginBottom: 4,
+    },
+    quickStartSection: {
+      backgroundColor: colors.bgCard,
+      margin: 16,
+      padding: 24,
+      borderRadius: 16,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    quickStartSteps: {
+      gap: 20,
+      marginTop: 20,
+    },
+    quickStartStep: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+      backgroundColor: colors.bgHover,
+      padding: 20,
+      borderRadius: 16,
+    },
+    quickStartIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: '#30D158',
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      marginRight: 16,
+    },
+    quickStartNumber: {
+      color: colors.textInverse,
+      fontSize: 18,
+      fontWeight: '700' as const,
+    },
+    quickStartContent: {
+      flex: 1,
+    },
+    quickStartTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    quickStartDescription: {
+      fontSize: 16,
+      color: colors.textPrimary,
+      lineHeight: 22,
+      marginBottom: 6,
+    },
+    quickStartDetails: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+      marginBottom: 8,
+    },
+    quickStartTime: {
+      fontSize: 12,
+      color: '#30D158',
+      fontWeight: '600' as const,
+      marginBottom: 12,
+    },
+    quickStartButton: {
+      backgroundColor: colors.accent,
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      borderRadius: 8,
+      alignSelf: 'flex-start' as const,
+    },
+    quickStartButtonText: {
+      color: colors.textInverse,
+      fontSize: 14,
+      fontWeight: '600' as const,
+    },
+  }));
 
   // Handle initial section loading from route parameters
   useEffect(() => {
@@ -115,7 +865,6 @@ const DocumentationScreen: React.FC = () => {
     if (type === 'external') {
       Linking.openURL(link);
     } else if (link.startsWith('/documentation/')) {
-      // Handle internal documentation navigation
       const sectionId = link.replace('/documentation/', '');
       const routeNameMap: Record<string, keyof DocumentationStackParamList> = {
         'overview': 'DocumentationOverview',
@@ -127,7 +876,7 @@ const DocumentationScreen: React.FC = () => {
         'functions': 'DocumentationFunctions',
         'api-keys': 'DocumentationApiKeys',
       };
-      
+
       const routeName = routeNameMap[sectionId];
       if (routeName) {
         (navigation as any).navigate(routeName);
@@ -138,7 +887,6 @@ const DocumentationScreen: React.FC = () => {
         }
       }
     } else {
-      // Handle app navigation
       try {
         (navigation as any).navigate(link);
       } catch (error) {
@@ -231,13 +979,13 @@ const DocumentationScreen: React.FC = () => {
       <Text style={styles.heroTitle}>{section.title}</Text>
       <Text style={styles.heroSubtitle}>{section.subtitle}</Text>
       <Text style={styles.heroContent}>{section.content}</Text>
-      
+
       {section.highlights && (
         <View style={styles.highlightsContainer}>
           {section.highlights.map((highlight: any, index: number) => (
             <View key={index} style={styles.highlightItem}>
               <View style={styles.highlightIcon}>
-                <Ionicons name={highlight.icon} size={20} color="#007AFF" />
+                <Ionicons name={highlight.icon} size={20} color={styles.heroSubtitle.color} />
               </View>
               <View style={styles.highlightText}>
                 <Text style={styles.highlightTitle}>{highlight.title}</Text>
@@ -255,7 +1003,7 @@ const DocumentationScreen: React.FC = () => {
       <Text style={styles.sectionHeader}>{section.title}</Text>
       <Text style={styles.sectionSubtitle}>{section.subtitle}</Text>
       <Text style={styles.sectionContent}>{section.content}</Text>
-      
+
       <View style={styles.conceptsContainer}>
         {section.concepts?.map((concept: any) => (
           <TouchableOpacity
@@ -271,12 +1019,12 @@ const DocumentationScreen: React.FC = () => {
             <View style={[styles.conceptIcon, { backgroundColor: concept.color }]}>
               <Ionicons name={concept.icon} size={28} color="#FFFFFF" />
             </View>
-            
+
             <View style={styles.conceptContent}>
               <Text style={styles.conceptTitle}>{concept.title}</Text>
               <Text style={styles.conceptDescription}>{concept.description}</Text>
               <Text style={styles.conceptDetails}>{concept.details}</Text>
-              
+
               {concept.examples && (
                 <View style={styles.examplesContainer}>
                   <Text style={styles.examplesTitle}>Examples:</Text>
@@ -285,7 +1033,7 @@ const DocumentationScreen: React.FC = () => {
                   ))}
                 </View>
               )}
-              
+
               {concept.actions && (
                 <View style={styles.conceptActions}>
                   {concept.actions.map((action: any, index: number) => (
@@ -313,19 +1061,19 @@ const DocumentationScreen: React.FC = () => {
       <Text style={styles.sectionHeader}>{section.title}</Text>
       <Text style={styles.sectionSubtitle}>{section.subtitle}</Text>
       <Text style={styles.sectionContent}>{section.content}</Text>
-      
+
       <View style={styles.stepsContainer}>
         {section.steps?.map((step: any, index: number) => (
           <View key={index} style={styles.stepItem}>
             <View style={[styles.stepNumber, { backgroundColor: step.color }]}>
               <Text style={styles.stepNumberText}>{step.number}</Text>
             </View>
-            
+
             <View style={styles.stepContent}>
               <Text style={styles.stepTitle}>{step.title}</Text>
               <Text style={styles.stepDescription}>{step.description}</Text>
               <Text style={styles.stepDetails}>{step.details}</Text>
-              
+
               {step.action && (
                 <TouchableOpacity
                   style={[styles.stepAction, { backgroundColor: step.color }]}
@@ -346,16 +1094,16 @@ const DocumentationScreen: React.FC = () => {
       <Text style={styles.sectionHeader}>{section.title}</Text>
       <Text style={styles.sectionSubtitle}>{section.subtitle}</Text>
       <Text style={styles.sectionContent}>{section.content}</Text>
-      
+
       <View style={styles.benefitsContainer}>
         {section.benefits?.map((benefit: any, index: number) => (
           <View key={index} style={styles.benefitCard}>
             <View style={[styles.benefitIcon, { backgroundColor: benefit.color }]}>
               <Ionicons name={benefit.icon} size={24} color="#FFFFFF" />
             </View>
-            
+
             <Text style={styles.benefitCategory}>{benefit.category}</Text>
-            
+
             <View style={styles.benefitItems}>
               {benefit.items.map((item: string, itemIndex: number) => (
                 <View key={itemIndex} style={styles.benefitItem}>
@@ -375,7 +1123,7 @@ const DocumentationScreen: React.FC = () => {
       <Text style={styles.ctaTitle}>{section.title}</Text>
       <Text style={styles.ctaSubtitle}>{section.subtitle}</Text>
       <Text style={styles.ctaContent}>{section.content}</Text>
-      
+
       <View style={styles.ctaActions}>
         {section.actions?.map((action: any, index: number) => (
           <TouchableOpacity
@@ -386,10 +1134,10 @@ const DocumentationScreen: React.FC = () => {
             ]}
             onPress={() => handleNavigation(action.link, action.type)}
           >
-            <Ionicons 
-              name={action.icon} 
-              size={20} 
-              color={action.primary ? "#FFFFFF" : action.color} 
+            <Ionicons
+              name={action.icon}
+              size={20}
+              color={action.primary ? "#FFFFFF" : action.color}
             />
             <Text style={[
               styles.ctaButtonText,
@@ -422,7 +1170,7 @@ const DocumentationScreen: React.FC = () => {
       <View style={styles.featuresContainer}>
         {section.items?.map((feature: any, index: number) => (
           <View key={index} style={styles.featureCard}>
-            <View style={[styles.featureIcon, { backgroundColor: '#007AFF' }]}>
+            <View style={[styles.featureIcon, { backgroundColor: styles.heroSubtitle.color }]}>
               <Ionicons name={feature.icon} size={24} color="#FFFFFF" />
             </View>
             <Text style={styles.featureTitle}>{feature.title}</Text>
@@ -437,7 +1185,7 @@ const DocumentationScreen: React.FC = () => {
     <View style={styles.walkthroughSection}>
       <Text style={styles.sectionHeader}>{section.title}</Text>
       {section.subtitle && <Text style={styles.sectionSubtitle}>{section.subtitle}</Text>}
-      
+
       <View style={styles.walkthroughSteps}>
         {section.steps?.map((step: any, index: number) => (
           <View key={index} style={styles.walkthroughStep}>
@@ -454,7 +1202,7 @@ const DocumentationScreen: React.FC = () => {
                   onPress={() => handleNavigation(step.action.path, step.action.type)}
                 >
                   <Text style={styles.stepActionText}>{step.action.label}</Text>
-                  <Ionicons name="arrow-forward" size={16} color="#007AFF" />
+                  <Ionicons name="arrow-forward" size={16} color={styles.heroSubtitle.color} />
                 </TouchableOpacity>
               )}
             </View>
@@ -467,7 +1215,7 @@ const DocumentationScreen: React.FC = () => {
   const renderUseCasesSection = (section: any) => (
     <View style={styles.useCasesSection}>
       <Text style={styles.sectionHeader}>{section.title}</Text>
-      
+
       <View style={styles.useCasesContainer}>
         {(section.cases || section.items)?.map((useCase: any, index: number) => (
           <View key={index} style={styles.useCaseCard}>
@@ -490,12 +1238,12 @@ const DocumentationScreen: React.FC = () => {
   const renderBestPracticesSection = (section: any) => (
     <View style={styles.bestPracticesSection}>
       <Text style={styles.sectionHeader}>{section.title}</Text>
-      
+
       <View style={styles.practicesContainer}>
         {section.tips?.map((tip: string, index: number) => (
           <View key={index} style={styles.practiceItem}>
             <View style={styles.practiceIcon}>
-              <Ionicons name="bulb" size={20} color="#FF9500" />
+              <Ionicons name="bulb" size={20} color={styles.practiceItem.borderLeftColor} />
             </View>
             <Text style={styles.practiceText}>{tip}</Text>
           </View>
@@ -507,12 +1255,12 @@ const DocumentationScreen: React.FC = () => {
   const renderTroubleshootingSection = (section: any) => (
     <View style={styles.troubleshootingSection}>
       <Text style={styles.sectionHeader}>{section.title}</Text>
-      
+
       <View style={styles.troubleshootingContainer}>
         {section.problems?.map((problem: any, index: number) => (
           <View key={index} style={styles.troubleshootingItem}>
             <View style={styles.problemHeader}>
-              <Ionicons name="warning" size={20} color="#FF3B30" />
+              <Ionicons name="warning" size={20} color={styles.troubleshootingItem.borderLeftColor} />
               <Text style={styles.problemTitle}>{problem.issue}</Text>
             </View>
             <Text style={styles.solutionsTitle}>Solutions:</Text>
@@ -529,7 +1277,7 @@ const DocumentationScreen: React.FC = () => {
     <View style={styles.quickStartSection}>
       <Text style={styles.sectionHeader}>{section.title}</Text>
       <Text style={styles.sectionSubtitle}>{section.subtitle}</Text>
-      
+
       <View style={styles.quickStartSteps}>
         {section.steps?.map((step: any, index: number) => (
           <View key={index} style={styles.quickStartStep}>
@@ -577,7 +1325,7 @@ const DocumentationScreen: React.FC = () => {
               }}
               style={styles.backButton}
             >
-              <Ionicons name="chevron-back" size={24} color="#007AFF" />
+              <Ionicons name="chevron-back" size={24} color={styles.heroSubtitle.color} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>{selectedSection.title}</Text>
           </>
@@ -591,7 +1339,7 @@ const DocumentationScreen: React.FC = () => {
               onPress={() => setShowSearch(!showSearch)}
               style={styles.searchButton}
             >
-              <Ionicons name={showSearch ? "close" : "search"} size={24} color="#007AFF" />
+              <Ionicons name={showSearch ? "close" : "search"} size={24} color={styles.heroSubtitle.color} />
             </TouchableOpacity>
           </>
         )}
@@ -600,7 +1348,7 @@ const DocumentationScreen: React.FC = () => {
       {/* Search Bar */}
       {showSearch && !selectedSection && (
         <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#8E8E93" style={styles.searchIcon} />
+          <Ionicons name="search" size={20} color={styles.loadingText.color} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search documentation..."
@@ -640,783 +1388,5 @@ const DocumentationScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  headerTitleContainer: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#000000',
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#8E8E93',
-    marginTop: 2,
-  },
-  backButton: {
-    padding: 8,
-    marginRight: 12,
-  },
-  searchButton: {
-    padding: 8,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  searchIcon: {
-    marginRight: 12,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#000000',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#8E8E93',
-  },
-  mainContainer: {
-    flex: 1,
-  },
-  welcomeSection: {
-    padding: 20,
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 12,
-  },
-  welcomeTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#000000',
-    marginBottom: 8,
-  },
-  welcomeDescription: {
-    fontSize: 16,
-    color: '#666666',
-    lineHeight: 24,
-  },
-  sectionGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-  },
-  sectionCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  sectionCardMargin: {
-    marginRight: 16,
-  },
-  sectionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 8,
-  },
-  sectionDescription: {
-    fontSize: 14,
-    color: '#666666',
-    lineHeight: 20,
-    marginBottom: 16,
-  },
-  sectionFooter: {
-    alignItems: 'flex-end',
-  },
-  footer: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  footerText: {
-    fontSize: 12,
-    color: '#8E8E93',
-  },
-  
-  // Content styles
-  contentContainer: {
-    flex: 1,
-  },
-  contentSection: {
-    marginBottom: 24,
-  },
-  
-  // Hero section styles
-  heroSection: {
-    backgroundColor: '#FFFFFF',
-    margin: 16,
-    padding: 24,
-    borderRadius: 16,
-  },
-  heroTitle: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#000000',
-    marginBottom: 8,
-  },
-  heroSubtitle: {
-    fontSize: 18,
-    color: '#007AFF',
-    marginBottom: 16,
-  },
-  heroContent: {
-    fontSize: 16,
-    color: '#666666',
-    lineHeight: 24,
-    marginBottom: 24,
-  },
-  highlightsContainer: {
-    gap: 16,
-  },
-  highlightItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  highlightIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F0F8FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  highlightText: {
-    flex: 1,
-  },
-  highlightTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 4,
-  },
-  highlightDescription: {
-    fontSize: 14,
-    color: '#666666',
-    lineHeight: 20,
-  },
-  
-  // Topology section styles
-  topologySection: {
-    backgroundColor: '#FFFFFF',
-    margin: 16,
-    padding: 24,
-    borderRadius: 16,
-  },
-  sectionHeader: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#000000',
-    marginBottom: 8,
-  },
-  sectionSubtitle: {
-    fontSize: 16,
-    color: '#666666',
-    marginBottom: 16,
-  },
-  sectionContent: {
-    fontSize: 16,
-    color: '#666666',
-    lineHeight: 24,
-    marginBottom: 24,
-  },
-  conceptsContainer: {
-    gap: 20,
-  },
-  conceptCard: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    padding: 20,
-  },
-  conceptIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  conceptContent: {
-    flex: 1,
-  },
-  conceptTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 8,
-  },
-  conceptDescription: {
-    fontSize: 16,
-    color: '#666666',
-    marginBottom: 12,
-  },
-  conceptDetails: {
-    fontSize: 14,
-    color: '#8E8E93',
-    lineHeight: 20,
-    marginBottom: 16,
-  },
-  examplesContainer: {
-    marginBottom: 16,
-  },
-  examplesTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 8,
-  },
-  exampleItem: {
-    fontSize: 14,
-    color: '#666666',
-    lineHeight: 20,
-    marginBottom: 4,
-  },
-  conceptActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  actionButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  actionButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  
-  // Workflow section styles
-  workflowSection: {
-    backgroundColor: '#FFFFFF',
-    margin: 16,
-    padding: 24,
-    borderRadius: 16,
-  },
-  stepsContainer: {
-    gap: 24,
-  },
-  stepItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  stepNumber: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  stepNumberText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  stepContent: {
-    flex: 1,
-  },
-  stepTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 8,
-  },
-  stepDescription: {
-    fontSize: 16,
-    color: '#666666',
-    marginBottom: 8,
-  },
-  stepDetails: {
-    fontSize: 14,
-    color: '#8E8E93',
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  stepAction: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  stepActionText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#FFFFFF',
-  },
-  
-  // Benefits section styles
-  benefitsSection: {
-    backgroundColor: '#FFFFFF',
-    margin: 16,
-    padding: 24,
-    borderRadius: 16,
-  },
-  benefitsContainer: {
-    gap: 20,
-  },
-  benefitCard: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    padding: 20,
-  },
-  benefitIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  benefitCategory: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 16,
-  },
-  benefitItems: {
-    gap: 8,
-  },
-  benefitItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  benefitItemText: {
-    fontSize: 14,
-    color: '#666666',
-    marginLeft: 8,
-  },
-  
-  // CTA section styles
-  ctaSection: {
-    backgroundColor: '#FFFFFF',
-    margin: 16,
-    padding: 24,
-    borderRadius: 16,
-  },
-  ctaTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#000000',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  ctaSubtitle: {
-    fontSize: 16,
-    color: '#666666',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  ctaContent: {
-    fontSize: 16,
-    color: '#666666',
-    lineHeight: 24,
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  ctaActions: {
-    gap: 16,
-  },
-  ctaButton: {
-    padding: 20,
-    borderRadius: 16,
-    alignItems: 'center',
-  },
-  ctaButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  ctaButtonDescription: {
-    fontSize: 14,
-  },
-  
-  // Default section styles
-  defaultSection: {
-    backgroundColor: '#FFFFFF',
-    margin: 16,
-    padding: 24,
-    borderRadius: 16,
-  },
-
-  // Overview section styles
-  overviewSection: {
-    backgroundColor: '#FFFFFF',
-    margin: 16,
-    padding: 24,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-
-  // Features section styles
-  featuresSection: {
-    backgroundColor: '#FFFFFF',
-    margin: 16,
-    padding: 24,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  featuresContainer: {
-    gap: 16,
-    marginTop: 16,
-  },
-  featureCard: {
-    backgroundColor: '#F8F9FA',
-    padding: 20,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  featureIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  featureTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 6,
-    flex: 1,
-  },
-  featureDescription: {
-    fontSize: 14,
-    color: '#666666',
-    lineHeight: 20,
-    flex: 1,
-  },
-
-  // Walkthrough section styles
-  walkthroughSection: {
-    backgroundColor: '#FFFFFF',
-    margin: 16,
-    padding: 24,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  walkthroughSteps: {
-    gap: 20,
-    marginTop: 20,
-  },
-  walkthroughStep: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  stepIndicator: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#007AFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-    marginTop: 4,
-  },
-  stepNumberTextAlt: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  stepDetailsAlt: {
-    flex: 1,
-  },
-  stepSubtext: {
-    fontSize: 14,
-    color: '#666666',
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  stepActionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: '#F0F8FF',
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-    marginTop: 8,
-  },
-  stepActionTextAlt: {
-    color: '#007AFF',
-    fontSize: 14,
-    fontWeight: '500',
-    marginRight: 6,
-  },
-
-  // Use cases section styles
-  useCasesSection: {
-    backgroundColor: '#FFFFFF',
-    margin: 16,
-    padding: 24,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  useCasesContainer: {
-    gap: 16,
-    marginTop: 16,
-  },
-  useCaseCard: {
-    backgroundColor: '#F8F9FA',
-    padding: 20,
-    borderRadius: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#34C759',
-  },
-  useCaseTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 8,
-  },
-  useCaseDescription: {
-    fontSize: 14,
-    color: '#000000',
-    lineHeight: 20,
-    marginBottom: 8,
-  },
-  useCaseExample: {
-    fontSize: 13,
-    color: '#666666',
-    fontStyle: 'italic',
-    marginBottom: 12,
-  },
-  useCaseSteps: {
-    marginTop: 8,
-  },
-  useCaseStep: {
-    fontSize: 14,
-    color: '#666666',
-    lineHeight: 20,
-    marginBottom: 4,
-  },
-
-  // Best practices section styles
-  bestPracticesSection: {
-    backgroundColor: '#FFFFFF',
-    margin: 16,
-    padding: 24,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  practicesContainer: {
-    gap: 16,
-    marginTop: 16,
-  },
-  practiceItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#FFF9E6',
-    padding: 16,
-    borderRadius: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF9500',
-  },
-  practiceIcon: {
-    marginRight: 12,
-    marginTop: 2,
-  },
-  practiceText: {
-    fontSize: 14,
-    color: '#000000',
-    lineHeight: 20,
-    flex: 1,
-  },
-
-  // Troubleshooting section styles
-  troubleshootingSection: {
-    backgroundColor: '#FFFFFF',
-    margin: 16,
-    padding: 24,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  troubleshootingContainer: {
-    gap: 20,
-    marginTop: 16,
-  },
-  troubleshootingItem: {
-    backgroundColor: '#FFF5F5',
-    padding: 16,
-    borderRadius: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF3B30',
-  },
-  problemHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  problemTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-    marginLeft: 8,
-    flex: 1,
-  },
-  solutionsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 8,
-  },
-  solutionText: {
-    fontSize: 14,
-    color: '#333333',
-    lineHeight: 20,
-    marginBottom: 4,
-  },
-
-  // Quick start section styles
-  quickStartSection: {
-    backgroundColor: '#FFFFFF',
-    margin: 16,
-    padding: 24,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  quickStartSteps: {
-    gap: 20,
-    marginTop: 20,
-  },
-  quickStartStep: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#F0F8FF',
-    padding: 20,
-    borderRadius: 16,
-  },
-  quickStartIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#30D158',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  quickStartNumber: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  quickStartContent: {
-    flex: 1,
-  },
-  quickStartTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 8,
-  },
-  quickStartDescription: {
-    fontSize: 16,
-    color: '#000000',
-    lineHeight: 22,
-    marginBottom: 6,
-  },
-  quickStartDetails: {
-    fontSize: 14,
-    color: '#666666',
-    lineHeight: 20,
-    marginBottom: 8,
-  },
-  quickStartTime: {
-    fontSize: 12,
-    color: '#30D158',
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  quickStartButton: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-  },
-  quickStartButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-});
 
 export default DocumentationScreen;

@@ -3,6 +3,7 @@ package teams
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -118,7 +119,9 @@ func (h *Handler) getTeamByID(teamID, userID string) (types.Team, error) {
 	// Parse memory if present
 	if memoryJSON.Valid && memoryJSON.String != "" {
 		var memory types.TeamMemory
-		if err := types.FromJSON(memoryJSON.String, &memory); err == nil {
+		if err := types.FromJSON(memoryJSON.String, &memory); err != nil {
+			log.Printf("❌ getTeamByID: failed to parse memory JSON for teamID=%s: %v (JSON length: %d)", teamID, err, len(memoryJSON.String))
+		} else {
 			team.Memory = &memory
 		}
 	}
@@ -545,17 +548,29 @@ func (h *Handler) saveTeamMemory(teamID, userID string, memory *types.TeamMemory
 
 	// Update team record with memory
 	query := `
-		UPDATE teams 
-		SET memory = ?, 
-		    memory_size_bytes = ?, 
-		    memory_updated_at = CURRENT_TIMESTAMP 
+		UPDATE teams
+		SET memory = ?,
+		    memory_size_bytes = ?,
+		    memory_updated_at = CURRENT_TIMESTAMP
 		WHERE id = ? AND user_id = ?`
 
-	_, err = h.db.Exec(query, memoryJSON, sizeBytes, teamID, userID)
+	log.Printf("🔍 saveTeamMemory: saving %d bytes for teamID=%s, userID=%s", sizeBytes, teamID, userID)
+
+	result, err := h.db.Exec(query, memoryJSON, sizeBytes, teamID, userID)
 	if err != nil {
 		return fmt.Errorf("failed to save team memory to database: %w", err)
 	}
 
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check rows affected after saving team memory: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("team memory save failed: no rows updated for teamID=%s, userID=%s (team may not exist or user_id mismatch)", teamID, userID)
+	}
+
+	log.Printf("✅ saveTeamMemory: successfully saved %d bytes for teamID=%s (%d rows affected)", sizeBytes, teamID, rowsAffected)
 	return nil
 }
 

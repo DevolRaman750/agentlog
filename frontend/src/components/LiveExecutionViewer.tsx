@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
@@ -16,6 +15,432 @@ import { goGentAPI } from '../api/client';
 import { ExecutionLog, ExecutionFlowEvent } from '../types';
 import ExecutionFlowGraph from './ExecutionFlowGraph';
 import ExecutionLogsCard from './ExecutionLogsCard';
+import { useTheme, useThemedStyles } from '../theme';
+import type { ThemeColors } from '../theme';
+
+const createStyles = (colors: ThemeColors) => ({
+  container: {
+    backgroundColor: colors.bgCard,
+    borderRadius: 16,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    shadowColor: colors.shadowColor,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    overflow: 'hidden' as const,
+    flex: 1,
+    minHeight: 800,
+    maxHeight: '100%' as const,
+  },
+  progressHeader: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    padding: 16,
+    backgroundColor: colors.bgSurface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  progressInfo: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    flex: 1,
+  },
+  progressIconContainer: {
+    position: 'relative' as const,
+    marginRight: 12,
+  },
+  progressRing: {
+    position: 'absolute' as const,
+    bottom: -8,
+    right: -8,
+    backgroundColor: colors.accent,
+    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  progressText: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: colors.textInverse,
+  },
+  progressDetails: {
+    flex: 1,
+  },
+  progressTitle: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: colors.textPrimary,
+    marginBottom: 2,
+  },
+  progressSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  temporaryIdNote: {
+    fontSize: 12,
+    color: colors.statusWarning,
+    fontStyle: 'italic' as const,
+    marginTop: 2,
+  },
+  headerControls: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+  },
+  controlButton: {
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    backgroundColor: colors.bgCard,
+  },
+  activeControlButton: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  cancelButton: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#FFF5F5',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FFE4E1',
+    gap: 4,
+  },
+  cancelButtonText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: colors.statusError,
+  },
+  viewModeSelector: {
+    flexDirection: 'row' as const,
+    padding: 12,
+    backgroundColor: colors.bgSurface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+    gap: 8,
+  },
+  viewModeButton: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    backgroundColor: colors.bgCard,
+    gap: 4,
+  },
+  activeViewModeButton: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  viewModeText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: colors.accent,
+  },
+  activeViewModeText: {
+    color: colors.textInverse,
+  },
+  errorBanner: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    padding: 12,
+    backgroundColor: '#FFF5F5',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FFE4E1',
+    gap: 8,
+  },
+  errorText: {
+    fontSize: 14,
+    color: colors.statusError,
+    flex: 1,
+  },
+  content: {
+    flex: 1,
+    minHeight: 700,
+  },
+  logsContainer: {
+    flex: 1,
+  },
+  logsHeader: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  logsTitle: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: colors.textPrimary,
+  },
+  logsConfigIndicator: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontWeight: '500' as const,
+  },
+  logsStats: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+  },
+  logsCount: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  logsScrollView: {
+    flex: 1,
+  },
+  emptyListContainer: {
+    flex: 1,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    minHeight: 400,
+  },
+  emptyState: {
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    paddingVertical: 40,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    marginTop: 12,
+  },
+  logEntry: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.bgApp,
+  },
+  logHeader: {
+    flexDirection: 'row' as const,
+    padding: 12,
+  },
+  logIcon: {
+    marginRight: 12,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  logEmoji: {
+    fontSize: 16,
+  },
+  logContent: {
+    flex: 1,
+  },
+  logTitleRow: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    marginBottom: 4,
+  },
+  logCategory: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: colors.accent,
+    textTransform: 'uppercase' as const,
+  },
+  logTimestamp: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontFamily: 'monospace',
+  },
+  logMessage: {
+    fontSize: 14,
+    color: colors.textPrimary,
+    lineHeight: 20,
+    marginBottom: 4,
+  },
+  logLevel: {
+    fontSize: 12,
+    fontWeight: '500' as const,
+  },
+  flowContainer: {
+    flex: 1,
+  },
+  flowHeader: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  flowTitle: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: colors.textPrimary,
+  },
+  bothContainer: {
+    flexDirection: 'row' as const,
+    flex: 1,
+  },
+  bothSection: {
+    flex: 1,
+    borderRightWidth: 1,
+    borderRightColor: colors.borderLight,
+  },
+  // Simulated flow styles
+  simulatedFlowContainer: {
+    flex: 1,
+    padding: 16,
+  },
+  simulatedFlowEvent: {
+    marginBottom: 12,
+  },
+  simulatedEventHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: colors.bgCard,
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  simulatedEventStatus: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    marginRight: 12,
+  },
+  simulatedEventIcon: {
+    fontSize: 16,
+  },
+  simulatedEventContent: {
+    flex: 1,
+  },
+  simulatedEventType: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: colors.textPrimary,
+    marginBottom: 2,
+  },
+  simulatedEventMessage: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 2,
+  },
+  simulatedEventStatusText: {
+    fontSize: 10,
+    fontWeight: '500' as const,
+    color: colors.textSecondary,
+    textTransform: 'uppercase' as const,
+  },
+  simulatedEventConnector: {
+    width: 2,
+    height: 12,
+    backgroundColor: colors.borderLight,
+    marginLeft: 27,
+    marginVertical: 4,
+  },
+  simulatedStatsContainer: {
+    backgroundColor: colors.bgSurface,
+    borderRadius: 8,
+    padding: 16,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  simulatedStatsTitle: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: colors.textPrimary,
+    marginBottom: 12,
+  },
+  simulatedStatsGrid: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+  },
+  simulatedStatItem: {
+    alignItems: 'center' as const,
+    flex: 1,
+  },
+  simulatedStatValue: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: colors.accent,
+  },
+  simulatedStatLabel: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    textAlign: 'center' as const,
+    marginTop: 2,
+  },
+  // Configuration tabs styles
+  configTabsContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: colors.bgSurface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  configTabsTitle: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: colors.textPrimary,
+    marginBottom: 8,
+  },
+  configTabsScroll: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+    paddingHorizontal: 4,
+  },
+  configTab: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    backgroundColor: colors.bgCard,
+  },
+  activeConfigTab: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  configTabContent: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+  },
+  configTabText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: colors.textPrimary,
+  },
+  activeConfigTabText: {
+    color: colors.textInverse,
+  },
+  configTabBadge: {
+    backgroundColor: colors.accent,
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  activeConfigTabBadge: {
+    backgroundColor: colors.textInverse,
+    borderColor: colors.textInverse,
+  },
+  configTabBadgeText: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: colors.textInverse,
+  },
+  activeConfigTabBadgeText: {
+    color: colors.accent,
+  },
+});
 
 interface LiveExecutionViewerProps {
   executionId: string;
@@ -37,13 +462,15 @@ interface ConfigurationTab {
 
 // Animated log item component
 const AnimatedLogItem: React.FC<{ log: ExecutionLog; index: number }> = ({ log, index }) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
     // Stagger animations based on index
     const delay = Math.min(index * 100, 500); // Max 500ms delay
-    
+
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -65,7 +492,7 @@ const AnimatedLogItem: React.FC<{ log: ExecutionLog; index: number }> = ({ log, 
   const getLogEmoji = (logLevel: string, logCategory: string) => {
     const category = logCategory?.toLowerCase() || '';
     const level = logLevel?.toLowerCase() || '';
-    
+
     if (category.includes('setup') || category.includes('init')) return '🔧';
     if (category.includes('execution') || category.includes('processing')) return '⚡';
     if (category.includes('function') || category.includes('api')) return '🔗';
@@ -78,22 +505,22 @@ const AnimatedLogItem: React.FC<{ log: ExecutionLog; index: number }> = ({ log, 
 
   const getLogLevelColor = (logLevel: string) => {
     switch (logLevel?.toLowerCase()) {
-      case 'error': return '#FF3B30';
-      case 'warn': case 'warning': return '#FF9500';
-      case 'info': return '#007AFF';
-      case 'debug': return '#8E8E93';
-      case 'success': return '#34C759';
-      default: return '#1A1A1A';
+      case 'error': return colors.statusError;
+      case 'warn': case 'warning': return colors.statusWarning;
+      case 'info': return colors.accent;
+      case 'debug': return colors.textSecondary;
+      case 'success': return colors.statusSuccess;
+      default: return colors.textPrimary;
     }
   };
 
   const formatTimestamp = (timestamp: Date | string) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString('en-US', { 
+    return date.toLocaleTimeString('en-US', {
       hour12: false,
       hour: '2-digit',
-      minute: '2-digit', 
-      second: '2-digit' 
+      minute: '2-digit',
+      second: '2-digit'
     });
   };
 
@@ -136,21 +563,23 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
   isExecuting,
   executionResult,
 }) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [viewMode, setViewMode] = useState<ViewMode>('logs');
   const [logs, setLogs] = useState<ExecutionLog[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
-  
+
   // Configuration tabs state
   const [configurationTabs, setConfigurationTabs] = useState<ConfigurationTab[]>([]);
   const [activeConfigTab, setActiveConfigTab] = useState<string>('all'); // 'all' or configuration ID
   const [logsByConfiguration, setLogsByConfiguration] = useState<Record<string, ExecutionLog[]>>({});
-  
+
   // Track seen log IDs to prevent duplicates
   const seenLogIds = useRef(new Set<string>()).current;
   const lastProgressRef = useRef(0);
-  
+
   const logsIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
@@ -167,19 +596,19 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
     setLogs(prevLogs => {
       // Sort by sequence number to maintain chronological order
       const combined = [...prevLogs, ...unseenLogs].sort((a, b) => (a.sequenceNumber || 0) - (b.sequenceNumber || 0));
-      
+
       // Auto-scroll to bottom for new logs
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
-      
+
       return combined;
     });
 
     // Organize logs by configuration
     setLogsByConfiguration(prevLogsByConfig => {
       const updatedLogsByConfig = { ...prevLogsByConfig };
-      
+
       unseenLogs.forEach(log => {
         const configId = log.configurationId || 'unknown';
         if (!updatedLogsByConfig[configId]) {
@@ -189,7 +618,7 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
         // Sort each configuration's logs by sequence number
         updatedLogsByConfig[configId] = updatedLogsByConfig[configId].sort((a, b) => (a.sequenceNumber || 0) - (b.sequenceNumber || 0));
       });
-      
+
       return updatedLogsByConfig;
     });
 
@@ -197,14 +626,14 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
     const updateConfigurationTabs = () => {
       const configIds = new Set<string>();
       const configNames = new Map<string, string>();
-      
+
       // Get configuration IDs from logs
       [...logs, ...unseenLogs].forEach(log => {
         if (log.configurationId) {
           configIds.add(log.configurationId);
         }
       });
-      
+
       // Get configuration names from execution result if available
       if (executionResult?.results) {
         executionResult.results.forEach((result: any) => {
@@ -214,7 +643,7 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
           }
         });
       }
-      
+
       // Create tabs for each configuration
       const tabs: ConfigurationTab[] = Array.from(configIds).map(configId => {
         const configLogs = [...logs, ...unseenLogs].filter(log => log.configurationId === configId);
@@ -224,10 +653,10 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
           logCount: configLogs.length,
         };
       }).sort((a, b) => a.name.localeCompare(b.name));
-      
+
       setConfigurationTabs(tabs);
     };
-    
+
     updateConfigurationTabs();
   }, [logs, executionResult]);
 
@@ -336,12 +765,12 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
 
     try {
       setIsLoadingLogs(true);
-      
+
       if (executionId.startsWith('exec-')) {
         // Generate new simulated logs based on progress
         console.log('🔄 Generating new simulated logs for progress:', progress, 'of', maxProgress);
         const newLogs = generateNewSimulatedLogs(progress);
-        
+
         if (newLogs.length > 0) {
           console.log('📋 Adding', newLogs.length, 'new simulated logs');
           addNewLogs(newLogs);
@@ -350,7 +779,7 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
         // This is a real execution ID, try to get actual logs
         try {
           const response = await goGentAPI.getExecutionLogsByRun(executionId);
-          
+
           if (response.success && response.data) {
             // Convert response to expected format and filter for new logs
             const newLogs = response.data
@@ -378,7 +807,7 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
           console.warn('Failed to fetch real execution logs:', apiErr);
         }
       }
-      
+
     } catch (err: any) {
       console.warn('Failed to fetch live logs:', err);
       if (!executionId.startsWith('exec-')) {
@@ -393,7 +822,7 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
   useEffect(() => {
     if (isExecuting && autoRefresh) {
       console.log('🔄 Setting up live refresh for execution:', executionId);
-      
+
       // Fetch initial data immediately
       fetchLiveLogs();
 
@@ -430,19 +859,19 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
 
   const getLogLevelColor = (level: string): string => {
     switch (level?.toLowerCase()) {
-      case 'error': return '#FF3B30';
-      case 'warning': return '#FF9500';
-      case 'info': return '#007AFF';
-      case 'debug': return '#8E8E93';
-      case 'success': return '#34C759';
-      default: return '#1A1A1A';
+      case 'error': return colors.statusError;
+      case 'warning': return colors.statusWarning;
+      case 'info': return colors.accent;
+      case 'debug': return colors.textSecondary;
+      case 'success': return colors.statusSuccess;
+      default: return colors.textPrimary;
     }
   };
 
   const getLogEmoji = (level: string, category: string): string => {
     if (level?.toLowerCase() === 'error') return '❌';
     if (level?.toLowerCase() === 'warning') return '⚠️';
-    
+
     switch (category?.toLowerCase()) {
       case 'setup': return '⚙️';
       case 'execution': return '🚀';
@@ -468,38 +897,38 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
         style={[styles.viewModeButton, viewMode === 'logs' && styles.activeViewModeButton]}
         onPress={() => setViewMode('logs')}
       >
-        <Ionicons 
-          name="list" 
-          size={16} 
-          color={viewMode === 'logs' ? '#FFFFFF' : '#007AFF'} 
+        <Ionicons
+          name="list"
+          size={16}
+          color={viewMode === 'logs' ? colors.textInverse : colors.accent}
         />
         <Text style={[styles.viewModeText, viewMode === 'logs' && styles.activeViewModeText]}>
           Logs
         </Text>
       </TouchableOpacity>
-      
+
       <TouchableOpacity
         style={[styles.viewModeButton, viewMode === 'flow' && styles.activeViewModeButton]}
         onPress={() => setViewMode('flow')}
       >
-        <Ionicons 
-          name="git-network" 
-          size={16} 
-          color={viewMode === 'flow' ? '#FFFFFF' : '#007AFF'} 
+        <Ionicons
+          name="git-network"
+          size={16}
+          color={viewMode === 'flow' ? colors.textInverse : colors.accent}
         />
         <Text style={[styles.viewModeText, viewMode === 'flow' && styles.activeViewModeText]}>
           Flow
         </Text>
       </TouchableOpacity>
-      
+
       <TouchableOpacity
         style={[styles.viewModeButton, viewMode === 'both' && styles.activeViewModeButton]}
         onPress={() => setViewMode('both')}
       >
-        <Ionicons 
-          name="apps" 
-          size={16} 
-          color={viewMode === 'both' ? '#FFFFFF' : '#007AFF'} 
+        <Ionicons
+          name="apps"
+          size={16}
+          color={viewMode === 'both' ? colors.textInverse : colors.accent}
         />
         <Text style={[styles.viewModeText, viewMode === 'both' && styles.activeViewModeText]}>
           Both
@@ -512,7 +941,7 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
     if (configurationTabs.length === 0) return null;
 
     const allLogsCount = logs.length;
-    
+
     return (
       <View style={styles.configTabsContainer}>
         <Text style={styles.configTabsTitle}>📋 Logs by Configuration</Text>
@@ -584,12 +1013,12 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
 
   const renderProgressHeader = () => {
     const isTemporaryId = executionId.startsWith('exec-');
-    
+
     return (
       <View style={styles.progressHeader}>
         <View style={styles.progressInfo}>
           <View style={styles.progressIconContainer}>
-            <Ionicons name="rocket" size={24} color="#007AFF" />
+            <Ionicons name="rocket" size={24} color={colors.accent} />
             <View style={styles.progressRing}>
               <Text style={styles.progressText}>{Math.round(progressPercentage)}%</Text>
             </View>
@@ -606,25 +1035,25 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
             )}
           </View>
         </View>
-        
+
         <View style={styles.headerControls}>
           <TouchableOpacity
             style={[styles.controlButton, autoRefresh && styles.activeControlButton]}
             onPress={() => setAutoRefresh(!autoRefresh)}
           >
-            <Ionicons 
-              name={autoRefresh ? "pause" : "play"} 
-              size={16} 
-              color={autoRefresh ? "#FFFFFF" : "#007AFF"} 
+            <Ionicons
+              name={autoRefresh ? "pause" : "play"}
+              size={16}
+              color={autoRefresh ? colors.textInverse : colors.accent}
             />
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.controlButton} onPress={handleRefresh}>
-            <Ionicons name="refresh" size={16} color="#007AFF" />
+            <Ionicons name="refresh" size={16} color={colors.accent} />
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-            <Ionicons name="stop-circle" size={16} color="#FF3B30" />
+            <Ionicons name="stop-circle" size={16} color={colors.statusError} />
             <Text style={styles.cancelButtonText}>Stop</Text>
           </TouchableOpacity>
         </View>
@@ -634,10 +1063,10 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
 
   const renderLogs = () => {
     // Filter logs based on active configuration tab
-    const filteredLogs = activeConfigTab === 'all' 
-      ? logs 
+    const filteredLogs = activeConfigTab === 'all'
+      ? logs
       : logs.filter(log => log.configurationId === activeConfigTab);
-    
+
     return (
       <View style={styles.logsContainer}>
         <View style={styles.logsHeader}>
@@ -651,11 +1080,11 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
           </Text>
           <View style={styles.logsStats}>
             <Text style={styles.logsCount}>{filteredLogs.length} entries</Text>
-            {isLoadingLogs && <ActivityIndicator size="small" color="#007AFF" />}
+            {isLoadingLogs && <ActivityIndicator size="small" color={colors.accent} />}
           </View>
         </View>
-        
-        <FlatList 
+
+        <FlatList
           ref={flatListRef}
           data={filteredLogs}
           renderItem={({ item, index }) => <AnimatedLogItem log={item} index={index} />}
@@ -667,10 +1096,10 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
           }
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Ionicons name="hourglass-outline" size={48} color="#8E8E93" />
+              <Ionicons name="hourglass-outline" size={48} color={colors.textSecondary} />
               <Text style={styles.emptyStateText}>
-                {activeConfigTab === 'all' 
-                  ? 'Waiting for execution logs...' 
+                {activeConfigTab === 'all'
+                  ? 'Waiting for execution logs...'
                   : `No logs found for ${configurationTabs.find(tab => tab.id === activeConfigTab)?.name || 'this configuration'}...`
                 }
               </Text>
@@ -687,14 +1116,14 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
 
   const renderFlow = () => {
     const isTemporaryId = executionId.startsWith('exec-');
-    
+
     return (
       <View style={styles.flowContainer}>
         <View style={styles.flowHeader}>
           <Text style={styles.flowTitle}>🔄 Live Execution Flow</Text>
           {/* ExecutionFlowGraph handles its own loading/error states */}
         </View>
-        
+
         {isTemporaryId ? (
           // Show simulated flow for temporary IDs
           <ScrollView style={styles.simulatedFlowContainer}>
@@ -781,7 +1210,7 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
 
             {progress === 0 && (
               <View style={styles.emptyState}>
-                <Ionicons name="git-network-outline" size={48} color="#8E8E93" />
+                <Ionicons name="git-network-outline" size={48} color={colors.textSecondary} />
                 <Text style={styles.emptyStateText}>Building execution flow...</Text>
               </View>
             )}
@@ -805,13 +1234,13 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
       {renderViewModeSelector()}
       {renderConfigurationTabs()}
       {renderProgressHeader()}
-      
+
       {error && (
         <View style={styles.errorBanner}>
-          <Ionicons name="warning" size={16} color="#FF3B30" />
+          <Ionicons name="warning" size={16} color={colors.statusError} />
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity onPress={() => setError(null)}>
-            <Ionicons name="close" size={16} color="#FF3B30" />
+            <Ionicons name="close" size={16} color={colors.statusError} />
           </TouchableOpacity>
         </View>
       )}
@@ -834,428 +1263,4 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    marginBottom: 32,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    shadowColor: '#007AFF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-    overflow: 'hidden',
-    flex: 1,
-    minHeight: 800,
-    maxHeight: '100%',
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#F8F9FA',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  progressInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  progressIconContainer: {
-    position: 'relative',
-    marginRight: 12,
-  },
-  progressRing: {
-    position: 'absolute',
-    bottom: -8,
-    right: -8,
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  progressText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  progressDetails: {
-    flex: 1,
-  },
-  progressTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 2,
-  },
-  progressSubtitle: {
-    fontSize: 14,
-    color: '#6B6B6B',
-  },
-  temporaryIdNote: {
-    fontSize: 12,
-    color: '#FF9500',
-    fontStyle: 'italic',
-    marginTop: 2,
-  },
-  headerControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  controlButton: {
-    padding: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    backgroundColor: '#FFFFFF',
-  },
-  activeControlButton: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
-  },
-  cancelButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#FFF5F5',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#FFE4E1',
-    gap: 4,
-  },
-  cancelButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FF3B30',
-  },
-  viewModeSelector: {
-    flexDirection: 'row',
-    padding: 12,
-    backgroundColor: '#F8F9FA',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-    gap: 8,
-  },
-  viewModeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    backgroundColor: '#FFFFFF',
-    gap: 4,
-  },
-  activeViewModeButton: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
-  },
-  viewModeText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#007AFF',
-  },
-  activeViewModeText: {
-    color: '#FFFFFF',
-  },
-  errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#FFF5F5',
-    borderBottomWidth: 1,
-    borderBottomColor: '#FFE4E1',
-    gap: 8,
-  },
-  errorText: {
-    fontSize: 14,
-    color: '#FF3B30',
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-    minHeight: 700,
-  },
-  logsContainer: {
-    flex: 1,
-  },
-  logsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  logsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  logsConfigIndicator: {
-    fontSize: 14,
-    color: '#6B6B6B',
-    fontWeight: '500',
-  },
-  logsStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  logsCount: {
-    fontSize: 14,
-    color: '#6B6B6B',
-  },
-  logsScrollView: {
-    flex: 1,
-  },
-  emptyListContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: 400,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
-  },
-  emptyStateText: {
-    fontSize: 16,
-    color: '#8E8E93',
-    marginTop: 12,
-  },
-  logEntry: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#F2F2F7',
-  },
-  logHeader: {
-    flexDirection: 'row',
-    padding: 12,
-  },
-  logIcon: {
-    marginRight: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logEmoji: {
-    fontSize: 16,
-  },
-  logContent: {
-    flex: 1,
-  },
-  logTitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  logCategory: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#007AFF',
-    textTransform: 'uppercase',
-  },
-  logTimestamp: {
-    fontSize: 12,
-    color: '#8E8E93',
-    fontFamily: 'monospace',
-  },
-  logMessage: {
-    fontSize: 14,
-    color: '#1A1A1A',
-    lineHeight: 20,
-    marginBottom: 4,
-  },
-  logLevel: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  flowContainer: {
-    flex: 1,
-  },
-  flowHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  flowTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  bothContainer: {
-    flexDirection: 'row',
-    flex: 1,
-  },
-  bothSection: {
-    flex: 1,
-    borderRightWidth: 1,
-    borderRightColor: '#E5E5EA',
-  },
-  // Simulated flow styles
-  simulatedFlowContainer: {
-    flex: 1,
-    padding: 16,
-  },
-  simulatedFlowEvent: {
-    marginBottom: 12,
-  },
-  simulatedEventHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  simulatedEventStatus: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  simulatedEventIcon: {
-    fontSize: 16,
-  },
-  simulatedEventContent: {
-    flex: 1,
-  },
-  simulatedEventType: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 2,
-  },
-  simulatedEventMessage: {
-    fontSize: 12,
-    color: '#6B6B6B',
-    marginBottom: 2,
-  },
-  simulatedEventStatusText: {
-    fontSize: 10,
-    fontWeight: '500',
-    color: '#8E8E93',
-    textTransform: 'uppercase',
-  },
-  simulatedEventConnector: {
-    width: 2,
-    height: 12,
-    backgroundColor: '#E5E5EA',
-    marginLeft: 27,
-    marginVertical: 4,
-  },
-  simulatedStatsContainer: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    padding: 16,
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  simulatedStatsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 12,
-  },
-  simulatedStatsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  simulatedStatItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  simulatedStatValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#007AFF',
-  },
-  simulatedStatLabel: {
-    fontSize: 11,
-    color: '#8E8E93',
-    textAlign: 'center',
-    marginTop: 2,
-  },
-  // Configuration tabs styles
-  configTabsContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    backgroundColor: '#F8F9FA',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  configTabsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 8,
-  },
-  configTabsScroll: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 4,
-  },
-  configTab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    backgroundColor: '#FFFFFF',
-  },
-  activeConfigTab: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
-  },
-  configTabContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  configTabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  activeConfigTabText: {
-    color: '#FFFFFF',
-  },
-  configTabBadge: {
-    backgroundColor: '#007AFF',
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  activeConfigTabBadge: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#FFFFFF',
-  },
-  configTabBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  activeConfigTabBadgeText: {
-    color: '#007AFF',
-  },
-});
-
-export default LiveExecutionViewer; 
+export default LiveExecutionViewer;

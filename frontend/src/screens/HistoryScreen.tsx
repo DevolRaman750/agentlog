@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
@@ -24,8 +23,10 @@ import ExecutionFlowGraph from '../components/ExecutionFlowGraph';
 import ExecutionResultsViewer from '../components/ExecutionResultsViewer';
 import LoadingScreen from '../components/LoadingScreen';
 import { debugComparisonData, formatConfigId } from '../utils/comparisonUtils';
+import { useTheme, useThemedStyles } from '../theme';
 
 const HistoryScreen: React.FC = () => {
+  const { colors } = useTheme();
   const { state, loadRecentExecutions, clearError, setReExecutionData } = useApp();
   const { user, isLoading: authLoading } = useAuth();
   const navigation = useNavigation<any>();
@@ -38,6 +39,641 @@ const HistoryScreen: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pendingExecutionId, setPendingExecutionId] = useState<string | null>(null);
 
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bgApp,
+    },
+    header: {
+      backgroundColor: colors.bgCard,
+      paddingHorizontal: 16,
+      paddingTop: 16,
+      paddingBottom: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderSubtle,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: '700' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    userContextContainer: {
+      alignItems: 'flex-start' as const,
+    },
+    userContextBadge: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: colors.bgHover,
+      borderRadius: 6,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      gap: 4,
+    },
+    userContextText: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: colors.accent,
+    },
+    anonymousBadge: {
+      backgroundColor: '#FFF3E0',
+    },
+    anonymousText: {
+      color: colors.statusWarning,
+    },
+    sessionWarning: {
+      fontSize: 11,
+      color: colors.textSecondary,
+      marginTop: 4,
+      fontStyle: 'italic' as const,
+    },
+    statusContainer: {
+      backgroundColor: colors.bgCard,
+      marginHorizontal: 16,
+      marginTop: 16,
+      borderRadius: 12,
+      padding: 16,
+    },
+    statusRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+    },
+    statusDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      marginRight: 8,
+    },
+    statusText: {
+      fontSize: 14,
+      color: colors.textPrimary,
+      flex: 1,
+    },
+    refreshButton: {
+      padding: 4,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      padding: 32,
+    },
+    loadingText: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      marginTop: 16,
+    },
+    listContainer: {
+      paddingBottom: 120,
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      padding: 32,
+    },
+    emptyTitle: {
+      fontSize: 20,
+      fontWeight: '600' as const,
+      color: colors.textSecondary,
+      marginTop: 16,
+    },
+    emptySubtitle: {
+      fontSize: 14,
+      color: colors.textTertiary,
+      textAlign: 'center' as const,
+      marginTop: 8,
+      lineHeight: 20,
+    },
+    connectButton: {
+      backgroundColor: colors.accent,
+      borderRadius: 8,
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      marginTop: 24,
+    },
+    connectButtonText: {
+      color: colors.textInverse,
+      fontSize: 16,
+      fontWeight: '600' as const,
+    },
+    detailsOverlay: {
+      position: 'absolute' as const,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: colors.bgOverlay,
+      justifyContent: 'flex-start' as const,
+      alignItems: 'center' as const,
+      paddingTop: 60,
+      paddingHorizontal: 16,
+      paddingBottom: 40,
+    },
+    detailsContainer: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      width: '100%' as const,
+      flex: 1,
+      maxHeight: '90%' as const,
+    },
+    detailsHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      padding: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderSubtle,
+      backgroundColor: colors.bgCard,
+      borderTopLeftRadius: 12,
+      borderTopRightRadius: 12,
+    },
+    detailsTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      flex: 1,
+      marginRight: 16,
+    },
+    closeButton: {
+      padding: 8,
+      borderRadius: 20,
+      backgroundColor: colors.bgApp,
+    },
+    detailsContent: {
+      flex: 1,
+      padding: 16,
+    },
+    detailsScrollContent: {
+      paddingBottom: 20,
+    },
+    summaryRow: {
+      flexDirection: 'row' as const,
+      marginBottom: 16,
+    },
+    descriptionContainer: {
+      marginBottom: 16,
+      padding: 12,
+      backgroundColor: colors.bgApp,
+      borderRadius: 8,
+    },
+    descriptionLabel: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: colors.textSecondary,
+      marginBottom: 4,
+    },
+    descriptionText: {
+      fontSize: 14,
+      color: colors.textPrimary,
+    },
+    resultsPreview: {
+      marginBottom: 16,
+    },
+    resultsPreviewTitle: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    resultPreviewItem: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      padding: 8,
+      backgroundColor: colors.bgApp,
+      borderRadius: 6,
+      marginBottom: 4,
+    },
+    resultPreviewLeft: {
+      flex: 1,
+    },
+    resultConfigDetails: {
+      fontSize: 10,
+      color: colors.textSecondary,
+    },
+    bestConfigPreviewItem: {
+      borderColor: '#FFD700',
+      borderWidth: 2,
+      backgroundColor: '#FFF8DC',
+    },
+    configHeaderRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      marginBottom: 2,
+    },
+    bestConfigBadgeSmall: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: '#FFD700',
+      borderRadius: 8,
+      paddingHorizontal: 4,
+      paddingVertical: 2,
+      gap: 2,
+    },
+    bestConfigBadgeText: {
+      fontSize: 8,
+      fontWeight: '700' as const,
+      color: colors.textInverse,
+    },
+    configIdRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginTop: 2,
+      gap: 4,
+    },
+    configIdText: {
+      fontSize: 9,
+      color: colors.textSecondary,
+      fontFamily: 'monospace',
+    },
+    bestConfigIndicator: {
+      fontSize: 8,
+      color: '#B8860B',
+      fontWeight: '600' as const,
+    },
+    bestConfigSummary: {
+      marginTop: 4,
+    },
+    analysisNotes: {
+      fontSize: 12,
+      color: colors.textPrimary,
+      marginTop: 6,
+      lineHeight: 16,
+    },
+    responseTextContainer: {
+      marginTop: 8,
+      padding: 10,
+      backgroundColor: colors.bgCard,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    usageContainer: {
+      marginTop: 6,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      backgroundColor: colors.bgSurface,
+      borderRadius: 4,
+    },
+    usageText: {
+      fontSize: 10,
+      color: colors.textSecondary,
+      fontFamily: 'monospace',
+    },
+    resultStatus: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    comparisonPreview: {
+      padding: 12,
+      backgroundColor: colors.bgHover,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.accent,
+    },
+    comparisonTitle: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: colors.accent,
+      marginBottom: 4,
+    },
+    comparisonText: {
+      fontSize: 14,
+      color: colors.textPrimary,
+    },
+    detailsFooter: {
+      padding: 16,
+      borderTopWidth: 1,
+      borderTopColor: colors.borderSubtle,
+    },
+    timestampText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      textAlign: 'center' as const,
+    },
+    logsSection: {
+      marginTop: 12,
+      paddingHorizontal: 4,
+    },
+    modalContainer: {
+      flex: 1,
+      backgroundColor: colors.bgApp,
+    },
+    modalHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      backgroundColor: colors.bgCard,
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderSubtle,
+    },
+    modalCloseButton: {
+      paddingVertical: 8,
+    },
+    modalCloseText: {
+      fontSize: 16,
+      color: colors.accent,
+    },
+    modalTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      flex: 1,
+      textAlign: 'center' as const,
+    },
+    modalActionButton: {
+      paddingVertical: 8,
+    },
+    modalActionText: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.accent,
+    },
+    modalContent: {
+      flex: 1,
+    },
+    summarySection: {
+      backgroundColor: colors.bgCard,
+      margin: 16,
+      padding: 16,
+      borderRadius: 12,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 16,
+    },
+    summaryGrid: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-around' as const,
+    },
+    summaryItem: {
+      alignItems: 'center' as const,
+    },
+    summaryLabel: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginBottom: 4,
+    },
+    summaryValue: {
+      fontSize: 20,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    resultsSection: {
+      marginHorizontal: 16,
+      marginBottom: 16,
+    },
+    resultCard: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    bestResultCard: {
+      borderColor: '#FFD700',
+      borderWidth: 2,
+      backgroundColor: '#FFFEF7',
+    },
+    resultHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      marginBottom: 8,
+    },
+    resultConfigName: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    bestConfigName: {
+      color: '#B8860B',
+    },
+    bestBadge: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: '#FFD700',
+      borderRadius: 6,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      gap: 4,
+    },
+    bestBadgeText: {
+      fontSize: 10,
+      fontWeight: '700' as const,
+      color: '#B8860B',
+    },
+    resultDetails: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginBottom: 12,
+    },
+    responseContainer: {
+      backgroundColor: colors.bgSurface,
+      borderRadius: 8,
+      padding: 12,
+      borderLeftWidth: 3,
+      borderLeftColor: colors.statusSuccess,
+    },
+    responseLabel: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    responseText: {
+      fontSize: 15,
+      lineHeight: 22,
+      color: colors.textPrimary,
+    },
+    errorContainer: {
+      backgroundColor: '#FFEBEE',
+      borderRadius: 8,
+      padding: 12,
+      borderLeftWidth: 3,
+      borderLeftColor: colors.statusError,
+    },
+    errorLabel: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: '#D32F2F',
+      marginBottom: 8,
+    },
+    errorText: {
+      fontSize: 15,
+      lineHeight: 22,
+      color: '#D32F2F',
+    },
+    showLogsButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: colors.bgCard,
+      marginHorizontal: 16,
+      marginBottom: 32,
+      padding: 16,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+      gap: 12,
+    },
+    showLogsText: {
+      fontSize: 16,
+      color: colors.accent,
+      fontWeight: '500' as const,
+    },
+    logCountText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginBottom: 12,
+    },
+    emptyState: {
+      flex: 1,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 32,
+      paddingVertical: 48,
+    },
+    emptyStateTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textSecondary,
+      marginBottom: 8,
+      textAlign: 'center' as const,
+    },
+    emptyStateText: {
+      fontSize: 15,
+      color: colors.textSecondary,
+      textAlign: 'center' as const,
+      lineHeight: 20,
+    },
+    promptPreview: {
+      marginHorizontal: 16,
+      marginBottom: 16,
+      padding: 16,
+      backgroundColor: colors.bgApp,
+      borderRadius: 8,
+    },
+    promptPreviewTitle: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    promptPreviewContainer: {
+      marginBottom: 8,
+    },
+    promptPreviewLabel: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: colors.textSecondary,
+      marginBottom: 4,
+    },
+    promptPreviewText: {
+      fontSize: 14,
+      color: colors.textPrimary,
+      lineHeight: 20,
+    },
+    promptSection: {
+      marginHorizontal: 16,
+      marginBottom: 16,
+      padding: 16,
+      backgroundColor: colors.bgApp,
+      borderRadius: 8,
+    },
+    promptContainer: {
+      marginTop: 8,
+      padding: 12,
+      backgroundColor: colors.bgCard,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    promptLabel: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: colors.textSecondary,
+      marginBottom: 4,
+    },
+    promptText: {
+      fontSize: 14,
+      color: colors.textPrimary,
+      lineHeight: 20,
+    },
+    noPromptText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      textAlign: 'center' as const,
+      marginTop: 8,
+    },
+    configSection: {
+      marginHorizontal: 16,
+      marginBottom: 16,
+      padding: 16,
+      backgroundColor: colors.bgApp,
+      borderRadius: 8,
+    },
+    configDetails: {
+      marginTop: 12,
+    },
+    configItem: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      marginBottom: 8,
+    },
+    configLabel: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textSecondary,
+    },
+    configValue: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    executionListItem: {
+      marginBottom: 8,
+    },
+    promptPreviewHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 4,
+      gap: 4,
+    },
+    promptPreviewInList: {
+      backgroundColor: colors.bgSurface,
+      marginHorizontal: 16,
+      marginTop: -8,
+      marginBottom: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 8,
+      borderTopLeftRadius: 0,
+      borderTopRightRadius: 0,
+    },
+    promptPreviewLabelInList: {
+      fontSize: 10,
+      fontWeight: '600' as const,
+      color: colors.textSecondary,
+      textTransform: 'uppercase' as const,
+    },
+    promptPreviewTextInList: {
+      fontSize: 13,
+      color: colors.textPrimary,
+      lineHeight: 18,
+      fontStyle: 'italic' as const,
+    },
+  }));
+
   // Show loading screen while auth is loading
   if (authLoading) {
     return <LoadingScreen message="Loading execution history..." />;
@@ -47,7 +683,7 @@ const HistoryScreen: React.FC = () => {
     // Load history on mount - not dependent on connection state
     console.log('📜 HistoryScreen mounted - loading history');
     loadHistory();
-    
+
     // Check for navigation parameters to auto-open specific execution
     if (route?.params?.executionId && route?.params?.openExecutionDetails) {
       console.log('📋 Navigation params detected - execution ID:', route.params.executionId);
@@ -61,15 +697,15 @@ const HistoryScreen: React.FC = () => {
   useFocusEffect(
     React.useCallback(() => {
       console.log('🔄 HistoryScreen focused - checking if refresh needed');
-      
+
       // Only refresh if authenticated - connection status is irrelevant for cached data
       if (user && !isLoading) {
         console.log('✅ Refreshing history data for:', user.username);
         loadHistory();
       } else {
-        console.log('⏳ Skipping refresh:', { 
-          hasUser: !!user, 
-          isLoading 
+        console.log('⏳ Skipping refresh:', {
+          hasUser: !!user,
+          isLoading
         });
       }
     }, [user?.id]) // Removed state.isConnected dependency
@@ -134,9 +770,9 @@ const HistoryScreen: React.FC = () => {
       setIsLoading(true);
       console.log('Fetching execution run:', run.id);
       const response = await goGentAPI.getExecutionRun(run.id);
-      
+
       console.log('API response:', response);
-      
+
       if (response.success && response.data) {
         console.log('Setting selected run:', response.data);
         // Validate the response structure
@@ -145,13 +781,13 @@ const HistoryScreen: React.FC = () => {
           AlertAPI.alert('Error', 'Invalid response structure from server');
           return;
         }
-        
+
         // Debug comparison data
         if (response.data.results && response.data.comparison) {
           // debugComparisonData(response.data.results, response.data.comparison);
           console.log('Comparison data:', response.data.comparison);
         }
-        
+
         setSelectedRun(response.data);
         setShowDetails(true);
       } else {
@@ -205,7 +841,7 @@ const HistoryScreen: React.FC = () => {
 
       if (response.success && response.data) {
         const { executionRun, results } = response.data;
-        
+
         // Extract function tools from the execution run data more comprehensively
         const functionTools: any[] = [];
         if (results && results.length > 0) {
@@ -222,7 +858,7 @@ const HistoryScreen: React.FC = () => {
               }
             });
           }
-          
+
           // PRIORITY 2: Look for function calls in the responses as fallback
           results.forEach(result => {
             if (result.functionCalls && result.functionCalls.length > 0) {
@@ -241,7 +877,7 @@ const HistoryScreen: React.FC = () => {
             }
           });
         }
-        
+
         console.log('🧰 Final extracted function tools:', functionTools);
 
         // Extract the original base prompt and context from the execution run
@@ -252,7 +888,7 @@ const HistoryScreen: React.FC = () => {
           firstResult: results?.[0],
           firstRequest: results?.[0]?.request
         });
-        
+
         const basePrompt = results?.[0]?.request?.prompt || executionRun.basePrompt || '';
         const context = results?.[0]?.request?.context || executionRun.contextPrompt || '';
 
@@ -267,7 +903,7 @@ const HistoryScreen: React.FC = () => {
           // Pass agent information if this was an agent execution
           agentId: executionRun.agentId || undefined
         };
-        
+
         console.log('🔄 Re-execution data prepared:', {
           executionRunName: reExecutionData.executionRunName,
           description: reExecutionData.description,
@@ -277,7 +913,7 @@ const HistoryScreen: React.FC = () => {
           functionsCount: functionTools.length,
           configurations: reExecutionData.configurations.map(c => ({ id: c.id, name: c.variationName }))
         });
-        
+
         setReExecutionData(reExecutionData);
         // @ts-ignore
         navigation.navigate('Execute');
@@ -295,21 +931,21 @@ const HistoryScreen: React.FC = () => {
     const handleCreateTemplate = async (run: ExecutionRun) => {
     try {
       console.log('🔄 Starting template creation for run:', run.id, run.name);
-      
+
       // Get detailed execution data to extract functions and model info
       const response = await goGentAPI.getExecutionRun(run.id);
       console.log('📋 API response:', response);
-      
+
       // Get available functions to map function names to IDs
       const functionsResponse = await goGentAPI.getFunctions();
       const availableFunctions = functionsResponse.success && functionsResponse.data ? functionsResponse.data : [];
       console.log('📋 Available functions for mapping:', availableFunctions.map(f => ({ id: f.id, name: f.name })));
-      
+
       // Get available configurations to set a default if none found
       const configurationsResponse = await goGentAPI.getConfigurations();
       const availableConfigurations = configurationsResponse.success && configurationsResponse.data ? configurationsResponse.data : [];
       console.log('📋 Available configurations:', availableConfigurations.map(c => ({ id: c.id, name: c.variationName })));
-      
+
       let templateData = {
         name: `Template: ${run.name}`,
         description: `Generated from execution: ${run.description || run.name}`,
@@ -325,13 +961,13 @@ const HistoryScreen: React.FC = () => {
       if (response.success && response.data) {
         const { executionRun, results } = response.data;
         console.log('✅ Execution data retrieved:', { executionRun: !!executionRun, resultsCount: results?.length });
-        
+
         // Try to get configuration ID from first result configuration
         if (results && results.length > 0 && results[0].configuration?.id) {
           templateData.configurationId = results[0].configuration.id;
           console.log('🤖 Configuration found:', templateData.configurationId);
         }
-        
+
         // Extract unique function names from all function calls
         const usedFunctionNames = new Set<string>();
         results?.forEach(result => {
@@ -345,7 +981,7 @@ const HistoryScreen: React.FC = () => {
             });
           }
         });
-        
+
         // Map function names to actual function IDs from available functions
         const mappedFunctionIds: string[] = [];
         usedFunctionNames.forEach(functionName => {
@@ -357,19 +993,19 @@ const HistoryScreen: React.FC = () => {
             console.warn(`⚠️ Could not find function definition for "${functionName}"`);
           }
         });
-        
+
         templateData.functionIDs = mappedFunctionIds;
       } else {
         console.warn('⚠️ Failed to get execution data:', response.error);
       }
-      
+
       // Set default configuration if none was found
       if (!templateData.configurationId && availableConfigurations.length > 0) {
         templateData.configurationId = availableConfigurations[0].id || '';
         console.log('🔧 Using default configuration:', templateData.configurationId);
       }
 
-      console.log('📊 Template data prepared:', { 
+      console.log('📊 Template data prepared:', {
         functionIDsCount: templateData.functionIDs.length,
         functionIDs: templateData.functionIDs,
         configurationId: templateData.configurationId,
@@ -378,7 +1014,7 @@ const HistoryScreen: React.FC = () => {
       });
 
       console.log('🚨 About to show AlertAPI dialog...');
-      
+
       // Navigate to Execution Templates screen with pre-filled data
       AlertAPI.alert(
         'Create Template from Execution',
@@ -398,9 +1034,9 @@ const HistoryScreen: React.FC = () => {
           }
         ]
       );
-      
+
       console.log('✅ AlertAPI.alert called successfully');
-      
+
     } catch (error) {
       console.error('❌ Error in handleCreateTemplate:', error);
       AlertAPI.alert(
@@ -416,13 +1052,13 @@ const HistoryScreen: React.FC = () => {
       <Ionicons name="time-outline" size={64} color="#C7C7CC" />
       <Text style={styles.emptyTitle}>No Execution History</Text>
       <Text style={styles.emptySubtitle}>
-        {!state.isConnected 
+        {!state.isConnected
           ? 'Connect to backend to view execution history'
           : 'Your multi-variation executions will appear here'
         }
       </Text>
       {!state.isConnected && (
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.connectButton}
           onPress={() => {/* Navigate to Configure tab */}}
         >
@@ -434,7 +1070,7 @@ const HistoryScreen: React.FC = () => {
 
   const renderLoadingState = () => (
     <View style={styles.loadingContainer}>
-      <ActivityIndicator size="large" color="#007AFF" />
+      <ActivityIndicator size="large" color={colors.accent} />
       <Text style={styles.loadingText}>Loading execution history...</Text>
     </View>
   );
@@ -443,8 +1079,8 @@ const HistoryScreen: React.FC = () => {
     <View style={styles.statusContainer}>
       <View style={styles.statusRow}>
         <View style={[
-          styles.statusDot, 
-          { backgroundColor: state.isConnected ? '#34C759' : '#FF3B30' }
+          styles.statusDot,
+          { backgroundColor: state.isConnected ? styles.responseContainer.borderLeftColor : styles.errorContainer.borderLeftColor }
         ]} />
         <Text style={styles.statusText}>
           {state.isConnected ? 'Connected' : 'Disconnected'}
@@ -454,11 +1090,11 @@ const HistoryScreen: React.FC = () => {
           onPress={handleRefresh}
           disabled={isRefreshing}
         >
-          <Ionicons 
-            name="refresh" 
-            size={16} 
-            color="#007AFF" 
-            style={isRefreshing ? { opacity: 0.5 } : {}} 
+          <Ionicons
+            name="refresh"
+            size={16}
+            color={styles.comparisonTitle.color}
+            style={isRefreshing ? { opacity: 0.5 } : {}}
           />
         </TouchableOpacity>
       </View>
@@ -471,7 +1107,7 @@ const HistoryScreen: React.FC = () => {
       {user ? (
         <View style={styles.userContextContainer}>
           <View style={styles.userContextBadge}>
-            <Ionicons name="person" size={14} color="#007AFF" />
+            <Ionicons name="person" size={14} color={styles.userContextText.color} />
             <Text style={styles.userContextText}>
               {user.is_temporary ? 'Session User' : user.username}
             </Text>
@@ -485,7 +1121,7 @@ const HistoryScreen: React.FC = () => {
       ) : (
         <View style={styles.userContextContainer}>
           <View style={[styles.userContextBadge, styles.anonymousBadge]}>
-            <Ionicons name="eye-off" size={14} color="#FF9500" />
+            <Ionicons name="eye-off" size={14} color={styles.anonymousText.color} />
             <Text style={[styles.userContextText, styles.anonymousText]}>
               Anonymous Session
             </Text>
@@ -513,7 +1149,7 @@ const HistoryScreen: React.FC = () => {
                 style={styles.closeButton}
                 onPress={() => setShowDetails(false)}
               >
-                <Ionicons name="close" size={24} color="#8E8E93" />
+                <Ionicons name="close" size={24} color={styles.loadingText.color} />
               </TouchableOpacity>
             </View>
           </View>
@@ -530,12 +1166,12 @@ const HistoryScreen: React.FC = () => {
               style={styles.closeButton}
               onPress={() => setShowDetails(false)}
             >
-              <Ionicons name="close" size={24} color="#8E8E93" />
+              <Ionicons name="close" size={24} color={styles.loadingText.color} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView 
-            style={styles.detailsContent} 
+          <ScrollView
+            style={styles.detailsContent}
             contentContainerStyle={styles.detailsScrollContent}
             showsVerticalScrollIndicator={true}
           >
@@ -549,7 +1185,7 @@ const HistoryScreen: React.FC = () => {
               <View style={styles.summaryItem}>
                 <Text style={styles.summaryLabel}>Success Rate</Text>
                 <Text style={styles.summaryValue}>
-                  {selectedRun.results.length > 0 
+                  {selectedRun.results.length > 0
                     ? Math.round((selectedRun.successCount / selectedRun.results.length) * 100)
                     : 0}%
                 </Text>
@@ -576,7 +1212,7 @@ const HistoryScreen: React.FC = () => {
               {selectedRun.results.map((result, index) => {
                 // Check if this is the best configuration
                 const isBestConfig = selectedRun.comparison?.bestConfigurationId === result.configuration.id;
-                
+
                 return (
                   <View key={index} style={[
                     styles.resultPreviewItem,
@@ -597,14 +1233,14 @@ const HistoryScreen: React.FC = () => {
                           </View>
                         )}
                       </View>
-                      
+
                       <Text style={styles.resultConfigDetails}>
                         {result.configuration.modelName} • {result.response.responseTimeMs}ms
                       </Text>
-                      
+
                                              {/* Show Configuration ID prominently */}
                        <View style={styles.configIdRow}>
-                         <Ionicons name="finger-print" size={10} color="#8E8E93" />
+                         <Ionicons name="finger-print" size={10} color={styles.configIdText.color} />
                          <Text style={styles.configIdText}>
                            ID: {formatConfigId(result.configuration.id)}
                          </Text>
@@ -612,7 +1248,7 @@ const HistoryScreen: React.FC = () => {
                            <Text style={styles.bestConfigIndicator}>• SELECTED AS BEST</Text>
                          )}
                        </View>
-                      
+
                       {/* Add the actual AI response text */}
                       {result.response.responseText && (
                         <View style={styles.responseTextContainer}>
@@ -622,13 +1258,13 @@ const HistoryScreen: React.FC = () => {
                           </Text>
                         </View>
                       )}
-                      
+
                       {/* Show usage metadata if available */}
                       {result.response.usageMetadata && (
                         <View style={styles.usageContainer}>
                           <Text style={styles.usageText}>
-                            Tokens: {result.response.usageMetadata.totalTokens || 'N/A'} 
-                            {result.response.usageMetadata.promptTokens && result.response.usageMetadata.completionTokens && 
+                            Tokens: {result.response.usageMetadata.totalTokens || 'N/A'}
+                            {result.response.usageMetadata.promptTokens && result.response.usageMetadata.completionTokens &&
                               ` (${result.response.usageMetadata.promptTokens} prompt + ${result.response.usageMetadata.completionTokens} completion)`
                             }
                           </Text>
@@ -637,19 +1273,19 @@ const HistoryScreen: React.FC = () => {
                     </View>
                     <View style={[
                       styles.resultStatus,
-                      { 
-                        backgroundColor: result.response.responseStatus === 'success' 
-                          ? (isBestConfig ? '#FFD700' : '#34C759')
-                          : '#FF3B30' 
+                      {
+                        backgroundColor: result.response.responseStatus === 'success'
+                          ? (isBestConfig ? '#FFD700' : styles.responseContainer.borderLeftColor)
+                          : styles.errorContainer.borderLeftColor
                       }
                     ]}>
-                      <Ionicons 
+                      <Ionicons
                         name={
-                          isBestConfig ? 'trophy' : 
+                          isBestConfig ? 'trophy' :
                           (result.response.responseStatus === 'success' ? 'checkmark' : 'close')
-                        } 
-                        size={12} 
-                        color="#FFFFFF" 
+                        }
+                        size={12}
+                        color="#FFFFFF"
                       />
                     </View>
                   </View>
@@ -661,7 +1297,7 @@ const HistoryScreen: React.FC = () => {
             {(() => {
               const basePrompt = selectedRun.results?.[0]?.request?.prompt || selectedRun.executionRun.basePrompt || '';
               const context = selectedRun.results?.[0]?.request?.context || selectedRun.executionRun.contextPrompt || '';
-              
+
               if (basePrompt || context) {
                 return (
                   <View style={styles.promptPreview}>
@@ -733,11 +1369,11 @@ const HistoryScreen: React.FC = () => {
   const getPromptPreview = (executionRun: ExecutionRun): string | null => {
     // Now that the backend includes basePrompt, we can show the actual prompt
     const prompt = executionRun.basePrompt;
-    
+
     if (!prompt || prompt.trim() === '') {
       return null; // Don't show anything if no real prompt data
     }
-    
+
     // Return first 40 characters with ellipsis if longer
     if (prompt.length > 40) {
       return prompt.substring(0, 40) + '...';
@@ -751,7 +1387,7 @@ const HistoryScreen: React.FC = () => {
       keyExtractor={(item) => item.id}
              renderItem={({ item }) => {
          const promptPreview = getPromptPreview(item);
-         
+
          return (
                      <View style={styles.executionListItem}>
                         <ExecutionRunCard
@@ -764,7 +1400,7 @@ const HistoryScreen: React.FC = () => {
              {promptPreview && (
                <View style={styles.promptPreviewInList}>
                  <View style={styles.promptPreviewHeader}>
-                   <Ionicons name="chatbubble-ellipses" size={12} color="#8E8E93" />
+                   <Ionicons name="chatbubble-ellipses" size={12} color={styles.promptPreviewLabelInList.color} />
                    <Text style={styles.promptPreviewLabelInList}>Prompt:</Text>
                  </View>
                  <Text style={styles.promptPreviewTextInList}>{promptPreview}</Text>
@@ -777,7 +1413,7 @@ const HistoryScreen: React.FC = () => {
         <RefreshControl
           refreshing={isRefreshing}
           onRefresh={handleRefresh}
-          tintColor="#007AFF"
+          tintColor={styles.comparisonTitle.color}
         />
       }
       showsVerticalScrollIndicator={false}
@@ -790,18 +1426,18 @@ const HistoryScreen: React.FC = () => {
     <View style={styles.container}>
       {renderHeader()}
       {renderConnectionStatus()}
-      
+
       {isLoading && state.recentExecutions.length === 0 ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color={styles.comparisonTitle.color} />
           <Text style={styles.loadingText}>Loading execution history...</Text>
         </View>
       ) : state.recentExecutions.length === 0 ? (
         <View style={styles.emptyState}>
-          <Ionicons name="time-outline" size={64} color="#8E8E93" />
+          <Ionicons name="time-outline" size={64} color={styles.loadingText.color} />
           <Text style={styles.emptyStateTitle}>No Execution History</Text>
           <Text style={styles.emptyStateText}>
-            {user 
+            {user
               ? "You haven't run any executions yet. Go to the Execute tab to get started!"
               : "No session executions found. Login to see full history or execute something new!"
             }
@@ -813,7 +1449,7 @@ const HistoryScreen: React.FC = () => {
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => {
             const promptPreview = getPromptPreview(item);
-            
+
             return (
               <View style={styles.executionListItem}>
                 <ExecutionRunCard
@@ -826,7 +1462,7 @@ const HistoryScreen: React.FC = () => {
                 {promptPreview && (
                   <View style={styles.promptPreviewInList}>
                     <View style={styles.promptPreviewHeader}>
-                      <Ionicons name="chatbubble-ellipses" size={12} color="#8E8E93" />
+                      <Ionicons name="chatbubble-ellipses" size={12} color={styles.promptPreviewLabelInList.color} />
                       <Text style={styles.promptPreviewLabelInList}>Prompt:</Text>
                     </View>
                     <Text style={styles.promptPreviewTextInList}>{promptPreview}</Text>
@@ -841,8 +1477,8 @@ const HistoryScreen: React.FC = () => {
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={handleRefresh}
-              colors={['#007AFF']}
-              tintColor="#007AFF"
+              colors={[styles.comparisonTitle.color]}
+              tintColor={styles.comparisonTitle.color}
             />
           }
         />
@@ -891,7 +1527,7 @@ const HistoryScreen: React.FC = () => {
                   }
                 });
               }
-              
+
               // PRIORITY 2: Look for function calls in the responses as fallback
               selectedRun.results.forEach(result => {
                 if (result.functionCalls && result.functionCalls.length > 0) {
@@ -924,7 +1560,7 @@ const HistoryScreen: React.FC = () => {
               // Pass agent information if this was an agent execution
               agentId: selectedRun.executionRun.agentId || undefined
             };
-            
+
             console.log('🔄 Re-execution data from ExecutionLogs:', {
               executionRunName: reExecutionData.executionRunName,
               basePrompt: basePrompt ? basePrompt.substring(0, 100) + '...' : 'EMPTY',
@@ -932,7 +1568,7 @@ const HistoryScreen: React.FC = () => {
               configurationsCount: reExecutionData.configurations.length,
               functionsCount: functionTools.length
             });
-            
+
             setReExecutionData(reExecutionData);
             setShowExecutionLogs(false);
             setShowDetails(false);
@@ -962,642 +1598,4 @@ const HistoryScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-  },
-  header: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#000000',
-    marginBottom: 8,
-  },
-  userContextContainer: {
-    alignItems: 'flex-start',
-  },
-  userContextBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E8F4FD',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    gap: 4,
-  },
-  userContextText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#007AFF',
-  },
-  anonymousBadge: {
-    backgroundColor: '#FFF3E0',
-  },
-  anonymousText: {
-    color: '#FF9500',
-  },
-  sessionWarning: {
-    fontSize: 11,
-    color: '#8E8E93',
-    marginTop: 4,
-    fontStyle: 'italic',
-  },
-  statusContainer: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 12,
-    padding: 16,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 8,
-  },
-  statusText: {
-    fontSize: 14,
-    color: '#000000',
-    flex: 1,
-  },
-  refreshButton: {
-    padding: 4,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#8E8E93',
-    marginTop: 16,
-  },
-  listContainer: {
-    paddingBottom: 120,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#8E8E93',
-    marginTop: 16,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: '#C7C7CC',
-    textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 20,
-  },
-  connectButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    marginTop: 24,
-  },
-  connectButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  detailsOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    paddingTop: 60,
-    paddingHorizontal: 16,
-    paddingBottom: 40,
-  },
-  detailsContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    width: '100%',
-    flex: 1,
-    maxHeight: '90%',
-  },
-  detailsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-  },
-  detailsTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000000',
-    flex: 1,
-    marginRight: 16,
-  },
-  closeButton: {
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: '#F2F2F7',
-  },
-  detailsContent: {
-    flex: 1,
-    padding: 16,
-  },
-  detailsScrollContent: {
-    paddingBottom: 20,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-
-  descriptionContainer: {
-    marginBottom: 16,
-    padding: 12,
-    backgroundColor: '#F2F2F7',
-    borderRadius: 8,
-  },
-  descriptionLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#8E8E93',
-    marginBottom: 4,
-  },
-  descriptionText: {
-    fontSize: 14,
-    color: '#000000',
-  },
-  resultsPreview: {
-    marginBottom: 16,
-  },
-  resultsPreviewTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 8,
-  },
-  resultPreviewItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-    backgroundColor: '#F2F2F7',
-    borderRadius: 6,
-    marginBottom: 4,
-  },
-  resultPreviewLeft: {
-    flex: 1,
-  },
-
-  resultConfigDetails: {
-    fontSize: 10,
-    color: '#8E8E93',
-  },
-  bestConfigPreviewItem: {
-    borderColor: '#FFD700',
-    borderWidth: 2,
-    backgroundColor: '#FFF8DC',
-  },
-  configHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 2,
-  },
-  bestConfigBadgeSmall: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFD700',
-    borderRadius: 8,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    gap: 2,
-  },
-  bestConfigBadgeText: {
-    fontSize: 8,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  configIdRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2,
-    gap: 4,
-  },
-  configIdText: {
-    fontSize: 9,
-    color: '#8E8E93',
-    fontFamily: 'monospace',
-  },
-  bestConfigIndicator: {
-    fontSize: 8,
-    color: '#B8860B',
-    fontWeight: '600',
-  },
-  bestConfigSummary: {
-    marginTop: 4,
-  },
-  analysisNotes: {
-    fontSize: 12,
-    color: '#000000',
-    marginTop: 6,
-    lineHeight: 16,
-  },
-  responseTextContainer: {
-    marginTop: 8,
-    padding: 10,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-
-  usageContainer: {
-    marginTop: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 4,
-  },
-  usageText: {
-    fontSize: 10,
-    color: '#6C757D',
-    fontFamily: 'monospace',
-  },
-  resultStatus: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  comparisonPreview: {
-    padding: 12,
-    backgroundColor: '#F0F8FF',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#007AFF',
-  },
-  comparisonTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#007AFF',
-    marginBottom: 4,
-  },
-  comparisonText: {
-    fontSize: 14,
-    color: '#000000',
-  },
-  detailsFooter: {
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5EA',
-  },
-  timestampText: {
-    fontSize: 12,
-    color: '#8E8E93',
-    textAlign: 'center',
-  },
-  logsSection: {
-    marginTop: 12,
-    paddingHorizontal: 4,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  modalCloseButton: {
-    paddingVertical: 8,
-  },
-  modalCloseText: {
-    fontSize: 16,
-    color: '#007AFF',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000000',
-    flex: 1,
-    textAlign: 'center',
-  },
-  modalActionButton: {
-    paddingVertical: 8,
-  },
-  modalActionText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#007AFF',
-  },
-  modalContent: {
-    flex: 1,
-  },
-  summarySection: {
-    backgroundColor: '#FFFFFF',
-    margin: 16,
-    padding: 16,
-    borderRadius: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 16,
-  },
-  summaryGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  summaryItem: {
-    alignItems: 'center',
-  },
-  summaryLabel: {
-    fontSize: 14,
-    color: '#8E8E93',
-    marginBottom: 4,
-  },
-  summaryValue: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  resultsSection: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-  },
-  resultCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  bestResultCard: {
-    borderColor: '#FFD700',
-    borderWidth: 2,
-    backgroundColor: '#FFFEF7',
-  },
-  resultHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  resultConfigName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  bestConfigName: {
-    color: '#B8860B',
-  },
-  bestBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFD700',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    gap: 4,
-  },
-  bestBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#B8860B',
-  },
-  resultDetails: {
-    fontSize: 14,
-    color: '#8E8E93',
-    marginBottom: 12,
-  },
-  responseContainer: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    padding: 12,
-    borderLeftWidth: 3,
-    borderLeftColor: '#34C759',
-  },
-  responseLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 8,
-  },
-  responseText: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#000000',
-  },
-  errorContainer: {
-    backgroundColor: '#FFEBEE',
-    borderRadius: 8,
-    padding: 12,
-    borderLeftWidth: 3,
-    borderLeftColor: '#FF3B30',
-  },
-  errorLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#D32F2F',
-    marginBottom: 8,
-  },
-  errorText: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#D32F2F',
-  },
-  showLogsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginBottom: 32,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    gap: 12,
-  },
-  showLogsText: {
-    fontSize: 16,
-    color: '#007AFF',
-    fontWeight: '500',
-  },
-  logCountText: {
-    fontSize: 12,
-    color: '#8E8E93',
-    marginBottom: 12,
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-    paddingVertical: 48,
-  },
-  emptyStateTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#8E8E93',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  emptyStateText: {
-    fontSize: 15,
-    color: '#8E8E93',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  promptPreview: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    padding: 16,
-    backgroundColor: '#F2F2F7',
-    borderRadius: 8,
-  },
-  promptPreviewTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 8,
-  },
-  promptPreviewContainer: {
-    marginBottom: 8,
-  },
-  promptPreviewLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#8E8E93',
-    marginBottom: 4,
-  },
-  promptPreviewText: {
-    fontSize: 14,
-    color: '#000000',
-    lineHeight: 20,
-  },
-  promptSection: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    padding: 16,
-    backgroundColor: '#F2F2F7',
-    borderRadius: 8,
-  },
-  promptContainer: {
-    marginTop: 8,
-    padding: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  promptLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#8E8E93',
-    marginBottom: 4,
-  },
-  promptText: {
-    fontSize: 14,
-    color: '#000000',
-    lineHeight: 20,
-  },
-  noPromptText: {
-    fontSize: 14,
-    color: '#8E8E93',
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  configSection: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    padding: 16,
-    backgroundColor: '#F2F2F7',
-    borderRadius: 8,
-  },
-  configDetails: {
-    marginTop: 12,
-  },
-  configItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  configLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#8E8E93',
-  },
-  configValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  executionListItem: {
-    marginBottom: 8,
-  },
-  promptPreviewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-    gap: 4,
-  },
-  promptPreviewInList: {
-    backgroundColor: '#F8F9FA',
-    marginHorizontal: 16,
-    marginTop: -8,
-    marginBottom: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-  },
-  promptPreviewLabelInList: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#8E8E93',
-    textTransform: 'uppercase',
-  },
-  promptPreviewTextInList: {
-    fontSize: 13,
-    color: '#1D1D1F',
-    lineHeight: 18,
-    fontStyle: 'italic',
-  },
-});
-
-export default HistoryScreen; 
+export default HistoryScreen;

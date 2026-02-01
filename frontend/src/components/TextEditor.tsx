@@ -8,13 +8,14 @@ import {
   ScrollView,
   Dimensions,
   Platform,
-  StyleSheet,
   KeyboardAvoidingView,
   StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { webInputStyles } from '../styles/containers';
+import { useTheme, useThemedStyles } from '../theme';
+import type { ThemeColors } from '../theme';
 
 interface TextEditorProps {
   value: string;
@@ -37,6 +38,173 @@ interface TextEditorProps {
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
+const createStyles = (colors: ThemeColors) => ({
+  container: {
+    marginBottom: 16,
+  },
+  labelContainer: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    marginBottom: 8,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    flex: 1,
+  },
+  expandButton: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: colors.bgHover,
+    borderRadius: 6,
+    gap: 4,
+  },
+  expandButtonText: {
+    fontSize: 14,
+    color: colors.accent,
+    fontWeight: '500' as const,
+  },
+  editorContainer: {
+    borderWidth: 1.5,
+    borderRadius: 12,
+    overflow: 'hidden' as const,
+    shadowColor: colors.shadowColor,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  focusedContainer: {
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  editorContent: {
+    flexDirection: 'row' as const,
+    flex: 1,
+  },
+  lineNumberContainer: {
+    minWidth: 40,
+    paddingHorizontal: 8,
+    paddingVertical: 12,
+    borderRightWidth: 1,
+    borderRightColor: colors.borderLight,
+  },
+  lineNumberContent: {
+    alignItems: 'flex-end' as const,
+  },
+  lineNumber: {
+    fontSize: 14,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    lineHeight: 22,
+    marginBottom: 0,
+  },
+  textInput: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    lineHeight: 22,
+    fontFamily: Platform.OS === 'ios' ? 'SF Mono' : 'monospace',
+    ...webInputStyles,
+  },
+  statsContainer: {
+    marginTop: 8,
+    alignItems: 'flex-end' as const,
+  },
+  statsText: {
+    fontSize: 12,
+    fontWeight: '500' as const,
+  },
+
+  // Fullscreen styles
+  fullscreenContainer: {
+    flex: 1,
+  },
+  fullscreenSafeArea: {
+    flex: 1,
+  },
+  fullscreenKeyboard: {
+    flex: 1,
+  },
+  fullscreenHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: 16,
+    paddingVertical: Platform.OS === 'ios' ? 16 : 12,
+    borderBottomWidth: 1,
+    minHeight: Platform.OS === 'ios' ? 64 : 60,
+    ...Platform.select({
+      ios: {
+        paddingTop: 20, // Extra padding for iOS to account for potential status bar issues
+      },
+      android: {
+        paddingTop: 12,
+      },
+      web: {
+        paddingTop: 12,
+      },
+    }),
+  },
+  headerLeft: {
+    flex: 1,
+    alignItems: 'flex-start' as const,
+  },
+  headerButton: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 4,
+  },
+  headerButtonText: {
+    fontSize: 16,
+    color: colors.accent,
+    fontWeight: '500' as const,
+  },
+  headerTitle: {
+    flex: 2,
+    fontSize: 18,
+    fontWeight: '600' as const,
+    textAlign: 'center' as const,
+  },
+  headerRight: {
+    flex: 1,
+    alignItems: 'flex-end' as const,
+  },
+  fullscreenEditorContainer: {
+    flex: 1,
+    backgroundColor: colors.bgCard,
+  },
+  fullscreenEditorContent: {
+    flex: 1,
+    flexDirection: 'row' as const,
+  },
+  fullscreenLineNumbers: {
+    width: 60,
+    paddingHorizontal: 8,
+    paddingVertical: 16,
+    borderRightWidth: 1,
+    borderRightColor: colors.borderLight,
+  },
+  fullscreenLineNumber: {
+    fontSize: 14,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    lineHeight: 22,
+    textAlign: 'right' as const,
+  },
+  fullscreenTextInput: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    fontSize: 16,
+    lineHeight: 22,
+    fontFamily: Platform.OS === 'ios' ? 'SF Mono' : 'monospace',
+    ...webInputStyles,
+  },
+});
+
 const TextEditor: React.FC<TextEditorProps> = ({
   value = '',
   onChangeText,
@@ -55,6 +223,8 @@ const TextEditor: React.FC<TextEditorProps> = ({
   theme = 'light',
   language = 'plain',
 }) => {
+  const { colors: appColors } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [contentHeight, setContentHeight] = useState(minHeight);
@@ -67,16 +237,16 @@ const TextEditor: React.FC<TextEditorProps> = ({
 
   const themeColors = {
     light: {
-      background: '#FFFFFF',
-      border: '#E5E5EA',
-      focusBorder: '#007AFF',
-      text: '#1A1A1A',
-      placeholder: '#8E8E93',
-      lineNumbers: '#C7C7CC',
-      lineNumberBg: '#F8F9FA',
-      stats: '#6B6B6B',
-      headerBg: '#F8F9FA',
-      shadowColor: '#000',
+      background: appColors.bgCard,
+      border: appColors.borderLight,
+      focusBorder: appColors.accent,
+      text: appColors.textPrimary,
+      placeholder: appColors.textSecondary,
+      lineNumbers: appColors.textTertiary,
+      lineNumberBg: appColors.bgSurface,
+      stats: appColors.textSecondary,
+      headerBg: appColors.bgSurface,
+      shadowColor: appColors.shadowColor,
     },
     dark: {
       background: '#1C1C1E',
@@ -157,7 +327,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
               onPress={() => setIsFullscreen(true)}
               activeOpacity={0.7}
             >
-              <Ionicons name="expand-outline" size={16} color="#007AFF" />
+              <Ionicons name="expand-outline" size={16} color={appColors.accent} />
               <Text style={styles.expandButtonText}>Expand</Text>
             </TouchableOpacity>
           )}
@@ -217,9 +387,9 @@ const TextEditor: React.FC<TextEditorProps> = ({
       onRequestClose={() => setIsFullscreen(false)}
     >
       <View style={[styles.fullscreenContainer, { backgroundColor: colors.background }]}>
-        <StatusBar 
-          barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} 
-          backgroundColor={colors.headerBg} 
+        <StatusBar
+          barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
+          backgroundColor={colors.headerBg}
           translucent={false}
         />
         <SafeAreaView style={styles.fullscreenSafeArea}>
@@ -228,9 +398,9 @@ const TextEditor: React.FC<TextEditorProps> = ({
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           >
             {/* Header */}
-            <View style={[styles.fullscreenHeader, { 
+            <View style={[styles.fullscreenHeader, {
               backgroundColor: colors.headerBg,
-              borderBottomColor: theme === 'dark' ? '#38383A' : '#E5E5EA'
+              borderBottomColor: colors.border
             }]}>
               <View style={styles.headerLeft}>
                 <TouchableOpacity
@@ -238,7 +408,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
                   onPress={() => setIsFullscreen(false)}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="chevron-down" size={24} color="#007AFF" />
+                  <Ionicons name="chevron-down" size={24} color={appColors.accent} />
                   <Text style={styles.headerButtonText}>Done</Text>
                 </TouchableOpacity>
               </View>
@@ -310,171 +480,4 @@ const TextEditor: React.FC<TextEditorProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: 16,
-  },
-  labelContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    flex: 1,
-  },
-  expandButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: '#F0F8FF',
-    borderRadius: 6,
-    gap: 4,
-  },
-  expandButtonText: {
-    fontSize: 14,
-    color: '#007AFF',
-    fontWeight: '500',
-  },
-  editorContainer: {
-    borderWidth: 1.5,
-    borderRadius: 12,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  focusedContainer: {
-    shadowOpacity: 0.15,
-    shadowRadius: 5,
-    elevation: 4,
-  },
-  editorContent: {
-    flexDirection: 'row',
-    flex: 1,
-  },
-  lineNumberContainer: {
-    minWidth: 40,
-    paddingHorizontal: 8,
-    paddingVertical: 12,
-    borderRightWidth: 1,
-    borderRightColor: '#E5E5EA',
-  },
-  lineNumberContent: {
-    alignItems: 'flex-end',
-  },
-  lineNumber: {
-    fontSize: 14,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    lineHeight: 22,
-    marginBottom: 0,
-  },
-  textInput: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    lineHeight: 22,
-    fontFamily: Platform.OS === 'ios' ? 'SF Mono' : 'monospace',
-    ...webInputStyles,
-  },
-  statsContainer: {
-    marginTop: 8,
-    alignItems: 'flex-end',
-  },
-  statsText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-
-  // Fullscreen styles
-  fullscreenContainer: {
-    flex: 1,
-  },
-  fullscreenSafeArea: {
-    flex: 1,
-  },
-  fullscreenKeyboard: {
-    flex: 1,
-  },
-  fullscreenHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: Platform.OS === 'ios' ? 16 : 12,
-    borderBottomWidth: 1,
-    minHeight: Platform.OS === 'ios' ? 64 : 60,
-    ...Platform.select({
-      ios: {
-        paddingTop: 20, // Extra padding for iOS to account for potential status bar issues
-      },
-      android: {
-        paddingTop: 12,
-      },
-      web: {
-        paddingTop: 12,
-      },
-    }),
-  },
-  headerLeft: {
-    flex: 1,
-    alignItems: 'flex-start',
-  },
-  headerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  headerButtonText: {
-    fontSize: 16,
-    color: '#007AFF',
-    fontWeight: '500',
-  },
-  headerTitle: {
-    flex: 2,
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  headerRight: {
-    flex: 1,
-    alignItems: 'flex-end',
-  },
-  fullscreenEditorContainer: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  fullscreenEditorContent: {
-    flex: 1,
-    flexDirection: 'row',
-  },
-  fullscreenLineNumbers: {
-    width: 60,
-    paddingHorizontal: 8,
-    paddingVertical: 16,
-    borderRightWidth: 1,
-    borderRightColor: '#E5E5EA',
-  },
-  fullscreenLineNumber: {
-    fontSize: 14,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    lineHeight: 22,
-    textAlign: 'right',
-  },
-  fullscreenTextInput: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    fontSize: 16,
-    lineHeight: 22,
-    fontFamily: Platform.OS === 'ios' ? 'SF Mono' : 'monospace',
-    ...webInputStyles,
-  },
-});
-
-export default TextEditor; 
+export default TextEditor;

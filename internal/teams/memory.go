@@ -96,9 +96,6 @@ func (h *Handler) ReadTeamMemory(_ context.Context, teamID, agentID, userID stri
 		}
 	}
 
-	// Update access count
-	memory.Metadata.AccessCount++
-
 	// Filter by context if specified
 	var responseData map[string]interface{}
 	switch strings.ToLower(request.Context) {
@@ -134,12 +131,11 @@ func (h *Handler) ReadTeamMemory(_ context.Context, teamID, agentID, userID stri
 		responseData = map[string]interface{}{"result": filteredData}
 	}
 
-	// Save updated memory (for access count)
-	err = h.saveTeamMemory(teamID, userID, memory)
-	if err != nil {
-		// Log error but don't fail the read operation
-		fmt.Printf("Warning: Failed to update team memory access count: %v\n", err)
-	}
+	// NOTE: Previously saved memory on every read just to update access count.
+	// This caused a lost-update race condition: if a read loaded stale memory
+	// (before a concurrent task store saved), then saved after, it would
+	// overwrite the task data with the stale copy. Access count tracking is
+	// not worth the data loss risk, so reads no longer write back to the DB.
 
 	return &types.TeamMemoryResponse{
 		Success:  true,
@@ -275,12 +271,9 @@ func (h *Handler) SearchTeamMemory(_ context.Context, teamID, agentID, userID st
 	// Perform search
 	results := h.performMemorySearch(team.Memory, request.SearchQuery, request.Limit)
 
-	// Update access count
-	team.Memory.Metadata.AccessCount++
-	err = h.saveTeamMemory(teamID, userID, team.Memory)
-	if err != nil {
-		fmt.Printf("Warning: Failed to update team memory access count: %v\n", err)
-	}
+	// NOTE: Do not save memory on read-only operations (search).
+	// Saving just for access count caused lost-update race conditions
+	// that could overwrite task data stored by concurrent operations.
 
 	return &types.TeamMemoryResponse{
 		Success:  true,
@@ -668,13 +661,16 @@ func (h *Handler) StoreTeamTask(_ context.Context, teamID, agentID, userID strin
 	memory.Metadata.AccessCount++
 
 	// Save memory
+	log.Printf("🔍 StoreTeamTask: saving task %s (title: %s) to team %s memory (total tasks in map: %d)", task.ID, task.Title, teamID, len(tasksMap))
 	err = h.saveTeamMemory(teamID, userID, memory)
 	if err != nil {
+		log.Printf("❌ StoreTeamTask: saveTeamMemory failed: %v", err)
 		return &types.TeamTaskResponse{
 			Success: false,
 			Error:   fmt.Sprintf("Failed to save task: %v", err),
 		}, nil
 	}
+	log.Printf("✅ StoreTeamTask: task %s saved successfully to team %s", task.ID, teamID)
 
 	return &types.TeamTaskResponse{
 		Success: true,
@@ -992,9 +988,12 @@ func (h *Handler) CompleteTeamTask(_ context.Context, teamID, agentID, userID st
 
 // ListTeamTasks retrieves tasks based on filter criteria
 func (h *Handler) ListTeamTasks(_ context.Context, teamID, agentID, userID string, request *types.TeamTaskRequest) (*types.TeamTaskResponse, error) {
+	log.Printf("🔍 ListTeamTasks called with teamID=%s, agentID=%s, userID=%s", teamID, agentID, userID)
+
 	// Validate access
 	err := h.validateTeamMemoryAccess(agentID, teamID, userID)
 	if err != nil {
+		log.Printf("❌ ListTeamTasks: access validation failed: %v", err)
 		return &types.TeamTaskResponse{
 			Success: false,
 			Error:   fmt.Sprintf("Access denied: %v", err),
@@ -1004,19 +1003,41 @@ func (h *Handler) ListTeamTasks(_ context.Context, teamID, agentID, userID strin
 	// Get team memory
 	team, err := h.getTeamByID(teamID, userID)
 	if err != nil {
+		log.Printf("❌ ListTeamTasks: team lookup failed: %v", err)
 		return &types.TeamTaskResponse{
 			Success: false,
 			Error:   fmt.Sprintf("Team not found: %v", err),
 		}, nil
 	}
 
+	log.Printf("🔍 ListTeamTasks: team found=%s, memory=%v, shared=%v, tasks=%v",
+		team.Name,
+		team.Memory != nil,
+		team.Memory != nil && team.Memory.Contexts.Shared != nil,
+		team.Memory != nil && team.Memory.Contexts.Shared != nil && team.Memory.Contexts.Shared["tasks"] != nil,
+	)
+
 	var tasks []types.TeamTask
 	if team.Memory != nil && team.Memory.Contexts.Shared != nil && team.Memory.Contexts.Shared["tasks"] != nil {
-		tasksMap := team.Memory.Contexts.Shared["tasks"].(map[string]interface{})
+		tasksMap, ok := team.Memory.Contexts.Shared["tasks"].(map[string]interface{})
+		if !ok {
+			log.Printf("❌ ListTeamTasks: tasks in shared memory is not map[string]interface{}, got %T", team.Memory.Contexts.Shared["tasks"])
+			return &types.TeamTaskResponse{
+				Success: true,
+				Tasks:   []types.TeamTask{},
+				Data: map[string]interface{}{
+					"total_count": 0,
+					"team_id":     teamID,
+					"warning":     "tasks data corrupted - unexpected type",
+				},
+			}, nil
+		}
+		log.Printf("🔍 ListTeamTasks: found %d raw tasks in memory", len(tasksMap))
 
-		for _, taskData := range tasksMap {
+		for taskKey, taskData := range tasksMap {
 			task, err := convertToTeamTask(taskData)
 			if err != nil {
+				log.Printf("⚠️ ListTeamTasks: failed to convert task %s: %v (data type: %T)", taskKey, err, taskData)
 				continue
 			}
 
@@ -1079,7 +1100,9 @@ func (h *Handler) ListTeamTasks(_ context.Context, teamID, agentID, userID strin
 				continue
 			}
 
-			if !request.IncludeCompleted && task.Status == types.TaskStatusCompleted {
+			// Only apply IncludeCompleted gate when no explicit StatusFilter is set.
+			// If StatusFilter explicitly requests "completed", don't override it.
+			if len(request.StatusFilter) == 0 && !request.IncludeCompleted && task.Status == types.TaskStatusCompleted {
 				continue
 			}
 
@@ -1103,6 +1126,8 @@ func (h *Handler) ListTeamTasks(_ context.Context, teamID, agentID, userID strin
 	if request.Limit > 0 && len(tasks) > request.Limit {
 		tasks = tasks[:request.Limit]
 	}
+
+	log.Printf("✅ ListTeamTasks: returning %d tasks for teamID=%s", len(tasks), teamID)
 
 	return &types.TeamTaskResponse{
 		Success: true,
@@ -2371,8 +2396,9 @@ func (h *Handler) ReadAgentTaskProgress(_ context.Context, teamID, agentID, user
 				}
 			}
 
-			// Apply include_completed filter
-			if !request.IncludeCompleted {
+			// Apply include_completed filter only when no explicit StatusFilter is set.
+			// If StatusFilter explicitly requests "completed", don't override it.
+			if len(request.StatusFilter) == 0 && !request.IncludeCompleted {
 				if progressMap, ok := progressData.(map[string]interface{}); ok {
 					if status, ok := progressMap["status"].(string); ok {
 						if status == "completed" || status == "error" {

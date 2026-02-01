@@ -5,7 +5,6 @@ import {
   Modal,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   ActivityIndicator,
   Alert,
   Platform,
@@ -16,6 +15,7 @@ import { UserApiKey, CreateApiKeyRequest } from '../types';
 import { ModelKeyRequirement } from '../utils/modelKeyUtils';
 import { useToast } from '../context/ToastContext';
 import { webInputStyles } from '../styles/containers';
+import { useTheme, useThemedStyles } from '../theme';
 
 interface ModelKeyModalProps {
   visible: boolean;
@@ -32,6 +32,129 @@ const ModelKeyModal: React.FC<ModelKeyModalProps> = ({
   requirement,
   configurationName,
 }) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bgSurface,
+    },
+    header: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      backgroundColor: colors.bgCard,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+      paddingTop: Platform.OS === 'ios' ? 60 : 16,
+    },
+    headerContent: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      marginLeft: 8,
+      color: colors.textPrimary,
+    },
+    closeButton: {
+      padding: 8,
+      minWidth: 44,
+      minHeight: 44,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    content: {
+      flex: 1,
+      padding: 20,
+    },
+    infoSection: {
+      marginBottom: 24,
+    },
+    configurationText: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      marginBottom: 12,
+    },
+    configurationName: {
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    requirementCard: {
+      backgroundColor: colors.bgCard,
+      padding: 16,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    requirementTitle: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    requirementDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+    },
+    inputSection: {
+      marginBottom: 24,
+    },
+    inputLabel: {
+      fontSize: 16,
+      fontWeight: '500' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    textInput: {
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      fontSize: 16,
+      backgroundColor: colors.bgCard,
+    },
+    keyInput: {
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    },
+    buttonContainer: {
+      flexDirection: 'row' as const,
+      gap: 12,
+    },
+    button: {
+      flex: 1,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      paddingVertical: 14,
+      paddingHorizontal: 20,
+      borderRadius: 8,
+      gap: 8,
+    },
+    testButton: {
+      backgroundColor: colors.bgCard,
+      borderWidth: 1,
+      borderColor: colors.accent,
+    },
+    testButtonText: {
+      color: colors.accent,
+      fontWeight: '600' as const,
+      fontSize: 16,
+    },
+    saveButton: {
+      backgroundColor: colors.accent,
+    },
+    saveButtonText: {
+      color: colors.textInverse,
+      fontWeight: '600' as const,
+      fontSize: 16,
+    },
+  }));
+
   const [keyValue, setKeyValue] = useState('');
   const [loading, setLoading] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -122,11 +245,11 @@ const ModelKeyModal: React.FC<ModelKeyModalProps> = ({
       <View style={styles.container}>
         <View style={styles.header}>
           <View style={styles.headerContent}>
-            <Ionicons name="key" size={24} color="#007AFF" />
+            <Ionicons name="key" size={24} color={colors.accent} />
             <Text style={styles.title}>Model API Key Required</Text>
           </View>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color="#666" />
+            <Ionicons name="close" size={24} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
@@ -166,10 +289,10 @@ const ModelKeyModal: React.FC<ModelKeyModalProps> = ({
               disabled={loading || testing || !keyValue.trim()}
             >
               {testing ? (
-                <ActivityIndicator size="small" color="#007AFF" />
+                <ActivityIndicator size="small" color={colors.accent} />
               ) : (
                 <>
-                  <Ionicons name="checkmark-circle" size={20} color="#007AFF" />
+                  <Ionicons name="checkmark-circle" size={20} color={colors.accent} />
                   <Text style={styles.testButtonText}>Test Key</Text>
                 </>
               )}
@@ -196,126 +319,5 @@ const ModelKeyModal: React.FC<ModelKeyModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8f9fa',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    paddingTop: Platform.OS === 'ios' ? 60 : 16,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginLeft: 8,
-    color: '#333',
-  },
-  closeButton: {
-    padding: 8, // Increased for better touch target
-    minWidth: 44, // Ensure minimum touch target size
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-  },
-  infoSection: {
-    marginBottom: 24,
-  },
-  configurationText: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 12,
-  },
-  configurationName: {
-    fontWeight: '600',
-    color: '#333',
-  },
-  requirementCard: {
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  requirementTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  requirementDescription: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-  },
-  inputSection: {
-    marginBottom: 24,
-  },
-  inputLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
-    marginBottom: 8,
-  },
-  textInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 16,
-    backgroundColor: 'white',
-  },
-  keyInput: {
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  button: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    gap: 8,
-  },
-  testButton: {
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#007AFF',
-  },
-  testButtonText: {
-    color: '#007AFF',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  saveButton: {
-    backgroundColor: '#007AFF',
-  },
-  saveButtonText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-});
 
 export default ModelKeyModal;

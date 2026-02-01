@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
@@ -13,6 +12,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme, useThemedStyles } from '../theme';
 import { goGentAPI } from '../api/client';
 import { AlertAPI } from './CustomAlert';
 import { useToast } from '../context/ToastContext';
@@ -45,6 +45,7 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
   visible,
   onClose,
 }) => {
+  const { colors } = useTheme();
   const [agentApiKeys, setAgentApiKeys] = useState<AgentApiKey[]>([]);
   const [availableApiKeys, setAvailableApiKeys] = useState<UserApiKey[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,6 +57,283 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
   const [priority, setPriority] = useState('100');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showSuccess, showError } = useToast();
+
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bgApp,
+    },
+    header: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      backgroundColor: colors.bgCard,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    closeButton: {
+      padding: 8,
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: '700' as const,
+      color: colors.textPrimary,
+    },
+    addButton: {
+      padding: 8,
+    },
+    subtitle: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      textAlign: 'center' as const,
+      paddingVertical: 16,
+    },
+    content: {
+      flex: 1,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      gap: 16,
+    },
+    loadingText: {
+      fontSize: 16,
+      color: colors.textSecondary,
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 40,
+      gap: 16,
+    },
+    emptyTitle: {
+      fontSize: 20,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    emptyText: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      textAlign: 'center' as const,
+      lineHeight: 22,
+    },
+    listContainer: {
+      padding: 16,
+    },
+    apiKeyCard: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 12,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 1,
+    },
+    apiKeyHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'flex-start' as const,
+      marginBottom: 12,
+    },
+    apiKeyInfo: {
+      flex: 1,
+    },
+    apiKeyName: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    apiKeyService: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    apiKeyActions: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 12,
+    },
+    statusBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+    },
+    statusText: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: colors.textInverse,
+    },
+    removeButton: {
+      padding: 4,
+    },
+    apiKeySettings: {
+      gap: 8,
+    },
+    settingRow: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      paddingVertical: 4,
+    },
+    settingLabel: {
+      fontSize: 14,
+      fontWeight: '500' as const,
+      color: colors.textPrimary,
+    },
+    defaultBadge: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 6,
+      paddingVertical: 4,
+    },
+    defaultText: {
+      fontSize: 14,
+      fontWeight: '500' as const,
+      color: '#FFD700',
+    },
+    priorityText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    // Add Modal Styles
+    addModalContainer: {
+      flex: 1,
+      backgroundColor: colors.bgApp,
+    },
+    addModalHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      backgroundColor: colors.bgCard,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    cancelButton: {
+      fontSize: 17,
+      color: colors.textSecondary,
+      fontWeight: '500' as const,
+    },
+    addModalTitle: {
+      fontSize: 20,
+      fontWeight: '700' as const,
+      color: colors.textPrimary,
+    },
+    saveButton: {
+      fontSize: 17,
+      color: colors.accent,
+      fontWeight: '700' as const,
+    },
+    saveButtonDisabled: {
+      color: colors.textSecondary,
+    },
+    addModalContent: {
+      flex: 1,
+      padding: 16,
+    },
+    field: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+    },
+    fieldLabel: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    fieldDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginTop: 4,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      borderRadius: 8,
+      padding: 12,
+      fontSize: 16,
+      backgroundColor: colors.bgCard,
+    },
+    switchRow: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+    },
+    switchInfo: {
+      flex: 1,
+      marginRight: 16,
+    },
+    pickerContainer: {
+      gap: 8,
+    },
+    pickerOption: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      padding: 12,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      backgroundColor: colors.bgCard,
+    },
+    pickerOptionSelected: {
+      borderColor: colors.accent,
+      backgroundColor: colors.bgHover,
+    },
+    pickerOptionContent: {
+      flex: 1,
+    },
+    pickerOptionText: {
+      fontSize: 16,
+      fontWeight: '500' as const,
+      color: colors.textPrimary,
+      marginBottom: 2,
+    },
+    pickerOptionTextSelected: {
+      color: colors.accent,
+    },
+    pickerOptionSubtext: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    noKeysContainer: {
+      alignItems: 'center' as const,
+      paddingVertical: 20,
+      paddingHorizontal: 16,
+      backgroundColor: colors.bgSurface,
+      borderRadius: 8,
+      marginTop: 8,
+    },
+    noKeysText: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      marginBottom: 12,
+      textAlign: 'center' as const,
+    },
+    createKeyButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: colors.accent,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 8,
+      gap: 6,
+    },
+    createKeyButtonText: {
+      color: colors.textInverse,
+      fontSize: 14,
+      fontWeight: '600' as const,
+    },
+  }));
 
   useEffect(() => {
     if (visible) {
@@ -176,7 +454,7 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
 
   const handleAddButtonPress = () => {
     const availableKeys = getAvailableKeysForAdd();
-    
+
     if (availableKeys.length === 0) {
       // No existing keys available - offer to create new
       AlertAPI.alert(
@@ -215,12 +493,12 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
 
   const getValidationStatusColor = (status?: string): string => {
     switch (status?.toLowerCase()) {
-      case 'valid': return '#28a745';
-      case 'invalid': return '#dc3545';
+      case 'valid': return colors.statusSuccess;
+      case 'invalid': return colors.statusError;
       case 'expired': return '#fd7e14';
-      case 'untested': return '#6c757d';
-      case 'rate_limited': return '#ffc107';
-      default: return '#6c757d';
+      case 'untested': return colors.textSecondary;
+      case 'rate_limited': return colors.statusWarning;
+      default: return colors.textSecondary;
     }
   };
 
@@ -242,7 +520,7 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
             onPress={() => handleRemoveApiKey(item)}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="trash-outline" size={20} color="#dc3545" />
+            <Ionicons name="trash-outline" size={20} color={colors.statusError} />
           </TouchableOpacity>
         </View>
       </View>
@@ -253,18 +531,18 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
           <Switch
             value={item.useGlobalDefault}
             onValueChange={() => toggleUseGlobalDefault(item)}
-            trackColor={{ false: '#E5E5EA', true: '#34C759' }}
-            thumbColor="#FFFFFF"
+            trackColor={{ false: colors.borderLight, true: colors.statusSuccess }}
+            thumbColor={colors.textInverse}
           />
         </View>
-        
+
         {item.isDefault && (
           <View style={styles.defaultBadge}>
             <Ionicons name="star" size={16} color="#FFD700" />
             <Text style={styles.defaultText}>Default for Service</Text>
           </View>
         )}
-        
+
         <Text style={styles.priorityText}>Priority: {item.priority}</Text>
       </View>
     </View>
@@ -276,14 +554,14 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color="#007AFF" />
+            <Ionicons name="close" size={24} color={colors.accent} />
           </TouchableOpacity>
           <Text style={styles.title}>API Keys</Text>
           <TouchableOpacity
             onPress={handleAddButtonPress}
             style={styles.addButton}
           >
-            <Ionicons name="add" size={24} color="#007AFF" />
+            <Ionicons name="add" size={24} color={colors.accent} />
           </TouchableOpacity>
         </View>
 
@@ -294,14 +572,14 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
         {/* Content */}
         {isLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#007AFF" />
+            <ActivityIndicator size="large" color={colors.accent} />
             <Text style={styles.loadingText}>Loading API keys...</Text>
           </View>
         ) : (
           <View style={styles.content}>
             {agentApiKeys.length === 0 ? (
               <View style={styles.emptyContainer}>
-                <Ionicons name="key-outline" size={64} color="#8E8E93" />
+                <Ionicons name="key-outline" size={64} color={colors.textSecondary} />
                 <Text style={styles.emptyTitle}>No API Keys</Text>
                 <Text style={styles.emptyText}>
                   This agent will use global default API keys.{'\n'}
@@ -339,7 +617,7 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
               <Text style={styles.addModalTitle}>Use Existing API Key</Text>
               <TouchableOpacity onPress={handleAddApiKey} disabled={isSubmitting || !selectedApiKey}>
                 {isSubmitting ? (
-                  <ActivityIndicator size="small" color="#007AFF" />
+                  <ActivityIndicator size="small" color={colors.accent} />
                 ) : (
                   <Text style={[styles.saveButton, (!selectedApiKey) && styles.saveButtonDisabled]}>
                     Add
@@ -376,23 +654,23 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
                         </Text>
                       </View>
                       {selectedApiKey === apiKey.id && (
-                        <Ionicons name="checkmark" size={20} color="#007AFF" />
+                        <Ionicons name="checkmark" size={20} color={colors.accent} />
                       )}
                     </TouchableOpacity>
                   ))}
                 </View>
-                
+
                 {getAvailableKeysForAdd().length === 0 && (
                   <View style={styles.noKeysContainer}>
                     <Text style={styles.noKeysText}>No available API keys found</Text>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.createKeyButton}
                       onPress={() => {
                         setShowAddModal(false);
                         setShowCreateModal(true);
                       }}
                     >
-                      <Ionicons name="add" size={16} color="#FFFFFF" />
+                      <Ionicons name="add" size={16} color={colors.textInverse} />
                       <Text style={styles.createKeyButtonText}>Create New API Key</Text>
                     </TouchableOpacity>
                   </View>
@@ -410,8 +688,8 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
                   <Switch
                     value={useGlobalDefault}
                     onValueChange={setUseGlobalDefault}
-                    trackColor={{ false: '#E5E5EA', true: '#34C759' }}
-                    thumbColor="#FFFFFF"
+                    trackColor={{ false: colors.borderLight, true: colors.statusSuccess }}
+                    thumbColor={colors.textInverse}
                   />
                 </View>
               </View>
@@ -427,8 +705,8 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
                   <Switch
                     value={isDefault}
                     onValueChange={setIsDefault}
-                    trackColor={{ false: '#E5E5EA', true: '#34C759' }}
-                    thumbColor="#FFFFFF"
+                    trackColor={{ false: colors.borderLight, true: colors.statusSuccess }}
+                    thumbColor={colors.textInverse}
                   />
                 </View>
               </View>
@@ -453,282 +731,5 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  closeButton: {
-    padding: 8,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#000000',
-  },
-  addButton: {
-    padding: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#8E8E93',
-    textAlign: 'center',
-    paddingVertical: 16,
-  },
-  content: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#8E8E93',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-    gap: 16,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#8E8E93',
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  listContainer: {
-    padding: 16,
-  },
-  apiKeyCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  apiKeyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  apiKeyInfo: {
-    flex: 1,
-  },
-  apiKeyName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 4,
-  },
-  apiKeyService: {
-    fontSize: 14,
-    color: '#8E8E93',
-  },
-  apiKeyActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  removeButton: {
-    padding: 4,
-  },
-  apiKeySettings: {
-    gap: 8,
-  },
-  settingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  settingLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#000000',
-  },
-  defaultBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 4,
-  },
-  defaultText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#FFD700',
-  },
-  priorityText: {
-    fontSize: 14,
-    color: '#8E8E93',
-  },
-  // Add Modal Styles
-  addModalContainer: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-  },
-  addModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  cancelButton: {
-    fontSize: 17,
-    color: '#8E8E93',
-    fontWeight: '500',
-  },
-  addModalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#000000',
-  },
-  saveButton: {
-    fontSize: 17,
-    color: '#007AFF',
-    fontWeight: '700',
-  },
-  saveButtonDisabled: {
-    color: '#8E8E93',
-  },
-  addModalContent: {
-    flex: 1,
-    padding: 16,
-  },
-  field: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-  },
-  fieldLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 8,
-  },
-  fieldDescription: {
-    fontSize: 14,
-    color: '#8E8E93',
-    marginTop: 4,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: '#FFFFFF',
-  },
-  switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  switchInfo: {
-    flex: 1,
-    marginRight: 16,
-  },
-  pickerContainer: {
-    gap: 8,
-  },
-  pickerOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    backgroundColor: '#FFFFFF',
-  },
-  pickerOptionSelected: {
-    borderColor: '#007AFF',
-    backgroundColor: '#F0F8FF',
-  },
-  pickerOptionContent: {
-    flex: 1,
-  },
-  pickerOptionText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#000000',
-    marginBottom: 2,
-  },
-  pickerOptionTextSelected: {
-    color: '#007AFF',
-  },
-  pickerOptionSubtext: {
-    fontSize: 14,
-    color: '#8E8E93',
-  },
-  noKeysContainer: {
-    alignItems: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-    backgroundColor: '#F8F8F8',
-    borderRadius: 8,
-    marginTop: 8,
-  },
-  noKeysText: {
-    fontSize: 16,
-    color: '#8E8E93',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  createKeyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    gap: 6,
-  },
-  createKeyButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-});
 
 export default AgentApiKeyManager;

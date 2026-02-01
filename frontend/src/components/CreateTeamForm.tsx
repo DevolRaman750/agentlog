@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TextInput,
   TouchableOpacity,
   Modal,
@@ -12,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme, useThemedStyles } from '../theme';
 import { goGentAPI } from '../api/client';
 import { TeamFormData, TeamFormErrors } from '../types';
 import { AlertAPI } from './CustomAlert';
@@ -27,14 +27,149 @@ const CreateTeamForm: React.FC<CreateTeamFormProps> = ({
   onClose,
   onTeamCreated,
 }) => {
+  const { colors } = useTheme();
   const [formData, setFormData] = useState<TeamFormData>({
     name: '',
     description: '',
     maxTokensPerDay: 10000,
   });
-  
+
   const [errors, setErrors] = useState<TeamFormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
+
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bgApp,
+    },
+    header: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      backgroundColor: colors.bgCard,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    cancelButton: {
+      padding: 8,
+    },
+    cancelButtonText: {
+      fontSize: 16,
+      color: colors.accent,
+    },
+    headerTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    saveButton: {
+      backgroundColor: colors.accent,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 8,
+      minWidth: 70,
+      alignItems: 'center' as const,
+    },
+    saveButtonDisabled: {
+      opacity: 0.6,
+    },
+    saveButtonText: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textInverse,
+    },
+    scrollView: {
+      flex: 1,
+      padding: 16,
+    },
+    section: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    sectionHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 16,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginLeft: 8,
+    },
+    fieldContainer: {
+      marginBottom: 16,
+    },
+    fieldLabel: {
+      fontSize: 16,
+      fontWeight: '500' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    input: {
+      backgroundColor: colors.bgSurface,
+      borderRadius: 8,
+      padding: 12,
+      fontSize: 16,
+      color: colors.textPrimary,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    textArea: {
+      backgroundColor: colors.bgSurface,
+      borderRadius: 8,
+      padding: 12,
+      fontSize: 16,
+      color: colors.textPrimary,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      minHeight: 80,
+    },
+    inputError: {
+      borderColor: colors.statusError,
+      backgroundColor: '#FFF5F5',
+    },
+    errorText: {
+      fontSize: 14,
+      color: colors.statusError,
+      marginTop: 4,
+    },
+    helpText: {
+      fontSize: 14,
+      color: '#6B6B6B',
+      marginTop: 4,
+    },
+    characterCount: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      textAlign: 'right' as const,
+      marginTop: 4,
+    },
+    infoSection: {
+      marginBottom: 20,
+    },
+    infoContainer: {
+      flexDirection: 'row' as const,
+      backgroundColor: colors.bgHover,
+      borderRadius: 8,
+      padding: 12,
+      borderLeftWidth: 4,
+      borderLeftColor: colors.accent,
+    },
+    infoText: {
+      fontSize: 14,
+      color: colors.textPrimary,
+      lineHeight: 20,
+      marginLeft: 8,
+      flex: 1,
+    },
+  }));
 
   const validateForm = (): boolean => {
     const newErrors: TeamFormErrors = {};
@@ -70,7 +205,7 @@ const CreateTeamForm: React.FC<CreateTeamFormProps> = ({
 
     try {
       const response = await goGentAPI.createTeam(formData);
-      
+
       if (response.success) {
         AlertAPI.alert('Success', 'Team created successfully!');
         handleClose();
@@ -112,7 +247,7 @@ const CreateTeamForm: React.FC<CreateTeamFormProps> = ({
       presentationStyle="pageSheet"
       onRequestClose={handleClose}
     >
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
@@ -122,13 +257,13 @@ const CreateTeamForm: React.FC<CreateTeamFormProps> = ({
             <Text style={styles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Create Team</Text>
-          <TouchableOpacity 
-            onPress={handleSubmit} 
+          <TouchableOpacity
+            onPress={handleSubmit}
             style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
             disabled={isLoading}
           >
             {isLoading ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
+              <ActivityIndicator size="small" color={colors.textInverse} />
             ) : (
               <Text style={styles.saveButtonText}>Create</Text>
             )}
@@ -139,10 +274,10 @@ const CreateTeamForm: React.FC<CreateTeamFormProps> = ({
           {/* Team Name */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="people" size={18} color="#007AFF" />
+              <Ionicons name="people" size={18} color={colors.accent} />
               <Text style={styles.sectionTitle}>Team Information</Text>
             </View>
-            
+
             <View style={styles.fieldContainer}>
               <Text style={styles.fieldLabel}>Team Name *</Text>
               <TextInput
@@ -150,7 +285,7 @@ const CreateTeamForm: React.FC<CreateTeamFormProps> = ({
                 value={formData.name}
                 onChangeText={(text) => updateField('name', text)}
                 placeholder="Enter team name"
-                placeholderTextColor="#8E8E93"
+                placeholderTextColor={colors.textSecondary}
                 maxLength={50}
               />
               {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
@@ -163,7 +298,7 @@ const CreateTeamForm: React.FC<CreateTeamFormProps> = ({
                 value={formData.description}
                 onChangeText={(text) => updateField('description', text)}
                 placeholder="Optional team description"
-                placeholderTextColor="#8E8E93"
+                placeholderTextColor={colors.textSecondary}
                 multiline
                 numberOfLines={3}
                 maxLength={200}
@@ -179,10 +314,10 @@ const CreateTeamForm: React.FC<CreateTeamFormProps> = ({
           {/* Token Management */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="speedometer" size={18} color="#FF9500" />
+              <Ionicons name="speedometer" size={18} color={colors.statusWarning} />
               <Text style={styles.sectionTitle}>Token Management</Text>
             </View>
-            
+
             <View style={styles.fieldContainer}>
               <Text style={styles.fieldLabel}>Max Tokens Per Day *</Text>
               <TextInput
@@ -193,7 +328,7 @@ const CreateTeamForm: React.FC<CreateTeamFormProps> = ({
                   updateField('maxTokensPerDay', value);
                 }}
                 placeholder="10000"
-                placeholderTextColor="#8E8E93"
+                placeholderTextColor={colors.textSecondary}
                 keyboardType="numeric"
               />
               <Text style={styles.helpText}>
@@ -206,9 +341,9 @@ const CreateTeamForm: React.FC<CreateTeamFormProps> = ({
           {/* Info Section */}
           <View style={styles.infoSection}>
             <View style={styles.infoContainer}>
-              <Ionicons name="information-circle" size={20} color="#007AFF" />
+              <Ionicons name="information-circle" size={20} color={colors.accent} />
               <Text style={styles.infoText}>
-                Teams help organize agents and manage token usage collectively. 
+                Teams help organize agents and manage token usage collectively.
                 You can assign agents to teams and control all team agents together.
               </Text>
             </View>
@@ -219,138 +354,4 @@ const CreateTeamForm: React.FC<CreateTeamFormProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  cancelButton: {
-    padding: 8,
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    color: '#007AFF',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  saveButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    minWidth: 70,
-    alignItems: 'center',
-  },
-  saveButtonDisabled: {
-    opacity: 0.6,
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  scrollView: {
-    flex: 1,
-    padding: 16,
-  },
-  section: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginLeft: 8,
-  },
-  fieldContainer: {
-    marginBottom: 16,
-  },
-  fieldLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1A1A1A',
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: '#1A1A1A',
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  textArea: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: '#1A1A1A',
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    minHeight: 80,
-  },
-  inputError: {
-    borderColor: '#FF3B30',
-    backgroundColor: '#FFF5F5',
-  },
-  errorText: {
-    fontSize: 14,
-    color: '#FF3B30',
-    marginTop: 4,
-  },
-  helpText: {
-    fontSize: 14,
-    color: '#6B6B6B',
-    marginTop: 4,
-  },
-  characterCount: {
-    fontSize: 12,
-    color: '#8E8E93',
-    textAlign: 'right',
-    marginTop: 4,
-  },
-  infoSection: {
-    marginBottom: 20,
-  },
-  infoContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#F0F8FF',
-    borderRadius: 8,
-    padding: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#007AFF',
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#1A1A1A',
-    lineHeight: 20,
-    marginLeft: 8,
-    flex: 1,
-  },
-});
-
-export default CreateTeamForm; 
+export default CreateTeamForm;

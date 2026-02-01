@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme, useThemedStyles } from '../theme';
 
 interface ComparisonFeature {
   feature: string;
@@ -29,6 +30,196 @@ export const AuthModeComparison: React.FC<AuthModeComparisonProps> = ({
   onClose,
   onSelectMode,
 }) => {
+  const { colors } = useTheme();
+
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bgCard,
+    },
+    header: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      flex: 1,
+    },
+    closeButton: {
+      padding: 4,
+    },
+    content: {
+      flex: 1,
+    },
+    section: {
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 16,
+    },
+    decisionCard: {
+      gap: 16,
+    },
+    decisionOption: {
+      backgroundColor: colors.bgSurface,
+      borderRadius: 12,
+      padding: 16,
+    },
+    decisionTitle: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 12,
+    },
+    useCaseItem: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 8,
+    },
+    useCaseText: {
+      fontSize: 14,
+      color: colors.textPrimary,
+      marginLeft: 8,
+      flex: 1,
+    },
+    selectButton: {
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderRadius: 8,
+      alignItems: 'center' as const,
+      marginTop: 12,
+    },
+    patButton: {
+      backgroundColor: colors.statusSuccess,
+    },
+    appButton: {
+      backgroundColor: colors.accent,
+    },
+    selectButtonText: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textInverse,
+    },
+    comparisonTable: {
+      borderRadius: 12,
+      overflow: 'hidden' as const,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    tableHeader: {
+      flexDirection: 'row' as const,
+      backgroundColor: colors.bgSurface,
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+    },
+    featureHeader: {
+      flex: 1,
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    methodHeader: {
+      flex: 1,
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      textAlign: 'center' as const,
+    },
+    tableRow: {
+      flexDirection: 'row' as const,
+      borderTopWidth: 1,
+      borderTopColor: colors.borderLight,
+      paddingVertical: 16,
+      paddingHorizontal: 16,
+    },
+    featureCell: {
+      flex: 1,
+      justifyContent: 'center' as const,
+    },
+    featureName: {
+      fontSize: 14,
+      fontWeight: '500' as const,
+      color: colors.textPrimary,
+    },
+    valueCell: {
+      flex: 1,
+      paddingHorizontal: 8,
+    },
+    valueHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      marginBottom: 4,
+    },
+    valueText: {
+      fontSize: 13,
+      fontWeight: '600' as const,
+      marginLeft: 4,
+    },
+    valueDescription: {
+      fontSize: 11,
+      color: colors.textSecondary,
+      textAlign: 'center' as const,
+      lineHeight: 14,
+    },
+    securityCard: {
+      gap: 16,
+    },
+    securityItem: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+    },
+    securityContent: {
+      marginLeft: 12,
+      flex: 1,
+    },
+    securityTitle: {
+      fontSize: 15,
+      fontWeight: '500' as const,
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    securityDescription: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      lineHeight: 18,
+    },
+    migrationCard: {
+      flexDirection: 'row' as const,
+      backgroundColor: colors.bgHover,
+      borderRadius: 12,
+      padding: 16,
+      borderLeftWidth: 4,
+      borderLeftColor: colors.accent,
+    },
+    migrationContent: {
+      marginLeft: 12,
+      flex: 1,
+    },
+    migrationTitle: {
+      fontSize: 15,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    migrationDescription: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      lineHeight: 18,
+    },
+  }));
+
   const comparisonFeatures: ComparisonFeature[] = [
     {
       feature: 'Setup Difficulty',
@@ -36,13 +227,13 @@ export const AuthModeComparison: React.FC<AuthModeComparisonProps> = ({
         value: 'Very Easy',
         description: '2-3 minutes, just generate a token',
         icon: 'checkmark-circle',
-        color: '#34C759',
+        color: colors.statusSuccess,
       },
       githubApp: {
         value: 'Moderate',
         description: '10-15 minutes, requires app creation',
         icon: 'warning',
-        color: '#FF9500',
+        color: colors.statusWarning,
       },
     },
     {
@@ -51,13 +242,13 @@ export const AuthModeComparison: React.FC<AuthModeComparisonProps> = ({
         value: '5,000/hour',
         description: 'Shared with your personal usage',
         icon: 'warning',
-        color: '#FF9500',
+        color: colors.statusWarning,
       },
       githubApp: {
         value: '5,000/hour per installation',
         description: 'Dedicated limits, better for teams',
         icon: 'checkmark-circle',
-        color: '#34C759',
+        color: colors.statusSuccess,
       },
     },
     {
@@ -66,13 +257,13 @@ export const AuthModeComparison: React.FC<AuthModeComparisonProps> = ({
         value: 'User-level',
         description: 'Uses your personal permissions',
         icon: 'warning',
-        color: '#FF9500',
+        color: colors.statusWarning,
       },
       githubApp: {
         value: 'Fine-grained',
         description: 'Specific repository permissions only',
         icon: 'checkmark-circle',
-        color: '#34C759',
+        color: colors.statusSuccess,
       },
     },
     {
@@ -81,13 +272,13 @@ export const AuthModeComparison: React.FC<AuthModeComparisonProps> = ({
         value: 'Basic',
         description: 'Shows as your personal activity',
         icon: 'close-circle',
-        color: '#FF3B30',
+        color: colors.statusError,
       },
       githubApp: {
         value: 'Detailed',
         description: 'Clear app-specific audit trail',
         icon: 'checkmark-circle',
-        color: '#34C759',
+        color: colors.statusSuccess,
       },
     },
     {
@@ -96,13 +287,13 @@ export const AuthModeComparison: React.FC<AuthModeComparisonProps> = ({
         value: 'Limited',
         description: 'Tied to your personal account',
         icon: 'close-circle',
-        color: '#FF3B30',
+        color: colors.statusError,
       },
       githubApp: {
         value: 'Excellent',
         description: 'Independent of individual users',
         icon: 'checkmark-circle',
-        color: '#34C759',
+        color: colors.statusSuccess,
       },
     },
     {
@@ -111,13 +302,13 @@ export const AuthModeComparison: React.FC<AuthModeComparisonProps> = ({
         value: 'Manual renewal',
         description: 'You set expiration, manual renewal',
         icon: 'warning',
-        color: '#FF9500',
+        color: colors.statusWarning,
       },
       githubApp: {
         value: 'Auto-refresh',
         description: 'Tokens refresh automatically',
         icon: 'checkmark-circle',
-        color: '#34C759',
+        color: colors.statusSuccess,
       },
     },
     {
@@ -126,13 +317,13 @@ export const AuthModeComparison: React.FC<AuthModeComparisonProps> = ({
         value: 'Personal projects',
         description: 'Individual developers, quick setup',
         icon: 'checkmark-circle',
-        color: '#34C759',
+        color: colors.statusSuccess,
       },
       githubApp: {
         value: 'Teams & Production',
         description: 'Organizations, better security',
         icon: 'checkmark-circle',
-        color: '#34C759',
+        color: colors.statusSuccess,
       },
     },
   ];
@@ -166,21 +357,21 @@ export const AuthModeComparison: React.FC<AuthModeComparisonProps> = ({
         <View style={styles.header}>
           <Text style={styles.title}>Choose Your Authentication Method</Text>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Ionicons name="close" size={24} color="#666" />
+            <Ionicons name="close" size={24} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Quick Decision Guide */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🤔 Not sure which to choose?</Text>
-            
+            <Text style={styles.sectionTitle}>Not sure which to choose?</Text>
+
             <View style={styles.decisionCard}>
               <View style={styles.decisionOption}>
                 <Text style={styles.decisionTitle}>Choose Personal Access Token if:</Text>
                 {useCases.pat.map((useCase, index) => (
                   <View key={index} style={styles.useCaseItem}>
-                    <Ionicons name="checkmark" size={16} color="#34C759" />
+                    <Ionicons name="checkmark" size={16} color={colors.statusSuccess} />
                     <Text style={styles.useCaseText}>{useCase}</Text>
                   </View>
                 ))}
@@ -199,7 +390,7 @@ export const AuthModeComparison: React.FC<AuthModeComparisonProps> = ({
                 <Text style={styles.decisionTitle}>Choose GitHub App if:</Text>
                 {useCases.githubApp.map((useCase, index) => (
                   <View key={index} style={styles.useCaseItem}>
-                    <Ionicons name="checkmark" size={16} color="#007AFF" />
+                    <Ionicons name="checkmark" size={16} color={colors.accent} />
                     <Text style={styles.useCaseText}>{useCase}</Text>
                   </View>
                 ))}
@@ -218,8 +409,8 @@ export const AuthModeComparison: React.FC<AuthModeComparisonProps> = ({
 
           {/* Detailed Comparison Table */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📊 Detailed Comparison</Text>
-            
+            <Text style={styles.sectionTitle}>Detailed Comparison</Text>
+
             <View style={styles.comparisonTable}>
               <View style={styles.tableHeader}>
                 <Text style={styles.featureHeader}>Feature</Text>
@@ -232,13 +423,13 @@ export const AuthModeComparison: React.FC<AuthModeComparisonProps> = ({
                   <View style={styles.featureCell}>
                     <Text style={styles.featureName}>{feature.feature}</Text>
                   </View>
-                  
+
                   <View style={styles.valueCell}>
                     <View style={styles.valueHeader}>
-                      <Ionicons 
-                        name={feature.pat.icon} 
-                        size={16} 
-                        color={feature.pat.color} 
+                      <Ionicons
+                        name={feature.pat.icon}
+                        size={16}
+                        color={feature.pat.color}
                       />
                       <Text style={[styles.valueText, { color: feature.pat.color }]}>
                         {feature.pat.value}
@@ -246,13 +437,13 @@ export const AuthModeComparison: React.FC<AuthModeComparisonProps> = ({
                     </View>
                     <Text style={styles.valueDescription}>{feature.pat.description}</Text>
                   </View>
-                  
+
                   <View style={styles.valueCell}>
                     <View style={styles.valueHeader}>
-                      <Ionicons 
-                        name={feature.githubApp.icon} 
-                        size={16} 
-                        color={feature.githubApp.color} 
+                      <Ionicons
+                        name={feature.githubApp.icon}
+                        size={16}
+                        color={feature.githubApp.color}
                       />
                       <Text style={[styles.valueText, { color: feature.githubApp.color }]}>
                         {feature.githubApp.value}
@@ -267,11 +458,11 @@ export const AuthModeComparison: React.FC<AuthModeComparisonProps> = ({
 
           {/* Security Considerations */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🔒 Security Considerations</Text>
-            
+            <Text style={styles.sectionTitle}>Security Considerations</Text>
+
             <View style={styles.securityCard}>
               <View style={styles.securityItem}>
-                <Ionicons name="shield-checkmark" size={20} color="#34C759" />
+                <Ionicons name="shield-checkmark" size={20} color={colors.statusSuccess} />
                 <View style={styles.securityContent}>
                   <Text style={styles.securityTitle}>Both methods are secure when used properly</Text>
                   <Text style={styles.securityDescription}>
@@ -281,7 +472,7 @@ export const AuthModeComparison: React.FC<AuthModeComparisonProps> = ({
               </View>
 
               <View style={styles.securityItem}>
-                <Ionicons name="key" size={20} color="#007AFF" />
+                <Ionicons name="key" size={20} color={colors.accent} />
                 <View style={styles.securityContent}>
                   <Text style={styles.securityTitle}>Personal tokens are simpler but broader</Text>
                   <Text style={styles.securityDescription}>
@@ -291,7 +482,7 @@ export const AuthModeComparison: React.FC<AuthModeComparisonProps> = ({
               </View>
 
               <View style={styles.securityItem}>
-                <Ionicons name="lock-closed" size={20} color="#FF9500" />
+                <Ionicons name="lock-closed" size={20} color={colors.statusWarning} />
                 <View style={styles.securityContent}>
                   <Text style={styles.securityTitle}>GitHub Apps offer principle of least privilege</Text>
                   <Text style={styles.securityDescription}>
@@ -305,12 +496,12 @@ export const AuthModeComparison: React.FC<AuthModeComparisonProps> = ({
           {/* Migration Note */}
           <View style={styles.section}>
             <View style={styles.migrationCard}>
-              <Ionicons name="information-circle" size={24} color="#007AFF" />
+              <Ionicons name="information-circle" size={24} color={colors.accent} />
               <View style={styles.migrationContent}>
                 <Text style={styles.migrationTitle}>You can always change later</Text>
                 <Text style={styles.migrationDescription}>
-                  Don't worry about making the "wrong" choice. You can switch between authentication 
-                  methods anytime in your API key settings. Start with what feels comfortable and 
+                  Don't worry about making the "wrong" choice. You can switch between authentication
+                  methods anytime in your API key settings. Start with what feels comfortable and
                   upgrade when you need more features.
                 </Text>
               </View>
@@ -321,191 +512,3 @@ export const AuthModeComparison: React.FC<AuthModeComparisonProps> = ({
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E7',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1D1D1F',
-    flex: 1,
-  },
-  closeButton: {
-    padding: 4,
-  },
-  content: {
-    flex: 1,
-  },
-  section: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1D1D1F',
-    marginBottom: 16,
-  },
-  decisionCard: {
-    gap: 16,
-  },
-  decisionOption: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 16,
-  },
-  decisionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1D1D1F',
-    marginBottom: 12,
-  },
-  useCaseItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  useCaseText: {
-    fontSize: 14,
-    color: '#3A3A3C',
-    marginLeft: 8,
-    flex: 1,
-  },
-  selectButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  patButton: {
-    backgroundColor: '#34C759',
-  },
-  appButton: {
-    backgroundColor: '#007AFF',
-  },
-  selectButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  comparisonTable: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#E5E5E7',
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: '#F8F9FA',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  featureHeader: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1D1D1F',
-  },
-  methodHeader: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1D1D1F',
-    textAlign: 'center',
-  },
-  tableRow: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5E7',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-  },
-  featureCell: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  featureName: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1D1D1F',
-  },
-  valueCell: {
-    flex: 1,
-    paddingHorizontal: 8,
-  },
-  valueHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  valueText: {
-    fontSize: 13,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  valueDescription: {
-    fontSize: 11,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 14,
-  },
-  securityCard: {
-    gap: 16,
-  },
-  securityItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  securityContent: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  securityTitle: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#1D1D1F',
-    marginBottom: 4,
-  },
-  securityDescription: {
-    fontSize: 13,
-    color: '#666',
-    lineHeight: 18,
-  },
-  migrationCard: {
-    flexDirection: 'row',
-    backgroundColor: '#F0F8FF',
-    borderRadius: 12,
-    padding: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: '#007AFF',
-  },
-  migrationContent: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  migrationTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1D1D1F',
-    marginBottom: 4,
-  },
-  migrationDescription: {
-    fontSize: 13,
-    color: '#666',
-    lineHeight: 18,
-  },
-});

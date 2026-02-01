@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   Modal,
   ScrollView,
@@ -15,6 +14,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { AlertAPI } from './CustomAlert';
+import { useTheme, useThemedStyles } from '../theme';
+import { ThemeColors } from '../theme';
 
 interface SessionManagerProps {
   visible: boolean;
@@ -40,46 +41,262 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
   const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showExportData, setShowExportData] = useState<string | null>(null);
+  const { colors } = useTheme();
+
+  const styles = useThemedStyles((colors: ThemeColors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bgApp,
+    },
+    header: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 20,
+      paddingTop: Platform.OS === 'ios' ? 60 : 20,
+      paddingBottom: 20,
+      backgroundColor: colors.bgCard,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    closeButton: {
+      padding: 10,
+      borderRadius: 22,
+      backgroundColor: colors.bgSurface,
+      minWidth: 44,
+      minHeight: 44,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: 20,
+    },
+    section: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 16,
+      marginTop: 16,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 12,
+    },
+    userStatusContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 12,
+    },
+    userStatusText: {
+      flex: 1,
+    },
+    userStatusTitle: {
+      fontSize: 14,
+      fontWeight: '500' as const,
+      color: colors.textPrimary,
+    },
+    userStatusSubtitle: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    sessionGrid: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: 12,
+    },
+    sessionItem: {
+      flex: 1,
+      minWidth: '45%' as unknown as number,
+      alignItems: 'center' as const,
+      padding: 12,
+      backgroundColor: colors.bgSurface,
+      borderRadius: 8,
+    },
+    sessionValue: {
+      fontSize: 24,
+      fontWeight: '700' as const,
+      color: colors.accent,
+    },
+    sessionLabel: {
+      fontSize: 11,
+      color: colors.textSecondary,
+      textAlign: 'center' as const,
+      marginTop: 4,
+    },
+    lastActivity: {
+      marginTop: 12,
+      padding: 8,
+      backgroundColor: colors.bgSurface,
+      borderRadius: 6,
+    },
+    lastActivityText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      textAlign: 'center' as const,
+    },
+    actionButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      padding: 16,
+      borderRadius: 8,
+      marginBottom: 12,
+      gap: 12,
+    },
+    loginButton: {
+      backgroundColor: '#F0F8FF',
+      borderWidth: 1,
+      borderColor: colors.accent,
+    },
+    loginButtonText: {
+      fontSize: 14,
+      fontWeight: '500' as const,
+      color: colors.accent,
+    },
+    logoutButton: {
+      backgroundColor: '#FFF8F0',
+      borderWidth: 1,
+      borderColor: '#FF9500',
+    },
+    logoutButtonText: {
+      fontSize: 14,
+      fontWeight: '500' as const,
+      color: '#FF9500',
+    },
+    exportButton: {
+      backgroundColor: '#F0F8FF',
+      borderWidth: 1,
+      borderColor: colors.accent,
+    },
+    exportButtonText: {
+      fontSize: 14,
+      fontWeight: '500' as const,
+      color: colors.accent,
+    },
+    clearButton: {
+      backgroundColor: '#FFF0F0',
+      borderWidth: 1,
+      borderColor: colors.statusError,
+    },
+    clearButtonText: {
+      fontSize: 14,
+      fontWeight: '500' as const,
+      color: colors.statusError,
+    },
+    cleanupButton: {
+      backgroundColor: '#FFF0F0',
+      borderWidth: 1,
+      borderColor: colors.statusError,
+    },
+    cleanupButtonText: {
+      fontSize: 14,
+      fontWeight: '500' as const,
+      color: colors.statusError,
+    },
+    loadingContainer: {
+      alignItems: 'center' as const,
+      padding: 20,
+    },
+    loadingText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginTop: 8,
+    },
+    exportModalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      padding: 20,
+    },
+    exportModalContent: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      width: '100%' as const,
+      maxHeight: '80%' as const,
+    },
+    exportModalHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      padding: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    exportModalTitle: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    exportModalClose: {
+      padding: 4,
+    },
+    exportDataContainer: {
+      maxHeight: 300,
+      padding: 16,
+    },
+    exportDataText: {
+      fontSize: 12,
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+      color: colors.textPrimary,
+      lineHeight: 16,
+    },
+    exportModalNote: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      textAlign: 'center' as const,
+      padding: 16,
+      borderTopWidth: 1,
+      borderTopColor: colors.borderLight,
+    },
+  }));
 
   // Load session information
   const loadSessionInfo = async () => {
     try {
       const allKeys = await AsyncStorage.getAllKeys();
-      
+
       // DEBUG: Log all keys to see what's being counted
       console.log('🔍 DEBUG: All AsyncStorage keys:', allKeys);
       console.log('📊 DEBUG: Total key count:', allKeys.length);
-      
+
       // Filter out system/framework keys that aren't user-relevant
-      const systemKeys = allKeys.filter(key => 
-        key.includes('Expo') || 
-        key.includes('RCT') || 
+      const systemKeys = allKeys.filter(key =>
+        key.includes('Expo') ||
+        key.includes('RCT') ||
         key.includes('ReactNative') ||
         key.includes('expo-') ||
         key.includes('@react-native') ||
         key.includes('AsyncStorage') ||
         key.includes('ExponentDeviceId') ||
         key.includes('ExponentPushToken') ||
-        key.includes('test_') || 
-        key.includes('debug_') || 
+        key.includes('test_') ||
+        key.includes('debug_') ||
         key.includes('dev_')
       );
-      
+
       // Get only user-relevant keys (excluding system keys)
       const userRelevantKeys = allKeys.filter(key => !systemKeys.includes(key));
-      
+
       // Categorize user-relevant keys
       const authKeys = userRelevantKeys.filter(key => key.includes('auth_') || key.includes('temp_password'));
       const configKeys = userRelevantKeys.filter(key => key.includes('configurations') || key.includes('appConfig') || key.includes('recentExecutions'));
       const apiKeyStorageKeys = userRelevantKeys.filter(key => key.includes('@gogent_encrypted_api_keys') || key.includes('@gogent_session_api_keys'));
-      
+
       // Remaining user keys (non-categorized but still user-relevant)
-      const otherUserKeys = userRelevantKeys.filter(key => 
-        !authKeys.includes(key) && 
-        !configKeys.includes(key) && 
+      const otherUserKeys = userRelevantKeys.filter(key =>
+        !authKeys.includes(key) &&
+        !configKeys.includes(key) &&
         !apiKeyStorageKeys.includes(key)
       );
-      
+
       // DEBUG: Show categorization with user-filtered results
       console.log('🔐 DEBUG: Auth keys:', authKeys);
       console.log('⚙️ DEBUG: Config keys:', configKeys);
@@ -87,7 +304,7 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
       console.log('📱 DEBUG: System/Framework keys (filtered out):', systemKeys.length, systemKeys);
       console.log('❓ DEBUG: Other user keys:', otherUserKeys);
       console.log('✅ DEBUG: User-relevant keys total:', userRelevantKeys.length, 'vs All keys:', allKeys.length);
-      
+
       // Check API key count
       let apiKeyCount = 0;
       try {
@@ -137,24 +354,24 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
     try {
       setIsLoading(true);
       const allKeys = await AsyncStorage.getAllKeys();
-      
+
       // Find potentially stale keys (development/testing artifacts)
       const potentiallyStaleKeys = allKeys.filter(key => {
         // Remove old temp passwords that might be orphaned
         if (key.includes('temp_password') && key !== 'temp_password') return true;
-        
+
         // Remove keys that look like duplicates or test data
         if (key.includes('test_') || key.includes('debug_') || key.includes('dev_')) return true;
-        
+
         // Remove expo/react-native development keys that might accumulate
         if (key.includes('Expo') || key.includes('RCT') || key.includes('ReactNative')) return true;
-        
+
         // Remove Metro bundler keys that can accumulate during development
         if (key.includes('metro') || key.includes('bundler') || key.includes('cache')) return true;
-        
+
         // Remove any keys that look like UUIDs but aren't our current auth
         if (/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(key)) return true;
-        
+
         // Remove any keys with timestamps that are old (older than 24 hours)
         if (key.includes('_timestamp_') || key.includes('_ts_')) {
           try {
@@ -169,12 +386,12 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
             return true;
           }
         }
-        
+
         return false;
       });
-      
+
       console.log('🧹 Cleaning up stale keys:', potentiallyStaleKeys);
-      
+
       if (potentiallyStaleKeys.length > 0) {
         await AsyncStorage.multiRemove(potentiallyStaleKeys);
         AlertAPI.alert(
@@ -208,25 +425,25 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
             setIsLoading(true);
             try {
               console.log('🧹 Starting session clear from SessionManager...');
-              
+
               // Clear session data
               console.log('📞 Calling clearSession()...');
               await clearSession();
               console.log('✅ Session data cleared successfully');
-              
+
               // Logout user if authenticated
               if (isAuthenticated) {
                 console.log('📞 Calling logout()...');
                 await logout();
                 console.log('✅ User logged out');
               }
-              
+
               AlertAPI.alert(
                 '✅ Session Cleared',
                 'All session data has been cleared successfully. The app will now refresh.',
                 [{ text: 'OK', onPress: onClose }]
               );
-              
+
               // Refresh session info
               console.log('🔄 Refreshing session info...');
               await loadSessionInfo();
@@ -234,7 +451,7 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
             } catch (error) {
               console.error('❌ Failed to clear session data:', error);
               AlertAPI.alert(
-                'Error', 
+                'Error',
                 `Failed to clear session data completely: ${error instanceof Error ? error.message : 'Unknown error'}. Some data may remain.`
               );
             } finally {
@@ -287,7 +504,7 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
     if (!user) {
       return {
         icon: 'person-outline',
-        color: '#8E8E93',
+        color: colors.textSecondary,
         title: 'No User Session',
         subtitle: 'Using app without authentication',
       };
@@ -304,7 +521,7 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
 
     return {
       icon: 'person',
-      color: '#34C759',
+      color: colors.statusSuccess,
       title: 'Authenticated User',
       subtitle: `${user.username} (${user.email || 'no email'})`,
     };
@@ -322,13 +539,13 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>🔧 Session Manager</Text>
-          <TouchableOpacity 
-            onPress={onClose} 
+          <TouchableOpacity
+            onPress={onClose}
             style={styles.closeButton}
             activeOpacity={0.7}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="close" size={24} color="#8E8E93" />
+            <Ionicons name="close" size={24} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
@@ -367,7 +584,7 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
                   <Text style={styles.sessionLabel}>Auth Data</Text>
                 </View>
               </View>
-              
+
               {sessionInfo.lastActivity && (
                 <View style={styles.lastActivity}>
                   <Text style={styles.lastActivityText}>
@@ -381,7 +598,7 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
           {/* Actions */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Actions</Text>
-            
+
             {/* Authentication Actions */}
             {!isAuthenticated && (
               <TouchableOpacity
@@ -392,11 +609,11 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
                 }}
                 disabled={isLoading}
               >
-                <Ionicons name="log-in-outline" size={20} color="#007AFF" />
+                <Ionicons name="log-in-outline" size={20} color={colors.accent} />
                 <Text style={styles.loginButtonText}>Login or Create Account</Text>
               </TouchableOpacity>
             )}
-            
+
             {isAuthenticated && (
               <TouchableOpacity
                 style={[styles.actionButton, styles.logoutButton]}
@@ -413,7 +630,7 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
               onPress={handleExportData}
               disabled={isLoading}
             >
-              <Ionicons name="download-outline" size={20} color="#007AFF" />
+              <Ionicons name="download-outline" size={20} color={colors.accent} />
               <Text style={styles.exportButtonText}>Export Session Data</Text>
             </TouchableOpacity>
 
@@ -425,7 +642,7 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
               }}
               disabled={isLoading}
             >
-              <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+              <Ionicons name="trash-outline" size={20} color={colors.statusError} />
               <Text style={styles.clearButtonText}>Clear All Data</Text>
             </TouchableOpacity>
 
@@ -434,7 +651,7 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
               onPress={cleanupStaleKeys}
               disabled={isLoading}
             >
-              <Ionicons name="brush-outline" size={20} color="#FF3B30" />
+              <Ionicons name="brush-outline" size={20} color={colors.statusError} />
               <Text style={styles.cleanupButtonText}>Cleanup Stale Keys</Text>
             </TouchableOpacity>
           </View>
@@ -442,7 +659,7 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
           {/* Loading indicator */}
           {isLoading && (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#007AFF" />
+              <ActivityIndicator size="large" color={colors.accent} />
               <Text style={styles.loadingText}>Processing...</Text>
             </View>
           )}
@@ -465,7 +682,7 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
                   onPress={() => setShowExportData(null)}
                   style={styles.exportModalClose}
                 >
-                  <Ionicons name="close" size={20} color="#8E8E93" />
+                  <Ionicons name="close" size={20} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
               <ScrollView style={styles.exportDataContainer}>
@@ -481,218 +698,3 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 60 : 20,
-    paddingBottom: 20,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E1E5E9',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  closeButton: {
-    padding: 10,
-    borderRadius: 22,
-    backgroundColor: '#F5F5F5',
-    minWidth: 44,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  section: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 16,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 12,
-  },
-  userStatusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  userStatusText: {
-    flex: 1,
-  },
-  userStatusTitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1A1A1A',
-  },
-  userStatusSubtitle: {
-    fontSize: 12,
-    color: '#8E8E93',
-    marginTop: 2,
-  },
-  sessionGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  sessionItem: {
-    flex: 1,
-    minWidth: '45%',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-  },
-  sessionValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#007AFF',
-  },
-  sessionLabel: {
-    fontSize: 11,
-    color: '#8E8E93',
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  lastActivity: {
-    marginTop: 12,
-    padding: 8,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 6,
-  },
-  lastActivityText: {
-    fontSize: 12,
-    color: '#8E8E93',
-    textAlign: 'center',
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 12,
-    gap: 12,
-  },
-  loginButton: {
-    backgroundColor: '#F0F8FF',
-    borderWidth: 1,
-    borderColor: '#007AFF',
-  },
-  loginButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#007AFF',
-  },
-  logoutButton: {
-    backgroundColor: '#FFF8F0',
-    borderWidth: 1,
-    borderColor: '#FF9500',
-  },
-  logoutButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#FF9500',
-  },
-  exportButton: {
-    backgroundColor: '#F0F8FF',
-    borderWidth: 1,
-    borderColor: '#007AFF',
-  },
-  exportButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#007AFF',
-  },
-  clearButton: {
-    backgroundColor: '#FFF0F0',
-    borderWidth: 1,
-    borderColor: '#FF3B30',
-  },
-  clearButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#FF3B30',
-  },
-  cleanupButton: {
-    backgroundColor: '#FFF0F0',
-    borderWidth: 1,
-    borderColor: '#FF3B30',
-  },
-  cleanupButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#FF3B30',
-  },
-  loadingContainer: {
-    alignItems: 'center',
-    padding: 20,
-  },
-  loadingText: {
-    fontSize: 14,
-    color: '#8E8E93',
-    marginTop: 8,
-  },
-  exportModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  exportModalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    width: '100%',
-    maxHeight: '80%',
-  },
-  exportModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E1E5E9',
-  },
-  exportModalTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  exportModalClose: {
-    padding: 4,
-  },
-  exportDataContainer: {
-    maxHeight: 300,
-    padding: 16,
-  },
-  exportDataText: {
-    fontSize: 12,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    color: '#1A1A1A',
-    lineHeight: 16,
-  },
-  exportModalNote: {
-    fontSize: 12,
-    color: '#8E8E93',
-    textAlign: 'center',
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#E1E5E9',
-  },
-}); 

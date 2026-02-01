@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthTooltip } from './AuthTooltip';
+import { useTheme, useThemedStyles } from '../theme';
 
 interface GitHubAuthSetupProps {
   onSave: (authMode: 'personal_access_token' | 'github_app', config: any) => Promise<void>;
@@ -16,6 +17,171 @@ export const GitHubAuthSetup: React.FC<GitHubAuthSetupProps> = ({
   isLoading = false,
   editingKey,
 }) => {
+  const { colors } = useTheme();
+
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bgCard,
+    },
+    header: {
+      padding: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: '700' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    subtitle: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      lineHeight: 22,
+    },
+    section: {
+      padding: 20,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 16,
+    },
+    optionCard: {
+      borderWidth: 2,
+      borderColor: colors.borderLight,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 12,
+    },
+    selectedOption: {
+      borderColor: colors.accent,
+      backgroundColor: colors.bgHover,
+    },
+    optionHeader: {
+      marginBottom: 8,
+    },
+    optionTitleContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 8,
+    },
+    optionTitle: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginLeft: 8,
+      flex: 1,
+    },
+    recommendedBadge: {
+      fontSize: 10,
+      fontWeight: '700' as const,
+      color: colors.statusSuccess,
+      backgroundColor: colors.accentSoft,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+    },
+    advancedBadge: {
+      fontSize: 10,
+      fontWeight: '700' as const,
+      color: colors.statusWarning,
+      backgroundColor: '#FFF4E6',
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+    },
+    optionDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+      marginBottom: 12,
+    },
+    optionFeatures: {
+      gap: 4,
+    },
+    featureText: {
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    inputContainer: {
+      marginBottom: 20,
+    },
+    inputLabel: {
+      fontSize: 16,
+      fontWeight: '500' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    textInput: {
+      borderWidth: 1,
+      borderColor: colors.borderMedium,
+      borderRadius: 8,
+      padding: 12,
+      fontSize: 16,
+      backgroundColor: colors.bgSurface,
+    },
+    textArea: {
+      borderWidth: 1,
+      borderColor: colors.borderMedium,
+      borderRadius: 8,
+      padding: 12,
+      fontSize: 14,
+      backgroundColor: colors.bgSurface,
+      minHeight: 120,
+      textAlignVertical: 'top' as const,
+    },
+    invalidInput: {
+      borderColor: colors.statusError,
+      backgroundColor: colors.bgSurface,
+    },
+    errorText: {
+      fontSize: 12,
+      color: colors.statusError,
+      marginTop: 4,
+    },
+    successText: {
+      fontSize: 12,
+      color: colors.statusSuccess,
+      marginTop: 4,
+    },
+    buttonContainer: {
+      flexDirection: 'row' as const,
+      padding: 20,
+      gap: 12,
+    },
+    cancelButton: {
+      flex: 1,
+      paddingVertical: 12,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.borderMedium,
+      alignItems: 'center' as const,
+    },
+    cancelButtonText: {
+      fontSize: 16,
+      fontWeight: '500' as const,
+      color: colors.textSecondary,
+    },
+    saveButton: {
+      flex: 2,
+      paddingVertical: 12,
+      borderRadius: 8,
+      backgroundColor: colors.accent,
+      alignItems: 'center' as const,
+    },
+    disabledButton: {
+      backgroundColor: colors.borderMedium,
+    },
+    saveButtonText: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textInverse,
+    },
+  }));
+
   // Initialize form based on editing key or defaults
   const getInitialMode = (): 'personal_access_token' | 'github_app' => {
     if (editingKey) {
@@ -82,19 +248,19 @@ export const GitHubAuthSetup: React.FC<GitHubAuthSetupProps> = ({
         );
         return;
       }
-      
+
       await onSave('personal_access_token', { token: patToken });
     } else {
       if (!validateAppId(appId)) {
         Alert.alert('Invalid App ID', 'Please enter a valid numeric GitHub App ID.');
         return;
       }
-      
+
       if (!validateInstallationId(installationId)) {
         Alert.alert('Invalid Installation ID', 'Please enter a valid numeric Installation ID.');
         return;
       }
-      
+
       if (!validatePrivateKey(privateKey)) {
         Alert.alert(
           'Invalid Private Key',
@@ -102,7 +268,7 @@ export const GitHubAuthSetup: React.FC<GitHubAuthSetupProps> = ({
         );
         return;
       }
-      
+
       await onSave('github_app', {
         app_id: parseInt(appId),
         private_key: privateKey,
@@ -131,17 +297,17 @@ export const GitHubAuthSetup: React.FC<GitHubAuthSetupProps> = ({
       {/* Auth Mode Selection */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Authentication Method</Text>
-        
+
         <TouchableOpacity
           style={[styles.optionCard, selectedMode === 'personal_access_token' && styles.selectedOption]}
           onPress={() => setSelectedMode('personal_access_token')}
         >
           <View style={styles.optionHeader}>
             <View style={styles.optionTitleContainer}>
-              <Ionicons 
-                name={selectedMode === 'personal_access_token' ? 'radio-button-on' : 'radio-button-off'} 
-                size={20} 
-                color={selectedMode === 'personal_access_token' ? '#007AFF' : '#999'} 
+              <Ionicons
+                name={selectedMode === 'personal_access_token' ? 'radio-button-on' : 'radio-button-off'}
+                size={20}
+                color={selectedMode === 'personal_access_token' ? colors.accent : colors.textTertiary}
               />
               <Text style={styles.optionTitle}>Personal Access Token (PAT)</Text>
               <Text style={styles.recommendedBadge}>RECOMMENDED FOR BEGINNERS</Text>
@@ -163,10 +329,10 @@ export const GitHubAuthSetup: React.FC<GitHubAuthSetupProps> = ({
         >
           <View style={styles.optionHeader}>
             <View style={styles.optionTitleContainer}>
-              <Ionicons 
-                name={selectedMode === 'github_app' ? 'radio-button-on' : 'radio-button-off'} 
-                size={20} 
-                color={selectedMode === 'github_app' ? '#007AFF' : '#999'} 
+              <Ionicons
+                name={selectedMode === 'github_app' ? 'radio-button-on' : 'radio-button-off'}
+                size={20}
+                color={selectedMode === 'github_app' ? colors.accent : colors.textTertiary}
               />
               <Text style={styles.optionTitle}>GitHub App</Text>
               <Text style={styles.advancedBadge}>ADVANCED</Text>
@@ -439,166 +605,3 @@ export const GitHubAuthSetup: React.FC<GitHubAuthSetupProps> = ({
     </ScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  header: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E7',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1D1D1F',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    lineHeight: 22,
-  },
-  section: {
-    padding: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1D1D1F',
-    marginBottom: 16,
-  },
-  optionCard: {
-    borderWidth: 2,
-    borderColor: '#E5E5E7',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-  },
-  selectedOption: {
-    borderColor: '#007AFF',
-    backgroundColor: '#F0F8FF',
-  },
-  optionHeader: {
-    marginBottom: 8,
-  },
-  optionTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  optionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1D1D1F',
-    marginLeft: 8,
-    flex: 1,
-  },
-  recommendedBadge: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#34C759',
-    backgroundColor: '#E8F5E8',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  advancedBadge: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#FF9500',
-    backgroundColor: '#FFF4E6',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  optionDescription: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  optionFeatures: {
-    gap: 4,
-  },
-  featureText: {
-    fontSize: 13,
-    color: '#666',
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1D1D1F',
-    marginBottom: 8,
-  },
-  textInput: {
-    borderWidth: 1,
-    borderColor: '#D1D1D6',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: '#FAFAFA',
-  },
-  textArea: {
-    borderWidth: 1,
-    borderColor: '#D1D1D6',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    backgroundColor: '#FAFAFA',
-    minHeight: 120,
-    textAlignVertical: 'top',
-  },
-  invalidInput: {
-    borderColor: '#FF3B30',
-    backgroundColor: '#FFF5F5',
-  },
-  errorText: {
-    fontSize: 12,
-    color: '#FF3B30',
-    marginTop: 4,
-  },
-  successText: {
-    fontSize: 12,
-    color: '#34C759',
-    marginTop: 4,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    padding: 20,
-    gap: 12,
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#D1D1D6',
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#666',
-  },
-  saveButton: {
-    flex: 2,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: '#007AFF',
-    alignItems: 'center',
-  },
-  disabledButton: {
-    backgroundColor: '#D1D1D6',
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-  },
-});

@@ -2,13 +2,12 @@ import React from 'react';
 import {
   View,
   Text,
-  StyleSheet,
-  SectionList,
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { FunctionDefinition, FunctionApiKeyRequirements } from '../types';
+import { useTheme, useThemedStyles } from '../theme';
 
 export interface GroupedFunctionListProps {
   functions: FunctionDefinition[];
@@ -60,6 +59,148 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
   defaultFunctionType = 'api',
   style,
 }) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+    },
+    group: {
+      marginBottom: 24,
+    },
+    groupHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      backgroundColor: colors.bgApp,
+      borderRadius: 8,
+      marginBottom: 8,
+    },
+    groupTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    groupCount: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    typeGroup: {
+      marginBottom: 12,
+    },
+    typeHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      backgroundColor: colors.bgCard,
+      borderRadius: 6,
+      marginBottom: 4,
+      gap: 8,
+    },
+    typeTitle: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+    },
+    typeCount: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    functionItem: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 8,
+      marginHorizontal: 8,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+      elevation: 1,
+    },
+    selectedFunctionItem: {
+      backgroundColor: '#E8F4FD',
+      borderWidth: 1,
+      borderColor: colors.accent,
+    },
+    functionHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'flex-start' as const,
+    },
+    functionInfo: {
+      flex: 1,
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+      gap: 12,
+    },
+    checkbox: {
+      width: 20,
+      height: 20,
+      borderRadius: 4,
+      borderWidth: 2,
+      borderColor: colors.textTertiary,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      marginTop: 2,
+    },
+    checkedCheckbox: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+    },
+    functionDetails: {
+      flex: 1,
+    },
+    functionName: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    functionDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+      marginBottom: 8,
+    },
+    functionMeta: {
+      flexDirection: 'row' as const,
+      gap: 16,
+    },
+    metaItem: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 4,
+    },
+    metaText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      fontWeight: '500' as const,
+    },
+    actionButtons: {
+      flexDirection: 'row' as const,
+      gap: 8,
+    },
+    actionButton: {
+      padding: 8,
+      borderRadius: 6,
+      backgroundColor: colors.bgApp,
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      paddingVertical: 64,
+    },
+    emptyMessage: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      marginTop: 16,
+      textAlign: 'center' as const,
+    },
+  }));
+
   // Group functions by domain (function_group) and then by type (function_type)
   const groupedFunctions: GroupedFunctions[] = React.useMemo(() => {
     if (!functions.length) return [];
@@ -70,24 +211,24 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
         console.warn('GroupedFunctionList: Invalid function object:', func);
         return acc;
       }
-      
+
       const groupName = func.functionGroup || 'general';
-      const functionType = func.functionType === 'mcp' ? 'mcp' : 
-                          func.functionType === 'api' ? 'api' : 
+      const functionType = func.functionType === 'mcp' ? 'mcp' :
+                          func.functionType === 'api' ? 'api' :
                           defaultFunctionType; // Use prop default for missing/invalid types
-      
+
       // Most functions from backend don't have functionType set, which is fine - they default to 'api'
       if (!func.functionGroup) {
         console.warn('GroupedFunctionList: Function missing functionGroup, defaulting to "general":', func.name || func.id);
       }
-      
+
       if (!acc[groupName]) {
         acc[groupName] = {
           api: [],
           mcp: [],
         };
       }
-      
+
       // Safely push to the correct array
       acc[groupName][functionType].push(func);
       return acc;
@@ -96,7 +237,7 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
     return Object.entries(grouped)
       .map(([groupName, types]) => {
         const data: FunctionTypeGroup[] = [];
-        
+
         // Add API functions if any
         if (types.api.length > 0) {
           data.push({
@@ -105,7 +246,7 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
             functions: types.api,
           });
         }
-        
+
         // Add MCP functions if any
         if (types.mcp.length > 0) {
           data.push({
@@ -128,16 +269,16 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
   };
 
   const getFunctionTypeColor = (type: 'api' | 'mcp') => {
-    return type === 'api' ? '#007AFF' : '#34C759';
+    return type === 'api' ? colors.accent : colors.statusSuccess;
   };
 
   // API Key Status Helper Functions
   const getApiKeyStatus = (func: FunctionDefinition): 'configured' | 'partial' | 'missing' | 'unknown' => {
     if (!showApiKeyStatus || !apiKeyRequirements) return 'unknown';
-    
+
     const requirements = apiKeyRequirements[func.id];
     if (!requirements) return 'unknown';
-    
+
     if (requirements.allKeysConfigured) return 'configured';
     if (requirements.configuredServices.length > 0) return 'partial';
     return 'missing';
@@ -160,23 +301,23 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
   const getApiKeyStatusColor = (status: string) => {
     switch (status) {
       case 'configured':
-        return '#34C759';
+        return colors.statusSuccess;
       case 'partial':
-        return '#FF9500';
+        return colors.statusWarning;
       case 'missing':
-        return '#FF3B30';
+        return colors.statusError;
       case 'unknown':
       default:
-        return '#8E8E93';
+        return colors.textSecondary;
     }
   };
 
   const getApiKeyStatusText = (func: FunctionDefinition): string => {
     if (!showApiKeyStatus || !apiKeyRequirements) return '';
-    
+
     const requirements = apiKeyRequirements[func.id];
     if (!requirements) return 'Unknown';
-    
+
     if (requirements.allKeysConfigured) {
       return `${requirements.configuredServices.length} keys ready`;
     } else if (requirements.configuredServices.length > 0) {
@@ -200,11 +341,11 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
 
   const renderFunctionItem = (func: FunctionDefinition) => {
     const selected = isSelected(func.id);
-    const safeType = func.functionType === 'mcp' ? 'mcp' : 
-                    func.functionType === 'api' ? 'api' : 
+    const safeType = func.functionType === 'mcp' ? 'mcp' :
+                    func.functionType === 'api' ? 'api' :
                     defaultFunctionType;
     const apiKeyStatus = getApiKeyStatus(func);
-    
+
     return (
       <TouchableOpacity
         key={func.id}
@@ -229,25 +370,25 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
               </Text>
               <View style={styles.functionMeta}>
                 <View style={styles.metaItem}>
-                  <Ionicons 
-                    name={getFunctionTypeIcon(safeType)} 
-                    size={12} 
-                    color={getFunctionTypeColor(safeType)} 
+                  <Ionicons
+                    name={getFunctionTypeIcon(safeType)}
+                    size={12}
+                    color={getFunctionTypeColor(safeType)}
                   />
                   <Text style={[styles.metaText, { color: getFunctionTypeColor(safeType) }]}>
                     {safeType.toUpperCase()}
                   </Text>
                 </View>
                 <View style={styles.metaItem}>
-                  <Ionicons name="code-outline" size={12} color="#8E8E93" />
+                  <Ionicons name="code-outline" size={12} color={colors.textSecondary} />
                   <Text style={styles.metaText}>{func.httpMethod || 'GET'}</Text>
                 </View>
                 {showApiKeyStatus && (
                   <View style={styles.metaItem}>
-                    <Ionicons 
-                      name={getApiKeyStatusIcon(apiKeyStatus)} 
-                      size={12} 
-                      color={getApiKeyStatusColor(apiKeyStatus)} 
+                    <Ionicons
+                      name={getApiKeyStatusIcon(apiKeyStatus)}
+                      size={12}
+                      color={getApiKeyStatusColor(apiKeyStatus)}
                     />
                     <Text style={[styles.metaText, { color: getApiKeyStatusColor(apiKeyStatus) }]}>
                       {getApiKeyStatusText(func)}
@@ -265,7 +406,7 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
                   style={styles.actionButton}
                   onPress={() => onConfigureApiKeys(func)}
                 >
-                  <Ionicons name="key-outline" size={18} color="#FF9500" />
+                  <Ionicons name="key-outline" size={18} color={colors.statusWarning} />
                 </TouchableOpacity>
               )}
               {onTest && (
@@ -273,7 +414,7 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
                   style={styles.actionButton}
                   onPress={() => onTest(func)}
                 >
-                  <Ionicons name="play-outline" size={18} color="#34C759" />
+                  <Ionicons name="play-outline" size={18} color={colors.statusSuccess} />
                 </TouchableOpacity>
               )}
               {onEdit && (
@@ -281,7 +422,7 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
                   style={styles.actionButton}
                   onPress={() => onEdit(func)}
                 >
-                  <Ionicons name="create-outline" size={18} color="#007AFF" />
+                  <Ionicons name="create-outline" size={18} color={colors.accent} />
                 </TouchableOpacity>
               )}
               {onDelete && (
@@ -289,7 +430,7 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
                   style={styles.actionButton}
                   onPress={() => onDelete(func.id)}
                 >
-                  <Ionicons name="trash-outline" size={18} color="#FF3B30" />
+                  <Ionicons name="trash-outline" size={18} color={colors.statusError} />
                 </TouchableOpacity>
               )}
             </View>
@@ -304,10 +445,10 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
       <View key={typeGroup.type} style={styles.typeGroup}>
         {showTypeLabels && (
           <View style={styles.typeHeader}>
-            <Ionicons 
-              name={getFunctionTypeIcon(typeGroup.type)} 
-              size={16} 
-              color={getFunctionTypeColor(typeGroup.type)} 
+            <Ionicons
+              name={getFunctionTypeIcon(typeGroup.type)}
+              size={16}
+              color={getFunctionTypeColor(typeGroup.type)}
             />
             <Text style={[styles.typeTitle, { color: getFunctionTypeColor(typeGroup.type) }]}>
               {typeGroup.typeName}
@@ -332,7 +473,7 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
   if (functions.length === 0) {
     return (
       <View style={[styles.emptyContainer, style]}>
-        <Ionicons name="code-slash-outline" size={48} color="#C7C7CC" />
+        <Ionicons name="code-slash-outline" size={48} color={colors.textTertiary} />
         <Text style={styles.emptyMessage}>{emptyMessage}</Text>
       </View>
     );
@@ -350,145 +491,4 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  group: {
-    marginBottom: 24,
-  },
-  groupHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#F2F2F7',
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  groupTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
-  },
-  groupCount: {
-    fontSize: 14,
-    color: '#8E8E93',
-  },
-  typeGroup: {
-    marginBottom: 12,
-  },
-  typeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 6,
-    marginBottom: 4,
-    gap: 8,
-  },
-  typeTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  typeCount: {
-    fontSize: 12,
-    color: '#8E8E93',
-  },
-  functionItem: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
-    marginHorizontal: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  selectedFunctionItem: {
-    backgroundColor: '#E8F4FD',
-    borderWidth: 1,
-    borderColor: '#007AFF',
-  },
-  functionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  functionInfo: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: '#C7C7CC',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-  },
-  checkedCheckbox: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
-  },
-  functionDetails: {
-    flex: 1,
-  },
-  functionName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 4,
-  },
-  functionDescription: {
-    fontSize: 14,
-    color: '#8E8E93',
-    lineHeight: 20,
-    marginBottom: 8,
-  },
-  functionMeta: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  metaText: {
-    fontSize: 12,
-    color: '#8E8E93',
-    fontWeight: '500',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  actionButton: {
-    padding: 8,
-    borderRadius: 6,
-    backgroundColor: '#F2F2F7',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 64,
-  },
-  emptyMessage: {
-    fontSize: 16,
-    color: '#8E8E93',
-    marginTop: 16,
-    textAlign: 'center',
-  },
-});
-
-export default GroupedFunctionList; 
+export default GroupedFunctionList;

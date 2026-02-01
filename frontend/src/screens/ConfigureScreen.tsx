@@ -22,7 +22,9 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import ConfigurationCard from '../components/ConfigurationCard';
 import { SessionManager } from '../components/SessionManager';
-import { containerStyles, webInputStyles } from '../styles/containers';
+import { webInputStyles } from '../styles/containers';
+import { useTheme, useThemedStyles } from '../theme';
+import type { ThemeColors } from '../theme';
 import LoadingScreen from '../components/LoadingScreen';
 import { CustomAlert, AlertAPI, AlertButton } from '../components/CustomAlert';
 import ModelSelector from '../components/ModelSelector';
@@ -43,34 +45,38 @@ interface TooltipProps {
   examples: string[];
 }
 
-const Tooltip: React.FC<TooltipProps> = ({ visible, onClose, title, description, examples }) => (
-  <Modal
-    visible={visible}
-    transparent
-    animationType="fade"
-    onRequestClose={onClose}
-  >
-    <TouchableOpacity style={styles.tooltipOverlay} onPress={onClose}>
-      <View style={styles.tooltipContainer}>
-        <View style={styles.tooltipHeader}>
-          <Text style={styles.tooltipTitle}>{title}</Text>
-          <TouchableOpacity onPress={onClose} style={styles.tooltipCloseButton}>
-            <Ionicons name="close" size={20} color="#8E8E93" />
-          </TouchableOpacity>
+const Tooltip: React.FC<TooltipProps> = ({ visible, onClose, title, description, examples }) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <TouchableOpacity style={styles.tooltipOverlay} onPress={onClose}>
+        <View style={styles.tooltipContainer}>
+          <View style={styles.tooltipHeader}>
+            <Text style={styles.tooltipTitle}>{title}</Text>
+            <TouchableOpacity onPress={onClose} style={styles.tooltipCloseButton}>
+              <Ionicons name="close" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.tooltipDescription}>{description}</Text>
+
+          <View style={styles.tooltipExamples}>
+            <Text style={styles.tooltipExamplesTitle}>Example Values:</Text>
+            {examples.map((example, index) => (
+              <Text key={index} style={styles.tooltipExample}>• {example}</Text>
+            ))}
+          </View>
         </View>
-        
-        <Text style={styles.tooltipDescription}>{description}</Text>
-        
-        <View style={styles.tooltipExamples}>
-          <Text style={styles.tooltipExamplesTitle}>Example Values:</Text>
-          {examples.map((example, index) => (
-            <Text key={index} style={styles.tooltipExample}>• {example}</Text>
-          ))}
-        </View>
-      </View>
-    </TouchableOpacity>
-  </Modal>
-);
+      </TouchableOpacity>
+    </Modal>
+  );
+};
 
 // Parameter Field with Tooltip Component
 interface ParameterFieldProps {
@@ -86,14 +92,16 @@ interface ParameterFieldProps {
   };
 }
 
-const ParameterField: React.FC<ParameterFieldProps> = ({ 
-  label, 
-  value, 
-  onChangeText, 
-  placeholder, 
+const ParameterField: React.FC<ParameterFieldProps> = ({
+  label,
+  value,
+  onChangeText,
+  placeholder,
   keyboardType = 'default',
-  tooltipInfo 
+  tooltipInfo
 }) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [showTooltip, setShowTooltip] = useState(false);
 
   return (
@@ -104,7 +112,7 @@ const ParameterField: React.FC<ParameterFieldProps> = ({
           onPress={() => setShowTooltip(true)}
           style={styles.tooltipButton}
         >
-          <Ionicons name="help-circle-outline" size={16} color="#007AFF" />
+          <Ionicons name="help-circle-outline" size={16} color={colors.accent} />
         </TouchableOpacity>
       </View>
       <TextInput
@@ -126,6 +134,8 @@ const ParameterField: React.FC<ParameterFieldProps> = ({
 };
 
 const ConfigureScreen: React.FC = () => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { state, updateConfig, addConfiguration, updateConfiguration, deleteConfiguration, loadConfigurations, testConnection, clearError, clearSession, exportSessionData, importSessionData, refreshAllData } = useApp();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { showSuccess, showError, showWarning, showInfo, showToast } = useToast();
@@ -151,7 +161,7 @@ const ConfigureScreen: React.FC = () => {
 
 
   // Connection status color
-  const connectionColor = state.isConnected ? '#34C759' : '#FF3B30';
+  const connectionColor = state.isConnected ? colors.statusSuccess : colors.statusError;
   const connectionText = state.isConnected 
     ? `Connected (${state.connectionLatency}ms)` 
     : 'Disconnected';
@@ -274,7 +284,7 @@ const ConfigureScreen: React.FC = () => {
           onPress={() => setIsEditing(!isEditing)}
           style={styles.editButton}
         >
-          <Ionicons name={isEditing ? "close" : "pencil"} size={20} color="#007AFF" />
+          <Ionicons name={isEditing ? "close" : "pencil"} size={20} color={colors.accent} />
         </TouchableOpacity>
       </View>
 
@@ -384,8 +394,8 @@ const ConfigureScreen: React.FC = () => {
             value={useMockResponses}
             onValueChange={setUseMockResponses}
             disabled={!isEditing}
-            trackColor={{ false: '#E5E5EA', true: '#34C759' }}
-            thumbColor={useMockResponses ? '#FFFFFF' : '#F4F3F4'}
+            trackColor={{ false: colors.borderLight, true: colors.statusSuccess }}
+            thumbColor={useMockResponses ? colors.bgCard : colors.bgSurface}
           />
         </View>
         <Text style={styles.settingDescription}>
@@ -424,7 +434,7 @@ const ConfigureScreen: React.FC = () => {
             style={styles.addButton}
             onPress={() => setShowNewConfigForm(true)}
           >
-            <Ionicons name="add" size={20} color="#007AFF" />
+            <Ionicons name="add" size={20} color={colors.accent} />
             <Text style={styles.addButtonText}>Add New</Text>
           </TouchableOpacity>
         </View>
@@ -433,7 +443,7 @@ const ConfigureScreen: React.FC = () => {
         {systemConfigurations.length > 0 && (
           <>
             <View style={styles.subsectionHeader}>
-              <Ionicons name="shield-checkmark" size={16} color="#007AFF" />
+              <Ionicons name="shield-checkmark" size={16} color={colors.accent} />
               <Text style={styles.subsectionTitle}>System Configurations</Text>
               <Text style={styles.subsectionCount}>({systemConfigurations.length})</Text>
             </View>
@@ -456,14 +466,14 @@ const ConfigureScreen: React.FC = () => {
 
         {/* User Configurations */}
         <View style={styles.subsectionHeader}>
-          <Ionicons name="person" size={16} color="#34C759" />
+          <Ionicons name="person" size={16} color={colors.statusSuccess} />
           <Text style={styles.subsectionTitle}>Your Configurations</Text>
           <Text style={styles.subsectionCount}>({userConfigurations.length})</Text>
         </View>
         
         {userConfigurations.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="document-outline" size={48} color="#C7C7CC" />
+            <Ionicons name="document-outline" size={48} color={colors.textTertiary} />
             <Text style={styles.emptyStateTitle}>No Custom Configurations</Text>
             <Text style={styles.emptyStateText}>
               Create your own AI configurations or duplicate system ones to get started.
@@ -598,17 +608,17 @@ const ConfigureScreen: React.FC = () => {
       
       <View style={styles.debugButtonContainer}>
         <TouchableOpacity style={styles.debugButton} onPress={handleDebugAuth}>
-          <Ionicons name="bug" size={16} color="#007AFF" />
+          <Ionicons name="bug" size={16} color={colors.accent} />
           <Text style={styles.debugButtonText}>Debug Auth State</Text>
         </TouchableOpacity>
         
         <TouchableOpacity style={styles.debugButton} onPress={handleCreateTestUser}>
-          <Ionicons name="person-add" size={16} color="#34C759" />
+          <Ionicons name="person-add" size={16} color={colors.statusSuccess} />
           <Text style={styles.debugButtonText}>Create Test User</Text>
         </TouchableOpacity>
         
         <TouchableOpacity style={styles.debugButton} onPress={handleClearAuth}>
-          <Ionicons name="trash" size={16} color="#FF3B30" />
+          <Ionicons name="trash" size={16} color={colors.statusError} />
           <Text style={styles.debugButtonText}>Clear Auth Data</Text>
         </TouchableOpacity>
       </View>
@@ -627,7 +637,7 @@ const ConfigureScreen: React.FC = () => {
           style={styles.sessionButton}
           onPress={() => setShowSessionManager(true)}
         >
-          <Ionicons name="person-circle-outline" size={24} color="#007AFF" />
+          <Ionicons name="person-circle-outline" size={24} color={colors.accent} />
           <Text style={styles.sessionButtonText}>Session</Text>
         </TouchableOpacity>
       </View>
@@ -648,7 +658,7 @@ const ConfigureScreen: React.FC = () => {
           style={[styles.sessionButton, styles.exportButton]} 
           onPress={handleExportSession}
         >
-          <Ionicons name="download-outline" size={20} color="#007AFF" />
+          <Ionicons name="download-outline" size={20} color={colors.accent} />
           <Text style={styles.exportButtonText}>Export Data</Text>
         </TouchableOpacity>
 
@@ -656,7 +666,7 @@ const ConfigureScreen: React.FC = () => {
           style={[styles.sessionButton, styles.clearButton]} 
           onPress={handleClearSession}
         >
-          <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+          <Ionicons name="trash-outline" size={20} color={colors.statusError} />
           <Text style={styles.clearButtonText}>Clear Session</Text>
         </TouchableOpacity>
       </View>
@@ -718,6 +728,8 @@ const NewConfigurationFormModal: React.FC<{
   onClose: () => void; 
   editingConfig?: APIConfiguration | null; 
 }> = ({ onClose, editingConfig }) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { addConfiguration, updateConfiguration } = useApp();
   const { user } = useAuth();
   const { showSuccess, showError } = useToast();
@@ -796,7 +808,7 @@ const NewConfigurationFormModal: React.FC<{
               {isEditing ? 'Edit Configuration' : 'New Configuration'}
             </Text>
             <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color="#8E8E93" />
+              <Ionicons name="close" size={24} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
           
@@ -914,6 +926,8 @@ const ViewConfigurationModal: React.FC<{
   configuration: APIConfiguration;
   onClose: () => void; 
 }> = ({ configuration, onClose }) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { user } = useAuth();
   const ownership = getResourceOwnership(configuration, user?.id);
   
@@ -942,7 +956,7 @@ const ViewConfigurationModal: React.FC<{
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             activeOpacity={0.7}
           >
-            <Ionicons name="close" size={24} color="#8E8E93" />
+            <Ionicons name="close" size={24} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
         
@@ -959,14 +973,14 @@ const ViewConfigurationModal: React.FC<{
             <View style={styles.viewBadgesContainer}>
               {ownership.ownershipType === 'system' && (
                 <View style={styles.systemViewBadge}>
-                  <Ionicons name="shield-checkmark" size={12} color="#007AFF" />
+                  <Ionicons name="shield-checkmark" size={12} color={colors.accent} />
                   <Text style={styles.systemViewBadgeText}>SYSTEM</Text>
                 </View>
               )}
               
               {ownership.ownershipType !== 'system' && ownership.ownerInfo && !ownership.ownerInfo.isCurrentUser && (
                 <View style={styles.ownerViewBadge}>
-                  <Ionicons name="person" size={12} color="#8E8E93" />
+                  <Ionicons name="person" size={12} color={colors.textSecondary} />
                   <Text style={styles.ownerViewBadgeText}>Other User</Text>
                 </View>
               )}
@@ -1016,7 +1030,7 @@ const ViewConfigurationModal: React.FC<{
           {/* Additional Info */}
           {ownership.ownershipType === 'system' && (
             <View style={styles.viewInfoSection}>
-              <Ionicons name="information-circle" size={20} color="#007AFF" />
+              <Ionicons name="information-circle" size={20} color={colors.accent} />
               <Text style={styles.viewInfoText}>
                 This is a system-provided configuration. You can duplicate it to create your own customizable version.
               </Text>
@@ -1028,10 +1042,10 @@ const ViewConfigurationModal: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => ({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.bgApp,
   },
   scrollContainer: {
     flex: 1,
@@ -1040,11 +1054,11 @@ const styles = StyleSheet.create({
     paddingBottom: 120, // Increased padding to account for tab bar + UserStatusBar
   },
   headerContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E1E5E9',
+    borderBottomColor: colors.borderLight,
   },
   headerTop: {
     flexDirection: 'row',
@@ -1054,12 +1068,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#1A1A1A',
+    color: colors.textPrimary,
   },
   sessionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0F8FF',
+    backgroundColor: colors.bgHover,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -1068,11 +1082,19 @@ const styles = StyleSheet.create({
   sessionButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#007AFF',
+    color: colors.accent,
   },
   section: {
-    ...containerStyles.primaryContainer,
+    backgroundColor: colors.bgCard,
     marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 8,
+    borderRadius: 8,
+    padding: 20,
+    shadowColor: colors.shadowColor,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -1083,12 +1105,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: colors.textPrimary,
     flex: 1,
   },
   sectionDescription: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     lineHeight: 20,
     marginTop: 8,
   },
@@ -1098,7 +1120,7 @@ const styles = StyleSheet.create({
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0F8FF',
+    backgroundColor: colors.bgHover,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -1107,7 +1129,7 @@ const styles = StyleSheet.create({
   addButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#007AFF',
+    color: colors.accent,
   },
   settingItem: {
     marginBottom: 16,
@@ -1115,26 +1137,26 @@ const styles = StyleSheet.create({
   settingLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#000000',
+    color: colors.textPrimary,
     marginBottom: 8,
   },
   settingDescription: {
     fontSize: 12,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   textInput: {
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderLight,
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     ...webInputStyles,
   },
   disabledInput: {
-    backgroundColor: '#F2F2F7',
-    color: '#8E8E93',
+    backgroundColor: colors.bgApp,
+    color: colors.textSecondary,
   },
   switchRow: {
     flexDirection: 'row',
@@ -1150,25 +1172,25 @@ const styles = StyleSheet.create({
   emptyStateTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: colors.textPrimary,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyStateText: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 20,
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: '#C7C7CC',
+    color: colors.textTertiary,
     textAlign: 'center',
     marginTop: 8,
   },
   formContainer: {
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.bgApp,
     borderRadius: 8,
     padding: 16,
     marginBottom: 16,
@@ -1176,7 +1198,7 @@ const styles = StyleSheet.create({
   formTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.textPrimary,
     marginBottom: 16,
   },
   formField: {
@@ -1185,16 +1207,16 @@ const styles = StyleSheet.create({
   formLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#000000',
+    color: colors.textPrimary,
     marginBottom: 8,
   },
   formInput: {
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderLight,
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     ...webInputStyles,
   },
   textArea: {
@@ -1203,34 +1225,34 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   modelSelector: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderLight,
   },
   modelOption: {
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+    borderBottomColor: colors.borderLight,
   },
   modelOptionSelected: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   modelOptionText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   modelOptionTextSelected: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
   },
   modelOptionDescription: {
     fontSize: 12,
-    color: '#8E8E93',
+    color: colors.textSecondary,
   },
   parameterRow: {
     flexDirection: 'row',
@@ -1250,11 +1272,11 @@ const styles = StyleSheet.create({
   },
   parameterInput: {
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderLight,
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
   },
   tooltipOverlay: {
     flex: 1,
@@ -1263,7 +1285,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   tooltipContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderRadius: 12,
     padding: 20,
     width: width * 0.8,
@@ -1279,14 +1301,14 @@ const styles = StyleSheet.create({
   tooltipTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.textPrimary,
   },
   tooltipCloseButton: {
     padding: 4,
   },
   tooltipDescription: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 15,
   },
@@ -1296,16 +1318,16 @@ const styles = StyleSheet.create({
   tooltipExamplesTitle: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#000000',
+    color: colors.textPrimary,
     marginBottom: 8,
   },
   tooltipExample: {
     fontSize: 13,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     marginBottom: 4,
   },
   sessionSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     marginHorizontal: 16,
     marginTop: 16,
     borderRadius: 12,
@@ -1317,27 +1339,27 @@ const styles = StyleSheet.create({
   },
 
   exportButton: {
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.bgApp,
   },
   exportButtonText: {
-    color: '#007AFF',
+    color: colors.accent,
     fontSize: 14,
     fontWeight: '500',
     marginLeft: 8,
   },
   clearButton: {
-    borderColor: '#FF3B30',
+    borderColor: colors.statusError,
     borderWidth: 1,
   },
   clearButtonText: {
-    color: '#FF3B30',
+    color: colors.statusError,
     fontSize: 14,
     fontWeight: '500',
     marginLeft: 8,
   },
   sessionNote: {
     fontSize: 12,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 12,
     fontStyle: 'italic',
@@ -1355,12 +1377,12 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     marginRight: 8,
   },
   latencyText: {
     fontSize: 12,
-    color: '#C7C7CC',
+    color: colors.textTertiary,
   },
   subsectionContainer: {
     marginTop: 24,
@@ -1374,15 +1396,15 @@ const styles = StyleSheet.create({
   subsectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: colors.textPrimary,
   },
   subsectionCount: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     fontWeight: '500',
   },
   emptyStateButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: colors.accent,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
@@ -1390,11 +1412,11 @@ const styles = StyleSheet.create({
   emptyStateButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textInverse,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.bgApp,
   },
   modalKeyboardView: {
     flex: 1,
@@ -1405,14 +1427,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderBottomWidth: 1,
-    borderBottomColor: '#E1E5E9',
+    borderBottomColor: colors.borderLight,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: colors.textPrimary,
   },
   modalContent: {
     flex: 1,
@@ -1426,15 +1448,15 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: colors.textPrimary,
     marginBottom: 8,
     marginTop: 4,
   },
   input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E1E5E9',
+    borderColor: colors.borderLight,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
@@ -1445,25 +1467,25 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   inputError: {
-    borderColor: '#FF3B30',
+    borderColor: colors.statusError,
     borderWidth: 2,
   },
   errorText: {
     fontSize: 12,
-    color: '#FF3B30',
+    color: colors.statusError,
     marginTop: 4,
     marginLeft: 4,
   },
   modalFooter: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 34,
     borderTopWidth: 1,
-    borderTopColor: '#E1E5E9',
+    borderTopColor: colors.borderLight,
   },
   saveButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: colors.accent,
     borderRadius: 8,
     paddingVertical: 16,
     alignItems: 'center',
@@ -1472,7 +1494,7 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textInverse,
   },
   
   // Debug section styles
@@ -1487,20 +1509,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: colors.bgSurface,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: colors.borderLight,
     gap: 6,
   },
   debugButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#495057',
+    color: colors.textSecondary,
   },
   debugHint: {
     fontSize: 12,
-    color: '#6C757D',
+    color: colors.textSecondary,
     fontStyle: 'italic',
     lineHeight: 16,
   },
@@ -1509,13 +1531,13 @@ const styles = StyleSheet.create({
   viewHeader: {
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#E1E5E9',
+    borderBottomColor: colors.borderLight,
     marginBottom: 20,
   },
   viewConfigName: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1A1A1A',
+    color: colors.textPrimary,
     marginBottom: 12,
   },
   viewBadgesContainer: {
@@ -1525,7 +1547,7 @@ const styles = StyleSheet.create({
   systemViewBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0F8FF',
+    backgroundColor: colors.bgHover,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -1534,12 +1556,12 @@ const styles = StyleSheet.create({
   systemViewBadgeText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#007AFF',
+    color: colors.accent,
   },
   ownerViewBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8F9FA',
+    backgroundColor: colors.bgSurface,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -1548,7 +1570,7 @@ const styles = StyleSheet.create({
   ownerViewBadgeText: {
     fontSize: 10,
     fontWeight: '500',
-    color: '#8E8E93',
+    color: colors.textSecondary,
   },
   viewSection: {
     marginBottom: 24,
@@ -1556,7 +1578,7 @@ const styles = StyleSheet.create({
   viewSectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: colors.textPrimary,
     marginBottom: 12,
   },
   viewDetailRow: {
@@ -1565,36 +1587,36 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: colors.borderSubtle,
   },
   viewDetailLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#8E8E93',
+    color: colors.textSecondary,
     flex: 1,
   },
   viewDetailValue: {
     fontSize: 14,
-    color: '#1A1A1A',
+    color: colors.textPrimary,
     flex: 2,
     textAlign: 'right',
   },
   viewPromptContainer: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: colors.bgSurface,
     borderRadius: 8,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E1E5E9',
+    borderColor: colors.borderLight,
   },
   viewPromptText: {
     fontSize: 14,
-    color: '#1A1A1A',
+    color: colors.textPrimary,
     lineHeight: 20,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   viewInfoSection: {
     flexDirection: 'row',
-    backgroundColor: '#F0F8FF',
+    backgroundColor: colors.bgHover,
     borderRadius: 8,
     padding: 16,
     alignItems: 'flex-start',
@@ -1603,7 +1625,7 @@ const styles = StyleSheet.create({
   },
   viewInfoText: {
     fontSize: 14,
-    color: '#007AFF',
+    color: colors.accent,
     lineHeight: 20,
     flex: 1,
   },

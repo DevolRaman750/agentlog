@@ -2,20 +2,20 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
-  ScrollView,
   Switch,
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import EnhancedTextEditor from './EnhancedTextEditor';
 import ScreenContainer from './ScreenContainer';
+import { useTheme, useThemedStyles } from '../theme';
 
 /**
  * Demo component showcasing the EnhancedTextEditor capabilities
  * This demonstrates all the features and use cases for the text editor
  */
 const EnhancedTextEditorDemo: React.FC = () => {
+  const { colors } = useTheme();
   const [basicText, setBasicText] = useState('');
   const [promptText, setPromptText] = useState(
     `Write a compelling product description for a sustainable water bottle.
@@ -55,13 +55,145 @@ Technical specifications:
 For more information, visit [our website](https://example.com).`
   );
   const [contextText, setContextText] = useState('');
-  
+
   // Demo settings
   const [showLineNumbers, setShowLineNumbers] = useState(false);
   const [showToolbar, setShowToolbar] = useState(true);
   const [enableMarkdown, setEnableMarkdown] = useState(true);
   const [autoExpandOnFocus, setAutoExpandOnFocus] = useState(true);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      padding: 16,
+      paddingBottom: 40,
+    },
+    header: {
+      marginBottom: 24,
+    },
+    title: {
+      fontSize: 28,
+      fontWeight: 'bold' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    subtitle: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      lineHeight: 22,
+    },
+    settingsPanel: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 24,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    settingsTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 16,
+    },
+    settingRow: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      marginBottom: 12,
+    },
+    settingLabel: {
+      fontSize: 16,
+      color: colors.textPrimary,
+      flex: 1,
+    },
+    themeToggle: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: colors.bgSurface,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 8,
+      gap: 6,
+    },
+    themeToggleText: {
+      fontSize: 14,
+      color: colors.textPrimary,
+      fontWeight: '500' as const,
+    },
+    demoSection: {
+      marginBottom: 32,
+    },
+    sectionHeader: {
+      marginBottom: 16,
+    },
+    sectionTitle: {
+      fontSize: 20,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    sectionDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+    },
+    sectionContent: {
+      // Content will be styled by the text editor component
+    },
+    featuresSection: {
+      marginTop: 32,
+      marginBottom: 32,
+    },
+    featuresTitle: {
+      fontSize: 20,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 16,
+    },
+    featuresList: {
+      gap: 12,
+    },
+    featureItem: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 12,
+    },
+    featureText: {
+      fontSize: 14,
+      color: colors.textPrimary,
+      flex: 1,
+    },
+    tipsSection: {
+      backgroundColor: colors.bgSurface,
+      borderRadius: 12,
+      padding: 16,
+      marginTop: 16,
+    },
+    tipsTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 16,
+    },
+    tipsList: {
+      gap: 16,
+    },
+    tipItem: {
+      // Individual tip styling
+    },
+    tipTitle: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    tipText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+    },
+  }));
 
   const demoSections = [
     {
@@ -161,7 +293,7 @@ For more information, visit [our website](https://example.com).`
   ];
 
   return (
-    <ScreenContainer 
+    <ScreenContainer
       enableKeyboardAvoiding={true}
       enableScrolling={true}
       showsVerticalScrollIndicator={false}
@@ -178,57 +310,57 @@ For more information, visit [our website](https://example.com).`
         {/* Settings Panel */}
         <View style={styles.settingsPanel}>
           <Text style={styles.settingsTitle}>Demo Settings</Text>
-          
+
           <View style={styles.settingRow}>
             <Text style={styles.settingLabel}>Show Line Numbers</Text>
             <Switch
               value={showLineNumbers}
               onValueChange={setShowLineNumbers}
-              trackColor={{ false: '#C7C7CC', true: '#007AFF' }}
-              thumbColor={showLineNumbers ? '#FFFFFF' : '#FFFFFF'}
+              trackColor={{ false: colors.textTertiary, true: colors.accent }}
+              thumbColor={colors.bgCard}
             />
           </View>
-          
+
           <View style={styles.settingRow}>
             <Text style={styles.settingLabel}>Show Toolbar</Text>
             <Switch
               value={showToolbar}
               onValueChange={setShowToolbar}
-              trackColor={{ false: '#C7C7CC', true: '#007AFF' }}
-              thumbColor={showToolbar ? '#FFFFFF' : '#FFFFFF'}
+              trackColor={{ false: colors.textTertiary, true: colors.accent }}
+              thumbColor={colors.bgCard}
             />
           </View>
-          
+
           <View style={styles.settingRow}>
             <Text style={styles.settingLabel}>Enable Markdown</Text>
             <Switch
               value={enableMarkdown}
               onValueChange={setEnableMarkdown}
-              trackColor={{ false: '#C7C7CC', true: '#007AFF' }}
-              thumbColor={enableMarkdown ? '#FFFFFF' : '#FFFFFF'}
+              trackColor={{ false: colors.textTertiary, true: colors.accent }}
+              thumbColor={colors.bgCard}
             />
           </View>
-          
+
           <View style={styles.settingRow}>
             <Text style={styles.settingLabel}>Auto-Expand on Focus</Text>
             <Switch
               value={autoExpandOnFocus}
               onValueChange={setAutoExpandOnFocus}
-              trackColor={{ false: '#C7C7CC', true: '#007AFF' }}
-              thumbColor={autoExpandOnFocus ? '#FFFFFF' : '#FFFFFF'}
+              trackColor={{ false: colors.textTertiary, true: colors.accent }}
+              thumbColor={colors.bgCard}
             />
           </View>
-          
+
           <View style={styles.settingRow}>
             <Text style={styles.settingLabel}>Theme</Text>
             <TouchableOpacity
               style={styles.themeToggle}
               onPress={() => setTheme(theme === 'light' ? 'dark' : 'light')}
             >
-              <Ionicons 
-                name={theme === 'light' ? 'sunny' : 'moon'} 
-                size={16} 
-                color={theme === 'light' ? '#FF9500' : '#007AFF'} 
+              <Ionicons
+                name={theme === 'light' ? 'sunny' : 'moon'}
+                size={16}
+                color={theme === 'light' ? colors.accentSecondary : colors.accent}
               />
               <Text style={styles.themeToggleText}>
                 {theme === 'light' ? 'Light' : 'Dark'}
@@ -244,7 +376,7 @@ For more information, visit [our website](https://example.com).`
               <Text style={styles.sectionTitle}>{section.title}</Text>
               <Text style={styles.sectionDescription}>{section.description}</Text>
             </View>
-            
+
             <View style={styles.sectionContent}>
               {section.component}
             </View>
@@ -254,7 +386,7 @@ For more information, visit [our website](https://example.com).`
         {/* Features List */}
         <View style={styles.featuresSection}>
           <Text style={styles.featuresTitle}>Key Features</Text>
-          
+
           <View style={styles.featuresList}>
             {[
               { icon: 'phone-portrait', text: 'Mobile-first full-screen editing experience' },
@@ -270,7 +402,7 @@ For more information, visit [our website](https://example.com).`
               { icon: 'color-palette', text: 'Light and dark theme support' }
             ].map((feature, index) => (
               <View key={index} style={styles.featureItem}>
-                <Ionicons name={feature.icon as any} size={20} color="#007AFF" />
+                <Ionicons name={feature.icon as any} size={20} color={colors.accent} />
                 <Text style={styles.featureText}>{feature.text}</Text>
               </View>
             ))}
@@ -280,7 +412,7 @@ For more information, visit [our website](https://example.com).`
         {/* Usage Tips */}
         <View style={styles.tipsSection}>
           <Text style={styles.tipsTitle}>Usage Tips</Text>
-          
+
           <View style={styles.tipsList}>
             <View style={styles.tipItem}>
               <Text style={styles.tipTitle}>📱 Mobile Experience</Text>
@@ -288,21 +420,21 @@ For more information, visit [our website](https://example.com).`
                 On mobile devices, the editor automatically expands to full-screen when you tap into any text field, providing a distraction-free editing experience with toolbar.
               </Text>
             </View>
-            
+
             <View style={styles.tipItem}>
               <Text style={styles.tipTitle}>⌨️ Keyboard Shortcuts</Text>
               <Text style={styles.tipText}>
                 Use Cmd+B for bold, Cmd+I for italic, Cmd+K for links, and Cmd+Z for undo/redo (web only).
               </Text>
             </View>
-            
+
             <View style={styles.tipItem}>
               <Text style={styles.tipTitle}>🎨 Formatting Tools</Text>
               <Text style={styles.tipText}>
                 The toolbar provides quick access to common formatting like bold, italic, lists, quotes, and code blocks.
               </Text>
             </View>
-            
+
             <View style={styles.tipItem}>
               <Text style={styles.tipTitle}>♿ Accessibility</Text>
               <Text style={styles.tipText}>
@@ -315,137 +447,5 @@ For more information, visit [our website](https://example.com).`
     </ScreenContainer>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  header: {
-    marginBottom: 24,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6B6B6B',
-    lineHeight: 22,
-  },
-  settingsPanel: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  settingsTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 16,
-  },
-  settingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  settingLabel: {
-    fontSize: 16,
-    color: '#1A1A1A',
-    flex: 1,
-  },
-  themeToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FA',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    gap: 6,
-  },
-  themeToggleText: {
-    fontSize: 14,
-    color: '#1A1A1A',
-    fontWeight: '500',
-  },
-  demoSection: {
-    marginBottom: 32,
-  },
-  sectionHeader: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 4,
-  },
-  sectionDescription: {
-    fontSize: 14,
-    color: '#6B6B6B',
-    lineHeight: 20,
-  },
-  sectionContent: {
-    // Content will be styled by the text editor component
-  },
-  featuresSection: {
-    marginTop: 32,
-    marginBottom: 32,
-  },
-  featuresTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 16,
-  },
-  featuresList: {
-    gap: 12,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  featureText: {
-    fontSize: 14,
-    color: '#1A1A1A',
-    flex: 1,
-  },
-  tipsSection: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 16,
-  },
-  tipsTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 16,
-  },
-  tipsList: {
-    gap: 16,
-  },
-  tipItem: {
-    // Individual tip styling
-  },
-  tipTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 4,
-  },
-  tipText: {
-    fontSize: 14,
-    color: '#6B6B6B',
-    lineHeight: 20,
-  },
-});
 
 export default EnhancedTextEditorDemo;

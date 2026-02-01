@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   TextInput,
@@ -13,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useToast } from '../context/ToastContext';
 import { goGentAPI } from '../api/client';
 import { CreateApiKeyRequest } from '../types';
+import { useTheme, useThemedStyles } from '../theme';
 
 interface ServiceMetadata {
   id: string;
@@ -47,8 +47,250 @@ export const GenericApiKeySetup: React.FC<GenericApiKeySetupProps> = ({
   isLoading,
   setIsLoading,
 }) => {
+  const { colors } = useTheme();
   const { showSuccess, showError } = useToast();
   const [apiKey, setApiKey] = useState('');
+
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bgCard,
+    },
+    header: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+      backgroundColor: colors.bgCard,
+    },
+    backButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      paddingVertical: 8,
+    },
+    backButtonText: {
+      fontSize: 16,
+      color: colors.accent,
+      marginLeft: 4,
+    },
+    headerTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    closeButton: {
+      padding: 8,
+    },
+    scrollContainer: {
+      flex: 1,
+    },
+    content: {
+      padding: 20,
+    },
+    serviceHeader: {
+      alignItems: 'center' as const,
+      marginBottom: 24,
+    },
+    serviceIcon: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      marginBottom: 16,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: '700' as const,
+      color: colors.textPrimary,
+      textAlign: 'center' as const,
+      marginBottom: 8,
+    },
+    subtitle: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      textAlign: 'center' as const,
+      lineHeight: 22,
+    },
+    instructionsCard: {
+      backgroundColor: colors.bgSurface,
+      borderRadius: 12,
+      padding: 20,
+      marginBottom: 20,
+    },
+    instructionsHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 16,
+    },
+    instructionsTitle: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginLeft: 8,
+      flex: 1,
+    },
+    linkButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: colors.accent,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 6,
+    },
+    linkButtonText: {
+      fontSize: 12,
+      color: colors.textInverse,
+      fontWeight: '600' as const,
+      marginRight: 4,
+    },
+    instructionStep: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+      marginBottom: 12,
+    },
+    stepNumber: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: colors.accent,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      marginRight: 12,
+    },
+    stepNumberText: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: colors.textInverse,
+    },
+    stepText: {
+      fontSize: 14,
+      color: colors.textPrimary,
+      flex: 1,
+      lineHeight: 20,
+    },
+    scopesCard: {
+      backgroundColor: colors.accentSoft,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 20,
+    },
+    scopesHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 8,
+    },
+    scopesTitle: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.statusSuccess,
+      marginLeft: 8,
+    },
+    scopesDescription: {
+      fontSize: 14,
+      color: colors.statusSuccess,
+      marginBottom: 12,
+      lineHeight: 20,
+    },
+    scopeItem: {
+      marginBottom: 8,
+    },
+    scopeBadge: {
+      backgroundColor: colors.statusSuccess,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+      alignSelf: 'flex-start' as const,
+    },
+    scopeBadgeText: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: colors.textInverse,
+    },
+    inputSection: {
+      marginBottom: 20,
+    },
+    inputLabel: {
+      fontSize: 16,
+      fontWeight: '500' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    textInput: {
+      borderWidth: 1,
+      borderColor: colors.borderMedium,
+      borderRadius: 8,
+      padding: 16,
+      fontSize: 16,
+      backgroundColor: colors.bgSurface,
+    },
+    textArea: {
+      borderWidth: 1,
+      borderColor: colors.borderMedium,
+      borderRadius: 8,
+      padding: 16,
+      fontSize: 14,
+      backgroundColor: colors.bgSurface,
+      minHeight: 160,
+      textAlignVertical: 'top' as const,
+    },
+    invalidInput: {
+      borderColor: colors.statusError,
+      backgroundColor: colors.bgSurface,
+    },
+    errorText: {
+      fontSize: 12,
+      color: colors.statusError,
+      marginTop: 4,
+    },
+    successText: {
+      fontSize: 12,
+      color: colors.statusSuccess,
+      marginTop: 4,
+    },
+    linksSection: {
+      marginBottom: 20,
+    },
+    linksTitle: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 12,
+    },
+    linkItem: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      backgroundColor: colors.bgSurface,
+      borderRadius: 8,
+      marginBottom: 8,
+    },
+    linkText: {
+      fontSize: 14,
+      color: colors.accent,
+      marginLeft: 8,
+      flex: 1,
+    },
+    saveButton: {
+      backgroundColor: colors.accent,
+      borderRadius: 8,
+      paddingVertical: 16,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    disabledButton: {
+      backgroundColor: colors.borderMedium,
+    },
+    saveButtonText: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textInverse,
+    },
+  }));
 
   const validateApiKey = (key: string): boolean => {
     // Basic validation - just check if it's not empty and has reasonable length
@@ -77,7 +319,7 @@ export const GenericApiKeySetup: React.FC<GenericApiKeySetupProps> = ({
       };
 
       const response = await goGentAPI.createApiKey(createRequest);
-      
+
       if (response.success) {
         showSuccess(`${service.displayName} API key configured successfully!`);
         onComplete(true);
@@ -118,7 +360,7 @@ export const GenericApiKeySetup: React.FC<GenericApiKeySetupProps> = ({
           validation: (key: string) => /^xoxb-[0-9]{10,13}-[0-9]{10,13}-[a-zA-Z0-9]{24}$/.test(key),
           validationError: 'Slack bot token should start with "xoxb-" and have the format: xoxb-############-############-########################'
         };
-      
+
       case 'openweather':
         return {
           title: 'Get Your OpenWeather API Key',
@@ -137,7 +379,7 @@ export const GenericApiKeySetup: React.FC<GenericApiKeySetupProps> = ({
           validation: (key: string) => /^[a-f0-9]{32}$/.test(key),
           validationError: 'OpenWeather API key should be 32 hexadecimal characters'
         };
-      
+
       case 'googledrive':
         return {
           title: 'Set Up Google Drive Service Account',
@@ -169,7 +411,7 @@ export const GenericApiKeySetup: React.FC<GenericApiKeySetupProps> = ({
           },
           validationError: 'Please paste the complete JSON service account credentials'
         };
-      
+
       default:
         return {
           title: `Get Your ${service.displayName} API Key`,
@@ -192,22 +434,22 @@ export const GenericApiKeySetup: React.FC<GenericApiKeySetupProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
+        <TouchableOpacity
+          style={styles.backButton}
           onPress={() => onComplete(false)}
         >
-          <Ionicons name="chevron-back" size={24} color="#007AFF" />
+          <Ionicons name="chevron-back" size={24} color={colors.accent} />
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{service.displayName} Setup</Text>
-        <TouchableOpacity 
-          style={styles.closeButton} 
+        <TouchableOpacity
+          style={styles.closeButton}
           onPress={() => onComplete(false)}
         >
-          <Ionicons name="close" size={24} color="#8E8E93" />
+          <Ionicons name="close" size={24} color={colors.textSecondary} />
         </TouchableOpacity>
       </View>
-      
+
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
         <View style={styles.serviceHeader}>
@@ -220,7 +462,7 @@ export const GenericApiKeySetup: React.FC<GenericApiKeySetupProps> = ({
 
         <View style={styles.instructionsCard}>
           <View style={styles.instructionsHeader}>
-            <Ionicons name="list" size={20} color="#007AFF" />
+            <Ionicons name="list" size={20} color={colors.accent} />
             <Text style={styles.instructionsTitle}>Step-by-step guide</Text>
             {service.setupInstructions.links.length > 0 && (
               <TouchableOpacity
@@ -228,11 +470,11 @@ export const GenericApiKeySetup: React.FC<GenericApiKeySetupProps> = ({
                 onPress={() => Linking.openURL(service.setupInstructions.links[0].url)}
               >
                 <Text style={styles.linkButtonText}>{service.setupInstructions.links[0].text}</Text>
-                <Ionicons name="open-outline" size={16} color="#007AFF" />
+                <Ionicons name="open-outline" size={16} color={colors.accent} />
               </TouchableOpacity>
             )}
           </View>
-          
+
           {instructions.steps.map((step, index) => (
             <View key={index} style={styles.instructionStep}>
               <View style={styles.stepNumber}>
@@ -246,7 +488,7 @@ export const GenericApiKeySetup: React.FC<GenericApiKeySetupProps> = ({
         {service.setupInstructions.scopes.length > 0 && (
           <View style={styles.scopesCard}>
             <View style={styles.scopesHeader}>
-              <Ionicons name="shield-checkmark" size={20} color="#34C759" />
+              <Ionicons name="shield-checkmark" size={20} color={colors.statusSuccess} />
               <Text style={styles.scopesTitle}>Required Permissions</Text>
             </View>
             <Text style={styles.scopesDescription}>
@@ -297,9 +539,9 @@ export const GenericApiKeySetup: React.FC<GenericApiKeySetupProps> = ({
                 style={styles.linkItem}
                 onPress={() => Linking.openURL(link.url)}
               >
-                <Ionicons name="link" size={16} color="#007AFF" />
+                <Ionicons name="link" size={16} color={colors.accent} />
                 <Text style={styles.linkText}>{link.text}</Text>
-                <Ionicons name="open-outline" size={16} color="#007AFF" />
+                <Ionicons name="open-outline" size={16} color={colors.accent} />
               </TouchableOpacity>
             ))}
           </View>
@@ -311,7 +553,7 @@ export const GenericApiKeySetup: React.FC<GenericApiKeySetupProps> = ({
           disabled={!instructions.validation(apiKey) || isLoading}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <ActivityIndicator size="small" color={colors.textInverse} />
           ) : (
             <Text style={styles.saveButtonText}>Configure {service.displayName}</Text>
           )}
@@ -321,244 +563,3 @@ export const GenericApiKeySetup: React.FC<GenericApiKeySetupProps> = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-    backgroundColor: '#FFFFFF',
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: '#007AFF',
-    marginLeft: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  closeButton: {
-    padding: 8,
-  },
-  scrollContainer: {
-    flex: 1,
-  },
-  content: {
-    padding: 20,
-  },
-  serviceHeader: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  serviceIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#000000',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#8E8E93',
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  instructionsCard: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
-  },
-  instructionsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  instructionsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-    marginLeft: 8,
-    flex: 1,
-  },
-  linkButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  linkButtonText: {
-    fontSize: 12,
-    color: '#FFFFFF',
-    fontWeight: '600',
-    marginRight: 4,
-  },
-  instructionStep: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  stepNumber: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#007AFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  stepNumberText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  stepText: {
-    fontSize: 14,
-    color: '#333333',
-    flex: 1,
-    lineHeight: 20,
-  },
-  scopesCard: {
-    backgroundColor: '#E8F5E8',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-  },
-  scopesHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  scopesTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2D5016',
-    marginLeft: 8,
-  },
-  scopesDescription: {
-    fontSize: 14,
-    color: '#2D5016',
-    marginBottom: 12,
-    lineHeight: 20,
-  },
-  scopeItem: {
-    marginBottom: 8,
-  },
-  scopeBadge: {
-    backgroundColor: '#34C759',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    alignSelf: 'flex-start',
-  },
-  scopeBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  inputSection: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#000000',
-    marginBottom: 8,
-  },
-  textInput: {
-    borderWidth: 1,
-    borderColor: '#D1D1D6',
-    borderRadius: 8,
-    padding: 16,
-    fontSize: 16,
-    backgroundColor: '#FAFAFA',
-  },
-  textArea: {
-    borderWidth: 1,
-    borderColor: '#D1D1D6',
-    borderRadius: 8,
-    padding: 16,
-    fontSize: 14,
-    backgroundColor: '#FAFAFA',
-    minHeight: 160,
-    textAlignVertical: 'top',
-  },
-  invalidInput: {
-    borderColor: '#FF3B30',
-    backgroundColor: '#FFF5F5',
-  },
-  errorText: {
-    fontSize: 12,
-    color: '#FF3B30',
-    marginTop: 4,
-  },
-  successText: {
-    fontSize: 12,
-    color: '#34C759',
-    marginTop: 4,
-  },
-  linksSection: {
-    marginBottom: 20,
-  },
-  linksTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 12,
-  },
-  linkItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  linkText: {
-    fontSize: 14,
-    color: '#007AFF',
-    marginLeft: 8,
-    flex: 1,
-  },
-  saveButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  disabledButton: {
-    backgroundColor: '#D1D1D6',
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-});

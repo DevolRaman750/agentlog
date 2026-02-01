@@ -3705,57 +3705,84 @@ func (c *Client) getFunctionCalls(ctx context.Context, executionRunID string) ([
 }
 
 func (c *Client) getExecutionFlowEventsByConfiguration(ctx context.Context, executionRunID, configurationID string) ([]types.ExecutionFlowEvent, error) {
-	// Use sqlc-generated query for better type safety
-	params := db.GetExecutionFlowEventsByConfigurationParams{
-		ExecutionRunID:  executionRunID,
-		ConfigurationID: configurationID,
-	}
-	dbEvents, err := c.queries.GetExecutionFlowEventsByConfiguration(ctx, params)
+	// Use raw query with LEFT JOIN to include execution-level events (those with NULL request_id)
+	// alongside configuration-specific events. The sqlc-generated query used INNER JOIN which
+	// excluded all events without a request_id, causing empty flow graphs.
+	query := `
+		SELECT efe.id, efe.execution_run_id, efe.request_id, efe.event_type, efe.sequence_number,
+		       efe.parent_event_id, efe.event_data, efe.duration_ms, efe.status, efe.error_message, efe.created_at
+		FROM execution_flow_events efe
+		LEFT JOIN api_requests ar ON efe.request_id = ar.id
+		WHERE efe.execution_run_id = ? AND (ar.configuration_id = ? OR efe.request_id IS NULL)
+		ORDER BY efe.created_at ASC, efe.sequence_number ASC, efe.id ASC
+	`
+
+	rows, err := c.db.QueryContext(ctx, query, executionRunID, configurationID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query execution flow events by configuration: %w", err)
 	}
+	defer rows.Close()
 
-	// Convert from database types to application types
-	events := make([]types.ExecutionFlowEvent, 0, len(dbEvents))
-	for _, dbEvent := range dbEvents {
-		event := types.ExecutionFlowEvent{
-			ID:             dbEvent.ID,
-			ExecutionRunID: dbEvent.ExecutionRunID,
-			EventType:      types.ExecutionFlowEventType(dbEvent.EventType),
-			SequenceNumber: dbEvent.SequenceNumber,
-			Status:         types.ExecutionFlowEventStatus(dbEvent.Status.ExecutionFlowEventsStatus),
-		}
+	var events []types.ExecutionFlowEvent
+	for rows.Next() {
+		var event types.ExecutionFlowEvent
+		var requestID, parentEventID, errorMessage sql.NullString
+		var durationMs sql.NullInt32
+		var eventData []byte
+		var status sql.NullString
+		var createdAt sql.NullTime
 
-		// Handle CreatedAt timestamp
-		if dbEvent.CreatedAt.Valid {
-			event.CreatedAt = dbEvent.CreatedAt.Time
-		}
-
-		// Handle nullable fields
-		if dbEvent.RequestID.Valid {
-			event.RequestID = &dbEvent.RequestID.String
-		}
-		if dbEvent.ParentEventID.Valid {
-			event.ParentEventID = &dbEvent.ParentEventID.String
-		}
-		if dbEvent.ErrorMessage.Valid {
-			event.ErrorMessage = &dbEvent.ErrorMessage.String
-		}
-		if dbEvent.DurationMs.Valid {
-			event.DurationMs = &dbEvent.DurationMs.Int32
+		err := rows.Scan(
+			&event.ID,
+			&event.ExecutionRunID,
+			&requestID,
+			&event.EventType,
+			&event.SequenceNumber,
+			&parentEventID,
+			&eventData,
+			&durationMs,
+			&status,
+			&errorMessage,
+			&createdAt,
+		)
+		if err != nil {
+			log.Printf("⚠️ Failed to scan execution flow event: %v", err)
+			continue
 		}
 
-		// Parse event data JSON
-		if dbEvent.EventData != nil {
-			var eventData map[string]interface{}
-			if err := json.Unmarshal(dbEvent.EventData, &eventData); err != nil {
+		if createdAt.Valid {
+			event.CreatedAt = createdAt.Time
+		}
+		if requestID.Valid {
+			event.RequestID = &requestID.String
+		}
+		if parentEventID.Valid {
+			event.ParentEventID = &parentEventID.String
+		}
+		if errorMessage.Valid {
+			event.ErrorMessage = &errorMessage.String
+		}
+		if durationMs.Valid {
+			event.DurationMs = &durationMs.Int32
+		}
+		if status.Valid {
+			event.Status = types.ExecutionFlowEventStatus(status.String)
+		}
+
+		if eventData != nil {
+			var data map[string]interface{}
+			if err := json.Unmarshal(eventData, &data); err != nil {
 				log.Printf("⚠️ Failed to parse event data JSON for event %s: %v", event.ID, err)
 			} else {
-				event.EventData = eventData
+				event.EventData = data
 			}
 		}
 
 		events = append(events, event)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate execution flow events: %w", err)
 	}
 
 	return events, nil

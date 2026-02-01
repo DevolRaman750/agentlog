@@ -21,11 +21,11 @@ WHERE execution_run_id = ?
 ORDER BY created_at ASC, sequence_number ASC, id ASC;
 
 -- name: GetExecutionFlowEventsByConfiguration :many
-SELECT efe.id, efe.execution_run_id, efe.request_id, efe.event_type, efe.sequence_number, 
+SELECT efe.id, efe.execution_run_id, efe.request_id, efe.event_type, efe.sequence_number,
        efe.parent_event_id, efe.event_data, efe.duration_ms, efe.status, efe.error_message, efe.created_at
 FROM execution_flow_events efe
-JOIN api_requests ar ON efe.request_id = ar.id
-WHERE efe.execution_run_id = ? AND ar.configuration_id = ?
+LEFT JOIN api_requests ar ON efe.request_id = ar.id
+WHERE efe.execution_run_id = ? AND (ar.configuration_id = ? OR efe.request_id IS NULL)
 ORDER BY efe.created_at ASC, efe.sequence_number ASC, efe.id ASC;
 
 -- name: DeleteExecutionFlowEventsByRun :exec

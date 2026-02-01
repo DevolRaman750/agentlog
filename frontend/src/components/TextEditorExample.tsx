@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, ScrollView } from 'react-native';
 import TextEditor from './TextEditor';
+import { useThemedStyles } from '../theme';
 
 const TextEditorExample: React.FC = () => {
   const [prompt, setPrompt] = useState('Create a comprehensive marketing plan for a sustainable tech startup.\n\nInclude the following sections:\n- Executive Summary\n- Market Analysis\n- Target Audience\n- Marketing Strategies\n- Budget Allocation\n- Success Metrics');
-  
+
   const [systemPrompt, setSystemPrompt] = useState('You are a helpful AI assistant specialized in marketing and business strategy.\n\nPlease provide detailed, actionable advice based on current market trends and best practices.');
-  
+
   const [description, setDescription] = useState('Marketing plan generation test');
-  
+
   const [codeExample, setCodeExample] = useState(`function generatePlan(input) {
   // Process the marketing requirements
   const sections = [
@@ -19,17 +20,44 @@ const TextEditorExample: React.FC = () => {
     'budget',
     'metrics'
   ];
-  
+
   return sections.map(section => ({
     name: section,
     content: processSection(input, section)
   }));
 }`);
 
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bgApp,
+    },
+    content: {
+      padding: 20,
+      paddingBottom: 100,
+    },
+    title: {
+      fontSize: 28,
+      fontWeight: 'bold' as const,
+      color: colors.textPrimary,
+      marginBottom: 30,
+      textAlign: 'center' as const,
+    },
+    section: {
+      marginBottom: 30,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 12,
+    },
+  }));
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>TextEditor Component Examples</Text>
-      
+
       {/* Main Prompt Example */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Main Prompt (Full Features)</Text>
@@ -138,31 +166,4 @@ const TextEditorExample: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 100,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-    marginBottom: 30,
-    textAlign: 'center',
-  },
-  section: {
-    marginBottom: 30,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 12,
-  },
-});
-
-export default TextEditorExample; 
+export default TextEditorExample;

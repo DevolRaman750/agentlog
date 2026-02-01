@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   Dimensions,
@@ -11,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { ExecutionResult, VariationResult, ComparisonResult } from '../types';
 import { formatConfigId } from '../utils/comparisonUtils';
+import { useTheme, useThemedStyles } from '../theme';
 
 interface ExecutionComparisonChartProps {
   executionResult: ExecutionResult;
@@ -41,7 +41,7 @@ const getSpeedLabel = (timeMs: number, allTimes: number[]) => {
   const minTime = Math.min(...allTimes);
   const maxTime = Math.max(...allTimes);
   const relative = (timeMs - minTime) / (maxTime - minTime);
-  
+
   if (timeMs === minTime) return { label: 'Fastest', color: '#4CAF50', icon: 'flash' };
   if (relative <= 0.3) return { label: 'Fast', color: '#8BC34A', icon: 'rocket' };
   if (relative <= 0.7) return { label: 'Moderate', color: '#FFC107', icon: 'time' };
@@ -51,19 +51,19 @@ const getSpeedLabel = (timeMs: number, allTimes: number[]) => {
 const getTokenEfficiencyDisplay = (score: number, result: VariationResult) => {
   const usage = result.response.usageMetadata;
   if (!usage) return { value: 'N/A', label: 'No data', color: '#9E9E9E' };
-  
+
   const totalTokens = usage.totalTokens || usage.total_tokens || 0;
   const completionTokens = usage.completionTokens || usage.completion_tokens || usage.candidatesTokenCount || 0;
   const promptTokens = usage.promptTokens || usage.prompt_tokens || 0;
-  
+
   if (totalTokens === 0) return { value: 'N/A', label: 'No tokens', color: '#9E9E9E' };
-  
+
   const efficiency = completionTokens / totalTokens;
   const tokensPerSecond = Math.round(totalTokens / (result.executionTime / 1000));
-  
+
   let label = '';
   let color = '';
-  
+
   if (efficiency >= 0.4) {
     label = `Efficient (${tokensPerSecond}/s)`;
     color = '#4CAF50';
@@ -74,7 +74,7 @@ const getTokenEfficiencyDisplay = (score: number, result: VariationResult) => {
     label = `Low efficiency (${tokensPerSecond}/s)`;
     color = '#FF5722';
   }
-  
+
   return {
     value: `${Math.round(efficiency * 100)}%`,
     label,
@@ -86,17 +86,16 @@ const getTokenEfficiencyDisplay = (score: number, result: VariationResult) => {
 const getCostEffectivenessDisplay = (score: number, result: VariationResult) => {
   const usage = result.response.usageMetadata;
   if (!usage) return { value: 'N/A', label: 'No data', color: '#9E9E9E' };
-  
+
   const totalTokens = usage.totalTokens || usage.total_tokens || 0;
   if (totalTokens === 0) return { value: 'N/A', label: 'No tokens', color: '#9E9E9E' };
-  
-  // Rough cost estimation (these are approximate rates)
+
   const costPer1kTokens = result.configuration.modelName?.includes('flash') ? 0.00015 : 0.002;
   const estimatedCost = (totalTokens / 1000) * costPer1kTokens;
-  
+
   let label = '';
   let color = '';
-  
+
   if (estimatedCost <= 0.001) {
     label = 'Very economical';
     color = '#4CAF50';
@@ -110,7 +109,7 @@ const getCostEffectivenessDisplay = (score: number, result: VariationResult) => 
     label = 'Expensive';
     color = '#FF5722';
   }
-  
+
   return {
     value: `$${estimatedCost.toFixed(4)}`,
     label,
@@ -126,10 +125,10 @@ const METRIC_DEFINITIONS: MetricDisplay[] = [
     description: 'How quickly the model generated the response',
     getDisplayValue: (timeMs: number, result?: VariationResult, allResults?: VariationResult[]) => {
       if (!allResults || !result) return { value: `${timeMs}ms`, label: 'Response time', color: '#2196F3' };
-      
+
       const allTimes = allResults.map(r => r.executionTime);
       const speedInfo = getSpeedLabel(timeMs, allTimes);
-      
+
       return {
         value: `${(timeMs / 1000).toFixed(1)}s`,
         label: speedInfo.label,
@@ -202,11 +201,412 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
   visible = true,
   onConfigurationSelect,
 }) => {
+  const { colors } = useTheme();
   const [selectedTab, setSelectedTab] = useState<'overview' | 'metrics' | 'tokens' | 'performance'>('overview');
 
   const { width: screenWidth } = Dimensions.get('window');
   const isTablet = screenWidth > 768;
   const isMobile = Platform.OS !== 'web' && screenWidth < 768;
+
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bgApp,
+    },
+    header: {
+      padding: 20,
+      backgroundColor: colors.bgCard,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: 'bold' as const,
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    subtitle: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    tabContainer: {
+      backgroundColor: colors.bgCard,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    tabScrollView: {
+      flexDirection: 'row' as const,
+    },
+    tab: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      marginRight: 4,
+    },
+    activeTab: {
+      borderBottomWidth: 2,
+      borderBottomColor: '#2196F3',
+    },
+    tabText: {
+      marginLeft: 8,
+      fontSize: 14,
+      color: colors.textSecondary,
+      fontWeight: '500' as const,
+    },
+    activeTabText: {
+      color: '#2196F3',
+      fontWeight: '600' as const,
+    },
+    tabContent: {
+      flex: 1,
+    },
+    configGrid: {
+      flexDirection: 'row' as const,
+      padding: 16,
+      gap: 16,
+    },
+    configGridMobile: {
+      flexDirection: 'column' as const,
+    },
+    configCard: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 16,
+      flex: 1,
+      minWidth: 280,
+      maxWidth: 400,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    configCardMobile: {
+      minWidth: '100%' as any,
+      maxWidth: '100%' as any,
+      marginBottom: 12,
+    },
+    bestConfigCard: {
+      borderColor: '#4CAF50',
+      borderWidth: 2,
+    },
+    configHeader: {
+      marginBottom: 12,
+    },
+    configTitle: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 4,
+    },
+    configName: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      flex: 1,
+    },
+    bestConfigText: {
+      color: '#4CAF50',
+    },
+    bestConfigTextSmall: {
+      color: '#4CAF50',
+      fontWeight: '600' as const,
+    },
+    trophyIcon: {
+      marginLeft: 8,
+    },
+    configId: {
+      fontSize: 12,
+      color: colors.textTertiary,
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    },
+    quickStats: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      marginBottom: 12,
+      flexWrap: 'wrap' as const,
+      gap: 8,
+    },
+    statItem: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+    },
+    statValue: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginLeft: 4,
+    },
+    scoreBarContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 8,
+    },
+    scoreBarBackground: {
+      flex: 1,
+      height: 8,
+      backgroundColor: colors.borderLight,
+      borderRadius: 4,
+      marginRight: 8,
+    },
+    scoreBarFill: {
+      height: '100%' as any,
+      borderRadius: 4,
+    },
+    scoreText: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      minWidth: 35,
+    },
+    metricsContainer: {
+      padding: 16,
+    },
+    metricRow: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+    },
+    metricHeader: {
+      marginBottom: 16,
+    },
+    metricLabel: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    metricDescription: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      fontStyle: 'italic' as const,
+    },
+    metricItems: {
+      gap: 12,
+    },
+    metricItem: {
+      marginBottom: 8,
+    },
+    metricItemHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      marginBottom: 8,
+    },
+    configNameSmall: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      fontWeight: '500' as const,
+    },
+    metricValueContainer: {
+      borderLeftWidth: 4,
+      paddingLeft: 12,
+      paddingVertical: 8,
+    },
+    metricValueRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 4,
+    },
+    metricIcon: {
+      marginRight: 8,
+    },
+    metricValue: {
+      fontSize: 18,
+      fontWeight: 'bold' as const,
+    },
+    metricLabel_: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    tokensContainer: {
+      padding: 16,
+      gap: 16,
+    },
+    tokenCard: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    bestTokenCard: {
+      borderColor: '#4CAF50',
+      borderWidth: 2,
+    },
+    tokenHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      marginBottom: 16,
+    },
+    tokenMetrics: {
+      gap: 12,
+    },
+    tokenMetric: {
+      alignItems: 'center' as const,
+    },
+    tokenLabel: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginBottom: 4,
+    },
+    tokenValue: {
+      fontSize: 24,
+      fontWeight: 'bold' as const,
+      color: colors.textPrimary,
+    },
+    tokenBreakdown: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-around' as const,
+    },
+    tokenComponent: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+    },
+    tokenIndicator: {
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+      marginRight: 8,
+    },
+    tokenComponentLabel: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    tokenVisualization: {
+      flexDirection: 'row' as const,
+      height: 20,
+      borderRadius: 10,
+      overflow: 'hidden' as const,
+    },
+    tokenBar: {
+      height: '100%' as any,
+    },
+    efficiencyMetrics: {
+      alignItems: 'center' as const,
+      gap: 4,
+    },
+    efficiencyLabel: {
+      fontSize: 12,
+      color: colors.textTertiary,
+    },
+    performanceContainer: {
+      padding: 16,
+    },
+    performanceSection: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+    },
+    performanceSectionTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 16,
+    },
+    performanceItem: {
+      marginBottom: 12,
+    },
+    performanceHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      marginBottom: 8,
+    },
+    performanceBadges: {
+      flexDirection: 'row' as const,
+      gap: 8,
+    },
+    fastestBadge: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: '#4CAF50',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+    },
+    bestBadge: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: '#2196F3',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+    },
+    badgeText: {
+      fontSize: 10,
+      color: colors.textInverse,
+      fontWeight: '600' as const,
+      marginLeft: 4,
+    },
+    performanceBarContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+    },
+    performanceBarBackground: {
+      flex: 1,
+      height: 8,
+      backgroundColor: colors.borderLight,
+      borderRadius: 4,
+      marginRight: 12,
+    },
+    performanceBarFill: {
+      height: '100%' as any,
+      borderRadius: 4,
+    },
+    performanceTime: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      minWidth: 60,
+    },
+    configDetailsCard: {
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 12,
+    },
+    bestConfigDetailsCard: {
+      borderColor: '#4CAF50',
+      borderWidth: 2,
+    },
+    configDetailsHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      marginBottom: 12,
+    },
+    configDetailsGrid: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: 12,
+    },
+    configDetail: {
+      flex: 1,
+      minWidth: 200,
+    },
+    configDetailLabel: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginBottom: 2,
+    },
+    configDetailValue: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    configDetailDescription: {
+      fontSize: 10,
+      color: colors.textTertiary,
+      fontStyle: 'italic' as const,
+    },
+  }));
 
   if (!visible || !executionResult.results || executionResult.results.length === 0) {
     return null;
@@ -216,7 +616,7 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
   const bestConfigId = executionResult.comparison?.bestConfigurationId;
 
   const renderOverviewTab = () => (
-    <ScrollView 
+    <ScrollView
       style={styles.tabContent}
       horizontal={!isMobile}
       showsHorizontalScrollIndicator={false}
@@ -226,10 +626,9 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
           const configId = result.configuration.id;
           const configName = result.configuration.variationName;
           const isBest = configId === bestConfigId;
-          
-          // Use variationName as key to match backend structure
+
           const scores = configurationScores[configName] || {};
-          
+
           return (
             <TouchableOpacity
               key={configId}
@@ -242,7 +641,6 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
                 onConfigurationSelect?.(configId!);
               }}
             >
-              {/* Header */}
               <View style={styles.configHeader}>
                 <View style={styles.configTitle}>
                   <Text style={[styles.configName, isBest && styles.bestConfigText]}>
@@ -257,18 +655,17 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
                 </Text>
               </View>
 
-              {/* Quick Stats */}
               <View style={styles.quickStats}>
                 <View style={styles.statItem}>
-                  <Ionicons name="time-outline" size={16} color="#666" />
+                  <Ionicons name="time-outline" size={16} color={colors.textSecondary} />
                   <Text style={styles.statValue}>{(result.executionTime / 1000).toFixed(1)}s</Text>
                 </View>
-                
+
                 {result.response.usageMetadata && (
                   <View style={styles.statItem}>
-                    <Ionicons name="library-outline" size={16} color="#666" />
+                    <Ionicons name="library-outline" size={16} color={colors.textSecondary} />
                     <Text style={styles.statValue}>
-                      {result.response.usageMetadata.totalTokens || 
+                      {result.response.usageMetadata.totalTokens ||
                        result.response.usageMetadata.total_tokens || 'N/A'} tokens
                     </Text>
                   </View>
@@ -276,7 +673,7 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
 
                 {scores.overall_score && (
                   <View style={styles.statItem}>
-                    <Ionicons name="analytics-outline" size={16} color="#666" />
+                    <Ionicons name="analytics-outline" size={16} color={colors.textSecondary} />
                     <Text style={styles.statValue}>
                       {Math.round(scores.overall_score * 100)} score
                     </Text>
@@ -284,18 +681,17 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
                 )}
               </View>
 
-              {/* Score Bar */}
               {scores.overall_score && (
                 <View style={styles.scoreBarContainer}>
                   <View style={styles.scoreBarBackground}>
-                    <View 
+                    <View
                       style={[
                         styles.scoreBarFill,
-                        { 
+                        {
                           width: `${Math.round(scores.overall_score * 100)}%`,
                           backgroundColor: isBest ? '#4CAF50' : '#2196F3'
                         }
-                      ]} 
+                      ]}
                     />
                   </View>
                   <Text style={styles.scoreText}>
@@ -317,8 +713,7 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
           const metricValues = executionResult.results.map(result => {
             const configName = result.configuration.variationName;
             const scores = configurationScores[configName] || {};
-            
-            // Get the raw value based on metric key
+
             let rawValue;
             if (metric.key === 'response_time_ms') {
               rawValue = result.executionTime;
@@ -335,7 +730,6 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
             };
           });
 
-          // Skip if no meaningful data for this metric
           const hasData = metricValues.some(v => v.value > 0);
           if (!hasData && metric.key !== 'response_time_ms') return null;
 
@@ -349,7 +743,7 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
               </View>
               <View style={styles.metricItems}>
                 {metricValues.map((item) => {
-                  const displayInfo = metric.getDisplayValue ? 
+                  const displayInfo = metric.getDisplayValue ?
                     metric.getDisplayValue(item.value, item.result) :
                     { value: String(item.value), label: '', color: '#9E9E9E' };
 
@@ -363,14 +757,14 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
                           <Ionicons name="trophy" size={14} color="#FFD700" />
                         )}
                       </View>
-                      
+
                       <View style={[styles.metricValueContainer, { borderLeftColor: displayInfo.color }]}>
                         <View style={styles.metricValueRow}>
                           {displayInfo.icon && (
-                            <Ionicons 
-                              name={displayInfo.icon as any} 
-                              size={18} 
-                              color={displayInfo.color} 
+                            <Ionicons
+                              name={displayInfo.icon as any}
+                              size={18}
+                              color={displayInfo.color}
                               style={styles.metricIcon}
                             />
                           )}
@@ -399,7 +793,7 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
         {executionResult.results.map((result) => {
           const usage = result.response.usageMetadata;
           const isBest = result.configuration.id === bestConfigId;
-          
+
           if (!usage) return null;
 
           const totalTokens = usage.totalTokens || usage.total_tokens || 0;
@@ -420,7 +814,7 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
                   <Text style={styles.tokenLabel}>Total Tokens</Text>
                   <Text style={styles.tokenValue}>{totalTokens.toLocaleString()}</Text>
                 </View>
-                
+
                 <View style={styles.tokenBreakdown}>
                   <View style={styles.tokenComponent}>
                     <View style={[styles.tokenIndicator, { backgroundColor: '#4CAF50' }]} />
@@ -432,21 +826,20 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
                   </View>
                 </View>
 
-                {/* Token Usage Visualization */}
                 <View style={styles.tokenVisualization}>
-                  <View 
+                  <View
                     style={[
                       styles.tokenBar,
-                      { 
+                      {
                         backgroundColor: '#4CAF50',
                         flex: promptTokens || 1
                       }
                     ]}
                   />
-                  <View 
+                  <View
                     style={[
                       styles.tokenBar,
-                      { 
+                      {
                         backgroundColor: '#2196F3',
                         flex: completionTokens || 1
                       }
@@ -454,7 +847,6 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
                   />
                 </View>
 
-                {/* Efficiency Metrics */}
                 {totalTokens > 0 && (
                   <View style={styles.efficiencyMetrics}>
                     <Text style={styles.efficiencyLabel}>
@@ -478,7 +870,6 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
   const renderPerformanceTab = () => (
     <ScrollView style={styles.tabContent}>
       <View style={styles.performanceContainer}>
-        {/* Response Time Comparison */}
         <View style={styles.performanceSection}>
           <Text style={styles.performanceSectionTitle}>Response Time Comparison</Text>
           {executionResult.results
@@ -498,22 +889,22 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
                     <View style={styles.performanceBadges}>
                       {isFastest && (
                         <View style={styles.fastestBadge}>
-                          <Ionicons name="flash" size={12} color="#FFF" />
+                          <Ionicons name="flash" size={12} color={colors.textInverse} />
                           <Text style={styles.badgeText}>Fastest</Text>
                         </View>
                       )}
                       {isBest && (
                         <View style={styles.bestBadge}>
-                          <Ionicons name="trophy" size={12} color="#FFF" />
+                          <Ionicons name="trophy" size={12} color={colors.textInverse} />
                           <Text style={styles.badgeText}>Best</Text>
                         </View>
                       )}
                     </View>
                   </View>
-                  
+
                   <View style={styles.performanceBarContainer}>
                     <View style={styles.performanceBarBackground}>
-                      <View 
+                      <View
                         style={[
                           styles.performanceBarFill,
                           {
@@ -530,7 +921,6 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
             })}
         </View>
 
-        {/* Model Configuration Details */}
         <View style={styles.performanceSection}>
           <Text style={styles.performanceSectionTitle}>Configuration Details</Text>
           {executionResult.results.map((result) => {
@@ -551,7 +941,7 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
                     <Text style={styles.configDetailLabel}>Model</Text>
                     <Text style={styles.configDetailValue}>{config.modelName}</Text>
                   </View>
-                  
+
                   <View style={styles.configDetail}>
                     <Text style={styles.configDetailLabel}>Temperature</Text>
                     <Text style={styles.configDetailValue}>{config.temperature}</Text>
@@ -559,7 +949,7 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
                       {PERFORMANCE_DESCRIPTIONS.temperature}
                     </Text>
                   </View>
-                  
+
                   <View style={styles.configDetail}>
                     <Text style={styles.configDetailLabel}>Max Tokens</Text>
                     <Text style={styles.configDetailValue}>{config.maxTokens}</Text>
@@ -567,7 +957,7 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
                       {PERFORMANCE_DESCRIPTIONS.maxTokens}
                     </Text>
                   </View>
-                  
+
                   <View style={styles.configDetail}>
                     <Text style={styles.configDetailLabel}>Top P</Text>
                     <Text style={styles.configDetailValue}>{config.topP}</Text>
@@ -596,17 +986,15 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Configuration Comparison</Text>
         <Text style={styles.subtitle}>
-          {executionResult.results.length} configurations • Best: {
+          {executionResult.results.length} configurations - Best: {
             executionResult.results.find(r => r.configuration.id === bestConfigId)?.configuration.variationName || 'N/A'
           }
         </Text>
       </View>
 
-      {/* Tab Navigation */}
       <View style={styles.tabContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabScrollView}>
           {[
@@ -620,10 +1008,10 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
               style={[styles.tab, selectedTab === tab.key && styles.activeTab]}
               onPress={() => setSelectedTab(tab.key as any)}
             >
-              <Ionicons 
-                name={tab.icon as any} 
-                size={18} 
-                color={selectedTab === tab.key ? '#2196F3' : '#666'} 
+              <Ionicons
+                name={tab.icon as any}
+                size={18}
+                color={selectedTab === tab.key ? '#2196F3' : colors.textSecondary}
               />
               <Text style={[styles.tabText, selectedTab === tab.key && styles.activeTabText]}>
                 {tab.label}
@@ -633,418 +1021,9 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
         </ScrollView>
       </View>
 
-      {/* Tab Content */}
       {renderTabContent()}
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FAFAFA',
-  },
-  header: {
-    padding: 20,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#666',
-  },
-  tabContainer: {
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-  },
-  tabScrollView: {
-    flexDirection: 'row',
-  },
-  tab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    marginRight: 4,
-  },
-  activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#2196F3',
-  },
-  tabText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
-  },
-  activeTabText: {
-    color: '#2196F3',
-    fontWeight: '600',
-  },
-  tabContent: {
-    flex: 1,
-  },
-  
-  // Overview Tab Styles
-  configGrid: {
-    flexDirection: 'row',
-    padding: 16,
-    gap: 16,
-  },
-  configGridMobile: {
-    flexDirection: 'column',
-  },
-  configCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    padding: 16,
-    flex: 1,
-    minWidth: 280,
-    maxWidth: 400,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  configCardMobile: {
-    minWidth: '100%',
-    maxWidth: '100%',
-    marginBottom: 12,
-  },
-  bestConfigCard: {
-    borderColor: '#4CAF50',
-    borderWidth: 2,
-  },
-  configHeader: {
-    marginBottom: 12,
-  },
-  configTitle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  configName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    flex: 1,
-  },
-  bestConfigText: {
-    color: '#4CAF50',
-  },
-  bestConfigTextSmall: {
-    color: '#4CAF50',
-    fontWeight: '600',
-  },
-  trophyIcon: {
-    marginLeft: 8,
-  },
-  configId: {
-    fontSize: 12,
-    color: '#999',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  },
-  quickStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 12,
-    color: '#666',
-    marginLeft: 4,
-  },
-  scoreBarContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  scoreBarBackground: {
-    flex: 1,
-    height: 8,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 4,
-    marginRight: 8,
-  },
-  scoreBarFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  scoreText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#333',
-    minWidth: 35,
-  },
-
-  // Metrics Tab Styles
-  metricsContainer: {
-    padding: 16,
-  },
-  metricRow: {
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-  },
-  metricHeader: {
-    marginBottom: 16,
-  },
-  metricLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  metricDescription: {
-    fontSize: 12,
-    color: '#666',
-    fontStyle: 'italic',
-  },
-  metricItems: {
-    gap: 12,
-  },
-  metricItem: {
-    marginBottom: 8,
-  },
-  metricItemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  configNameSmall: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
-  },
-  metricValueContainer: {
-    borderLeftWidth: 4,
-    paddingLeft: 12,
-    paddingVertical: 8,
-  },
-  metricValueRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  metricIcon: {
-    marginRight: 8,
-  },
-  metricValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  metricLabel_: {
-    fontSize: 12,
-    color: '#666',
-  },
-
-  // Tokens Tab Styles
-  tokensContainer: {
-    padding: 16,
-    gap: 16,
-  },
-  tokenCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  bestTokenCard: {
-    borderColor: '#4CAF50',
-    borderWidth: 2,
-  },
-  tokenHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  tokenMetrics: {
-    gap: 12,
-  },
-  tokenMetric: {
-    alignItems: 'center',
-  },
-  tokenLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
-  },
-  tokenValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  tokenBreakdown: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  tokenComponent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  tokenIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 8,
-  },
-  tokenComponentLabel: {
-    fontSize: 12,
-    color: '#666',
-  },
-  tokenVisualization: {
-    flexDirection: 'row',
-    height: 20,
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-  tokenBar: {
-    height: '100%',
-  },
-  efficiencyMetrics: {
-    alignItems: 'center',
-    gap: 4,
-  },
-  efficiencyLabel: {
-    fontSize: 12,
-    color: '#999',
-  },
-
-  // Performance Tab Styles
-  performanceContainer: {
-    padding: 16,
-  },
-  performanceSection: {
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-  },
-  performanceSectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 16,
-  },
-  performanceItem: {
-    marginBottom: 12,
-  },
-  performanceHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  performanceBadges: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  fastestBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  bestBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#2196F3',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  badgeText: {
-    fontSize: 10,
-    color: '#FFF',
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  performanceBarContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  performanceBarBackground: {
-    flex: 1,
-    height: 8,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 4,
-    marginRight: 12,
-  },
-  performanceBarFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  performanceTime: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    minWidth: 60,
-  },
-  configDetailsCard: {
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-  },
-  bestConfigDetailsCard: {
-    borderColor: '#4CAF50',
-    borderWidth: 2,
-  },
-  configDetailsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  configDetailsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  configDetail: {
-    flex: 1,
-    minWidth: 200,
-  },
-  configDetailLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 2,
-  },
-  configDetailValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  configDetailDescription: {
-    fontSize: 10,
-    color: '#999',
-    fontStyle: 'italic',
-  },
-});
-
-export default ExecutionComparisonChart; 
+export default ExecutionComparisonChart;

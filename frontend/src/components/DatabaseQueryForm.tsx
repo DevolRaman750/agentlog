@@ -13,7 +13,7 @@ import { Picker } from '@react-native-picker/picker';
 import TextEditor from './TextEditor';
 
 import { FunctionDefinition } from '../types';
-import { StyleSheet } from 'react-native';
+import { useTheme, useThemedStyles } from '../theme';
 
 interface DatabaseQueryFormProps {
   onExecuteQuery: (queryData: DatabaseQueryData) => void;
@@ -48,6 +48,257 @@ export const DatabaseQueryForm: React.FC<DatabaseQueryFormProps> = ({
   loading = false,
   mysqlFunction
 }) => {
+  const { colors } = useTheme();
+
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bgSurface,
+      paddingHorizontal: 16,
+    },
+    header: {
+      paddingVertical: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+      marginBottom: 20,
+    },
+    titleRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 8,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginLeft: 12,
+    },
+    subtitle: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      lineHeight: 22,
+    },
+    section: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    sectionHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      marginBottom: 12,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    samplesButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      backgroundColor: colors.bgHover,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.accent,
+    },
+    samplesButtonText: {
+      color: colors.accent,
+      fontSize: 14,
+      fontWeight: '500' as const,
+      marginLeft: 4,
+    },
+    samplesContainer: {
+      backgroundColor: colors.bgSurface,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 12,
+    },
+    samplesTitle: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    sampleItem: {
+      paddingVertical: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    sampleLabel: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: colors.accent,
+      textTransform: 'uppercase' as const,
+      marginBottom: 4,
+    },
+    sampleQuery: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    },
+    queryEditor: {
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      borderRadius: 8,
+    },
+    queryEditorError: {
+      borderColor: colors.statusError,
+    },
+    errorContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginTop: 8,
+      paddingHorizontal: 8,
+    },
+    errorText: {
+      color: colors.statusError,
+      fontSize: 14,
+      marginLeft: 6,
+      flex: 1,
+    },
+    configGrid: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      marginHorizontal: -8,
+    },
+    configItem: {
+      flex: 1,
+      minWidth: 150,
+      paddingHorizontal: 8,
+      marginBottom: 16,
+    },
+    configLabel: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    pickerContainer: {
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      borderRadius: 8,
+      backgroundColor: colors.bgCard,
+    },
+    picker: {
+      height: 50,
+    },
+    formatButtons: {
+      flexDirection: 'row' as const,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      borderRadius: 8,
+      overflow: 'hidden' as const,
+    },
+    formatButton: {
+      flex: 1,
+      paddingVertical: 12,
+      paddingHorizontal: 8,
+      backgroundColor: colors.bgCard,
+      alignItems: 'center' as const,
+      borderRightWidth: 1,
+      borderRightColor: colors.borderLight,
+    },
+    formatButtonActive: {
+      backgroundColor: colors.accent,
+    },
+    formatButtonText: {
+      fontSize: 14,
+      fontWeight: '500' as const,
+      color: colors.textSecondary,
+    },
+    formatButtonTextActive: {
+      color: colors.textInverse,
+    },
+    numberInput: {
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      borderRadius: 8,
+    },
+    executeSection: {
+      paddingVertical: 20,
+    },
+    executeButton: {
+      backgroundColor: colors.accent,
+      borderRadius: 12,
+      paddingVertical: 16,
+      paddingHorizontal: 24,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      shadowColor: colors.accent,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    executeButtonDisabled: {
+      backgroundColor: colors.textTertiary,
+      shadowOpacity: 0,
+    },
+    executeButtonText: {
+      color: colors.textInverse,
+      fontSize: 16,
+      fontWeight: '600' as const,
+      marginLeft: 8,
+    },
+    warningContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginTop: 12,
+      paddingHorizontal: 8,
+    },
+    warningText: {
+      color: colors.statusWarning,
+      fontSize: 14,
+      marginLeft: 6,
+      flex: 1,
+    },
+    alertOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+    },
+    alertContainer: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 20,
+      marginHorizontal: 20,
+      maxWidth: 300,
+    },
+    alertTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    alertMessage: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginBottom: 20,
+    },
+    alertButton: {
+      backgroundColor: colors.accent,
+      borderRadius: 8,
+      paddingVertical: 12,
+      alignItems: 'center' as const,
+    },
+    alertButtonText: {
+      color: colors.textInverse,
+      fontSize: 16,
+      fontWeight: '600' as const,
+    },
+  }));
+
   const [queryData, setQueryData] = useState<DatabaseQueryData>({
     query: '',
     database: 'main',
@@ -98,9 +349,9 @@ export const DatabaseQueryForm: React.FC<DatabaseQueryFormProps> = ({
 
     for (const pattern of dangerousPatterns) {
       if (queryUpper.includes(pattern)) {
-        validationErrors.push({ 
-          field: 'query', 
-          message: `Dangerous SQL pattern detected: ${pattern}. Only safe SELECT queries are allowed.` 
+        validationErrors.push({
+          field: 'query',
+          message: `Dangerous SQL pattern detected: ${pattern}. Only safe SELECT queries are allowed.`
         });
         break; // Only show first dangerous pattern
       }
@@ -148,7 +399,7 @@ export const DatabaseQueryForm: React.FC<DatabaseQueryFormProps> = ({
 
   const handleExecuteQuery = () => {
     const validationErrors = validateQuery(queryData.query);
-    
+
     if (validationErrors.length > 0) {
       setAlertConfig({
         visible: true,
@@ -169,7 +420,7 @@ export const DatabaseQueryForm: React.FC<DatabaseQueryFormProps> = ({
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          <Ionicons name="server-outline" size={24} color="#007AFF" />
+          <Ionicons name="server-outline" size={24} color={colors.accent} />
           <Text style={styles.title}>MySQL Database Query</Text>
         </View>
         <Text style={styles.subtitle}>
@@ -181,11 +432,11 @@ export const DatabaseQueryForm: React.FC<DatabaseQueryFormProps> = ({
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>SQL Query</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.samplesButton}
             onPress={() => setShowSamples(!showSamples)}
           >
-            <Ionicons name="code-outline" size={16} color="#007AFF" />
+            <Ionicons name="code-outline" size={16} color={colors.accent} />
             <Text style={styles.samplesButtonText}>Samples</Text>
           </TouchableOpacity>
         </View>
@@ -222,7 +473,7 @@ export const DatabaseQueryForm: React.FC<DatabaseQueryFormProps> = ({
         {/* Validation Errors */}
         {errors.map((error, index) => (
           <View key={index} style={styles.errorContainer}>
-            <Ionicons name="warning-outline" size={16} color="#FF3B30" />
+            <Ionicons name="warning-outline" size={16} color={colors.statusError} />
             <Text style={styles.errorText}>{error.message}</Text>
           </View>
         ))}
@@ -231,7 +482,7 @@ export const DatabaseQueryForm: React.FC<DatabaseQueryFormProps> = ({
       {/* Database Configuration */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Configuration</Text>
-        
+
         <View style={styles.configGrid}>
           {/* Database Selection */}
           <View style={styles.configItem}>
@@ -319,9 +570,9 @@ export const DatabaseQueryForm: React.FC<DatabaseQueryFormProps> = ({
           disabled={!isQueryValid || loading}
         >
           {loading ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
+            <ActivityIndicator color={colors.textInverse} size="small" />
           ) : (
-            <Ionicons name="play" size={20} color="#FFFFFF" />
+            <Ionicons name="play" size={20} color={colors.textInverse} />
           )}
           <Text style={styles.executeButtonText}>
             {loading ? 'Executing...' : 'Execute Query'}
@@ -330,7 +581,7 @@ export const DatabaseQueryForm: React.FC<DatabaseQueryFormProps> = ({
 
         {!mysqlFunction && (
           <View style={styles.warningContainer}>
-            <Ionicons name="warning-outline" size={16} color="#FF9500" />
+            <Ionicons name="warning-outline" size={16} color={colors.statusWarning} />
             <Text style={styles.warningText}>
               MySQL function not found. Please ensure the function is configured.
             </Text>
@@ -343,7 +594,7 @@ export const DatabaseQueryForm: React.FC<DatabaseQueryFormProps> = ({
           <View style={styles.alertContainer}>
             <Text style={styles.alertTitle}>{alertConfig.title}</Text>
             <Text style={styles.alertMessage}>{alertConfig.message}</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.alertButton}
               onPress={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
             >
@@ -355,252 +606,3 @@ export const DatabaseQueryForm: React.FC<DatabaseQueryFormProps> = ({
     </ScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8F9FA',
-    paddingHorizontal: 16,
-  },
-  header: {
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-    marginBottom: 20,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginLeft: 12,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6B6B6B',
-    lineHeight: 22,
-  },
-  section: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  samplesButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: '#F0F9FF',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#007AFF',
-  },
-  samplesButtonText: {
-    color: '#007AFF',
-    fontSize: 14,
-    fontWeight: '500',
-    marginLeft: 4,
-  },
-  samplesContainer: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-  },
-  samplesTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 8,
-  },
-  sampleItem: {
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  sampleLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#007AFF',
-    textTransform: 'uppercase',
-    marginBottom: 4,
-  },
-  sampleQuery: {
-    fontSize: 14,
-    color: '#666',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  },
-  queryEditor: {
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    borderRadius: 8,
-  },
-  queryEditorError: {
-    borderColor: '#FF3B30',
-  },
-  errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    paddingHorizontal: 8,
-  },
-  errorText: {
-    color: '#FF3B30',
-    fontSize: 14,
-    marginLeft: 6,
-    flex: 1,
-  },
-  configGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -8,
-  },
-  configItem: {
-    flex: 1,
-    minWidth: 150,
-    paddingHorizontal: 8,
-    marginBottom: 16,
-  },
-  configLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 8,
-  },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
-  },
-  picker: {
-    height: 50,
-  },
-  formatButtons: {
-    flexDirection: 'row',
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  formatButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    borderRightWidth: 1,
-    borderRightColor: '#E5E5EA',
-  },
-  formatButtonActive: {
-    backgroundColor: '#007AFF',
-  },
-  formatButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#666',
-  },
-  formatButtonTextActive: {
-    color: '#FFFFFF',
-  },
-  numberInput: {
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    borderRadius: 8,
-  },
-  executeSection: {
-    paddingVertical: 20,
-  },
-  executeButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#007AFF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  executeButtonDisabled: {
-    backgroundColor: '#C7C7CC',
-    shadowOpacity: 0,
-  },
-  executeButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  warningContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
-    paddingHorizontal: 8,
-  },
-  warningText: {
-    color: '#FF9500',
-    fontSize: 14,
-    marginLeft: 6,
-    flex: 1,
-  },
-  alertOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  alertContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 20,
-    marginHorizontal: 20,
-    maxWidth: 300,
-  },
-  alertTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 8,
-  },
-  alertMessage: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 20,
-  },
-  alertButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  alertButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-}); 

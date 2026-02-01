@@ -1,11 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  ScrollView, 
-  Modal, 
-  StyleSheet,
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Modal,
   ActivityIndicator,
   TextInput
 } from 'react-native';
@@ -13,6 +12,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { APIConfiguration } from '../types';
 import { useResponsive } from '../context/ResponsiveContext';
+import { useTheme, useThemedStyles } from '../theme';
+import { ThemeColors } from '../theme';
 
 interface ConfigurationModalProps {
   visible: boolean;
@@ -41,12 +42,225 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
 }) => {
   const { screenWidth } = useResponsive();
   const [searchQuery, setSearchQuery] = useState('');
+  const { colors } = useTheme();
+
+  const styles = useThemedStyles((colors: ThemeColors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bgApp,
+    },
+    header: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      backgroundColor: colors.bgCard,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    headerButton: {
+      padding: 8,
+      minWidth: 60,
+      minHeight: 44,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    doneButton: {
+      alignItems: 'flex-end' as const,
+    },
+    doneButtonText: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.accent,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    subtitle: {
+      backgroundColor: colors.bgCard,
+      paddingHorizontal: 16,
+      paddingBottom: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    subtitleText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+      marginBottom: 8,
+    },
+    selectionInfo: {
+      flexDirection: 'row' as const,
+      justifyContent: 'flex-end' as const,
+    },
+    selectionCount: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.accent,
+      backgroundColor: '#F0F8FF',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+    },
+    controls: {
+      backgroundColor: colors.bgCard,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    searchContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: colors.bgSurface,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      marginBottom: 12,
+      gap: 8,
+    },
+    searchInput: {
+      flex: 1,
+      fontSize: 16,
+      color: colors.textPrimary,
+    },
+    bulkActions: {
+      flexDirection: 'row' as const,
+      gap: 12,
+    },
+    bulkButton: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      backgroundColor: colors.bgSurface,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    bulkButtonText: {
+      fontSize: 14,
+      fontWeight: '500' as const,
+      color: colors.accent,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      padding: 20,
+    },
+    loadingText: {
+      marginTop: 12,
+      fontSize: 16,
+      color: colors.textSecondary,
+    },
+    scrollContent: {
+      flex: 1,
+    },
+    scrollContentContainer: {
+      padding: 16,
+    },
+    emptyState: {
+      alignItems: 'center' as const,
+      paddingVertical: 60,
+      paddingHorizontal: 20,
+    },
+    emptyStateTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textSecondary,
+      marginTop: 16,
+      marginBottom: 8,
+      textAlign: 'center' as const,
+    },
+    emptyStateText: {
+      fontSize: 14,
+      color: colors.textTertiary,
+      textAlign: 'center' as const,
+      lineHeight: 20,
+    },
+    configCard: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 12,
+      borderWidth: 2,
+      borderColor: colors.borderLight,
+    },
+    configCardSelected: {
+      borderColor: colors.accent,
+      backgroundColor: '#F8FBFF',
+    },
+    configHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'flex-start' as const,
+      marginBottom: 8,
+    },
+    configInfo: {
+      flex: 1,
+      marginRight: 12,
+    },
+    configName: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    configNameSelected: {
+      color: colors.accent,
+    },
+    configModel: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    configModelSelected: {
+      color: '#0056CC',
+    },
+    checkbox: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      borderWidth: 2,
+      borderColor: colors.borderLight,
+      backgroundColor: colors.bgCard,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    checkboxSelected: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+    },
+    configPrompt: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      lineHeight: 18,
+      marginBottom: 8,
+    },
+    configPromptSelected: {
+      color: '#0056CC',
+    },
+    configMeta: {
+      flexDirection: 'row' as const,
+      gap: 16,
+    },
+    configMetaItem: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 4,
+    },
+    configMetaText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+  }));
 
   const filteredConfigurations = useMemo(() => {
     if (!searchQuery.trim()) return configurations;
-    
+
     const query = searchQuery.toLowerCase();
-    return configurations.filter(config => 
+    return configurations.filter(config =>
       config.variationName.toLowerCase().includes(query) ||
       config.modelName.toLowerCase().includes(query) ||
       config.systemPrompt?.toLowerCase().includes(query)
@@ -67,7 +281,7 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
         }
         return; // Don't allow more selections if at limit
       }
-      
+
       const newSelection = [...selectedConfigurations, configId];
       onSelectionChange(newSelection);
     }
@@ -75,7 +289,7 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
 
   const selectAll = () => {
     if (maxSelections === 1) return; // Don't allow select all for single selection modes
-    
+
     const availableIds = filteredConfigurations.map(config => config.id).filter((id): id is string => !!id);
     const idsToSelect = maxSelections ? availableIds.slice(0, maxSelections) : availableIds;
     onSelectionChange(idsToSelect);
@@ -87,7 +301,7 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
 
   const renderConfigurationCard = (config: APIConfiguration) => {
     const isSelected = config.id ? selectedConfigurations.includes(config.id) : false;
-    
+
     return (
       <TouchableOpacity
         key={config.id}
@@ -104,32 +318,32 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
               {config.modelName}
             </Text>
           </View>
-          
+
           <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
             {isSelected && (
               <Ionicons name="checkmark" size={16} color="white" />
             )}
           </View>
         </View>
-        
+
         {config.systemPrompt && (
-          <Text 
-            style={[styles.configPrompt, isSelected && styles.configPromptSelected]} 
+          <Text
+            style={[styles.configPrompt, isSelected && styles.configPromptSelected]}
             numberOfLines={2}
           >
             {config.systemPrompt}
           </Text>
         )}
-        
+
         <View style={styles.configMeta}>
           <View style={styles.configMetaItem}>
-            <Ionicons name="thermometer" size={12} color="#666" />
+            <Ionicons name="thermometer" size={12} color={colors.textSecondary} />
             <Text style={styles.configMetaText}>Temp: {config.temperature}</Text>
           </View>
-          
+
           {config.maxTokens && (
             <View style={styles.configMetaItem}>
-              <Ionicons name="flash" size={12} color="#666" />
+              <Ionicons name="flash" size={12} color={colors.textSecondary} />
               <Text style={styles.configMetaText}>Max: {config.maxTokens}</Text>
             </View>
           )}
@@ -146,30 +360,30 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.headerButton}>
-            <Ionicons name="close" size={24} color="#007AFF" />
+            <Ionicons name="close" size={24} color={colors.accent} />
           </TouchableOpacity>
-          
+
           <Text style={styles.title}>
             {modeInfo ? `${modeInfo.title} - Configurations` : 'AI Configurations'}
           </Text>
-          
-          <TouchableOpacity 
-            onPress={onClose} 
+
+          <TouchableOpacity
+            onPress={onClose}
             style={[styles.headerButton, styles.doneButton]}
           >
             <Text style={styles.doneButtonText}>Done</Text>
           </TouchableOpacity>
         </View>
-        
+
         {/* Subtitle and selection info */}
         <View style={styles.subtitle}>
           <Text style={styles.subtitleText}>
-            {modeInfo && !modeInfo.allowMultiple 
+            {modeInfo && !modeInfo.allowMultiple
               ? `${modeInfo.title} mode - Choose one configuration`
               : 'Choose which AI model configurations to test your prompt against'
             }
           </Text>
-          
+
           <View style={styles.selectionInfo}>
             <Text style={styles.selectionCount}>
               {selectedConfigurations.length} selected
@@ -177,58 +391,58 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
             </Text>
           </View>
         </View>
-        
+
         {/* Search and controls */}
         <View style={styles.controls}>
           <View style={styles.searchContainer}>
-            <Ionicons name="search" size={16} color="#666" />
+            <Ionicons name="search" size={16} color={colors.textSecondary} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search configurations..."
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.textTertiary}
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Ionicons name="close-circle" size={16} color="#666" />
+                <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
               </TouchableOpacity>
             )}
           </View>
-          
+
           <View style={styles.bulkActions}>
             {maxSelections !== 1 && (
               <TouchableOpacity onPress={selectAll} style={styles.bulkButton}>
                 <Text style={styles.bulkButtonText}>Select All</Text>
               </TouchableOpacity>
             )}
-            
+
             <TouchableOpacity onPress={clearAll} style={styles.bulkButton}>
               <Text style={styles.bulkButtonText}>Clear All</Text>
             </TouchableOpacity>
           </View>
         </View>
-        
+
         {/* Content */}
         {isLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#007AFF" />
+            <ActivityIndicator size="large" color={colors.accent} />
             <Text style={styles.loadingText}>Loading configurations...</Text>
           </View>
         ) : (
-          <ScrollView 
-            style={styles.scrollContent} 
+          <ScrollView
+            style={styles.scrollContent}
             contentContainerStyle={styles.scrollContentContainer}
             showsVerticalScrollIndicator={false}
           >
             {filteredConfigurations.length === 0 ? (
               <View style={styles.emptyState}>
-                <Ionicons name="settings-outline" size={48} color="#999" />
+                <Ionicons name="settings-outline" size={48} color={colors.textTertiary} />
                 <Text style={styles.emptyStateTitle}>
                   {searchQuery ? 'No matching configurations' : 'No configurations available'}
                 </Text>
                 <Text style={styles.emptyStateText}>
-                  {searchQuery 
+                  {searchQuery
                     ? 'Try adjusting your search terms'
                     : 'Create configurations in the Configure tab first'
                   }
@@ -243,218 +457,6 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  headerButton: {
-    padding: 8, // Increased for better touch target
-    minWidth: 60,
-    minHeight: 44, // Ensure minimum touch target size
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  doneButton: {
-    alignItems: 'flex-end',
-  },
-  doneButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#007AFF',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  subtitle: {
-    backgroundColor: 'white',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  subtitleText: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-    marginBottom: 8,
-  },
-  selectionInfo: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-  },
-  selectionCount: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#007AFF',
-    backgroundColor: '#F0F8FF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  controls: {
-    backgroundColor: 'white',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 12,
-    gap: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#1A1A1A',
-  },
-  bulkActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  bulkButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  bulkButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#007AFF',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#666',
-  },
-  scrollContent: {
-    flex: 1,
-  },
-  scrollContentContainer: {
-    padding: 16,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 20,
-  },
-  emptyStateTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#666',
-    marginTop: 16,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  emptyStateText: {
-    fontSize: 14,
-    color: '#999',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  configCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: '#E5E5EA',
-  },
-  configCardSelected: {
-    borderColor: '#007AFF',
-    backgroundColor: '#F8FBFF',
-  },
-  configHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  configInfo: {
-    flex: 1,
-    marginRight: 12,
-  },
-  configName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 4,
-  },
-  configNameSelected: {
-    color: '#007AFF',
-  },
-  configModel: {
-    fontSize: 14,
-    color: '#666',
-  },
-  configModelSelected: {
-    color: '#0056CC',
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#E5E5EA',
-    backgroundColor: 'white',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxSelected: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
-  },
-  configPrompt: {
-    fontSize: 13,
-    color: '#666',
-    lineHeight: 18,
-    marginBottom: 8,
-  },
-  configPromptSelected: {
-    color: '#0056CC',
-  },
-  configMeta: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  configMetaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  configMetaText: {
-    fontSize: 12,
-    color: '#666',
-  },
-});
 
 export default ConfigurationModal;
 export type { ConfigurationModalProps };

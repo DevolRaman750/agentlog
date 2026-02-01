@@ -1791,8 +1791,8 @@ func (s *Server) databaseStatsHandler(w http.ResponseWriter, r *http.Request) {
 		// Fallback to empty stats if database query fails
 		stats = map[string]interface{}{
 			"totalExecutionRuns": 0,
-			"totalAPIRequests":   0,
-			"totalAPIResponses":  0,
+			"totalApiRequests":   0,
+			"totalApiResponses":  0,
 			"totalFunctionCalls": 0,
 			"avgResponseTime":    0.0,
 			"successRate":        0.0,
@@ -1889,8 +1889,8 @@ func (s *Server) getUserDatabaseStats(ctx context.Context, userID string) (map[s
 
 	return map[string]interface{}{
 		"totalExecutionRuns": totalExecutionRuns,
-		"totalAPIRequests":   totalAPIRequests,
-		"totalAPIResponses":  totalAPIResponses,
+		"totalApiRequests":   totalAPIRequests,
+		"totalApiResponses":  totalAPIResponses,
 		"totalFunctionCalls": totalFunctionCalls,
 		"avgResponseTime":    avgResponseTime,
 		"successRate":        successRate,

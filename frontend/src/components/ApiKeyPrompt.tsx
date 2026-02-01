@@ -5,12 +5,12 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   ScrollView,
   Platform,
 } from 'react-native';
 import { secureStorage, getApiKeyValidation, SessionApiKeys } from '../utils/secureStorage';
 import { AlertAPI } from './CustomAlert';
+import { useTheme, useThemedStyles } from '../theme';
 
 interface MissingApiKey {
   keyName: string;
@@ -32,12 +32,159 @@ export const ApiKeyPrompt: React.FC<ApiKeyPromptProps> = ({
   missingKeys,
   onComplete,
   onCancel,
-  title = "🔑 API Keys Required",
+  title = "API Keys Required",
   message = "Please provide the following API keys to continue:",
 }) => {
+  const { colors } = useTheme();
   const [apiKeyValues, setApiKeyValues] = useState<Record<string, string>>({});
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bgCard,
+    },
+    header: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 20,
+      paddingTop: Platform.OS === 'ios' ? 60 : 20,
+      paddingBottom: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    cancelButton: {
+      padding: 8,
+      borderRadius: 20,
+      backgroundColor: colors.bgSurface,
+    },
+    cancelButtonText: {
+      fontSize: 16,
+      fontWeight: '500' as const,
+      color: colors.textSecondary,
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: 20,
+    },
+    message: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      marginBottom: 24,
+      lineHeight: 24,
+    },
+    inputGroup: {
+      marginBottom: 20,
+    },
+    labelContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 8,
+      flexWrap: 'wrap' as const,
+      minHeight: 20,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '500' as const,
+      color: colors.textPrimary,
+      flex: 1,
+      minWidth: 80,
+    },
+    required: {
+      fontSize: 12,
+      color: '#e74c3c',
+      marginLeft: 4,
+      alignSelf: 'flex-start' as const,
+      flexShrink: 0,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      borderRadius: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      fontSize: 16,
+      backgroundColor: colors.bgCard,
+    },
+    inputError: {
+      borderColor: '#e74c3c',
+      backgroundColor: '#fef7f7',
+    },
+    errorText: {
+      fontSize: 12,
+      color: '#e74c3c',
+      marginTop: 4,
+    },
+    helpText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 4,
+      fontStyle: 'italic' as const,
+    },
+    infoSection: {
+      backgroundColor: colors.bgSurface,
+      borderRadius: 8,
+      padding: 16,
+      marginTop: 20,
+      marginBottom: 20,
+    },
+    infoTitle: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    infoText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      lineHeight: 18,
+    },
+    footer: {
+      flexDirection: 'row' as const,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      paddingBottom: Platform.OS === 'ios' ? 34 : 16,
+      borderTopWidth: 1,
+      borderTopColor: colors.borderLight,
+      gap: 12,
+    },
+    button: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: 8,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    cancelButtonFooter: {
+      backgroundColor: colors.bgSurface,
+    },
+    cancelButtonFooterText: {
+      fontSize: 16,
+      fontWeight: '500' as const,
+      color: colors.textSecondary,
+    },
+    saveButton: {
+      backgroundColor: colors.accent,
+    },
+    saveButtonDisabled: {
+      backgroundColor: colors.borderLight,
+    },
+    saveButtonText: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textInverse,
+    },
+    saveButtonTextDisabled: {
+      color: colors.textTertiary,
+    },
+  }));
 
   // Reset state when modal becomes visible
   React.useEffect(() => {
@@ -50,7 +197,7 @@ export const ApiKeyPrompt: React.FC<ApiKeyPromptProps> = ({
 
   const updateApiKey = (keyName: string, value: string) => {
     setApiKeyValues(prev => ({ ...prev, [keyName]: value }));
-    
+
     // Clear validation error when user starts typing
     if (validationErrors[keyName]) {
       setValidationErrors(prev => {
@@ -68,7 +215,7 @@ export const ApiKeyPrompt: React.FC<ApiKeyPromptProps> = ({
     for (const missingKey of missingKeys) {
       const value = apiKeyValues[missingKey.keyName] || '';
       const validation = secureStorage.validateApiKey(missingKey.keyName, value);
-      
+
       if (!validation.isValid) {
         errors[missingKey.keyName] = validation.error || 'Invalid value';
         hasErrors = true;
@@ -160,7 +307,7 @@ export const ApiKeyPrompt: React.FC<ApiKeyPromptProps> = ({
         <View style={styles.header}>
           <Text style={styles.title}>{title}</Text>
           <TouchableOpacity onPress={handleCancel} style={styles.cancelButton}>
-            <Text style={styles.cancelButtonText}>✕</Text>
+            <Text style={styles.cancelButtonText}>X</Text>
           </TouchableOpacity>
         </View>
 
@@ -185,7 +332,7 @@ export const ApiKeyPrompt: React.FC<ApiKeyPromptProps> = ({
                   value={apiKeyValues[missingKey.keyName] || ''}
                   onChangeText={(value) => updateApiKey(missingKey.keyName, value)}
                   placeholder={getInputPlaceholder(missingKey.keyName)}
-                  placeholderTextColor="#999"
+                  placeholderTextColor={colors.textTertiary}
                   secureTextEntry={isPasswordField(missingKey.keyName)}
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -196,7 +343,7 @@ export const ApiKeyPrompt: React.FC<ApiKeyPromptProps> = ({
 
                 {validation?.testEndpoint && (
                   <Text style={styles.helpText}>
-                    💡 Get your key from the API provider's dashboard
+                    Get your key from the API provider's dashboard
                   </Text>
                 )}
               </View>
@@ -204,12 +351,12 @@ export const ApiKeyPrompt: React.FC<ApiKeyPromptProps> = ({
           })}
 
           <View style={styles.infoSection}>
-            <Text style={styles.infoTitle}>🔒 Security Information</Text>
+            <Text style={styles.infoTitle}>Security Information</Text>
             <Text style={styles.infoText}>
-              • API keys are encrypted and stored locally on your device{'\n'}
-              • Keys are never sent to or stored on our servers{'\n'}
-              • Each execution request includes only the necessary keys{'\n'}
-              • You can remove keys anytime from Settings
+              {'\u2022'} API keys are encrypted and stored locally on your device{'\n'}
+              {'\u2022'} Keys are never sent to or stored on our servers{'\n'}
+              {'\u2022'} Each execution request includes only the necessary keys{'\n'}
+              {'\u2022'} You can remove keys anytime from Settings
             </Text>
           </View>
         </ScrollView>
@@ -244,149 +391,3 @@ export const ApiKeyPrompt: React.FC<ApiKeyPromptProps> = ({
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 60 : 20,
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e1e5e9',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1a1a1a',
-  },
-  cancelButton: {
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: '#f5f5f5',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#666',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  message: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 24,
-    lineHeight: 24,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  labelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    flexWrap: 'wrap', // Allow wrapping on small screens
-    minHeight: 20, // Ensure consistent height
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1a1a1a',
-    flex: 1, // Allow label to take available space
-    minWidth: 80, // Minimum width before wrapping
-  },
-  required: {
-    fontSize: 12, // Slightly smaller on mobile
-    color: '#e74c3c',
-    marginLeft: 4,
-    alignSelf: 'flex-start', // Prevent stretching
-    flexShrink: 0, // Don't shrink the indicator
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#e1e5e9',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    backgroundColor: '#fff',
-  },
-  inputError: {
-    borderColor: '#e74c3c',
-    backgroundColor: '#fef7f7',
-  },
-  errorText: {
-    fontSize: 12,
-    color: '#e74c3c',
-    marginTop: 4,
-  },
-  helpText: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
-    fontStyle: 'italic',
-  },
-  infoSection: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    padding: 16,
-    marginTop: 20,
-    marginBottom: 20,
-  },
-  infoTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 8,
-  },
-  infoText: {
-    fontSize: 12,
-    color: '#666',
-    lineHeight: 18,
-  },
-  footer: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 16,
-    borderTopWidth: 1,
-    borderTopColor: '#e1e5e9',
-    gap: 12,
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButtonFooter: {
-    backgroundColor: '#f5f5f5',
-  },
-  cancelButtonFooterText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#666',
-  },
-  saveButton: {
-    backgroundColor: '#007AFF',
-  },
-  saveButtonDisabled: {
-    backgroundColor: '#ccc',
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  saveButtonTextDisabled: {
-    color: '#999',
-  },
-}); 

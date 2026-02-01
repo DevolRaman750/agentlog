@@ -2,13 +2,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   ScrollView,
   Modal,
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme, useThemedStyles } from '../theme';
 import { MarketplaceAgent } from '../types/marketplace';
 import ScreenContainer from './ScreenContainer';
 import { FunctionDefinition } from '../types/index';
@@ -29,8 +29,344 @@ const AgentResumeModal: React.FC<AgentResumeModalProps> = ({
   onClose,
   onHire,
 }) => {
+  const { colors } = useTheme();
   const [availableFunctions, setAvailableFunctions] = useState<FunctionDefinition[]>([]);
   const [isLoadingFunctions, setIsLoadingFunctions] = useState(false);
+
+  const styles = useThemedStyles((colors) => ({
+    header: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+      backgroundColor: colors.bgCard,
+    },
+    closeButton: {
+      padding: 4,
+    },
+    headerTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    headerSpacer: {
+      width: 32,
+    },
+    profileSection: {
+      backgroundColor: colors.bgCard,
+      padding: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    profileHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+      marginBottom: 20,
+    },
+    avatarContainer: {
+      position: 'relative' as const,
+      marginRight: 20,
+    },
+    avatar: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+    },
+    avatarText: {
+      fontSize: 24,
+      fontWeight: 'bold' as const,
+    },
+    availabilityDot: {
+      position: 'absolute' as const,
+      bottom: 4,
+      right: 4,
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      borderWidth: 3,
+      borderColor: colors.bgCard,
+    },
+    profileInfo: {
+      flex: 1,
+    },
+    agentName: {
+      fontSize: 24,
+      fontWeight: 'bold' as const,
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    agentRole: {
+      fontSize: 18,
+      color: colors.accent,
+      fontWeight: '500' as const,
+      marginBottom: 12,
+    },
+    profileMeta: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 16,
+    },
+    experienceBadge: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+    },
+    experienceText: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+    },
+    availability: {
+      fontSize: 14,
+      color: '#6B6B6B',
+      fontWeight: '500' as const,
+    },
+    apiRequirementsSection: {
+      backgroundColor: colors.bgSurface,
+      padding: 16,
+      borderRadius: 12,
+      marginBottom: 16,
+    },
+    apiRequirementsTitle: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 12,
+    },
+    apiRequirementsContainer: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: 8,
+    },
+    apiRequirementTag: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: '#E3F2FD',
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+      gap: 6,
+    },
+    apiRequirementText: {
+      fontSize: 14,
+      color: '#1976D2',
+      fontWeight: '500' as const,
+    },
+    modelConfigSection: {
+      backgroundColor: colors.bgSurface,
+      padding: 16,
+      borderRadius: 12,
+      marginBottom: 16,
+    },
+    modelConfigTitle: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 12,
+    },
+    modelConfigContainer: {
+      gap: 8,
+    },
+    modelConfigRow: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+    },
+    modelConfigLabel: {
+      fontSize: 14,
+      color: '#6B6B6B',
+      fontWeight: '500' as const,
+    },
+    modelConfigValue: {
+      fontSize: 14,
+      color: colors.textPrimary,
+      fontWeight: '600' as const,
+    },
+    section: {
+      backgroundColor: colors.bgCard,
+      padding: 20,
+      marginTop: 8,
+    },
+    sectionTitle: {
+      fontSize: 20,
+      fontWeight: 'bold' as const,
+      color: colors.textPrimary,
+      marginBottom: 16,
+    },
+    description: {
+      fontSize: 16,
+      color: '#6B6B6B',
+      lineHeight: 24,
+    },
+    highlight: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 12,
+      gap: 12,
+    },
+    highlightText: {
+      fontSize: 16,
+      color: colors.textPrimary,
+      flex: 1,
+      lineHeight: 22,
+    },
+    subsection: {
+      marginBottom: 24,
+    },
+    subsectionTitle: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 12,
+    },
+    capabilitiesGrid: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: 12,
+    },
+    capabilityCard: {
+      backgroundColor: colors.bgSurface,
+      padding: 16,
+      borderRadius: 12,
+      alignItems: 'center' as const,
+      minWidth: 120,
+      flex: 1,
+    },
+    capabilityTitle: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginTop: 8,
+      marginBottom: 4,
+    },
+    capabilityCount: {
+      fontSize: 12,
+      color: '#6B6B6B',
+    },
+    specialtiesContainer: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: 8,
+    },
+    specialtyTag: {
+      backgroundColor: '#E3F2FD',
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+    },
+    specialtyText: {
+      fontSize: 14,
+      color: '#1976D2',
+      fontWeight: '500' as const,
+    },
+    toolsContainer: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: 8,
+    },
+    toolTag: {
+      backgroundColor: colors.bgApp,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+    },
+    toolText: {
+      fontSize: 14,
+      color: colors.textPrimary,
+      fontWeight: '500' as const,
+    },
+    statsGrid: {
+      flexDirection: 'row' as const,
+      gap: 16,
+    },
+    statCard: {
+      flex: 1,
+      backgroundColor: colors.bgSurface,
+      padding: 16,
+      borderRadius: 12,
+      alignItems: 'center' as const,
+    },
+    statNumber: {
+      fontSize: 24,
+      fontWeight: 'bold' as const,
+      color: colors.textPrimary,
+      marginTop: 8,
+      marginBottom: 4,
+    },
+    statLabel: {
+      fontSize: 12,
+      color: '#6B6B6B',
+      textAlign: 'center' as const,
+    },
+    templateCard: {
+      backgroundColor: colors.bgSurface,
+      padding: 16,
+      borderRadius: 12,
+    },
+    templateHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 12,
+      gap: 12,
+    },
+    templateInfo: {
+      flex: 1,
+    },
+    templateName: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 2,
+    },
+    templateCategory: {
+      fontSize: 14,
+      color: '#6B6B6B',
+    },
+    templateDescription: {
+      fontSize: 14,
+      color: '#6B6B6B',
+      lineHeight: 20,
+    },
+    actionContainer: {
+      flexDirection: 'row' as const,
+      gap: 12,
+      padding: 20,
+      backgroundColor: colors.bgCard,
+      borderTopWidth: 1,
+      borderTopColor: colors.borderLight,
+    },
+    secondaryButton: {
+      flex: 1,
+      backgroundColor: colors.bgApp,
+      paddingVertical: 16,
+      borderRadius: 12,
+      alignItems: 'center' as const,
+    },
+    secondaryButtonText: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    primaryButton: {
+      flex: 1,
+      backgroundColor: colors.accent,
+      paddingVertical: 16,
+      borderRadius: 12,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      gap: 8,
+    },
+    primaryButtonText: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textInverse,
+    },
+  }));
 
   // Fetch available functions when modal opens
   useEffect(() => {
@@ -43,7 +379,7 @@ const AgentResumeModal: React.FC<AgentResumeModalProps> = ({
     setIsLoadingFunctions(true);
     try {
       const response = await goGentAPI.getFunctions();
-      
+
       if (response.success && response.data) {
         const functions = response.data;
         // Filter to only active functions
@@ -64,11 +400,11 @@ const AgentResumeModal: React.FC<AgentResumeModalProps> = ({
 
   const getExperienceColor = (level: string) => {
     switch (level) {
-      case 'Expert': return '#FF3B30';
-      case 'Senior': return '#FF9500';
-      case 'Mid-Level': return '#007AFF';
-      case 'Junior': return '#34C759';
-      default: return '#8E8E93';
+      case 'Expert': return colors.statusError;
+      case 'Senior': return colors.statusWarning;
+      case 'Mid-Level': return colors.accent;
+      case 'Junior': return colors.statusSuccess;
+      default: return colors.textSecondary;
     }
   };
 
@@ -89,7 +425,7 @@ const AgentResumeModal: React.FC<AgentResumeModalProps> = ({
   // Map marketplace agent function groups to actual database function groups
   const groupMapping: { [key: string]: string } = {
     'github (read-only)': 'github',
-    'github (full access)': 'github', 
+    'github (full access)': 'github',
     'slack communication': 'communication',
     'weather api': 'weather'
   };
@@ -98,18 +434,18 @@ const AgentResumeModal: React.FC<AgentResumeModalProps> = ({
   const getFunctionCountForGroup = (group: string) => {
     if (isLoadingFunctions || availableFunctions.length === 0) {
       // Fallback to the specificFunctions array if we don't have real function data
-      return agent.capabilities.specificFunctions.filter(func => 
+      return agent.capabilities.specificFunctions.filter(func =>
         func.toLowerCase().includes(group.toLowerCase().replace(' ', ''))
       ).length;
     }
 
     const actualGroup = groupMapping[group.toLowerCase()] || group.toLowerCase();
-    
+
     // Use real function data to count functions in this group
-    const functionsInGroup = availableFunctions.filter(func => 
+    const functionsInGroup = availableFunctions.filter(func =>
       func.functionGroup.toLowerCase() === actualGroup
     );
-    
+
     return functionsInGroup.length;
   };
 
@@ -124,7 +460,7 @@ const AgentResumeModal: React.FC<AgentResumeModalProps> = ({
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Ionicons name="close" size={24} color="#8E8E93" />
+            <Ionicons name="close" size={24} color={colors.textSecondary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Agent Resume</Text>
           <View style={styles.headerSpacer} />
@@ -147,7 +483,7 @@ const AgentResumeModal: React.FC<AgentResumeModalProps> = ({
               </View>
               {/* Removed availability dot - no fake metrics */}
             </View>
-            
+
             <View style={styles.profileInfo}>
               <Text style={styles.agentName}>{agent.name}</Text>
               <Text style={styles.agentRole}>{agent.role}</Text>
@@ -174,7 +510,7 @@ const AgentResumeModal: React.FC<AgentResumeModalProps> = ({
             <View style={styles.apiRequirementsContainer}>
               {agent.apiRequirements.displayNames.map((displayName, index) => (
                 <View key={index} style={styles.apiRequirementTag}>
-                  <Ionicons name="key" size={16} color="#007AFF" />
+                  <Ionicons name="key" size={16} color={colors.accent} />
                   <Text style={styles.apiRequirementText}>{displayName}</Text>
                 </View>
               ))}
@@ -216,7 +552,7 @@ const AgentResumeModal: React.FC<AgentResumeModalProps> = ({
           <Text style={styles.sectionTitle}>Key Strengths</Text>
           {agent.highlights.map((highlight, index) => (
             <View key={index} style={styles.highlight}>
-              <Ionicons name="checkmark-circle" size={20} color="#34C759" />
+              <Ionicons name="checkmark-circle" size={20} color={colors.statusSuccess} />
               <Text style={styles.highlightText}>{highlight}</Text>
             </View>
           ))}
@@ -225,17 +561,17 @@ const AgentResumeModal: React.FC<AgentResumeModalProps> = ({
         {/* Technical Capabilities */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Technical Capabilities</Text>
-          
+
           {/* Integration Groups */}
           <View style={styles.subsection}>
             <Text style={styles.subsectionTitle}>Available Integrations</Text>
             <View style={styles.capabilitiesGrid}>
               {agent.capabilities.functionGroups.map((group, index) => (
                 <View key={index} style={styles.capabilityCard}>
-                  <Ionicons 
-                    name={getFunctionGroupIcon(group)} 
-                    size={24} 
-                    color="#007AFF" 
+                  <Ionicons
+                    name={getFunctionGroupIcon(group)}
+                    size={24}
+                    color={colors.accent}
                   />
                   <Text style={styles.capabilityTitle}>{group}</Text>
                   <Text style={styles.capabilityCount}>
@@ -296,7 +632,7 @@ const AgentResumeModal: React.FC<AgentResumeModalProps> = ({
             <Text style={styles.secondaryButtonText}>View More Agents</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.primaryButton} onPress={onHire}>
-            <Ionicons name="person-add" size={20} color="#FFFFFF" />
+            <Ionicons name="person-add" size={20} color={colors.textInverse} />
             <Text style={styles.primaryButtonText}>Hire This Agent</Text>
           </TouchableOpacity>
         </View>
@@ -304,341 +640,5 @@ const AgentResumeModal: React.FC<AgentResumeModalProps> = ({
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-    backgroundColor: '#FFFFFF',
-  },
-  closeButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  headerSpacer: {
-    width: 32,
-  },
-  profileSection: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  profileHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 20,
-  },
-  avatarContainer: {
-    position: 'relative',
-    marginRight: 20,
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  availabilityDot: {
-    position: 'absolute',
-    bottom: 4,
-    right: 4,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-  },
-  profileInfo: {
-    flex: 1,
-  },
-  agentName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-    marginBottom: 4,
-  },
-  agentRole: {
-    fontSize: 18,
-    color: '#007AFF',
-    fontWeight: '500',
-    marginBottom: 12,
-  },
-  profileMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  experienceBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  experienceText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  availability: {
-    fontSize: 14,
-    color: '#6B6B6B',
-    fontWeight: '500',
-  },
-
-  apiRequirementsSection: {
-    backgroundColor: '#F8F9FA',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-  },
-  apiRequirementsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 12,
-  },
-  apiRequirementsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  apiRequirementTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E3F2FD',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 6,
-  },
-  apiRequirementText: {
-    fontSize: 14,
-    color: '#1976D2',
-    fontWeight: '500',
-  },
-  modelConfigSection: {
-    backgroundColor: '#F8F9FA',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-  },
-  modelConfigTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 12,
-  },
-  modelConfigContainer: {
-    gap: 8,
-  },
-  modelConfigRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  modelConfigLabel: {
-    fontSize: 14,
-    color: '#6B6B6B',
-    fontWeight: '500',
-  },
-  modelConfigValue: {
-    fontSize: 14,
-    color: '#1A1A1A',
-    fontWeight: '600',
-  },
-  section: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    marginTop: 8,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-    marginBottom: 16,
-  },
-  description: {
-    fontSize: 16,
-    color: '#6B6B6B',
-    lineHeight: 24,
-  },
-  highlight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 12,
-  },
-  highlightText: {
-    fontSize: 16,
-    color: '#1A1A1A',
-    flex: 1,
-    lineHeight: 22,
-  },
-  subsection: {
-    marginBottom: 24,
-  },
-  subsectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 12,
-  },
-  capabilitiesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  capabilityCard: {
-    backgroundColor: '#F8F9FA',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    minWidth: 120,
-    flex: 1,
-  },
-  capabilityTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  capabilityCount: {
-    fontSize: 12,
-    color: '#6B6B6B',
-  },
-  specialtiesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  specialtyTag: {
-    backgroundColor: '#E3F2FD',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  specialtyText: {
-    fontSize: 14,
-    color: '#1976D2',
-    fontWeight: '500',
-  },
-  toolsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  toolTag: {
-    backgroundColor: '#F2F2F7',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  toolText: {
-    fontSize: 14,
-    color: '#1A1A1A',
-    fontWeight: '500',
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#F8F9FA',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#6B6B6B',
-    textAlign: 'center',
-  },
-  templateCard: {
-    backgroundColor: '#F8F9FA',
-    padding: 16,
-    borderRadius: 12,
-  },
-  templateHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 12,
-  },
-  templateInfo: {
-    flex: 1,
-  },
-  templateName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 2,
-  },
-  templateCategory: {
-    fontSize: 14,
-    color: '#6B6B6B',
-  },
-  templateDescription: {
-    fontSize: 14,
-    color: '#6B6B6B',
-    lineHeight: 20,
-  },
-  actionContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    padding: 20,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5EA',
-  },
-  secondaryButton: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  secondaryButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  primaryButton: {
-    flex: 1,
-    backgroundColor: '#007AFF',
-    paddingVertical: 16,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  primaryButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-});
 
 export default AgentResumeModal;

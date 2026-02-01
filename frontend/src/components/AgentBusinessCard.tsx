@@ -1,10 +1,12 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AgentAvatar from './AgentAvatar';
 import { Agent, LifecycleStatus } from '../types';
 import { shadowPresets } from '../styles/containers';
 import { useResponsive } from '../context/ResponsiveContext';
+import { useTheme, useThemedStyles } from '../theme';
+import type { ThemeColors } from '../theme';
 
 interface AgentBusinessCardProps {
   agent: Agent;
@@ -31,6 +33,8 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
   onViewMemory,
   animated = false
 }) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { screenWidth, isSidebarLayout } = useResponsive();
   const formatTokenUsage = (used: number, max: number): string => {
     const percentage = max > 0 ? Math.round((used / max) * 100) : 0;
@@ -47,11 +51,11 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
 
   const getStatusColor = (status: LifecycleStatus): string => {
     switch (status) {
-      case 'ACTIVE': return '#28a745';
-      case 'STANDBY': return '#ffc107';
-      case 'PAUSED': return '#6c757d';
-      case 'KILLED': return '#dc3545';
-      default: return '#6c757d';
+      case 'ACTIVE': return colors.statusSuccess;
+      case 'STANDBY': return colors.accentSecondary;
+      case 'PAUSED': return colors.statusPaused;
+      case 'KILLED': return colors.statusError;
+      default: return colors.statusPaused;
     }
   };
 
@@ -81,7 +85,7 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
   };
 
   const getToggleStatusColor = (): string => {
-    return agent.lifecycleStatus === 'PAUSED' ? '#28a745' : '#ffc107';
+    return agent.lifecycleStatus === 'PAUSED' ? colors.statusSuccess : colors.accentSecondary;
   };
 
   const getGoLiveIcon = () => {
@@ -89,7 +93,7 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
   };
 
   const getGoLiveColor = (): string => {
-    return agent.lifecycleStatus === 'ACTIVE' ? '#dc3545' : '#28a745';
+    return agent.lifecycleStatus === 'ACTIVE' ? colors.statusError : colors.statusSuccess;
   };
 
   const isInLiveMode = () => {
@@ -101,7 +105,7 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
   };
 
   const tokenPercentage = agent.maxTokensPerDay > 0 ? (agent.tokensUsedToday / agent.maxTokensPerDay) * 100 : 0;
-  const tokenColor = tokenPercentage > 90 ? '#dc3545' : tokenPercentage > 70 ? '#ffc107' : '#28a745';
+  const tokenColor = tokenPercentage > 90 ? colors.statusError : tokenPercentage > 70 ? colors.accentSecondary : colors.statusSuccess;
 
   // Determine layout based on screen size
   const isCompactMode = screenWidth < 480; // Very small mobile screens
@@ -111,27 +115,27 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
       {/* Card Header with Avatar and Status */}
       <View style={[styles.cardHeader, isCompactMode && styles.cardHeaderCompact]}>
-        <AgentAvatar 
-          agent={agent} 
-          size={isCompactMode ? "medium" : "large"} 
+        <AgentAvatar
+          agent={agent}
+          size={isCompactMode ? "medium" : "large"}
           showStatus={true}
           animated={animated}
         />
-        
+
         <View style={[styles.headerInfo, isCompactMode && styles.headerInfoCompact]}>
           <Text style={[styles.agentName, isCompactMode && styles.agentNameCompact]} numberOfLines={isCompactMode ? 2 : 1}>
             {agent.firstName} {agent.lastName}
           </Text>
           <View style={styles.statusContainer}>
             <View style={[styles.statusBadge, { backgroundColor: getStatusColor(agent.lifecycleStatus) }]}>
-              <Ionicons 
-                name={getStatusIcon(agent.lifecycleStatus) as any} 
-                size={12} 
-                color="white" 
+              <Ionicons
+                name={getStatusIcon(agent.lifecycleStatus) as any}
+                size={12}
+                color="white"
               />
               <Text style={styles.statusText}>{agent.lifecycleStatus}</Text>
             </View>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.memoryIndicator, !agent.memory && styles.memoryIndicatorEmpty]}
               onPress={(e) => {
                 e.stopPropagation();
@@ -140,10 +144,10 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
               activeOpacity={0.7}
               hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
             >
-              <Ionicons 
-                name="library" 
-                size={12} 
-                color={agent.memory ? "#34C759" : "#999"} 
+              <Ionicons
+                name="library"
+                size={12}
+                color={agent.memory ? colors.accent : colors.textTertiary}
               />
             </TouchableOpacity>
           </View>
@@ -153,9 +157,9 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
         {isCompactMode ? (
           <View style={styles.quickActionsCompact}>
             {/* Most important actions only on very small screens */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[
-                styles.actionButton, 
+                styles.actionButton,
                 isInLiveMode() ? styles.liveStopAction : styles.goLiveAction,
                 styles.actionButtonCompact
               ]}
@@ -166,14 +170,14 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
               activeOpacity={0.7}
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             >
-              <Ionicons 
-                name={getGoLiveIcon()} 
-                size={14} 
-                color={getGoLiveColor()} 
+              <Ionicons
+                name={getGoLiveIcon()}
+                size={14}
+                color={getGoLiveColor()}
               />
             </TouchableOpacity>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.actionButton, styles.primaryAction, styles.actionButtonCompact]}
               onPress={(e) => {
                 e.stopPropagation();
@@ -182,17 +186,17 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
               activeOpacity={0.7}
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             >
-              <Ionicons 
-                name={getToggleStatusIcon()} 
-                size={14} 
-                color={getToggleStatusColor()} 
+              <Ionicons
+                name={getToggleStatusIcon()}
+                size={14}
+                color={getToggleStatusColor()}
               />
             </TouchableOpacity>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[
-                styles.actionButton, 
-                styles.memoryAction, 
+                styles.actionButton,
+                styles.memoryAction,
                 styles.actionButtonCompact,
                 !agent.memory && styles.memoryActionEmpty
               ]}
@@ -203,14 +207,14 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
               activeOpacity={0.7}
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             >
-              <Ionicons 
-                name="library" 
-                size={14} 
-                color={agent.memory ? "#34C759" : "#999"} 
+              <Ionicons
+                name="library"
+                size={14}
+                color={agent.memory ? colors.accent : colors.textTertiary}
               />
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={[styles.actionButton, styles.actionButtonCompact]}
               onPress={(e) => {
                 e.stopPropagation();
@@ -219,15 +223,15 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
               activeOpacity={0.7}
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             >
-              <Ionicons name="pencil" size={14} color="#007AFF" />
+              <Ionicons name="pencil" size={14} color={colors.accent} />
             </TouchableOpacity>
           </View>
         ) : (
           <View style={[styles.quickActions, isMobile && styles.quickActionsMobile]}>
             {/* Go Live / Stop Live */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[
-                styles.actionButton, 
+                styles.actionButton,
                 isInLiveMode() ? styles.liveStopAction : styles.goLiveAction,
                 isMobile && styles.actionButtonMobile
               ]}
@@ -238,15 +242,15 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
               activeOpacity={0.7}
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             >
-              <Ionicons 
-                name={getGoLiveIcon()} 
-                size={isMobile ? 14 : 16} 
-                color={getGoLiveColor()} 
+              <Ionicons
+                name={getGoLiveIcon()}
+                size={isMobile ? 14 : 16}
+                color={getGoLiveColor()}
               />
             </TouchableOpacity>
 
             {/* Play/Pause Toggle */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.actionButton, styles.primaryAction, isMobile && styles.actionButtonMobile]}
               onPress={(e) => {
                 e.stopPropagation();
@@ -255,17 +259,17 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
               activeOpacity={0.7}
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             >
-              <Ionicons 
-                name={getToggleStatusIcon()} 
-                size={isMobile ? 14 : 16} 
-                color={getToggleStatusColor()} 
+              <Ionicons
+                name={getToggleStatusIcon()}
+                size={isMobile ? 14 : 16}
+                color={getToggleStatusColor()}
               />
             </TouchableOpacity>
-            
+
             {/* Execute Now */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[
-                styles.actionButton, 
+                styles.actionButton,
                 styles.executeAction,
                 isMobile && styles.actionButtonMobile,
                 !canExecuteNow() && styles.disabledAction
@@ -280,18 +284,18 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
               activeOpacity={0.7}
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             >
-              <Ionicons 
-                name="flash" 
-                size={isMobile ? 14 : 16} 
-                color={canExecuteNow() ? "#FF6B35" : "#ccc"} 
+              <Ionicons
+                name="flash"
+                size={isMobile ? 14 : 16}
+                color={canExecuteNow() ? colors.accentSecondary : colors.textTertiary}
               />
             </TouchableOpacity>
 
             {/* Memory */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[
-                styles.actionButton, 
-                styles.memoryAction, 
+                styles.actionButton,
+                styles.memoryAction,
                 isMobile && styles.actionButtonMobile,
                 !agent.memory && styles.memoryActionEmpty
               ]}
@@ -302,15 +306,15 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
               activeOpacity={0.7}
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             >
-              <Ionicons 
-                name="library" 
-                size={isMobile ? 14 : 16} 
-                color={agent.memory ? "#34C759" : "#999"} 
+              <Ionicons
+                name="library"
+                size={isMobile ? 14 : 16}
+                color={agent.memory ? colors.accent : colors.textTertiary}
               />
             </TouchableOpacity>
 
             {/* Edit */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.actionButton, isMobile && styles.actionButtonMobile]}
               onPress={(e) => {
                 e.stopPropagation();
@@ -319,11 +323,11 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
               activeOpacity={0.7}
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             >
-              <Ionicons name="pencil" size={isMobile ? 14 : 16} color="#007AFF" />
+              <Ionicons name="pencil" size={isMobile ? 14 : 16} color={colors.accent} />
             </TouchableOpacity>
-            
+
             {/* Delete */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.actionButton, styles.deleteAction, isMobile && styles.actionButtonMobile]}
               onPress={(e) => {
                 e.stopPropagation();
@@ -332,7 +336,7 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
               activeOpacity={0.7}
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             >
-              <Ionicons name="trash" size={isMobile ? 14 : 16} color="#dc3545" />
+              <Ionicons name="trash" size={isMobile ? 14 : 16} color={colors.statusError} />
             </TouchableOpacity>
           </View>
         )}
@@ -341,9 +345,9 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
       {/* Secondary Actions Row for Compact Mode */}
       {isCompactMode && (
         <View style={styles.secondaryActionsRow}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[
-              styles.secondaryActionButton, 
+              styles.secondaryActionButton,
               styles.executeAction,
               !canExecuteNow() && styles.disabledAction
             ]}
@@ -356,15 +360,15 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
             disabled={!canExecuteNow()}
             activeOpacity={0.7}
           >
-            <Ionicons 
-              name="flash" 
-              size={12} 
-              color={canExecuteNow() ? "#FF6B35" : "#ccc"} 
+            <Ionicons
+              name="flash"
+              size={12}
+              color={canExecuteNow() ? colors.accentSecondary : colors.textTertiary}
             />
             <Text style={[styles.secondaryActionText, !canExecuteNow() && styles.disabledText]}>Execute</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={[styles.secondaryActionButton, styles.deleteAction]}
             onPress={(e) => {
               e.stopPropagation();
@@ -372,14 +376,14 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
             }}
             activeOpacity={0.7}
           >
-            <Ionicons name="trash" size={12} color="#dc3545" />
+            <Ionicons name="trash" size={12} color={colors.statusError} />
             <Text style={styles.secondaryActionText}>Delete</Text>
           </TouchableOpacity>
         </View>
       )}
 
       {/* Template Information */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.templateSection}
         onPress={(e) => {
           e.stopPropagation();
@@ -387,19 +391,19 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
         }}
       >
         <View style={styles.templateInfo}>
-          <Ionicons 
-            name={getTemplateIcon(agent.templateName || '') as any} 
-            size={20} 
-            color="#007AFF" 
+          <Ionicons
+            name={getTemplateIcon(agent.templateName || '') as any}
+            size={20}
+            color={colors.accent}
           />
           <View style={styles.templateText}>
-                              <Text style={styles.templateLabel}>Archetype Template</Text>
+                            <Text style={styles.templateLabel}>Archetype Template</Text>
             <Text style={styles.templateName} numberOfLines={1}>
-                              {agent.templateName || 'Unknown Archetype Template'}
+                            {agent.templateName || 'Unknown Archetype Template'}
             </Text>
           </View>
         </View>
-        <Ionicons name="arrow-forward" size={16} color="#007AFF" />
+        <Ionicons name="arrow-forward" size={16} color={colors.accent} />
       </TouchableOpacity>
 
       {/* Agent Statistics */}
@@ -407,14 +411,14 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
         <View style={styles.statsGrid}>
           {/* Execution Count */}
           <View style={styles.statItem}>
-            <Ionicons name="analytics" size={16} color="#666" />
+            <Ionicons name="analytics" size={16} color={colors.textTertiary} />
             <Text style={styles.statValue}>{agent.totalExecutions}</Text>
             <Text style={styles.statLabel}>Executions</Text>
           </View>
 
           {/* Heartbeat */}
           <View style={styles.statItem}>
-            <Ionicons name="time" size={16} color="#666" />
+            <Ionicons name="time" size={16} color={colors.textTertiary} />
             <Text style={styles.statValue}>{agent.heartbeatMinutes}m</Text>
             <Text style={styles.statLabel}>Heartbeat</Text>
           </View>
@@ -430,7 +434,7 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
 
           {/* Last Run */}
           <View style={styles.statItem}>
-            <Ionicons name="checkmark-circle" size={16} color="#666" />
+            <Ionicons name="checkmark-circle" size={16} color={colors.textTertiary} />
             <Text style={styles.statValue}>
               {agent.lastExecutionAt ? formatDate(agent.lastExecutionAt) : 'Never'}
             </Text>
@@ -442,14 +446,14 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
       {/* Token Usage Progress Bar */}
       <View style={styles.progressSection}>
         <View style={styles.progressBar}>
-          <View 
+          <View
             style={[
-              styles.progressFill, 
-              { 
+              styles.progressFill,
+              {
                 width: `${Math.min(tokenPercentage, 100)}%`,
                 backgroundColor: tokenColor
               }
-            ]} 
+            ]}
           />
         </View>
         <Text style={styles.progressText}>
@@ -465,25 +469,25 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => ({
   card: {
-    backgroundColor: 'white',
-    borderRadius: 16,
+    backgroundColor: colors.bgCard,
+    borderRadius: 8,
     padding: 20,
     marginBottom: 16,
     ...shadowPresets.medium,
     borderWidth: 1,
-    borderColor: '#f0f0f0',
-    overflow: 'hidden',
-    position: 'relative',
+    borderColor: colors.borderLight,
+    overflow: 'hidden' as const,
+    position: 'relative' as const,
   },
   cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: 'row' as const,
+    alignItems: 'flex-start' as const,
     marginBottom: 16,
   },
   cardHeaderCompact: {
-    alignItems: 'center',
+    alignItems: 'center' as const,
     marginBottom: 12,
   },
   headerInfo: {
@@ -499,8 +503,8 @@ const styles = StyleSheet.create({
   },
   agentName: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
+    fontWeight: 'bold' as const,
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   agentNameCompact: {
@@ -509,12 +513,12 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   statusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
   },
   statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -523,40 +527,40 @@ const styles = StyleSheet.create({
   statusText: {
     color: 'white',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '600' as const,
   },
   memoryIndicator: {
     marginLeft: 8,
     padding: 4,
     borderRadius: 8,
-    backgroundColor: '#f0f9ff',
+    backgroundColor: colors.accentSoft,
     borderWidth: 1,
-    borderColor: '#34C759',
+    borderColor: colors.accent,
   },
   memoryIndicatorEmpty: {
-    backgroundColor: '#f5f5f5',
-    borderColor: '#ddd',
+    backgroundColor: colors.bgElevated,
+    borderColor: colors.borderSubtle,
   },
   quickActions: {
-    flexDirection: 'row',
+    flexDirection: 'row' as const,
     gap: 8,
   },
   quickActionsMobile: {
     gap: 6,
   },
   quickActionsCompact: {
-    flexDirection: 'row',
+    flexDirection: 'row' as const,
     gap: 4,
   },
   actionButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#f8f9fa',
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderRadius: 8,
+    backgroundColor: colors.bgElevated,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: colors.borderLight,
   },
   actionButtonMobile: {
     width: 32,
@@ -569,53 +573,53 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   deleteAction: {
-    backgroundColor: '#fff5f5',
-    borderColor: '#fed7d7',
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderColor: 'rgba(239, 68, 68, 0.40)',
   },
   primaryAction: {
-    backgroundColor: '#f0f8ff',
-    borderColor: '#cce7ff',
+    backgroundColor: colors.accentSoft,
+    borderColor: colors.borderAccent,
   },
   executeAction: {
-    backgroundColor: '#fff4f0',
-    borderColor: '#ffd7cc',
+    backgroundColor: 'rgba(251, 191, 36, 0.15)',
+    borderColor: 'rgba(251, 191, 36, 0.40)',
   },
   goLiveAction: {
-    backgroundColor: '#f0fff4',
-    borderColor: '#c6f6d5',
+    backgroundColor: colors.accentSoft,
+    borderColor: colors.borderAccent,
   },
   liveStopAction: {
-    backgroundColor: '#fff5f5',
-    borderColor: '#fec6cb',
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderColor: 'rgba(239, 68, 68, 0.40)',
   },
   memoryAction: {
-    backgroundColor: '#f0fff4',
-    borderColor: '#c6f6d5',
+    backgroundColor: colors.accentSoft,
+    borderColor: colors.borderAccent,
   },
   memoryActionEmpty: {
-    backgroundColor: '#f5f5f5',
-    borderColor: '#e0e0e0',
+    backgroundColor: colors.bgElevated,
+    borderColor: colors.borderSubtle,
   },
   disabledAction: {
-    backgroundColor: '#f5f5f5',
-    borderColor: '#e0e0e0',
-    opacity: 0.6,
+    backgroundColor: colors.bgElevated,
+    borderColor: colors.borderSubtle,
+    opacity: 0.4,
   },
   templateSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 12,
+    backgroundColor: colors.bgElevated,
+    borderRadius: 6,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: colors.borderSubtle,
   },
   templateInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
     flex: 1,
   },
   templateText: {
@@ -624,100 +628,100 @@ const styles = StyleSheet.create({
   },
   templateLabel: {
     fontSize: 12,
-    color: '#666',
+    color: colors.textTertiary,
     marginBottom: 2,
   },
   templateName: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#000',
+    fontWeight: '600' as const,
+    color: colors.textPrimary,
   },
   statsSection: {
     marginBottom: 16,
   },
   statsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
   },
   statItem: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: 'center' as const,
     paddingVertical: 8,
   },
   statValue: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000',
+    fontWeight: 'bold' as const,
+    color: colors.textPrimary,
     marginTop: 4,
     marginBottom: 2,
   },
   statLabel: {
     fontSize: 11,
-    color: '#666',
-    textAlign: 'center',
+    color: colors.textTertiary,
+    textAlign: 'center' as const,
   },
   progressSection: {
     marginBottom: 8,
   },
   progressBar: {
     height: 4,
-    backgroundColor: '#e9ecef',
+    backgroundColor: colors.accentSoft,
     borderRadius: 2,
-    overflow: 'hidden',
+    overflow: 'hidden' as const,
     marginBottom: 6,
   },
   progressFill: {
-    height: '100%',
+    height: '100%' as const,
     borderRadius: 2,
   },
   progressText: {
     fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
+    color: colors.textTertiary,
+    textAlign: 'center' as const,
   },
   cardFooter: {
-    position: 'absolute',
+    position: 'absolute' as const,
     bottom: 0,
     left: 0,
     right: 0,
-    height: 4,
+    height: 3,
   },
   footerGradient: {
     flex: 1,
-    backgroundColor: 'linear-gradient(90deg, #007AFF, #5856D6)',
-    opacity: 0.1,
+    backgroundColor: colors.accent,
+    opacity: 0.30,
   },
   // Secondary actions row for compact mode
   secondaryActionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: 'row' as const,
+    justifyContent: 'space-around' as const,
     paddingVertical: 8,
     paddingHorizontal: 12,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
+    backgroundColor: colors.bgElevated,
+    borderRadius: 6,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: colors.borderSubtle,
   },
   secondaryActionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
     paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: 6,
-    backgroundColor: '#ffffff',
+    borderRadius: 4,
+    backgroundColor: colors.bgSurface,
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: colors.borderLight,
     gap: 4,
   },
   secondaryActionText: {
     fontSize: 12,
-    fontWeight: '500',
-    color: '#666',
+    fontWeight: '500' as const,
+    color: colors.textSecondary,
   },
   disabledText: {
-    color: '#ccc',
+    color: colors.textTertiary,
   },
 });
 
-export default AgentBusinessCard; 
+export default AgentBusinessCard;

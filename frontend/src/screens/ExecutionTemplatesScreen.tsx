@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
@@ -11,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useThemedStyles } from '../theme';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { ExecutionTemplate, CreateTemplateFromExecutionData, TemplateFormData, TemplateParameter } from '../types/templates';
@@ -26,6 +26,7 @@ const ExecutionTemplatesScreen: React.FC = () => {
   const { state: appState, setReExecutionData } = useApp();
   const { user } = useAuth();
   const configurations = appState.configurations || [];
+  const styles = useExecutionTemplateStyles();
 
   // Template management
   const { templates, loading, error, fetchTemplates, createTemplate, updateTemplate, deleteTemplate } = useTemplateManagement();
@@ -384,7 +385,7 @@ const ExecutionTemplatesScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color={styles.createButton.backgroundColor} />
           <Text style={styles.loadingText}>Loading execution templates...</Text>
         </View>
       </SafeAreaView>
@@ -399,7 +400,7 @@ const ExecutionTemplatesScreen: React.FC = () => {
             style={styles.createButton}
           onPress={handleCreateNew}
           >
-            <Ionicons name="add" size={20} color="white" />
+            <Ionicons name="add" size={20} color={styles.createButtonText.color} />
             <Text style={styles.createButtonText}>Create Template</Text>
           </TouchableOpacity>
       </View>
@@ -416,7 +417,7 @@ const ExecutionTemplatesScreen: React.FC = () => {
       <ScrollView style={styles.content}>
         {templates.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="document-text-outline" size={64} color="#C7C7CC" />
+            <Ionicons name="document-text-outline" size={64} color={styles.emptyDescription.color} />
             <Text style={styles.emptyTitle}>No Execution Templates</Text>
             <Text style={styles.emptyDescription}>
               Create your first execution template to enable parameterized prompt execution via API.
@@ -465,74 +466,74 @@ const ExecutionTemplatesScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const useExecutionTemplateStyles = () => useThemedStyles((colors) => ({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.bgApp,
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
   },
   loadingText: {
     fontSize: 16,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     marginTop: 16,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+    borderBottomColor: colors.borderSubtle,
   },
   title: {
     fontSize: 24,
-    fontWeight: '700',
-    color: '#000000',
+    fontWeight: '700' as const,
+    color: colors.textPrimary,
   },
   createButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#007AFF',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: colors.accent,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
     gap: 4,
   },
   createButtonText: {
-    color: 'white',
+    color: colors.textInverse,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '600' as const,
   },
   errorContainer: {
-    backgroundColor: '#FFEBEE',
+    backgroundColor: colors.statusError + '15',
     padding: 16,
     margin: 16,
     borderRadius: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
   },
   errorText: {
-    color: '#D32F2F',
+    color: colors.statusError,
     fontSize: 14,
     flex: 1,
   },
   retryButton: {
-    backgroundColor: '#D32F2F',
+    backgroundColor: colors.statusError,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 4,
   },
   retryText: {
-    color: 'white',
+    color: colors.textInverse,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '600' as const,
   },
   content: {
     flex: 1,
@@ -541,36 +542,36 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
     paddingVertical: 64,
   },
   emptyTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#8E8E93',
+    fontWeight: '600' as const,
+    color: colors.textSecondary,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyDescription: {
     fontSize: 14,
-    color: '#C7C7CC',
-    textAlign: 'center',
+    color: colors.textTertiary,
+    textAlign: 'center' as const,
     lineHeight: 20,
     marginBottom: 24,
     paddingHorizontal: 32,
   },
   createFirstButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: colors.accent,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   createFirstButtonText: {
-    color: 'white',
+    color: colors.textInverse,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600' as const,
   },
-});
+}));
 
 export default ExecutionTemplatesScreen; 

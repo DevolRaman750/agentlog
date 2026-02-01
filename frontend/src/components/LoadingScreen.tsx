@@ -3,44 +3,45 @@ import {
   View,
   Text,
   ActivityIndicator,
-  StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme, useThemedStyles } from '../theme';
 
 interface LoadingScreenProps {
   message?: string;
 }
 
-const LoadingScreen: React.FC<LoadingScreenProps> = ({ 
-  message = "Loading..." 
+const LoadingScreen: React.FC<LoadingScreenProps> = ({
+  message = "Loading..."
 }) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bgApp,
+    },
+    content: {
+      flex: 1,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 20,
+    },
+    message: {
+      marginTop: 16,
+      fontSize: 16,
+      color: colors.textSecondary,
+      textAlign: 'center' as const,
+    },
+  }));
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={colors.accent} />
         <Text style={styles.message}>{message}</Text>
       </View>
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  message: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#8E8E93',
-    textAlign: 'center',
-  },
-});
-
-export default LoadingScreen; 
+export default LoadingScreen;

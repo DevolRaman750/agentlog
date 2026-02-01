@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, ViewStyle, Platform } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '../theme';
 
 interface SafeAreaWrapperProps {
   children: React.ReactNode;
@@ -11,7 +12,7 @@ interface SafeAreaWrapperProps {
 
 /**
  * SafeAreaWrapper - A consistent safe area component that works across all platforms
- * 
+ *
  * Features:
  * - Uses react-native-safe-area-context for proper safe area handling
  * - Customizable edges for flexible safe area application
@@ -22,13 +23,16 @@ const SafeAreaWrapper: React.FC<SafeAreaWrapperProps> = ({
   children,
   style,
   edges = ['top', 'bottom', 'left', 'right'],
-  backgroundColor = '#F2F2F7'
+  backgroundColor
 }) => {
+  const { colors } = useTheme();
+  const resolvedBg = backgroundColor ?? colors.bgApp;
+
   return (
-    <SafeAreaView 
+    <SafeAreaView
       style={[
-        styles.container, 
-        { backgroundColor },
+        styles.container,
+        { backgroundColor: resolvedBg },
         style
       ]}
       edges={edges}

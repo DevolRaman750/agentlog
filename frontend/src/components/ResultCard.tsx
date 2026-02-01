@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   Dimensions,
   Platform,
@@ -10,6 +9,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { ResultCardProps } from '../types';
 import { formatConfigId } from '../utils/comparisonUtils';
+import { useTheme, useThemedStyles } from '../theme';
+import { ThemeColors } from '../theme';
 
 const { width } = Dimensions.get('window');
 
@@ -26,6 +27,369 @@ const ResultCard: React.FC<ExtendedResultCardProps> = ({
   isBestConfiguration = false, // Default to not highlighted
 }) => {
   const [isExpanded, setIsExpanded] = useState(initialExpanded);
+  const { colors } = useTheme();
+
+  const styles = useThemedStyles((colors: ThemeColors) => ({
+    container: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 8,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      overflow: 'hidden' as const,
+    },
+    bestConfigContainer: {
+      borderColor: '#FFD700',
+      borderWidth: 2,
+      shadowColor: '#FFD700',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 4,
+    },
+    bestConfigBadge: {
+      backgroundColor: '#FFF8DC',
+      borderBottomWidth: 1,
+      borderBottomColor: '#FFD700',
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 6,
+    },
+    bestConfigText: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: '#B8860B',
+    },
+    header: {
+      flexDirection: 'row' as const,
+      padding: 12,
+      alignItems: 'center' as const,
+      backgroundColor: colors.bgCard,
+    },
+    headerExpanded: {
+      backgroundColor: colors.bgSurface,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    headerLeft: {
+      flex: 1,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+    },
+    indexContainer: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: colors.accent,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      marginRight: 12,
+    },
+    indexText: {
+      color: colors.textInverse,
+      fontSize: 12,
+      fontWeight: '600' as const,
+    },
+    titleContainer: {
+      flex: 1,
+    },
+    variationName: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 2,
+    },
+    modelRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 4,
+    },
+    modelText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginRight: 6,
+    },
+    temperatureDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      marginRight: 4,
+    },
+    temperatureText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    headerRight: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 8,
+    },
+    statusContainer: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    metricsContainer: {
+      alignItems: 'flex-end' as const,
+    },
+    responseTime: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    tokens: {
+      fontSize: 11,
+      color: colors.textSecondary,
+      textAlign: 'right' as const,
+    },
+    chevronContainer: {
+      padding: 4,
+      borderRadius: 4,
+    },
+    chevronContainerExpanded: {
+      backgroundColor: '#E3F2FD',
+    },
+    expandedContent: {
+      padding: 16,
+      paddingTop: 0,
+      backgroundColor: colors.bgSurface,
+    },
+    responseContainer: {
+      marginBottom: 16,
+    },
+    responseLabelContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 8,
+      gap: 6,
+    },
+    responseLabel: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.accent,
+      flex: 1,
+    },
+    responseTextContainer: {
+      backgroundColor: colors.bgSurface,
+      borderRadius: 8,
+      padding: 16,
+      borderLeftWidth: 4,
+      borderLeftColor: colors.accent,
+    },
+    responseText: {
+      fontSize: 15,
+      lineHeight: 22,
+      color: colors.textPrimary,
+    },
+    errorContainer: {
+      padding: 12,
+      paddingTop: 0,
+    },
+    errorLabel: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.statusError,
+      marginBottom: 8,
+    },
+    errorText: {
+      fontSize: 14,
+      color: colors.statusError,
+      backgroundColor: colors.bgCard,
+      borderRadius: 8,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: colors.statusError,
+    },
+    promptContainer: {
+      padding: 12,
+      paddingTop: 0,
+    },
+    promptLabel: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: colors.textSecondary,
+      marginBottom: 4,
+    },
+    promptText: {
+      fontSize: 12,
+      color: colors.textPrimary,
+      backgroundColor: colors.bgCard,
+      borderRadius: 6,
+      padding: 8,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    detailsContainer: {
+      padding: 12,
+      paddingTop: 0,
+    },
+    detailsTitle: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 12,
+    },
+    detailsGrid: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: 12,
+    },
+    detailItem: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 6,
+      padding: 8,
+      minWidth: (width - 48) / 2 - 8,
+      flex: 1,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    detailLabel: {
+      fontSize: 10,
+      color: colors.textSecondary,
+      marginBottom: 2,
+    },
+    detailValue: {
+      fontSize: 12,
+      color: colors.textPrimary,
+      fontWeight: '500' as const,
+      textAlign: 'right' as const,
+      flex: 1,
+    },
+    configIdValueContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      flex: 1,
+      justifyContent: 'flex-end' as const,
+      gap: 6,
+    },
+    functionCallsContainer: {
+      marginTop: 16,
+      padding: 12,
+      backgroundColor: '#F0F8FF',
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.accent,
+    },
+    functionCallsTitle: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    functionCall: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 6,
+      padding: 8,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    functionName: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: colors.accent,
+    },
+    functionStatus: {
+      fontSize: 10,
+      color: colors.textSecondary,
+    },
+    functionTime: {
+      fontSize: 10,
+      color: colors.textSecondary,
+    },
+    safetyContainer: {
+      padding: 12,
+      paddingTop: 0,
+    },
+    safetyTitle: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    safetyGrid: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: 8,
+    },
+    safetyItem: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 6,
+      padding: 8,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      minWidth: (width - 48) / 2 - 8,
+      flex: 1,
+    },
+    safetyKey: {
+      fontSize: 10,
+      color: colors.textSecondary,
+      marginBottom: 2,
+    },
+    safetyValue: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    timestampContainer: {
+      padding: 12,
+      paddingTop: 8,
+      borderTopWidth: 1,
+      borderTopColor: colors.borderLight,
+    },
+    timestampText: {
+      fontSize: 10,
+      color: colors.textTertiary,
+      textAlign: 'center' as const,
+    },
+    configIdContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginTop: 4,
+      gap: 4,
+    },
+    configIdText: {
+      fontSize: 11,
+      color: colors.textSecondary,
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    },
+    bestBadgeInline: {
+      marginLeft: 4,
+    },
+    bestConfigDetailItem: {
+      borderColor: '#FFD700',
+      borderWidth: 1,
+      backgroundColor: '#FFF8DC',
+    },
+    configIdLabelRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      marginBottom: 2,
+    },
+    bestIndicatorSmall: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: '#FFD700',
+      borderRadius: 6,
+      paddingHorizontal: 3,
+      paddingVertical: 1,
+      gap: 2,
+    },
+    bestIndicatorText: {
+      fontSize: 7,
+      fontWeight: '700' as const,
+      color: colors.textInverse,
+    },
+    bestConfigValue: {
+      color: '#B8860B',
+      fontWeight: '600' as const,
+    },
+  }));
 
   // Debug logging for configuration matching
   React.useEffect(() => {
@@ -37,13 +401,13 @@ const ResultCard: React.FC<ExtendedResultCardProps> = ({
   const getStatusColor = () => {
     switch (result.response.responseStatus) {
       case 'success':
-        return '#34C759';
+        return colors.statusSuccess;
       case 'error':
-        return '#FF3B30';
+        return colors.statusError;
       case 'timeout':
         return '#FF9500';
       default:
-        return '#8E8E93';
+        return colors.textSecondary;
     }
   };
 
@@ -62,16 +426,16 @@ const ResultCard: React.FC<ExtendedResultCardProps> = ({
 
   const formatTokenUsage = () => {
     if (!result.response.usageMetadata) return 'N/A';
-    
+
     const { promptTokens, completionTokens, totalTokens } = result.response.usageMetadata;
     return `${totalTokens || 0} (${promptTokens || 0}+${completionTokens || 0})`;
   };
 
   const getTemperatureColor = (temperature?: number) => {
-    if (!temperature) return '#8E8E93';
-    if (temperature <= 0.3) return '#34C759';
+    if (!temperature) return colors.textSecondary;
+    if (temperature <= 0.3) return colors.statusSuccess;
     if (temperature <= 0.7) return '#FF9500';
-    return '#FF3B30';
+    return colors.statusError;
   };
 
   const truncateText = (text: string, maxLength: number) => {
@@ -91,7 +455,7 @@ const ResultCard: React.FC<ExtendedResultCardProps> = ({
           <Text style={styles.bestConfigText}>Best Configuration</Text>
         </View>
       )}
-      
+
       {/* Header */}
       <TouchableOpacity
         style={[
@@ -105,7 +469,7 @@ const ResultCard: React.FC<ExtendedResultCardProps> = ({
           <View style={styles.indexContainer}>
             <Text style={styles.indexText}>{index + 1}</Text>
           </View>
-          
+
           <View style={styles.titleContainer}>
             <Text style={styles.variationName}>
               {result.configuration.variationName}
@@ -122,7 +486,7 @@ const ResultCard: React.FC<ExtendedResultCardProps> = ({
             </View>
             {/* Configuration ID (truncated for header) */}
             <View style={styles.configIdContainer}>
-              <Ionicons name="finger-print" size={12} color="#8E8E93" />
+              <Ionicons name="finger-print" size={12} color={colors.textSecondary} />
               <Text style={styles.configIdText}>
                 {formatConfigId(result.configuration.id) || 'No ID'}
               </Text>
@@ -137,9 +501,9 @@ const ResultCard: React.FC<ExtendedResultCardProps> = ({
 
         <View style={styles.headerRight}>
           <View style={[styles.statusContainer, { backgroundColor: getStatusColor() }]}>
-            <Ionicons name={getStatusIcon()} size={16} color="#FFFFFF" />
+            <Ionicons name={getStatusIcon()} size={16} color={colors.textInverse} />
           </View>
-          
+
           <View style={styles.metricsContainer}>
             <Text style={styles.responseTime}>
               {result.response.responseTimeMs}ms
@@ -156,7 +520,7 @@ const ResultCard: React.FC<ExtendedResultCardProps> = ({
             <Ionicons
               name={isExpanded ? "chevron-up" : "chevron-down"}
               size={20}
-              color={isExpanded ? "#007AFF" : "#8E8E93"}
+              color={isExpanded ? colors.accent : colors.textSecondary}
             />
           </View>
         </View>
@@ -169,10 +533,10 @@ const ResultCard: React.FC<ExtendedResultCardProps> = ({
           {result.response.responseText && (
             <View style={styles.responseContainer}>
               <View style={styles.responseLabelContainer}>
-                <Ionicons name="chatbubble" size={16} color="#007AFF" />
+                <Ionicons name="chatbubble" size={16} color={colors.accent} />
                 <Text style={styles.responseLabel}>AI Response:</Text>
                 {result.response.responseStatus === 'success' && (
-                  <Ionicons name="checkmark-circle" size={16} color="#34C759" />
+                  <Ionicons name="checkmark-circle" size={16} color={colors.statusSuccess} />
                 )}
               </View>
               <View style={styles.responseTextContainer}>
@@ -206,7 +570,7 @@ const ResultCard: React.FC<ExtendedResultCardProps> = ({
           {/* Detailed Metrics */}
           <View style={styles.detailsContainer}>
             <Text style={styles.detailsTitle}>Execution Details</Text>
-            
+
             <View style={styles.detailsGrid}>
               {/* Configuration ID - First for easy reference */}
               <View style={[
@@ -222,7 +586,7 @@ const ResultCard: React.FC<ExtendedResultCardProps> = ({
                     </View>
                   )}
                 </View>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.configIdValueContainer}
                   onPress={() => {
                     // Optional: Copy to clipboard functionality could be added here
@@ -235,7 +599,7 @@ const ResultCard: React.FC<ExtendedResultCardProps> = ({
                   ]} numberOfLines={1}>
                     {result.configuration.id || 'No ID available'}
                   </Text>
-                  <Ionicons name="copy-outline" size={14} color="#8E8E93" />
+                  <Ionicons name="copy-outline" size={14} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
 
@@ -330,366 +694,4 @@ const ResultCard: React.FC<ExtendedResultCardProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    overflow: 'hidden',
-  },
-  bestConfigContainer: {
-    borderColor: '#FFD700',
-    borderWidth: 2,
-    shadowColor: '#FFD700',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  bestConfigBadge: {
-    backgroundColor: '#FFF8DC',
-    borderBottomWidth: 1,
-    borderBottomColor: '#FFD700',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  bestConfigText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#B8860B',
-  },
-  header: {
-    flexDirection: 'row',
-    padding: 12,
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-  },
-  headerExpanded: {
-    backgroundColor: '#F8F9FA',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  headerLeft: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  indexContainer: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#007AFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  indexText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  titleContainer: {
-    flex: 1,
-  },
-  variationName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 2,
-  },
-  modelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  modelText: {
-    fontSize: 12,
-    color: '#8E8E93',
-    marginRight: 6,
-  },
-  temperatureDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 4,
-  },
-  temperatureText: {
-    fontSize: 12,
-    color: '#8E8E93',
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  statusContainer: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  metricsContainer: {
-    alignItems: 'flex-end',
-  },
-  responseTime: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  tokens: {
-    fontSize: 11,
-    color: '#8E8E93',
-    textAlign: 'right',
-  },
-  chevronContainer: {
-    padding: 4,
-    borderRadius: 4,
-  },
-  chevronContainerExpanded: {
-    backgroundColor: '#E3F2FD',
-  },
-  expandedContent: {
-    padding: 16,
-    paddingTop: 0,
-    backgroundColor: '#FAFAFA',
-  },
-  responseContainer: {
-    marginBottom: 16,
-  },
-  responseLabelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    gap: 6,
-  },
-  responseLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#007AFF',
-    flex: 1,
-  },
-  responseTextContainer: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    padding: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: '#007AFF',
-  },
-  responseText: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#1D1D1F',
-  },
-  errorContainer: {
-    padding: 12, // Reduced from 16 to 12
-    paddingTop: 0,
-  },
-  errorLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FF3B30',
-    marginBottom: 8,
-  },
-  errorText: {
-    fontSize: 14,
-    color: '#FF3B30',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#FF3B30',
-  },
-  promptContainer: {
-    padding: 12, // Reduced from 16 to 12
-    paddingTop: 0,
-  },
-  promptLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#8E8E93',
-    marginBottom: 4,
-  },
-  promptText: {
-    fontSize: 12,
-    color: '#000000',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 6,
-    padding: 8,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  detailsContainer: {
-    padding: 12, // Reduced from 16 to 12
-    paddingTop: 0,
-  },
-  detailsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 12,
-  },
-  detailsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  detailItem: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 6,
-    padding: 8,
-    minWidth: (width - 48) / 2 - 8, // Changed from 3-column to 2-column layout
-    flex: 1, // Allow items to expand
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  detailLabel: {
-    fontSize: 10,
-    color: '#8E8E93',
-    marginBottom: 2,
-  },
-  detailValue: {
-    fontSize: 12,
-    color: '#000000',
-    fontWeight: '500',
-    textAlign: 'right',
-    flex: 1,
-  },
-  configIdValueContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'flex-end',
-    gap: 6,
-  },
-  functionCallsContainer: {
-    marginTop: 16,
-    padding: 12,
-    backgroundColor: '#F0F8FF',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#007AFF',
-  },
-  functionCallsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 8,
-  },
-  functionCall: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 6,
-    padding: 8,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  functionName: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#007AFF',
-  },
-  functionStatus: {
-    fontSize: 10,
-    color: '#8E8E93',
-  },
-  functionTime: {
-    fontSize: 10,
-    color: '#8E8E93',
-  },
-  safetyContainer: {
-    padding: 12, // Reduced from 16 to 12
-    paddingTop: 0,
-  },
-  safetyTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 8,
-  },
-  safetyGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  safetyItem: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 6,
-    padding: 8,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    minWidth: (width - 48) / 2 - 8, // Improved sizing for 2-column layout
-    flex: 1, // Allow items to expand
-  },
-  safetyKey: {
-    fontSize: 10,
-    color: '#8E8E93',
-    marginBottom: 2,
-  },
-  safetyValue: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  timestampContainer: {
-    padding: 12, // Reduced from 16 to 12
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5EA',
-  },
-  timestampText: {
-    fontSize: 10,
-    color: '#C7C7CC',
-    textAlign: 'center',
-  },
-  configIdContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-    gap: 4,
-  },
-  configIdText: {
-    fontSize: 11,
-    color: '#8E8E93',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  },
-  bestBadgeInline: {
-    marginLeft: 4,
-  },
-  bestConfigDetailItem: {
-    borderColor: '#FFD700',
-    borderWidth: 1,
-    backgroundColor: '#FFF8DC',
-  },
-  configIdLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 2,
-  },
-  bestIndicatorSmall: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFD700',
-    borderRadius: 6,
-    paddingHorizontal: 3,
-    paddingVertical: 1,
-    gap: 2,
-  },
-  bestIndicatorText: {
-    fontSize: 7,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  bestConfigValue: {
-    color: '#B8860B',
-    fontWeight: '600',
-  },
-});
-
-export default ResultCard; 
+export default ResultCard;

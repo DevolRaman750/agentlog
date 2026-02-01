@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, Modal, ScrollView, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, ScrollView, SafeAreaView } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { TabParamList } from '../types';
 import { ResponsiveNavigation } from '../components/ResponsiveNavigation';
 import { useAuth } from '../context/AuthContext';
 import { useResponsive } from '../context/ResponsiveContext';
+import { useTheme, useThemedStyles } from '../theme';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { getInitialRouteName } from './linking';
-import { 
-  navigationItems, 
-  getAllNavigationItems, 
+import {
+  navigationItems,
+  getAllNavigationItems,
   getVisibleNavigationItems,
   NavigationItem,
-  routeToPathMap 
+  routeToPathMap
 } from './navigationConfig';
 
 // Import screens
@@ -37,12 +38,131 @@ const Tab = createBottomTabNavigator();
 // Mobile Navigation Dropdown Component for very narrow screens
 const MobileNavigationDropdown: React.FC = () => {
   const [showDropdown, setShowDropdown] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['Agents', 'Configure'])); // Default expanded
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['Agents', 'Configure']));
   const navigation = useNavigation();
   const route = useRoute();
   const { isAuthenticated } = useAuth();
+  const { colors } = useTheme();
 
-  // Use unified navigation configuration
+  const styles = useThemedStyles((colors) => ({
+    dropdownHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      backgroundColor: colors.navBg,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.navBorder,
+      elevation: 2,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+      minHeight: 60,
+    },
+    currentScreenInfo: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      flex: 1,
+    },
+    currentIcon: {
+      marginRight: 8,
+    },
+    currentScreenTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.navItemText,
+    },
+    dropdownTrigger: {
+      padding: 8,
+      borderRadius: 8,
+      backgroundColor: colors.bgHover,
+      minWidth: 40,
+      minHeight: 40,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    modalContainer: {
+      flex: 1,
+      backgroundColor: colors.bgApp,
+    },
+    modalHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      backgroundColor: colors.bgCard,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.navBorder,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    closeButton: {
+      padding: 8,
+      borderRadius: 8,
+      backgroundColor: colors.bgSurface,
+      minWidth: 40,
+      minHeight: 40,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    modalContent: {
+      flex: 1,
+      paddingTop: 20,
+    },
+    modalItem: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      marginHorizontal: 16,
+      marginBottom: 8,
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      elevation: 1,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      minHeight: 56,
+    },
+    modalItemActive: {
+      backgroundColor: colors.navItemActive,
+    },
+    modalItemText: {
+      fontSize: 16,
+      fontWeight: '500' as const,
+      color: colors.textPrimary,
+      marginLeft: 12,
+      flex: 1,
+    },
+    modalItemTextActive: {
+      color: colors.textInverse,
+      fontWeight: '600' as const,
+    },
+    modalGroupItem: {
+      backgroundColor: colors.bgSurface,
+    },
+    modalSubItem: {
+      paddingLeft: 20,
+      backgroundColor: colors.bgCard,
+      borderLeftWidth: 3,
+      borderLeftColor: colors.borderLight,
+    },
+    modalSubItemText: {
+      fontSize: 15,
+      fontWeight: '400' as const,
+    },
+    subItemIndent: {
+      width: 16,
+      height: 1,
+    },
+  }));
 
   const toggleGroup = (groupName: string) => {
     setExpandedGroups(prev => {
@@ -66,13 +186,12 @@ const MobileNavigationDropdown: React.FC = () => {
 
   return (
     <>
-      {/* Header with current screen and dropdown trigger */}
       <View style={styles.dropdownHeader}>
         <View style={styles.currentScreenInfo}>
           <Ionicons
             name={currentItem.iconFocused}
             size={24}
-            color="#007AFF"
+            color={colors.accent}
             style={styles.currentIcon}
           />
           <Text style={styles.currentScreenTitle}>{currentItem.title}</Text>
@@ -81,11 +200,10 @@ const MobileNavigationDropdown: React.FC = () => {
           style={styles.dropdownTrigger}
           onPress={() => setShowDropdown(true)}
         >
-          <Ionicons name="menu" size={24} color="#007AFF" />
+          <Ionicons name="menu" size={24} color={colors.accent} />
         </TouchableOpacity>
       </View>
 
-      {/* Navigation Modal */}
       <Modal
         visible={showDropdown}
         animationType="slide"
@@ -99,7 +217,7 @@ const MobileNavigationDropdown: React.FC = () => {
               style={styles.closeButton}
               onPress={() => setShowDropdown(false)}
             >
-              <Ionicons name="close" size={24} color="#8E8E93" />
+              <Ionicons name="close" size={24} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -108,10 +226,9 @@ const MobileNavigationDropdown: React.FC = () => {
               const isCurrent = route.name === item.name;
               return (
                 <View key={item.name}>
-                  {/* Parent/Group Item */}
                   <TouchableOpacity
                     style={[
-                      styles.modalItem, 
+                      styles.modalItem,
                       (isCurrent || (item.children && item.children.some(child => route.name === child.name))) && styles.modalItemActive,
                       item.children && styles.modalGroupItem
                     ]}
@@ -126,34 +243,33 @@ const MobileNavigationDropdown: React.FC = () => {
                     <Ionicons
                       name={(isCurrent || (item.children && item.children.some(child => route.name === child.name))) ? item.iconFocused : item.icon}
                       size={24}
-                      color={(isCurrent || (item.children && item.children.some(child => route.name === child.name))) ? "#FFFFFF" : "#007AFF"}
+                      color={(isCurrent || (item.children && item.children.some(child => route.name === child.name))) ? colors.textInverse : colors.accent}
                     />
                     <Text style={[
-                      styles.modalItemText, 
+                      styles.modalItemText,
                       (isCurrent || (item.children && item.children.some(child => route.name === child.name))) && styles.modalItemTextActive
                     ]}>
                       {item.title}
                     </Text>
                     {item.children && (
-                      <Ionicons 
-                        name={expandedGroups.has(item.name) ? "chevron-down" : "chevron-forward"} 
-                        size={20} 
-                        color={(isCurrent || (item.children && item.children.some(child => route.name === child.name))) ? "#FFFFFF" : "#8E8E93"} 
+                      <Ionicons
+                        name={expandedGroups.has(item.name) ? "chevron-down" : "chevron-forward"}
+                        size={20}
+                        color={(isCurrent || (item.children && item.children.some(child => route.name === child.name))) ? colors.textInverse : colors.textSecondary}
                       />
                     )}
                     {isCurrent && !item.children && (
-                      <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+                      <Ionicons name="checkmark" size={20} color={colors.textInverse} />
                     )}
                   </TouchableOpacity>
-                  
-                  {/* Child Items */}
+
                   {item.children && expandedGroups.has(item.name) && item.children.map((child) => {
                     const isChildCurrent = route.name === child.name;
                     return (
                       <TouchableOpacity
                         key={child.name}
                         style={[
-                          styles.modalItem, 
+                          styles.modalItem,
                           styles.modalSubItem,
                           isChildCurrent && styles.modalItemActive
                         ]}
@@ -163,17 +279,17 @@ const MobileNavigationDropdown: React.FC = () => {
                         <Ionicons
                           name={isChildCurrent ? child.iconFocused : child.icon}
                           size={20}
-                          color={isChildCurrent ? "#FFFFFF" : "#007AFF"}
+                          color={isChildCurrent ? colors.textInverse : colors.accent}
                         />
                         <Text style={[
-                          styles.modalItemText, 
+                          styles.modalItemText,
                           styles.modalSubItemText,
                           isChildCurrent && styles.modalItemTextActive
                         ]}>
                           {child.title}
                         </Text>
                         {isChildCurrent && (
-                          <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+                          <Ionicons name="checkmark" size={18} color={colors.textInverse} />
                         )}
                       </TouchableOpacity>
                     );
@@ -191,6 +307,7 @@ const MobileNavigationDropdown: React.FC = () => {
 // Screen wrapper for responsive layout - now uses ResponsiveContext
 const ScreenWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isSidebarLayout, showMobileDropdown } = useResponsive();
+  const { colors } = useTheme();
 
   /*
    * IMPORTANT: Always return the SAME outer <View> so React keeps the subtree mounted.
@@ -199,16 +316,17 @@ const ScreenWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
    */
 
   return (
-    <View style={isSidebarLayout ? styles.desktopContainer : styles.mobileContainer}>
-      {/* Navigation component */}
+    <View style={[
+      { flex: 1, backgroundColor: colors.bgApp },
+      isSidebarLayout && { flexDirection: 'row' as const },
+    ]}>
       {isSidebarLayout ? (
         <ResponsiveNavigation isSidebarLayout={true} />
       ) : showMobileDropdown ? (
         <MobileNavigationDropdown />
       ) : null}
 
-      {/* Content wrapper */}
-      <View style={isSidebarLayout ? styles.desktopContent : styles.mobileContent}>
+      <View style={{ flex: 1 }}>
         {children}
       </View>
     </View>
@@ -227,6 +345,7 @@ const withResponsiveLayout = (WrappedComponent: React.ComponentType<any>) => {
 const TabNavigator = () => {
   const { isAuthenticated, isLoading } = useAuth();
   const { isSidebarLayout, showMobileDropdown } = useResponsive();
+  const { colors } = useTheme();
 
   return (
     <Tab.Navigator
@@ -255,14 +374,12 @@ const TabNavigator = () => {
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#007AFF',
-        tabBarInactiveTintColor: 'gray',
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.textSecondary,
         headerShown: false,
-        // Always hide tab bar - only show sidebar or hamburger menu
         tabBarStyle: { display: 'none' },
       })}
     >
-      {/* All screens are always available - individual screens handle authentication */}
       <Tab.Screen name="Execute" component={withResponsiveLayout(ExecuteScreen)} />
       <Tab.Screen name="Configure" component={withResponsiveLayout(ConfigureScreen)} />
       <Tab.Screen name="Functions" component={withResponsiveLayout(FunctionScreen)} />
@@ -274,15 +391,15 @@ const TabNavigator = () => {
       <Tab.Screen name="Agents" component={withResponsiveLayout(AgentsScreen)} />
       <Tab.Screen name="Marketplace" component={withResponsiveLayout(AgentMarketplaceScreen)} />
       <Tab.Screen name="Account" component={withResponsiveLayout(AuthScreen)} />
-      <Tab.Screen 
-        name="TemplateTokenManager" 
+      <Tab.Screen
+        name="TemplateTokenManager"
         component={withResponsiveLayout(TemplateTokenManagerScreen)}
         options={{
           tabBarStyle: { display: 'none' }
         }}
       />
-      <Tab.Screen 
-        name="TeamDetail" 
+      <Tab.Screen
+        name="TeamDetail"
         component={withResponsiveLayout(TeamDetailScreen)}
         options={{
           tabBarStyle: { display: 'none' }
@@ -292,144 +409,4 @@ const TabNavigator = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  desktopContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: '#F2F2F7',
-  },
-  desktopContent: {
-    flex: 1,
-  },
-  mobileContainer: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-  },
-  mobileContent: {
-    flex: 1,
-  },
-  // Removed tabBar styles since bottom tabs are no longer used
-  
-  // Mobile dropdown styles
-  dropdownHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E1E5E9',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    minHeight: 60, // Ensure minimum height for accessibility
-  },
-  currentScreenInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  currentIcon: {
-    marginRight: 8,
-  },
-  currentScreenTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  dropdownTrigger: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#F0F8FF',
-    minWidth: 40, // Ensure minimum touch target
-    minHeight: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // Modal styles
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E1E5E9',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  closeButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#F5F5F5',
-    minWidth: 40,
-    minHeight: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalContent: {
-    flex: 1,
-    paddingTop: 20,
-  },
-  modalItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    marginHorizontal: 16,
-    marginBottom: 8,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    minHeight: 56, // Ensure good touch target
-  },
-  modalItemActive: {
-    backgroundColor: '#007AFF',
-  },
-  modalItemText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1A1A1A',
-    marginLeft: 12,
-    flex: 1,
-  },
-  modalItemTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  modalGroupItem: {
-    backgroundColor: '#F8F9FA',
-  },
-  modalSubItem: {
-    paddingLeft: 20,
-    backgroundColor: '#FFFFFF',
-    borderLeftWidth: 3,
-    borderLeftColor: '#E1E5E9',
-  },
-  modalSubItemText: {
-    fontSize: 15,
-    fontWeight: '400',
-  },
-  subItemIndent: {
-    width: 16,
-    height: 1,
-  },
-});
-
-export default TabNavigator; 
+export default TabNavigator;

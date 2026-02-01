@@ -5,7 +5,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  StyleSheet,
   SafeAreaView,
   Platform,
   KeyboardAvoidingView,
@@ -13,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useThemedStyles } from '../theme';
 import { AlertAPI } from '../components/CustomAlert';
 import { goGentAPI } from '../api/client';
 import DatePicker, { formatDateForAPI, parseDateFromAPI } from '../components/DatePicker';
@@ -40,6 +40,7 @@ const TemplateTokenManagerScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { templateId, templateName } = route.params as { templateId: string; templateName: string };
+  const styles = useTokenManagerStyles();
 
   const [template, setTemplate] = useState<ExecutionTemplate | null>(null);
   const [loading, setLoading] = useState(true);
@@ -114,9 +115,9 @@ const TemplateTokenManagerScreen: React.FC = () => {
   };
 
   const getTokenStatusColor = (token: AuthToken): string => {
-    if (!token.isActive) return '#FF3B30';
-    if (isTokenExpired(token)) return '#FF9500';
-    return '#34C759';
+    if (!token.isActive) return styles.statusError.color as string;
+    if (isTokenExpired(token)) return styles.statusWarning.color as string;
+    return styles.statusSuccess.color as string;
   };
 
   const getTokenStatusText = (token: AuthToken): string => {
@@ -216,7 +217,7 @@ const TemplateTokenManagerScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color={styles.helpBannerText.color} />
           <Text style={styles.loadingText}>Loading tokens...</Text>
         </View>
       </SafeAreaView>
@@ -236,7 +237,7 @@ const TemplateTokenManagerScreen: React.FC = () => {
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <Ionicons name="arrow-back" size={24} color="#007AFF" />
+            <Ionicons name="arrow-back" size={24} color={styles.helpBannerText.color} />
           </TouchableOpacity>
           <View style={styles.headerContent}>
             <Text style={styles.title}>Auth Tokens</Text>
@@ -246,7 +247,7 @@ const TemplateTokenManagerScreen: React.FC = () => {
             style={styles.addButton}
             onPress={() => setIsCreatingToken(true)}
           >
-            <Ionicons name="add" size={24} color="#007AFF" />
+            <Ionicons name="add" size={24} color={styles.helpBannerText.color} />
           </TouchableOpacity>
         </View>
 
@@ -258,7 +259,7 @@ const TemplateTokenManagerScreen: React.FC = () => {
         >
           {/* Help Banner */}
           <View style={styles.helpBanner}>
-            <Ionicons name="information-circle-outline" size={20} color="#007AFF" />
+            <Ionicons name="information-circle-outline" size={20} color={styles.helpBannerText.color} />
             <View style={styles.helpBannerContent}>
               <Text style={styles.helpBannerTitle}>Authentication Tokens</Text>
               <Text style={styles.helpBannerText}>
@@ -275,7 +276,7 @@ const TemplateTokenManagerScreen: React.FC = () => {
 
             {(template?.authTokens?.length || 0) === 0 ? (
               <View style={styles.emptyStateContainer}>
-                <Ionicons name="key-outline" size={48} color="#8E8E93" />
+                <Ionicons name="key-outline" size={48} color={styles.emptyStateText.color} />
                 <Text style={styles.emptyStateTitle}>No Auth Tokens</Text>
                 <Text style={styles.emptyStateText}>
                   Create your first authentication token to enable API access to this template.
@@ -298,13 +299,13 @@ const TemplateTokenManagerScreen: React.FC = () => {
                           style={styles.tokenActionButton}
                           onPress={() => openTokenEdit(token)}
                         >
-                          <Ionicons name="pencil-outline" size={16} color="#007AFF" />
+                          <Ionicons name="pencil-outline" size={16} color={styles.helpBannerText.color} />
                         </TouchableOpacity>
                         <TouchableOpacity 
                           style={styles.tokenActionButton}
                           onPress={() => handleDeleteToken(token.id)}
                         >
-                          <Ionicons name="trash-outline" size={16} color="#FF3B30" />
+                          <Ionicons name="trash-outline" size={16} color={styles.statusError.color} />
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -378,7 +379,7 @@ const TemplateTokenManagerScreen: React.FC = () => {
                   style={styles.closeFormButton}
                   onPress={resetTokenForm}
                 >
-                  <Ionicons name="close" size={20} color="#8E8E93" />
+                  <Ionicons name="close" size={20} color={styles.loadingText.color} />
                 </TouchableOpacity>
               </View>
               
@@ -393,7 +394,7 @@ const TemplateTokenManagerScreen: React.FC = () => {
                   value={tokenFormData.name}
                   onChangeText={(text) => setTokenFormData({...tokenFormData, name: text})}
                   placeholder="e.g., Production API Access"
-                  placeholderTextColor="#8E8E93"
+                  placeholderTextColor={styles.loadingText.color}
                 />
               </View>
 
@@ -408,7 +409,7 @@ const TemplateTokenManagerScreen: React.FC = () => {
                   value={tokenFormData.description}
                   onChangeText={(text) => setTokenFormData({...tokenFormData, description: text})}
                   placeholder="Describe the purpose and usage of this token..."
-                  placeholderTextColor="#8E8E93"
+                  placeholderTextColor={styles.loadingText.color}
                   multiline
                   numberOfLines={3}
                 />
@@ -426,7 +427,7 @@ const TemplateTokenManagerScreen: React.FC = () => {
                   value={tokenFormData.allowedOrigins}
                   onChangeText={(text) => setTokenFormData({...tokenFormData, allowedOrigins: text})}
                   placeholder="https://myapp.com, http://localhost:3000"
-                  placeholderTextColor="#8E8E93"
+                  placeholderTextColor={styles.loadingText.color}
                 />
               </View>
 
@@ -441,7 +442,7 @@ const TemplateTokenManagerScreen: React.FC = () => {
                   value={tokenFormData.customRateLimitPerHour}
                   onChangeText={(text) => setTokenFormData({...tokenFormData, customRateLimitPerHour: text})}
                   placeholder="e.g., 100"
-                  placeholderTextColor="#8E8E93"
+                  placeholderTextColor={styles.loadingText.color}
                   keyboardType="numeric"
                 />
               </View>
@@ -479,10 +480,10 @@ const TemplateTokenManagerScreen: React.FC = () => {
                   }
                 }}
               >
-                <Ionicons 
-                  name={isTokenEditMode ? "checkmark-circle-outline" : "add-circle-outline"} 
-                  size={20} 
-                  color="#FFFFFF" 
+                <Ionicons
+                  name={isTokenEditMode ? "checkmark-circle-outline" : "add-circle-outline"}
+                  size={20}
+                  color={styles.createTokenText.color}
                 />
                 <Text style={styles.createTokenText}>
                   {isTokenEditMode ? 'Update Token' : 'Create Token'}
@@ -493,7 +494,7 @@ const TemplateTokenManagerScreen: React.FC = () => {
 
           {/* Security Information */}
           <View style={styles.securityInfo}>
-            <Ionicons name="shield-checkmark-outline" size={20} color="#34C759" />
+            <Ionicons name="shield-checkmark-outline" size={20} color={styles.statusSuccess.color} />
             <View style={styles.securityInfoContent}>
               <Text style={styles.securityInfoTitle}>Security Best Practices</Text>
               <Text style={styles.securityInfoText}>
@@ -511,31 +512,31 @@ const TemplateTokenManagerScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const useTokenManagerStyles = () => useThemedStyles((colors) => ({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.bgApp,
   },
   keyboardView: {
     flex: 1,
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
   },
   loadingText: {
     fontSize: 16,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     marginTop: 12,
   },
   header: {
-    backgroundColor: 'white',
+    backgroundColor: colors.bgCard,
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-    flexDirection: 'row',
-    alignItems: 'center',
+    borderBottomColor: colors.borderSubtle,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
   },
   backButton: {
     padding: 8,
@@ -546,12 +547,12 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#000',
+    fontWeight: '600' as const,
+    color: colors.textPrimary,
   },
   subtitle: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   addButton: {
@@ -564,14 +565,14 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   helpBanner: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: 'row' as const,
+    alignItems: 'flex-start' as const,
     padding: 16,
-    backgroundColor: '#E8F4FD',
+    backgroundColor: colors.accentSoft,
     borderRadius: 12,
     marginBottom: 20,
     borderLeftWidth: 4,
-    borderLeftColor: '#007AFF',
+    borderLeftColor: colors.accent,
   },
   helpBannerContent: {
     marginLeft: 12,
@@ -579,13 +580,13 @@ const styles = StyleSheet.create({
   },
   helpBannerTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
+    fontWeight: '600' as const,
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   helpBannerText: {
     fontSize: 14,
-    color: '#007AFF',
+    color: colors.accent,
     lineHeight: 20,
   },
   section: {
@@ -593,68 +594,68 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#000',
+    fontWeight: '600' as const,
+    color: colors.textPrimary,
     marginBottom: 16,
   },
   emptyStateContainer: {
-    alignItems: 'center',
+    alignItems: 'center' as const,
     padding: 32,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: colors.bgSurface,
     borderRadius: 12,
   },
   emptyStateTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
+    fontWeight: '600' as const,
+    color: colors.textPrimary,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyStateText: {
     fontSize: 14,
-    color: '#8E8E93',
-    textAlign: 'center',
+    color: colors.textSecondary,
+    textAlign: 'center' as const,
     marginBottom: 24,
   },
   createFirstTokenButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: colors.accent,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   createFirstTokenText: {
-    color: 'white',
+    color: colors.textInverse,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600' as const,
   },
   tokenCard: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: colors.bgSurface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderSubtle,
   },
   tokenCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
     marginBottom: 8,
   },
   tokenTitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
     flex: 1,
   },
   tokenName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
+    fontWeight: '600' as const,
+    color: colors.textPrimary,
     marginRight: 10,
   },
   tokenActions: {
-    flexDirection: 'row',
+    flexDirection: 'row' as const,
     gap: 8,
   },
   tokenActionButton: {
@@ -664,76 +665,76 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-    alignSelf: 'flex-start',
+    alignSelf: 'flex-start' as const,
   },
   tokenStatusText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: 'white',
+    fontWeight: '600' as const,
+    color: colors.textInverse,
   },
   tokenDescription: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     marginBottom: 12,
   },
   tokenDetailsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
     gap: 12,
     marginBottom: 12,
   },
   tokenDetailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
   },
   tokenDetailLabel: {
     fontSize: 12,
-    color: '#6B6B6B',
-    fontWeight: '500',
+    color: colors.textSecondary,
+    fontWeight: '500' as const,
   },
   tokenDetailValue: {
     fontSize: 14,
-    color: '#000',
-    fontWeight: '600',
+    color: colors.textPrimary,
+    fontWeight: '600' as const,
   },
   expiredText: {
-    color: '#FF3B30',
+    color: colors.statusError,
   },
   tokenValueContainer: {
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.bgApp,
     borderRadius: 6,
     padding: 8,
     marginTop: 8,
   },
   tokenValueLabel: {
     fontSize: 12,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     marginBottom: 4,
   },
   tokenValue: {
     fontSize: 12,
-    fontFamily: 'monospace',
-    color: '#000',
+    fontFamily: 'monospace' as const,
+    color: colors.textPrimary,
     lineHeight: 16,
   },
   formSection: {
-    backgroundColor: 'white',
+    backgroundColor: colors.bgCard,
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderSubtle,
   },
   formHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
     marginBottom: 16,
   },
   formTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
+    fontWeight: '600' as const,
+    color: colors.textPrimary,
   },
   closeFormButton: {
     padding: 4,
@@ -743,18 +744,18 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
+    fontWeight: '600' as const,
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   inputDescription: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     lineHeight: 18,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.bgApp,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
@@ -763,48 +764,58 @@ const styles = StyleSheet.create({
   },
   textArea: {
     minHeight: 80,
-    textAlignVertical: 'top',
+    textAlignVertical: 'top' as const,
   },
   createTokenButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: colors.accent,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
     gap: 8,
     marginTop: 16,
   },
   createTokenText: {
-    color: 'white',
+    color: colors.textInverse,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600' as const,
   },
   securityInfo: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: 'row' as const,
+    alignItems: 'flex-start' as const,
     marginTop: 24,
     padding: 16,
-    backgroundColor: '#F0F8FF',
+    backgroundColor: colors.bgHover,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E3F2FD',
+    borderColor: colors.accentSoft,
   },
   securityInfoContent: {
     marginLeft: 12,
   },
   securityInfoTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
+    fontWeight: '600' as const,
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   securityInfoText: {
     fontSize: 14,
-    color: '#1976D2',
+    color: colors.accent,
     lineHeight: 20,
   },
-});
+  // Status color helpers
+  statusError: {
+    color: colors.statusError,
+  },
+  statusWarning: {
+    color: colors.statusWarning,
+  },
+  statusSuccess: {
+    color: colors.statusSuccess,
+  },
+}));
 
 export default TemplateTokenManagerScreen; 

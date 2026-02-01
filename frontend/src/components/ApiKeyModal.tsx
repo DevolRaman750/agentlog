@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TextInput,
   TouchableOpacity,
@@ -17,6 +16,7 @@ import { useToast } from '../context/ToastContext';
 import { AlertAPI } from './CustomAlert';
 import { goGentAPI } from '../api/client';
 import { UserApiKey, CreateApiKeyRequest, UpdateApiKeyRequest } from '../types';
+import { useTheme, useThemedStyles } from '../theme';
 
 interface ServiceInfo {
   name: string;
@@ -135,9 +135,289 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
 }) => {
   const { user } = useAuth();
   const { showSuccess, showError, showWarning } = useToast();
+  const { colors } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [activeTab, setActiveTab] = useState<'basic' | 'advanced'>('basic');
+
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bgApp,
+    },
+    header: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      padding: 20,
+      backgroundColor: colors.bgCard,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    cancelButton: {
+      fontSize: 17,
+      color: colors.textSecondary,
+      fontWeight: '500' as const,
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: '700' as const,
+      color: colors.textPrimary,
+    },
+    saveButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+    },
+    saveButtonDisabled: {
+      opacity: 0.5,
+    },
+    saveButtonText: {
+      fontSize: 17,
+      color: colors.accent,
+      fontWeight: '700' as const,
+    },
+    tabContainer: {
+      flexDirection: 'row' as const,
+      backgroundColor: colors.bgApp,
+      marginHorizontal: 16,
+      borderRadius: 8,
+      padding: 2,
+      marginBottom: 8,
+    },
+    tab: {
+      flex: 1,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderRadius: 6,
+      gap: 6,
+    },
+    activeTab: {
+      backgroundColor: colors.bgCard,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+      elevation: 2,
+    },
+    tabText: {
+      fontSize: 14,
+      fontWeight: '500' as const,
+      color: colors.textSecondary,
+    },
+    activeTabText: {
+      color: colors.accent,
+      fontWeight: '600' as const,
+    },
+    content: {
+      flex: 1,
+    },
+    tabContent: {
+      padding: 16,
+      paddingBottom: 40,
+    },
+    section: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 1,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '700' as const,
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    sectionDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 18,
+      marginBottom: 16,
+    },
+    field: {
+      marginBottom: 20,
+    },
+    label: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    labelRow: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      marginBottom: 8,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      borderRadius: 8,
+      padding: 12,
+      fontSize: 16,
+      backgroundColor: colors.bgCard,
+    },
+    textArea: {
+      height: 80,
+      textAlignVertical: 'top' as const,
+    },
+    keyInput: {
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+      fontSize: 14,
+    },
+    helpText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 4,
+      lineHeight: 16,
+    },
+    testButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: colors.bgHover,
+      borderRadius: 6,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      gap: 4,
+    },
+    testButtonDisabled: {
+      opacity: 0.5,
+    },
+    testButtonText: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: colors.accent,
+    },
+    serviceGrid: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: 12,
+    },
+    serviceCard: {
+      flex: 1,
+      minWidth: '45%' as any,
+      backgroundColor: colors.bgSurface,
+      borderRadius: 12,
+      padding: 16,
+      borderWidth: 2,
+      borderColor: colors.borderLight,
+    },
+    serviceCardSelected: {
+      borderColor: colors.accent,
+      backgroundColor: colors.bgHover,
+    },
+    serviceCardTitle: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    serviceCardTitleSelected: {
+      color: colors.accent,
+    },
+    serviceCardDescription: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      lineHeight: 16,
+    },
+    accessLevelGrid: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: 8,
+    },
+    accessLevelCard: {
+      flex: 1,
+      minWidth: '45%' as any,
+      backgroundColor: colors.bgSurface,
+      borderRadius: 8,
+      padding: 12,
+      alignItems: 'center' as const,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    accessLevelCardSelected: {
+      borderColor: colors.accent,
+      backgroundColor: colors.bgHover,
+    },
+    accessLevelText: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    accessLevelTextSelected: {
+      color: colors.accent,
+    },
+    environmentGrid: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: 8,
+    },
+    environmentCard: {
+      flex: 1,
+      minWidth: '45%' as any,
+      backgroundColor: colors.bgSurface,
+      borderRadius: 8,
+      padding: 12,
+      alignItems: 'center' as const,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    environmentCardSelected: {
+      borderColor: colors.statusSuccess,
+      backgroundColor: '#F0FFF4',
+    },
+    environmentText: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    environmentTextSelected: {
+      color: colors.statusSuccess,
+    },
+    switchRow: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      marginBottom: 16,
+    },
+    switchInfo: {
+      flex: 1,
+      marginRight: 16,
+    },
+    switchLabel: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 2,
+    },
+    switchDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 18,
+    },
+    scopesList: {
+      gap: 8,
+    },
+    scopeItem: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 8,
+      paddingVertical: 4,
+    },
+    scopeText: {
+      fontSize: 14,
+      color: colors.textPrimary,
+    },
+  }));
 
   const [formData, setFormData] = useState<FormData>({
     serviceName: initialService || '',
@@ -154,7 +434,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
 
   // Get available services (filter if requiredServices is provided)
   const availableServices = useMemo(() => {
-    return requiredServices 
+    return requiredServices
       ? SERVICES.filter(s => requiredServices.includes(s.name))
       : SERVICES;
   }, [requiredServices]);
@@ -219,7 +499,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
     if (!formData.keyName.trim()) return 'Key name is required';
     if (!formData.displayName.trim()) return 'Display name is required';
     if (!formData.keyValue.trim() && !editingKey) return 'Key value is required';
-    
+
     // Basic validation for key formats
     if (formData.keyValue && selectedService) {
       const keyValue = formData.keyValue.trim();
@@ -391,13 +671,13 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
           <Text style={styles.title}>
             {editingKey ? 'Edit API Key' : 'Add API Key'}
           </Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={handleSave}
             disabled={isLoading}
             style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
           >
             {isLoading ? (
-              <ActivityIndicator size="small" color="#007AFF" />
+              <ActivityIndicator size="small" color={colors.accent} />
             ) : (
               <Text style={styles.saveButtonText}>Save</Text>
             )}
@@ -410,24 +690,24 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
             style={[styles.tab, activeTab === 'basic' && styles.activeTab]}
             onPress={() => setActiveTab('basic')}
           >
-            <Ionicons 
-              name="key-outline" 
-              size={16} 
-              color={activeTab === 'basic' ? '#007AFF' : '#8E8E93'} 
+            <Ionicons
+              name="key-outline"
+              size={16}
+              color={activeTab === 'basic' ? colors.accent : colors.textSecondary}
             />
             <Text style={[styles.tabText, activeTab === 'basic' && styles.activeTabText]}>
               Basic Setup
             </Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[styles.tab, activeTab === 'advanced' && styles.activeTab]}
             onPress={() => setActiveTab('advanced')}
           >
-            <Ionicons 
-              name="settings-outline" 
-              size={16} 
-              color={activeTab === 'advanced' ? '#007AFF' : '#8E8E93'} 
+            <Ionicons
+              name="settings-outline"
+              size={16}
+              color={activeTab === 'advanced' ? colors.accent : colors.textSecondary}
             />
             <Text style={[styles.tabText, activeTab === 'advanced' && styles.activeTabText]}>
               Advanced
@@ -444,7 +724,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                 <Text style={styles.sectionDescription}>
                   Choose the service this API key will be used for
                 </Text>
-                
+
                 <View style={styles.serviceGrid}>
                   {availableServices.map((service) => (
                     <TouchableOpacity
@@ -474,7 +754,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
               {selectedService && (
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Key Information</Text>
-                  
+
                   <View style={styles.field}>
                     <Text style={styles.label}>Display Name</Text>
                     <TextInput
@@ -515,16 +795,16 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                     <View style={styles.labelRow}>
                       <Text style={styles.label}>API Key Value</Text>
                       {formData.keyValue.trim() && (
-                        <TouchableOpacity 
+                        <TouchableOpacity
                           onPress={handleTestKey}
                           disabled={isTesting}
                           style={[styles.testButton, isTesting && styles.testButtonDisabled]}
                         >
                           {isTesting ? (
-                            <ActivityIndicator size="small" color="#007AFF" />
+                            <ActivityIndicator size="small" color={colors.accent} />
                           ) : (
                             <>
-                              <Ionicons name="flask-outline" size={16} color="#007AFF" />
+                              <Ionicons name="flask-outline" size={16} color={colors.accent} />
                               <Text style={styles.testButtonText}>Test</Text>
                             </>
                           )}
@@ -540,7 +820,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                       secureTextEntry={selectedService.keyType !== 'webhook_url'}
                     />
                     <Text style={styles.helpText}>
-                      {editingKey 
+                      {editingKey
                         ? 'Leave empty to keep the current key value unchanged'
                         : 'Enter your API key or token. This will be encrypted and stored securely.'
                       }
@@ -554,7 +834,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
               {/* Advanced Settings */}
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Access & Permissions</Text>
-                
+
                 <View style={styles.field}>
                   <Text style={styles.label}>Access Level</Text>
                   <View style={styles.accessLevelGrid}>
@@ -605,7 +885,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
               {/* Key Settings */}
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Key Settings</Text>
-                
+
                 <View style={styles.switchRow}>
                   <View style={styles.switchInfo}>
                     <Text style={styles.switchLabel}>Default Key</Text>
@@ -616,8 +896,8 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                   <Switch
                     value={formData.isDefault}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, isDefault: value }))}
-                    trackColor={{ false: '#E5E5EA', true: '#34C759' }}
-                    thumbColor="#FFFFFF"
+                    trackColor={{ false: colors.borderLight, true: colors.statusSuccess }}
+                    thumbColor={colors.textInverse}
                   />
                 </View>
 
@@ -631,8 +911,8 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                   <Switch
                     value={formData.isActive}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, isActive: value }))}
-                    trackColor={{ false: '#E5E5EA', true: '#34C759' }}
-                    thumbColor="#FFFFFF"
+                    trackColor={{ false: colors.borderLight, true: colors.statusSuccess }}
+                    thumbColor={colors.textInverse}
                   />
                 </View>
               </View>
@@ -644,11 +924,11 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                   <Text style={styles.sectionDescription}>
                     The permissions this key will have for the {selectedService.displayName} service
                   </Text>
-                  
+
                   <View style={styles.scopesList}>
                     {formData.scopes.map((scope, index) => (
                       <View key={index} style={styles.scopeItem}>
-                        <Ionicons name="checkmark-circle" size={16} color="#34C759" />
+                        <Ionicons name="checkmark-circle" size={16} color={colors.statusSuccess} />
                         <Text style={styles.scopeText}>{scope}</Text>
                       </View>
                     ))}
@@ -662,284 +942,5 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  cancelButton: {
-    fontSize: 17,
-    color: '#8E8E93',
-    fontWeight: '500',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#000000',
-  },
-  saveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  saveButtonDisabled: {
-    opacity: 0.5,
-  },
-  saveButtonText: {
-    fontSize: 17,
-    color: '#007AFF',
-    fontWeight: '700',
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#F2F2F7',
-    marginHorizontal: 16,
-    borderRadius: 8,
-    padding: 2,
-    marginBottom: 8,
-  },
-  tab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-    gap: 6,
-  },
-  activeTab: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#8E8E93',
-  },
-  activeTabText: {
-    color: '#007AFF',
-    fontWeight: '600',
-  },
-  content: {
-    flex: 1,
-  },
-  tabContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  section: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#000000',
-    marginBottom: 4,
-  },
-  sectionDescription: {
-    fontSize: 14,
-    color: '#8E8E93',
-    lineHeight: 18,
-    marginBottom: 16,
-  },
-  field: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 8,
-  },
-  labelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: '#FFFFFF',
-  },
-  textArea: {
-    height: 80,
-    textAlignVertical: 'top',
-  },
-  keyInput: {
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    fontSize: 14,
-  },
-  helpText: {
-    fontSize: 12,
-    color: '#8E8E93',
-    marginTop: 4,
-    lineHeight: 16,
-  },
-  testButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F0F8FF',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    gap: 4,
-  },
-  testButtonDisabled: {
-    opacity: 0.5,
-  },
-  testButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#007AFF',
-  },
-  serviceGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  serviceCard: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: '#E5E5EA',
-  },
-  serviceCardSelected: {
-    borderColor: '#007AFF',
-    backgroundColor: '#F0F8FF',
-  },
-  serviceCardTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 4,
-  },
-  serviceCardTitleSelected: {
-    color: '#007AFF',
-  },
-  serviceCardDescription: {
-    fontSize: 12,
-    color: '#8E8E93',
-    lineHeight: 16,
-  },
-  accessLevelGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  accessLevelCard: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  accessLevelCardSelected: {
-    borderColor: '#007AFF',
-    backgroundColor: '#F0F8FF',
-  },
-  accessLevelText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  accessLevelTextSelected: {
-    color: '#007AFF',
-  },
-  environmentGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  environmentCard: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  environmentCardSelected: {
-    borderColor: '#34C759',
-    backgroundColor: '#F0FFF4',
-  },
-  environmentText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  environmentTextSelected: {
-    color: '#34C759',
-  },
-  switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  switchInfo: {
-    flex: 1,
-    marginRight: 16,
-  },
-  switchLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 2,
-  },
-  switchDescription: {
-    fontSize: 14,
-    color: '#8E8E93',
-    lineHeight: 18,
-  },
-  scopesList: {
-    gap: 8,
-  },
-  scopeItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 4,
-  },
-  scopeText: {
-    fontSize: 14,
-    color: '#000000',
-  },
-});
 
 export default ApiKeyModal;
