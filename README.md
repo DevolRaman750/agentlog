@@ -1,237 +1,308 @@
-# agentlog - AI Multi-Variation Execution Platform with Interface Architecture
-**note**: Agentlog is in beta, and is under heavy development.  Breaking changes may occur.  
+# AgentLog
 
-live demo:  https://agentlog.scalebase.io
+**Open-source platform for building, managing, and orchestrating AI agents with full visibility and control.**
 
-agentlog is a Go platform that wraps AI APIs (starting with Google Gemini) with multi-variation execution, database logging, and use case-specific implementations. It enables you to run the same AI prompt with different configurations, compare results, and implement domain-specific AI solutions like procurement management, legal analysis, and more.
+> **Beta**: AgentLog is under active development. Breaking changes may occur.
 
+**Live Demo**: [agentlog.scalebase.io](https://agentlog.scalebase.io)
 
+---
 
+## What is AgentLog?
 
-#### Screenshots of Features:
+AgentLog is a full-stack platform that solves the core challenges of AI agent development:
 
-AI Team Dashboad:
-<img width="708" height="807" alt="image" src="https://github.com/user-attachments/assets/f6dd22ce-8738-4c87-b1a6-f4afa22faa9b" />
+- **No visibility** into what your agents are doing
+- **Complex configuration** across different models and providers
+- **No easy way** to compare and A/B test configurations
+- **Missing persistence** — agents forget everything between runs
+- **Difficult collaboration** — no way to organize agents into teams
 
-Experimentation mode to compare multiple models:
-<img width="711" height="810" alt="image" src="https://github.com/user-attachments/assets/be8bceed-b3ca-4e64-b66b-c98459609842" />
+AgentLog gives you a unified interface for multi-model execution, persistent memory, real-time monitoring, and flexible function calling.
 
-Detailed execution logs, flow graphs and flame graphs for each execution:
-<img width="959" height="694" alt="image" src="https://github.com/user-attachments/assets/f5cfa8a2-6745-42ae-8aab-e2039a720e38" />
+<!-- Screenshot: Dashboard overview showing agents and teams -->
 
+---
 
-Execution/Comparison metrics on every execution:
-<img width="708" height="306" alt="image" src="https://github.com/user-attachments/assets/bb08d4c5-147e-4230-ae37-89f2f65d9e6d" />
+## Key Features
 
-Batteries included functions with customizations:
-<img width="711" height="810" alt="image" src="https://github.com/user-attachments/assets/633f4119-0ea0-444a-b252-1ccfa66ce749" />
+### Autonomous Agents
+Create AI agents that run on configurable schedules (heartbeat). Each agent has:
+- Lifecycle management (Active, Standby, Paused)
+- Daily token budgets to control costs
+- Persistent memory that survives between executions
+- Assigned archetype templates defining behavior
 
+<!-- Screenshot: Agent card showing status, stats, and controls -->
 
-"Stateless" agent self tracking:
-<img width="810" height="653" alt="image" src="https://github.com/user-attachments/assets/f75eb179-86a5-4371-a910-31cae642b654" />
+### Teams & Collaboration
+Organize agents into teams with shared context:
+- Team-wide memory accessible to all members
+- Shared task lists and coordination
+- Collective token budgets
+- Team-level monitoring and analytics
 
+<!-- Screenshot: Team view with multiple agents -->
 
-... And more!
+### Multi-Model Execution
+Run the same prompt against multiple AI configurations simultaneously:
+- Compare Gemini, GPT-4, Claude, Kimi K2 side-by-side
+- Test different temperatures, system prompts, and parameters
+- Built-in A/B testing framework
+- Detailed comparison metrics
 
+<!-- Screenshot: Execution results comparison view -->
 
-## 🚀 Quick Start
+### Persistent Memory
+Agents and teams remember context across sessions:
+- Structured memory storage (facts, relationships, experiences)
+- Full-text search across memories
+- Memory importance scoring and size limits
+- Real-time sync across connected agents
 
-Get AgentLog running in 2 steps:
+### Execution Templates
+Define reusable, parameterized execution templates:
+- Variable placeholders (`{{param_name}}`)
+- Public/private sharing options
+- Rate limiting per template
+- Auth tokens for external invocation
+- Template marketplace for discovery
 
-### 1. Start the Backend Server 
+<!-- Screenshot: Template library or editor -->
 
-Update the config.env file with your local db and gemini api keys and then:
+### Function Calling
+Extend agent capabilities with external integrations:
+- **Built-in**: Slack messaging, GitHub code/issues, Google Drive, weather data, Neo4j queries
+- **Custom**: Define your own functions with JSON schema
+- **MCP Support**: Model Context Protocol for standardized function interfaces
+- Function chaining with depth control
+
+### Real-Time Monitoring
+Full visibility into every execution:
+- Live progress tracking
+- Execution flow graphs
+- Detailed logs (DEBUG, INFO, WARN, ERROR)
+- Token usage and cost analysis
+- Complete audit trail
+
+<!-- Screenshot: Execution logs or flow graph -->
+
+---
+
+## Supported Providers
+
+| Provider | Models |
+|----------|--------|
+| **Google Gemini** | Gemini 2.5 Pro, 1.5 Pro, 1.5 Flash |
+| **OpenRouter** | Claude 3.5 Sonnet, GPT-4o, and more |
+| **Moonshot Kimi** | K2 (excellent for tool use) |
+
+---
+
+## Quick Start
+
+### Prerequisites
+- Go 1.24+
+- Node.js 18+
+- PostgreSQL 14+ or MySQL 8+
+- Make
+
+### 1. Configure Environment
+
+Copy the example config and add your credentials:
+
+```bash
+cp config.example.env config.env
+```
+
+Required settings:
+```env
+DB_URL=postgres://user:pass@localhost:5432/agentlog
+GEMINI_API_KEY=your-gemini-key
+API_ENCRYPTION_KEY=your-32-byte-encryption-key
+JWT_SECRET=your-jwt-secret
+```
+
+### 2. Start the Backend
 
 ```bash
 make run-server
 ```
-This starts the agentlog backend on `localhost:8080` with REST API endpoints for multi-variation AI execution, function calling, and database logging.
 
+The API server starts on `localhost:8080`:
 ```
-2025/07/24 20:36:54 Go SDK disabled - using REST API for all Gemini calls
-🚀 agentlog HTTP Server starting on port 8080
-📡 Health check: http://localhost:8080/health
-🔧 API endpoints:
-   POST /api/execute - Multi-variation execution
-   GET  /api/execution-runs - Execution history
-   GET  /api/configurations - List API configurations
-   GET  /api/functions - List function definitions
-   POST /api/functions - Create function definition
-   GET  /api/functions/{id} - Get function by ID
-   PUT  /api/functions/{id} - Update function
-   DELETE /api/functions/{id} - Delete function
-   POST /api/functions/test/{id} - Test function execution
-   GET  /api/database/stats - Database statistics
-   GET  /api/database/tables - Database tables
-💡 Use X-Use-Mock: true header for mock responses
-🔑 Set GEMINI_API_KEY in config.env for real API calls
-
-2025/07/24 20:36:57 📋 Listing function definitions from database
-2025/07/24 20:36:57 ✅ Successfully loaded 2 function definitions from database
-
-
+API endpoints:
+   POST /api/execute          - Run multi-variation execution
+   GET  /api/agents           - List agents
+   GET  /api/teams            - List teams
+   GET  /api/execution-runs   - Execution history
+   GET  /api/functions        - Available functions
+   GET  /api/templates        - Execution templates
 ```
 
-### 2. Start the Frontend App
-```bash
-make frontend-start
-```
-This launches the React Native development server with the mobile interface for configuring AI models, executing prompts, and viewing results.
-
-<img width="490" height="672" alt="image" src="https://github.com/user-attachments/assets/4a31e3d8-21e6-46e3-b041-1b272cee5f76" />
-
-
-### That's it! 
-You now have an AI experimentation platform running locally. The frontend will connect to the backend automatically.
-
-<img width="482" height="276" alt="image" src="https://github.com/user-attachments/assets/285a93b3-ddae-4831-8583-0dd53bdff699" />
-
-<img width="480" height="437" alt="image" src="https://github.com/user-attachments/assets/7c5cac7d-9365-499a-a655-680206bf7f20" />
-
-
-## 📋 Overview
-
-### The Problem
-When building AI agents with Gemini (or any LLM), you need **visibility and control** for debugging and optimization. Most implementations lack:
-
-1. **Traceability & Monitoring** - No logging of AI interactions
-2. **Configuration Flexibility** - Can't easily adjust temperature, tokens, system prompts
-3. **Parallel Testing** - No way to run multiple model variations simultaneously  
-4. **Centralized Management** - No unified platform to track and compare executions
-
-### The Solution: AgentLog Platform
-
-AgentLog is an **AI experimentation platform** that gives you control over your Gemini agents:
-
-#### 🔧 **Configuration Control**
-- Configure Gemini API keys and any custom function API keys
-- Adjust model parameters: temperature, max tokens, top-P, top-K
-- Customize system prompts and context for different use cases
-- Set up parallel executions with variation testing
-
-#### 📊 **Execution & Tracking**  
-- Run multiple AI model configurations simultaneously
-- Compare results side-by-side with analysis
-- Database logging of every API call and response
-- Track function calls, execution times, and model performance
-
-#### 🛠️ **Function System**
-- Add custom functions for external API integrations
-- Built-in support for weather APIs, Neo4j graph databases
-- Create domain-specific AI workflows (procurement, legal analysis, etc.)
-- Function call tracing and debugging capabilities
-
-#### 📱 **Frontend Interface**
-- React Native mobile app for platform management
-- Real-time execution monitoring with loading states
-- Historical analysis with searchable execution logs
-- Database inspection tools for debugging
-
-#### 🏢 **Features**
-- MySQL database with audit trails
-- RESTful API architecture for integration
-- Multi-variation execution engine
-- Production deployment capabilities
-
-**Result**: Instead of blind AI development, you get a platform with the tools needed to build, test, and optimize agents with visibility into their behavior.
-
-## 🌟 Key Features
-
-### Core Platform
-- **📊 Multi-Variation Execution**: Run the same prompt with different configurations simultaneously
-- **🗄️ Database Logging**: Every API call and response logged to MySQL database
-- **🔍 Result Comparison**: Analyze and compare results across variations
-- **⚙️ Configuration Support**: Support for different models, temperatures, system prompts, and more
-- **🛡️ Type-Safe Operations**: Uses sqlc for generated type-safe SQL queries
-- **🧩 Interface Architecture**: Clean, extensible interfaces for different use cases
-
-### Use Case Implementations
-- **🏢 AI Procurement Manager**: Solution for vendor evaluation, contract analysis, negotiation strategies
-- **📋 Framework**: Easy to implement new domains (legal, content, risk assessment, etc.)
-- **🏭 Factory Pattern**: Simple instantiation of different implementations
-- **🔌 Plugin System**: Extensible architecture for custom functionality
-
-### Features
-- **📈 Analytics & Insights**: Performance metrics, cost analysis, model comparison
-- **🔄 Multi-Provider Support**: Extensible to support different AI providers
-- **🧪 A/B Testing**: Built-in experimentation framework for AI prompts
-- **📝 Audit Trail**: Compliance and audit logging
-
-## 🏗️ Architecture
-
-```
-agentlog Platform
-├── 🎯 Interface Layer
-│   ├── MultiVariationExecutor
-│   ├── ExecutionLogger  
-│   ├── ConfigurationManager
-│   ├── ResultComparator
-│   └── Use Case Interfaces
-├── 🏢 Domain Implementations
-│   ├── ProcurementManager
-│   ├── LegalAnalyzer (extensible)
-│   ├── ContentGenerator (extensible)
-│   └── RiskAssessor (extensible)
-├── 🏭 Factory & Adapters
-│   ├── agentlogFactory
-│   ├── ClientAdapter
-│   └── MockFactory (testing)
-├── 🗄️ Database Layer (MySQL + sqlc)
-├── 🔧 Core Client (AI API Wrapper)
-└── 📊 Analytics & Comparison Engine
-```
-
-## 🌐 HTTP Server Mode
-
-The `make run-api` command starts a persistent HTTP server that provides REST API endpoints for the frontend mobile app.
-
-### Server Endpoints
-
-- `GET /health` - Health check with status information
-- `POST /api/execute` - Multi-variation execution endpoint
-- `GET /api/execution-runs` - Get execution history
-- `GET /api/database/stats` - Database statistics
-- `GET /api/database/tables` - List database tables
-
-### Server Features
-
-- **Mock Mode Support**: Add `X-Use-Mock: true` header for mock responses
-- **Real API Integration**: Uses real Gemini API when API key is configured
-- **CORS Enabled**: Ready for frontend integration
-- **Database Logging**: All executions logged to MySQL when available
-
-### Example Usage
+### 3. Start the Frontend
 
 ```bash
-# Start the server
-make run-server
-
-# Test health endpoint
-curl http://localhost:8080/health
-
-# Test execution with mock data
-curl -X POST http://localhost:8080/api/execute \
-  -H "Content-Type: application/json" \
-  -H "X-Use-Mock: true" \
-  -d '{
-    "execution_run_name": "test",
-    "base_prompt": "Write a story about AI",
-    "configurations": [{
-      "id": "test-1",
-      "variation_name": "creative",
-      "model_name": "gemini-1.5-flash",
-      "temperature": 0.8
-    }]
-  }'
+cd frontend
+npm install
+npm start
 ```
 
-### Frontend Integration
+Open [localhost:8081](http://localhost:8081) in your browser, or press `i` for iOS simulator / `a` for Android emulator.
 
-The HTTP server is designed to work with the React Native frontend:
+---
 
-1. **Start Backend**: `make run-server` (runs on localhost:8080)
-2. **Start Frontend**: `make frontend-start` 
-3. **Configure**: Set backend URL in mobile app settings
-4. **Use**: Configure AI models and execute multi-variation prompts
+## Architecture
 
-## 💼 Procurement Management Usage
+```
+┌─────────────────────────────────────────────────────────┐
+│                     Frontend                             │
+│          React Native (Web / iOS / Android)             │
+├─────────────────────────────────────────────────────────┤
+│                    API Layer                             │
+│              REST + gRPC Gateway                         │
+├─────────────────────────────────────────────────────────┤
+│                 Core Services                            │
+│  Agents │ Teams │ Templates │ Memory │ Execution        │
+├─────────────────────────────────────────────────────────┤
+│                 Integrations                             │
+│  Gemini │ OpenRouter │ Slack │ GitHub │ MCP             │
+├─────────────────────────────────────────────────────────┤
+│                  Data Layer                              │
+│        PostgreSQL/MySQL │ Encrypted Storage             │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Project Structure
+
+```
+agentlog/
+├── cmd/gogent/          # Server entry point
+├── internal/
+│   ├── agents/          # Agent management
+│   ├── teams/           # Team management
+│   ├── templates/       # Execution templates
+│   ├── gogent/          # Core execution engine
+│   ├── providers/       # AI provider integrations
+│   └── db/              # Database layer (sqlc)
+├── frontend/            # React Native app
+├── migrations/          # Database migrations
+├── sql/                 # SQL queries
+├── k8s/                 # Kubernetes manifests
+└── scripts/             # Utility scripts
+```
+
+---
+
+## Configuration
+
+### API Keys
+
+AgentLog encrypts all API keys with AES-256-GCM before storing. Add keys through the UI or API:
+
+- **AI Providers**: Gemini, OpenAI, OpenRouter
+- **Integrations**: Slack, Discord, GitHub, OpenWeather, Neo4j, Google Drive
+
+### Model Configurations
+
+Create named configurations with specific parameters:
+- Model selection
+- Temperature, max tokens, top-P, top-K
+- System prompts
+- Safety settings
+
+---
+
+## Deployment
+
+### Docker
+
+```bash
+make docker-build-all
+docker-compose up
+```
+
+### Kubernetes
+
+```bash
+make k8s-deploy
+```
+
+K8s manifests include:
+- Deployments with health checks
+- Services with load balancing
+- Ingress for external access
+- Secrets management
+- Horizontal Pod Autoscaling
+
+---
+
+## Development
+
+### Useful Commands
+
+```bash
+# Backend
+make run-server          # Start API server
+make run-tests           # Run tests
+make test-coverage       # Tests with coverage
+make generate-db         # Regenerate sqlc code
+make migrate-up          # Apply migrations
+
+# Frontend
+make frontend-start      # Start Expo dev server
+make frontend-test       # Run tests
+make frontend-ios        # iOS simulator
+make frontend-android    # Android emulator
+make frontend-web        # Web browser
+```
+
+### Running Tests
+
+```bash
+# Backend
+make run-tests
+make test-race           # With race detection
+
+# Frontend
+cd frontend && npm test
+```
+
+---
+
+## Security
+
+- **Encryption**: AES-256-GCM for stored API keys
+- **Authentication**: JWT-based with refresh tokens
+- **Password Security**: bcrypt hashing
+- **Rate Limiting**: Configurable per endpoint and template
+- **Audit Logging**: Complete operation history
+
+See [SECURITY.md](SECURITY.md) for vulnerability reporting.
+
+---
+
+## Contributing
+
+Contributions welcome! The platform is designed for extensibility:
+
+- **Add providers**: Implement the `ModelProvider` interface
+- **Add integrations**: Register in the integration registry
+- **Add functions**: Define in `system/functions/` JSON files
+- **Extend UI**: React Native components in `frontend/src/`
+
+---
+
+## License
+
+MIT License — see [LICENSE](LICENSE) for details.
+
+---
+
+## Links
+
+- **Live Demo**: [agentlog.scalebase.io](https://agentlog.scalebase.io)
+- **Issues**: [GitHub Issues](https://github.com/imran31415/agentlog/issues)
+- **Changelog**: [CHANGELOG.md](CHANGELOG.md)
