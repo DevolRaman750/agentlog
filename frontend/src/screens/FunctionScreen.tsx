@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TextInput,
   TouchableOpacity,
@@ -25,7 +24,8 @@ import { restAPI } from '../api';
 import LoadingScreen from '../components/LoadingScreen';
 import JsonEditor from '../components/JsonEditor';
 import { AlertAPI } from '../components/CustomAlert';
-import { containerStyles, shadowPresets } from '../styles/containers';
+import { useTheme, useThemedStyles } from '../theme';
+import type { ThemeColors } from '../theme';
 import GroupedFunctionList from '../components/GroupedFunctionList';
 import ApiKeyModal from '../components/ApiKeyModal';
 import { useNavigation } from '@react-navigation/native';
@@ -87,6 +87,8 @@ const mapBackendServicesToModalServices = (backendServices: string[]): string[] 
 };
 
 const FunctionScreen: React.FC = () => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { state } = useApp();
   const { user, isLoading: authLoading } = useAuth();
   const { showSuccess, showError, showWarning, showInfo } = useToast();
@@ -313,7 +315,7 @@ const FunctionScreen: React.FC = () => {
           <Text style={styles.cardTitle} numberOfLines={1}>{item.displayName}</Text>
           {ownership.ownershipType === 'system' && (
             <View style={styles.systemBadge}>
-              <Ionicons name="shield-checkmark" size={12} color="#34C759" />
+              <Ionicons name="shield-checkmark" size={12} color={colors.statusSuccess} />
               <Text style={styles.systemBadgeText}>SYSTEM</Text>
             </View>
           )}
@@ -325,29 +327,29 @@ const FunctionScreen: React.FC = () => {
             style={styles.cardButton} 
             onPress={() => setTestingFunction(item)}
           >
-            <Ionicons name="flask-outline" size={18} color="#007AFF" />
+            <Ionicons name="flask-outline" size={18} color={colors.accent} />
             <Text style={styles.cardButtonText}>Test</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.cardButton} 
             onPress={() => setViewingFunction(item)}
           >
-            <Ionicons name="eye-outline" size={18} color="#007AFF" />
+            <Ionicons name="eye-outline" size={18} color={colors.accent} />
             <Text style={styles.cardButtonText}>View</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.cardButton, !ownership.canEdit && styles.disabledButton]} 
                           onPress={() => ownership.canEdit ? setEditingFunction(item) : showWarning('Permission Denied', 'You cannot edit a system function.')}
           >
-            <Ionicons name="pencil-outline" size={18} color={ownership.canEdit ? "#007AFF" : "#8E8E93"} />
+            <Ionicons name="pencil-outline" size={18} color={ownership.canEdit ? colors.accent : colors.textSecondary} />
             <Text style={[styles.cardButtonText, !ownership.canEdit && styles.disabledButtonText]}>Edit</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.cardButton, !ownership.canDelete && styles.disabledButton]} 
             onPress={() => ownership.canDelete ? handleDeleteFunction(item.id) : showWarning('Permission Denied', 'You cannot delete a system function.')}
           >
-            <Ionicons name="trash-outline" size={18} color={ownership.canDelete ? "#FF3B30" : "#8E8E93"} />
-            <Text style={[styles.cardButtonText, {color: ownership.canDelete ? '#FF3B30' : '#8E8E93'}]}>Delete</Text>
+            <Ionicons name="trash-outline" size={18} color={ownership.canDelete ? colors.statusError : colors.textSecondary} />
+            <Text style={[styles.cardButtonText, {color: ownership.canDelete ? colors.statusError : colors.textSecondary}]}>Delete</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -434,7 +436,7 @@ const FunctionScreen: React.FC = () => {
       <View style={styles.searchAndActionsContainer}>
         <View style={styles.headerActions}>
           <View style={styles.searchContainer}>
-            <Ionicons name="search" size={20} color="#8E8E93" />
+            <Ionicons name="search" size={20} color={colors.textSecondary} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search functions..."
@@ -447,7 +449,7 @@ const FunctionScreen: React.FC = () => {
             style={styles.addButton}
             onPress={() => setShowNewFunctionForm(true)}
           >
-            <Ionicons name="add" size={24} color="#FFFFFF" />
+            <Ionicons name="add" size={24} color={colors.textInverse} />
             <Text style={styles.addButtonText}>New Function</Text>
           </TouchableOpacity>
         </View>
@@ -595,12 +597,14 @@ interface FunctionFormModalProps {
   onSave: (functionData: FunctionFormData) => void;
 }
 
-const FunctionFormModal: React.FC<FunctionFormModalProps> = ({ 
-  visible, 
-  function: editFunction, 
-  onClose, 
-  onSave 
+const FunctionFormModal: React.FC<FunctionFormModalProps> = ({
+  visible,
+  function: editFunction,
+  onClose,
+  onSave
 }) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { user } = useAuth();
   const { showError, showWarning } = useToast();
   const [activeTab, setActiveTab] = useState<'basic' | 'advanced'>('basic');
@@ -1156,12 +1160,12 @@ LIMIT {{limit}}`;
               style={styles.templatesSectionHeader}
               onPress={() => setTemplatesExpanded(!templatesExpanded)}
             >
-              <Ionicons name="library" size={20} color="#FF3B30" />
+              <Ionicons name="library" size={20} color={colors.statusError} />
               <Text style={styles.templatesSectionTitle}>Quick Start Templates</Text>
               <Ionicons 
                 name={templatesExpanded ? "chevron-up" : "chevron-down"} 
                 size={20} 
-                color="#8E8E93" 
+                color={colors.textSecondary} 
               />
             </TouchableOpacity>
             
@@ -1197,7 +1201,7 @@ LIMIT {{limit}}`;
               <Ionicons 
                 name="settings-outline" 
                 size={16} 
-                color={activeTab === 'basic' ? '#007AFF' : '#8E8E93'} 
+                color={activeTab === 'basic' ? colors.accent : colors.textSecondary} 
               />
               <Text style={[styles.tabText, activeTab === 'basic' && styles.activeTabText]}>
                 Basic Setup
@@ -1211,7 +1215,7 @@ LIMIT {{limit}}`;
               <Ionicons 
                 name="code-slash-outline" 
                 size={16} 
-                color={activeTab === 'advanced' ? '#007AFF' : '#8E8E93'} 
+                color={activeTab === 'advanced' ? colors.accent : colors.textSecondary} 
               />
               <Text style={[styles.tabText, activeTab === 'advanced' && styles.activeTabText]}>
                 Query Templates
@@ -1223,11 +1227,11 @@ LIMIT {{limit}}`;
               {/* Basic Configuration Section */}
                               <View style={styles.sectionCard}>
                   <View style={styles.sectionHeader}>
-                    <Ionicons name="information-circle" size={20} color="#007AFF" />
+                    <Ionicons name="information-circle" size={20} color={colors.accent} />
                     <Text style={styles.sectionCardTitle}>Function Information</Text>
                     {(formData.name && formData.name !== '') && (
                       <View style={styles.templateAppliedBadge}>
-                        <Ionicons name="checkmark-circle" size={16} color="#34C759" />
+                        <Ionicons name="checkmark-circle" size={16} color={colors.statusSuccess} />
                         <Text style={styles.templateAppliedText}>Template Applied</Text>
                       </View>
                     )}
@@ -1282,7 +1286,7 @@ LIMIT {{limit}}`;
               {/* API Configuration Section */}
               <View style={styles.sectionCard}>
                 <View style={styles.sectionHeader}>
-                  <Ionicons name="globe" size={20} color="#34C759" />
+                  <Ionicons name="globe" size={20} color={colors.statusSuccess} />
                   <Text style={styles.sectionCardTitle}>API Configuration</Text>
                 </View>
                 <Text style={styles.sectionDescription}>
@@ -1360,7 +1364,7 @@ LIMIT {{limit}}`;
               {/* Parameters Section */}
               <View style={styles.sectionCard}>
                 <View style={styles.sectionHeader}>
-                  <Ionicons name="settings" size={20} color="#FF9500" />
+                  <Ionicons name="settings" size={20} color={colors.statusWarning} />
                   <Text style={styles.sectionCardTitle}>Parameters & Response</Text>
                 </View>
                 <Text style={styles.sectionDescription}>
@@ -1396,11 +1400,11 @@ LIMIT {{limit}}`;
               {/* Result Transformer Section */}
               <View style={styles.sectionCard}>
                 <View style={styles.sectionHeader}>
-                  <Ionicons name="color-wand" size={20} color="#8E4EC6" />
+                  <Ionicons name="color-wand" size={20} color={colors.accentSecondary} />
                   <Text style={styles.sectionCardTitle}>Result Processing</Text>
                   {(formData.resultTransformer && formData.resultTransformer !== 'default') && (
                     <View style={styles.templateAppliedBadge}>
-                      <Ionicons name="checkmark-circle" size={16} color="#34C759" />
+                      <Ionicons name="checkmark-circle" size={16} color={colors.statusSuccess} />
                       <Text style={styles.templateAppliedText}>Template Applied</Text>
                     </View>
                   )}
@@ -1429,7 +1433,7 @@ LIMIT {{limit}}`;
                         <Ionicons 
                           name={transformer.icon as any} 
                           size={20} 
-                          color={formData.resultTransformer === transformer.value ? '#007AFF' : '#8E8E93'} 
+                          color={formData.resultTransformer === transformer.value ? colors.accent : colors.textSecondary} 
                         />
                         <Text style={[
                           styles.transformerCardTitle,
@@ -1447,11 +1451,11 @@ LIMIT {{limit}}`;
               {/* Query Template Section */}
               <View style={styles.sectionCard}>
                 <View style={styles.sectionHeader}>
-                  <Ionicons name="code-slash" size={20} color="#007AFF" />
+                  <Ionicons name="code-slash" size={20} color={colors.accent} />
                   <Text style={styles.sectionCardTitle}>Query Template</Text>
                   {(formData.queryTemplate && formData.queryTemplate.trim() !== '') && (
                     <View style={styles.templateAppliedBadge}>
-                      <Ionicons name="checkmark-circle" size={16} color="#34C759" />
+                      <Ionicons name="checkmark-circle" size={16} color={colors.statusSuccess} />
                       <Text style={styles.templateAppliedText}>Template Applied</Text>
                     </View>
                   )}
@@ -1482,7 +1486,7 @@ LIMIT {{limit}}`;
               {/* Fallback Data Section */}
               <View style={styles.sectionCard}>
                 <View style={styles.sectionHeader}>
-                  <Ionicons name="shield-checkmark" size={20} color="#34C759" />
+                  <Ionicons name="shield-checkmark" size={20} color={colors.statusSuccess} />
                   <Text style={styles.sectionCardTitle}>Fallback Data</Text>
                 </View>
                 <Text style={styles.sectionDescription}>
@@ -1521,11 +1525,13 @@ interface FunctionTestModalProps {
   onClose: () => void;
 }
 
-const FunctionTestModal: React.FC<FunctionTestModalProps> = ({ 
-  visible, 
-  function: testFunction, 
-  onClose 
+const FunctionTestModal: React.FC<FunctionTestModalProps> = ({
+  visible,
+  function: testFunction,
+  onClose
 }) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [testArguments, setTestArguments] = useState('{}');
   const [testResult, setTestResult] = useState<any>(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -1622,8 +1628,8 @@ const FunctionTestModal: React.FC<FunctionTestModalProps> = ({
               <Switch
                 value={useMockData}
                 onValueChange={setUseMockData}
-                trackColor={{ false: '#E5E5EA', true: '#34C759' }}
-                thumbColor="#FFFFFF"
+                trackColor={{ false: colors.borderLight, true: colors.statusSuccess }}
+                thumbColor={colors.bgCard}
               />
             </View>
           </View>
@@ -1647,7 +1653,7 @@ const FunctionTestModal: React.FC<FunctionTestModalProps> = ({
               <Text style={styles.testButtonText}>Running...</Text>
             ) : (
               <>
-                <Ionicons name="play" size={20} color="#FFFFFF" />
+                <Ionicons name="play" size={20} color={colors.textInverse} />
                 <Text style={styles.testButtonText}>Run Test</Text>
               </>
             )}
@@ -1658,11 +1664,11 @@ const FunctionTestModal: React.FC<FunctionTestModalProps> = ({
               <Text style={styles.testResultTitle}>Test Result</Text>
               <View style={[
                 styles.testResultCard,
-                { borderLeftColor: testResult.success ? '#34C759' : '#FF3B30' }
+                { borderLeftColor: testResult.success ? colors.statusSuccess : colors.statusError }
               ]}>
                 <Text style={[
                   styles.testResultStatus,
-                  { color: testResult.success ? '#34C759' : '#FF3B30' }
+                  { color: testResult.success ? colors.statusSuccess : colors.statusError }
                 ]}>
                   {testResult.success ? 'SUCCESS' : 'ERROR'}
                 </Text>
@@ -1697,11 +1703,13 @@ interface FunctionDetailsModalProps {
   onClose: () => void;
 }
 
-const FunctionDetailsModal: React.FC<FunctionDetailsModalProps> = ({ 
-  visible, 
-  function: viewFunction, 
-  onClose 
+const FunctionDetailsModal: React.FC<FunctionDetailsModalProps> = ({
+  visible,
+  function: viewFunction,
+  onClose
 }) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
   if (!viewFunction) return null;
 
   const formatJson = (obj: any) => {
@@ -1736,7 +1744,7 @@ const FunctionDetailsModal: React.FC<FunctionDetailsModalProps> = ({
             </View>
             <View style={styles.detailsRow}>
               <Text style={styles.detailsLabel}>Active:</Text>
-              <Text style={[styles.detailsValue, { color: viewFunction.isActive ? '#34C759' : '#FF3B30' }]}>
+              <Text style={[styles.detailsValue, { color: viewFunction.isActive ? colors.statusSuccess : colors.statusError }]}>
                 {viewFunction.isActive ? 'Yes' : 'No'}
               </Text>
             </View>
@@ -1744,7 +1752,7 @@ const FunctionDetailsModal: React.FC<FunctionDetailsModalProps> = ({
               <View style={styles.detailsRow}>
                 <Text style={styles.detailsLabel}>Type:</Text>
                 <View style={styles.systemBadge}>
-                  <Ionicons name="shield-checkmark" size={12} color="#34C759" />
+                  <Ionicons name="shield-checkmark" size={12} color={colors.statusSuccess} />
                   <Text style={styles.systemBadgeText}>SYSTEM FUNCTION</Text>
                 </View>
               </View>
@@ -1855,7 +1863,7 @@ const FunctionDetailsModal: React.FC<FunctionDetailsModalProps> = ({
               <Text style={styles.detailsSectionTitle}>Required API Keys</Text>
               {viewFunction.requiredApiKeys.map((key, index) => (
                 <View key={index} style={styles.apiKeyItem}>
-                  <Ionicons name="key-outline" size={16} color="#007AFF" />
+                  <Ionicons name="key-outline" size={16} color={colors.accent} />
                   <Text style={styles.apiKeyText}>{key}</Text>
                 </View>
               ))}
@@ -1867,18 +1875,18 @@ const FunctionDetailsModal: React.FC<FunctionDetailsModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => ({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.bgApp,
   },
   searchAndActionsContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderRadius: 12,
     margin: 16,
     marginBottom: 8,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: colors.shadowColor,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -1889,7 +1897,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderRadius: 12,
     padding: 20,
     marginBottom: 16,
@@ -1897,12 +1905,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#000000',
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     marginBottom: 20,
   },
   headerActions: {
@@ -1915,7 +1923,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.bgApp,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -1924,19 +1932,19 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: '#000000',
+    color: colors.textPrimary,
   },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#007AFF',
+    backgroundColor: colors.accent,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 8,
   },
   addButtonText: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -1945,7 +1953,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#E5E5EA',
+    borderTopColor: colors.borderLight,
   },
   statItem: {
     alignItems: 'center',
@@ -1953,15 +1961,15 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#007AFF',
+    color: colors.accent,
   },
   statLabel: {
     fontSize: 12,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   functionCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -1979,18 +1987,18 @@ const styles = StyleSheet.create({
   functionDisplayName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   functionName: {
     fontSize: 14,
     fontFamily: 'monospace',
-    color: '#007AFF',
+    color: colors.accent,
     marginBottom: 4,
   },
   functionDescription: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     lineHeight: 20,
   },
   functionActions: {
@@ -2012,12 +2020,12 @@ const styles = StyleSheet.create({
   },
   metaLabel: {
     fontSize: 12,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     fontWeight: '500',
   },
   metaValue: {
     fontSize: 12,
-    color: '#000000',
+    color: colors.textPrimary,
     fontWeight: '600',
   },
   emptyState: {
@@ -2028,28 +2036,28 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#8E8E93',
+    color: colors.textSecondary,
     marginTop: 16,
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: '#C7C7CC',
+    color: colors.textTertiary,
     textAlign: 'center',
     marginTop: 8,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.bgApp,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-    shadowColor: '#000',
+    borderBottomColor: colors.borderLight,
+    shadowColor: colors.shadowColor,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
@@ -2058,16 +2066,16 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#000000',
+    color: colors.textPrimary,
   },
   modalCancelButton: {
     fontSize: 17,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     fontWeight: '500',
   },
   modalSaveButton: {
     fontSize: 17,
-    color: '#007AFF',
+    color: colors.accent,
     fontWeight: '700',
   },
   modalContent: {
@@ -2079,17 +2087,17 @@ const styles = StyleSheet.create({
   formLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.textPrimary,
     marginBottom: 10,
   },
   formInput: {
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderLight,
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
+    backgroundColor: colors.bgCard,
+    shadowColor: colors.shadowColor,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -2115,18 +2123,18 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
+    borderColor: colors.borderLight,
+    backgroundColor: colors.bgCard,
+    shadowColor: colors.shadowColor,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
   },
   methodOptionSelected: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
-    shadowColor: '#007AFF',
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+    shadowColor: colors.accent,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -2135,13 +2143,13 @@ const styles = StyleSheet.create({
   methodOptionText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.textPrimary,
   },
   methodOptionTextSelected: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
   },
   functionTestInfo: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
@@ -2149,18 +2157,18 @@ const styles = StyleSheet.create({
   testFunctionName: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   testFunctionDescription: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: colors.textSecondary,
   },
   testModeContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderRadius: 8,
     padding: 16,
   },
@@ -2168,17 +2176,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#007AFF',
+    backgroundColor: colors.accent,
     borderRadius: 8,
     padding: 16,
     gap: 8,
     marginBottom: 20,
   },
   testButtonDisabled: {
-    backgroundColor: '#8E8E93',
+    backgroundColor: colors.textSecondary,
   },
   testButtonText: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -2188,11 +2196,11 @@ const styles = StyleSheet.create({
   testResultTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.textPrimary,
     marginBottom: 12,
   },
   testResultCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderRadius: 12,
     padding: 16,
     borderLeftWidth: 4,
@@ -2204,31 +2212,31 @@ const styles = StyleSheet.create({
   },
   testResultTime: {
     fontSize: 12,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     marginBottom: 4,
   },
   testResultMock: {
     fontSize: 12,
-    color: '#FF9500',
+    color: colors.statusWarning,
     marginBottom: 8,
   },
   testResultDataLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.textPrimary,
     marginTop: 8,
     marginBottom: 4,
   },
   testResultData: {
     fontSize: 12,
     fontFamily: 'monospace',
-    color: '#000000',
-    backgroundColor: '#F2F2F7',
+    color: colors.textPrimary,
+    backgroundColor: colors.bgApp,
     padding: 12,
     borderRadius: 6,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -2242,13 +2250,13 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.textPrimary,
     flex: 1,
   },
   systemBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8F5E9',
+    backgroundColor: colors.bgSurface,
     borderRadius: 4,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -2258,16 +2266,16 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     fontSize: 10,
     fontWeight: '600',
-    color: '#34C759',
+    color: colors.statusSuccess,
   },
   cardSubtitle: {
     fontSize: 12,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     marginBottom: 8,
   },
   cardDescription: {
     fontSize: 14,
-    color: '#3C3C43',
+    color: colors.textPrimary,
     marginBottom: 16,
     lineHeight: 20,
   },
@@ -2275,7 +2283,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     borderTopWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderLight,
     paddingTop: 12,
     marginTop: 'auto',
   },
@@ -2289,32 +2297,32 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     fontSize: 14,
     fontWeight: '500',
-    color: '#007AFF',
+    color: colors.accent,
   },
   disabledButton: {
     opacity: 0.5,
   },
   disabledButtonText: {
-    color: '#8E8E93',
+    color: colors.textSecondary,
   },
   detailsSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderLight,
   },
   detailsTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.textPrimary,
     marginBottom: 16,
   },
   detailsSectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.textPrimary,
     marginBottom: 12,
   },
   detailsRow: {
@@ -2325,31 +2333,31 @@ const styles = StyleSheet.create({
   detailsLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#8E8E93',
+    color: colors.textSecondary,
     width: 120,
     marginRight: 12,
   },
   detailsValue: {
     fontSize: 14,
-    color: '#000000',
+    color: colors.textPrimary,
     flex: 1,
     lineHeight: 20,
   },
   urlText: {
-    color: '#007AFF',
+    color: colors.accent,
     textDecorationLine: 'underline',
   },
   codeBlock: {
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.bgApp,
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderLight,
   },
   codeText: {
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     fontSize: 12,
-    color: '#3C3C43',
+    color: colors.textPrimary,
     lineHeight: 16,
   },
   apiKeyItem: {
@@ -2360,24 +2368,24 @@ const styles = StyleSheet.create({
   apiKeyText: {
     marginLeft: 8,
     fontSize: 14,
-    color: '#000000',
+    color: colors.textPrimary,
   },
   // New styles for query template functionality
   sectionDivider: {
     marginVertical: 24,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: '#E5E5EA',
+    borderTopColor: colors.borderLight,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     lineHeight: 20,
   },
   labelWithTooltip: {
@@ -2400,30 +2408,30 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.borderLight,
+    backgroundColor: colors.bgCard,
   },
   transformerOptionSelected: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   transformerOptionText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.textPrimary,
   },
   transformerOptionTextSelected: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
   },
   helpText: {
     fontSize: 12,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     marginTop: 8,
     lineHeight: 16,
   },
   boldText: {
     fontWeight: '600',
-    color: '#000000',
+    color: colors.textPrimary,
   },
   queryTemplateInput: {
     height: 200,
@@ -2438,10 +2446,10 @@ const styles = StyleSheet.create({
   templateButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderLight,
     paddingHorizontal: 12,
     paddingVertical: 8,
     gap: 6,
@@ -2449,10 +2457,10 @@ const styles = StyleSheet.create({
   templateButtonText: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#007AFF',
+    color: colors.accent,
   },
   transformerBadge: {
-    backgroundColor: '#E8F4FD',
+    backgroundColor: colors.accentSoft,
     borderRadius: 4,
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -2460,12 +2468,12 @@ const styles = StyleSheet.create({
   transformerBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#007AFF',
+    color: colors.accent,
   },
   // Enhanced styles for tabbed interface
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.bgApp,
     marginHorizontal: 16,
     borderRadius: 8,
     padding: 2,
@@ -2482,8 +2490,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   activeTab: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
+    backgroundColor: colors.bgCard,
+    shadowColor: colors.shadowColor,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -2492,10 +2500,10 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#8E8E93',
+    color: colors.textSecondary,
   },
   activeTabText: {
-    color: '#007AFF',
+    color: colors.accent,
     fontWeight: '600',
   },
   tabContent: {
@@ -2503,8 +2511,16 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   sectionCard: {
-    ...containerStyles.primaryContainer,
-    marginBottom: 24, // Increased spacing between sections
+    backgroundColor: colors.bgCard,
+    marginHorizontal: 16,
+    marginTop: 20,
+    marginBottom: 24,
+    borderRadius: 8,
+    padding: 20,
+    shadowColor: colors.shadowColor,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -2515,17 +2531,17 @@ const styles = StyleSheet.create({
   sectionCardTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#000000',
+    color: colors.textPrimary,
   },
   sectionDescription: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     lineHeight: 18,
     marginBottom: 12,
   },
   fieldHelp: {
     fontSize: 12,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     marginTop: 6,
     lineHeight: 16,
   },
@@ -2538,22 +2554,22 @@ const styles = StyleSheet.create({
   templateCard: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: '#F8F9FA',
+    backgroundColor: colors.bgSurface,
     borderRadius: 8,
     padding: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderLight,
   },
   templateIcon: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
-    shadowColor: '#000',
+    shadowColor: colors.shadowColor,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -2562,13 +2578,13 @@ const styles = StyleSheet.create({
   templateTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.textPrimary,
     marginBottom: 3,
     textAlign: 'center',
   },
   templateDescription: {
     fontSize: 10,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 14,
     marginBottom: 6,
@@ -2582,48 +2598,54 @@ const styles = StyleSheet.create({
   transformerCard: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: '#F8F9FA',
+    backgroundColor: colors.bgSurface,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderLight,
   },
   transformerCardSelected: {
-    borderColor: '#007AFF',
-    backgroundColor: '#F0F8FF',
+    borderColor: colors.accent,
+    backgroundColor: colors.bgHover,
   },
   transformerCardTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.textPrimary,
     marginTop: 8,
     marginBottom: 4,
     textAlign: 'center',
   },
   transformerCardTitleSelected: {
-    color: '#007AFF',
+    color: colors.accent,
   },
   transformerCardDesc: {
     fontSize: 11,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 14,
   },
   queryHelp: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: colors.bgSurface,
     borderRadius: 8,
     padding: 12,
     marginTop: 8,
     borderLeftWidth: 3,
-    borderLeftColor: '#007AFF',
+    borderLeftColor: colors.accent,
   },
   // Templates section above tabs - Enhanced visual separation
   templatesSection: {
-    ...containerStyles.secondaryContainer,
+    backgroundColor: colors.bgSurface,
+    marginHorizontal: 16,
     marginTop: 20,
     marginBottom: 20,
-    backgroundColor: '#FBFCFD', // Slightly different background for distinction
+    borderRadius: 8,
+    padding: 16,
+    shadowColor: colors.shadowColor,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
   },
   templatesSectionHeader: {
     flexDirection: 'row',
@@ -2635,18 +2657,18 @@ const styles = StyleSheet.create({
   templatesSectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#000000',
+    color: colors.textPrimary,
   },
   templatesSectionDescription: {
     fontSize: 13,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     lineHeight: 20,
     marginBottom: 20,
   },
   templateAppliedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8F5E9',
+    backgroundColor: colors.bgSurface,
     borderRadius: 12,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -2656,7 +2678,7 @@ const styles = StyleSheet.create({
   templateAppliedText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#34C759',
+    color: colors.statusSuccess,
   },
   templateTagsContainer: {
     flexDirection: 'row',
@@ -2665,25 +2687,25 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   templateTag: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: colors.bgSurface,
     borderRadius: 6,
     paddingHorizontal: 5,
     paddingVertical: 1,
   },
   templateTagDisabled: {
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.bgApp,
   },
   templateTagText: {
     fontSize: 9,
     fontWeight: '500',
-    color: '#34C759',
+    color: colors.statusSuccess,
   },
   templateTagTextDisabled: {
-    color: '#8E8E93',
+    color: colors.textSecondary,
   },
   templatesCollapsedHint: {
     fontSize: 13,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     fontStyle: 'italic',
     marginTop: 4,
   },
@@ -2692,7 +2714,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.bgApp,
     paddingHorizontal: 16,
     paddingVertical: 12,
     marginTop: 8,
@@ -2702,11 +2724,11 @@ const styles = StyleSheet.create({
   sectionHeaderTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.textPrimary,
   },
   sectionHeaderCount: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     fontWeight: '500',
   },
 });

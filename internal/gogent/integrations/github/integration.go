@@ -123,7 +123,7 @@ func (g *Integration) BuildURL(funcDef *db.FunctionDefinition, args map[string]i
 
 			// Add remaining parameters as normal query parameters
 			for key, value := range args {
-				if !usedParams[key] && value != nil {
+				if !usedParams[key] && value != nil && fmt.Sprintf("%v", value) != "" {
 					queryParams = append(queryParams, fmt.Sprintf("%s=%s",
 						url.QueryEscape(key),
 						url.QueryEscape(fmt.Sprintf("%v", value))))

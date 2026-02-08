@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   View,
   Text,
-  StyleSheet,
   SafeAreaView,
   TouchableOpacity,
   ScrollView,
@@ -22,7 +21,8 @@ import ConfigurationModal from './ConfigurationModal';
 
 import { ExecutionTemplate, TemplateFormData, TemplateParameter } from '../types/templates';
 import { FunctionDefinition, APIConfiguration } from '../types';
-import { containerStyles, shadowPresets, textInputStyles, containerColors } from '../styles/containers';
+import { useTheme, useThemedStyles } from '../theme';
+import { useContainerStyles } from '../styles/useContainerStyles';
 
 interface TemplateFormProps {
   template: ExecutionTemplate | null;
@@ -51,24 +51,29 @@ interface TooltipProps {
   onClose: () => void;
 }
 
+interface TooltipInternalProps extends TooltipProps {
+  themedStyles: any;
+  themeColors: any;
+}
+
 // Memoized Tooltip component for performance
-const Tooltip: React.FC<TooltipProps> = React.memo(({ title, content, icon, visible, onClose }) => (
+const TooltipComponent: React.FC<TooltipInternalProps> = React.memo(({ title, content, icon, visible, onClose, themedStyles, themeColors }) => (
   <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-    <View style={styles.tooltipOverlay}>
-      <View style={styles.tooltipContainer}>
-        <View style={styles.tooltipHeader}>
-          <Ionicons name={icon as any} size={24} color="#007AFF" />
-          <Text style={styles.tooltipTitle}>{title}</Text>
-          <TouchableOpacity 
-            onPress={onClose} 
-            style={styles.tooltipClose}
+    <View style={themedStyles.tooltipOverlay}>
+      <View style={themedStyles.tooltipContainer}>
+        <View style={themedStyles.tooltipHeader}>
+          <Ionicons name={icon as any} size={24} color={themeColors.accent} />
+          <Text style={themedStyles.tooltipTitle}>{title}</Text>
+          <TouchableOpacity
+            onPress={onClose}
+            style={themedStyles.tooltipClose}
             accessibilityLabel="Close tooltip"
             accessibilityRole="button"
           >
-            <Ionicons name="close" size={20} color="#8E8E93" />
+            <Ionicons name="close" size={20} color={themeColors.textSecondary} />
           </TouchableOpacity>
         </View>
-        <Text style={styles.tooltipContent}>{content}</Text>
+        <Text style={themedStyles.tooltipContent}>{content}</Text>
       </View>
     </View>
   </Modal>
@@ -130,6 +135,144 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
   onSave,
   onClose,
 }) => {
+  const { colors } = useTheme();
+  const { containerStyles, shadowPresets, textInputStyles } = useContainerStyles();
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bgApp,
+    },
+    header: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      backgroundColor: colors.bgCard,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    headerButton: { padding: 8 },
+    headerButtonDisabled: { opacity: 0.5 },
+    title: { fontSize: 20, fontWeight: '600' as const, color: colors.textPrimary },
+    saveText: { fontSize: 16, fontWeight: '600' as const, color: colors.accent },
+    saveTextDisabled: { color: colors.textSecondary },
+    content: { flex: 1, paddingHorizontal: 20 },
+    section: { marginVertical: 16 },
+    sectionHeader: { flexDirection: 'row' as const, alignItems: 'center' as const, marginBottom: 16, gap: 8 },
+    sectionTitle: { fontSize: 18, fontWeight: '600' as const, color: colors.textPrimary, flex: 1 },
+    tooltipButton: { padding: 4 },
+    infoCard: { backgroundColor: colors.bgSurface, padding: 16, borderRadius: 12, borderLeftWidth: 4, borderLeftColor: colors.accent },
+    infoText: { fontSize: 14, color: '#5A6C7D', lineHeight: 20 },
+    inputRow: { flexDirection: 'row' as const, gap: 12, marginBottom: 16 },
+    inputContainer: { flex: 1 },
+    labelContainer: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, marginBottom: 8 },
+    fieldLabel: { fontSize: 14, fontWeight: '500' as const, color: colors.textPrimary },
+    textArea: { minHeight: 80, textAlignVertical: 'top' as const },
+    promptArea: { minHeight: 120, textAlignVertical: 'top' as const },
+    variablesContainer: { marginBottom: 12 },
+    variablesLabel: { fontSize: 12, fontWeight: '500' as const, color: colors.textSecondary, marginBottom: 8 },
+    variableChips: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 8 },
+    variableChip: { backgroundColor: colors.accent, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
+    variableChipText: { fontSize: 12, fontWeight: '500' as const, color: colors.textInverse },
+    detectedParametersContainer: { backgroundColor: '#F0F9FF', borderRadius: 8, padding: 12, marginTop: 12, borderLeftWidth: 3, borderLeftColor: '#0EA5E9' },
+    detectedParametersLabel: { fontSize: 12, fontWeight: '600' as const, color: '#0369A1', marginBottom: 8 },
+    detectedParametersList: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 6 },
+    detectedParameterChip: { backgroundColor: '#E0F2FE', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: '#0EA5E9' },
+    detectedParameterText: { fontSize: 11, fontWeight: '600' as const, color: '#0369A1', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
+    selectorButton: { backgroundColor: colors.bgCard, borderRadius: 12, padding: 16, borderWidth: 1, borderColor: colors.borderLight },
+    selectorContent: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const },
+    selectorMain: { flex: 1 },
+    selectorLabel: { fontSize: 12, fontWeight: '500' as const, color: colors.textSecondary, marginBottom: 4 },
+    selectorValue: { fontSize: 16, fontWeight: '500' as const, color: colors.textPrimary },
+    enhancedSelectorButton: { backgroundColor: colors.bgCard, borderRadius: 12, padding: 16, borderWidth: 1, borderColor: colors.borderLight },
+    modelSelectorContent: { flexDirection: 'row' as const, alignItems: 'flex-start' as const, justifyContent: 'space-between' as const },
+    modelSelectorMain: { flex: 1, marginRight: 12 },
+    modelSelectorHeader: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, marginBottom: 4 },
+    modelSelectorLabel: { fontSize: 12, fontWeight: '500' as const, color: colors.textSecondary },
+    modelSelectorValue: { fontSize: 16, fontWeight: '600' as const, color: colors.textPrimary, marginBottom: 4 },
+    modelSelectorDescription: { fontSize: 14, color: '#5A6C7D', lineHeight: 18, marginBottom: 4 },
+    modelIdealFor: { fontSize: 12, color: colors.accent, fontWeight: '500' as const, marginBottom: 4 },
+    modelTokenInfo: { fontSize: 11, color: colors.textSecondary, fontWeight: '400' as const },
+    switchContainer: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, backgroundColor: colors.bgCard, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: colors.borderLight },
+    switchLabel: { flex: 1, marginRight: 16 },
+    switchText: { fontSize: 16, fontWeight: '500' as const, color: colors.textPrimary, marginBottom: 4 },
+    switchDescription: { fontSize: 12, color: colors.textSecondary },
+    functionsButton: { backgroundColor: colors.bgCard, borderRadius: 12, padding: 16, marginTop: 12, borderWidth: 1, borderColor: colors.borderLight },
+    functionsContent: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const },
+    functionsLabel: { fontSize: 16, fontWeight: '500' as const, color: colors.textPrimary },
+    functionsViewContainer: { marginTop: 12 },
+    functionsViewLabel: { fontSize: 16, fontWeight: '500' as const, color: colors.textPrimary, marginBottom: 8 },
+    functionsList: { gap: 8 },
+    functionItem: { backgroundColor: colors.bgSurface, borderRadius: 8, padding: 12, borderWidth: 1, borderColor: colors.borderLight },
+    functionItemHeader: { flexDirection: 'row' as const, alignItems: 'center' as const, marginBottom: 4, gap: 8 },
+    functionName: { fontSize: 14, fontWeight: '600' as const, color: colors.textPrimary, flex: 1 },
+    functionDescription: { fontSize: 12, color: colors.textSecondary, lineHeight: 16 },
+    noFunctionsContainer: { backgroundColor: colors.bgSurface, borderRadius: 8, padding: 16, alignItems: 'center' as const, borderWidth: 1, borderColor: colors.borderLight },
+    noFunctionsText: { fontSize: 14, color: colors.textSecondary, fontStyle: 'italic' as const },
+    parameterCard: { backgroundColor: colors.bgCard, borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.borderLight },
+    parameterHeader: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, marginBottom: 12 },
+    parameterTitle: { fontSize: 16, fontWeight: '600' as const, color: colors.textPrimary },
+    removeButton: { padding: 8 },
+    parameterRow: { flexDirection: 'row' as const, gap: 12, marginBottom: 12 },
+    parameterField: { flex: 1 },
+    parameterFieldLabel: { fontSize: 12, fontWeight: '500' as const, color: colors.textSecondary, marginBottom: 4 },
+    parameterInput: { fontSize: 14 },
+    pickerContainer: { backgroundColor: colors.bgSurface, borderRadius: 8, borderWidth: 1, borderColor: colors.borderLight },
+    picker: { height: 44 },
+    addParameterButton: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'center' as const, backgroundColor: colors.bgSurface, padding: 16, borderRadius: 12, borderWidth: 2, borderColor: colors.accent, borderStyle: 'dashed' as const, gap: 8 },
+    addParameterText: { fontSize: 16, fontWeight: '500' as const, color: colors.accent },
+    parametersInfo: { backgroundColor: '#F0F7FF', borderRadius: 8, padding: 12, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: colors.accent },
+    parametersInfoText: { fontSize: 14, color: '#2C5282', lineHeight: 18 },
+    parameterHeaderLeft: { flexDirection: 'row' as const, alignItems: 'center' as const, flex: 1, gap: 8 },
+    autoDetectedBadge: { backgroundColor: '#E8F5E8', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12, borderWidth: 1, borderColor: '#4CAF50' },
+    autoDetectedText: { fontSize: 10, fontWeight: '600' as const, color: '#2E7D32' },
+    parameterNameContainer: { backgroundColor: colors.bgSurface, borderRadius: 8, padding: 12, borderWidth: 1, borderColor: colors.borderLight },
+    parameterNameValue: { fontSize: 14, fontWeight: '600' as const, color: colors.textPrimary, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
+    parameterNameNote: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+    parameterDescriptionContainer: { marginTop: 12 },
+    parameterDescriptionInput: { fontSize: 14, minHeight: 60, textAlignVertical: 'top' as const },
+    errorText: { fontSize: 12, color: colors.statusError, marginTop: 4 },
+    modalContainer: { flex: 1, backgroundColor: colors.bgApp },
+    modalHeader: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const, paddingHorizontal: 20, paddingVertical: 20, backgroundColor: colors.bgCard, borderBottomWidth: 1, borderBottomColor: colors.borderLight },
+    modalTitle: { fontSize: 20, fontWeight: '600' as const, color: colors.textPrimary },
+    modalCloseButton: { padding: 4 },
+    modelList: { paddingHorizontal: 20, paddingTop: 20 },
+    modelCard: { backgroundColor: colors.bgCard, borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.borderLight, position: 'relative' as const },
+    modelCardSelected: { backgroundColor: colors.accent, borderColor: colors.accent },
+    modelCardHeader: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'flex-start' as const, marginBottom: 8 },
+    modelCardTitle: { fontSize: 16, fontWeight: '600' as const, color: colors.textPrimary, flex: 1, marginRight: 8 },
+    modelCardTitleSelected: { color: colors.textInverse },
+    modelCardDescription: { fontSize: 14, color: colors.textSecondary, lineHeight: 18, marginBottom: 4 },
+    modelCardDescriptionSelected: { color: colors.textInverse, opacity: 0.9 },
+    modelCardTokens: { fontSize: 12, color: colors.textSecondary, fontWeight: '500' as const },
+    recommendedBadge: { backgroundColor: '#FF9500', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+    badgeText: { fontSize: 12, fontWeight: '600' as const, color: colors.textInverse },
+    selectedIndicator: { position: 'absolute' as const, top: 16, right: 16 },
+    enhancedModelCard: { backgroundColor: colors.bgCard, borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: colors.borderLight, position: 'relative' as const },
+    enhancedModelCardSelected: { backgroundColor: colors.bgCard, borderColor: colors.accent, borderWidth: 2 },
+    enhancedModelCardHeader: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'flex-start' as const, marginBottom: 8 },
+    modelCardTitleRow: { flexDirection: 'row' as const, alignItems: 'center' as const, flex: 1, gap: 12 },
+    enhancedModelCardTitle: { fontSize: 18, fontWeight: '700' as const, color: colors.textPrimary, flex: 1 },
+    enhancedModelCardTitleSelected: { color: colors.accent },
+    enhancedModelCardDescription: { fontSize: 15, color: '#5A6C7D', lineHeight: 20, marginBottom: 8 },
+    enhancedModelCardDescriptionSelected: { color: '#5A6C7D', opacity: 1 },
+    modelIdealForCard: { fontSize: 13, color: colors.accent, fontWeight: '600' as const, marginBottom: 8, fontStyle: 'italic' as const },
+    modelDetailsRow: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const, marginBottom: 12 },
+    useCasesContainer: { marginTop: 8 },
+    useCasesTitle: { fontSize: 12, fontWeight: '600' as const, color: '#5A6C7D', marginBottom: 8 },
+    useCasesList: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 6 },
+    useCaseChip: { backgroundColor: '#F0F7FF', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 16, borderWidth: 1, borderColor: '#B3D9FF' },
+    useCaseText: { fontSize: 11, fontWeight: '500' as const, color: '#2C5282' },
+    useCaseTextSelected: { color: '#2C5282' },
+    tooltipOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center' as const, alignItems: 'center' as const, paddingHorizontal: 20 },
+    tooltipContainer: { backgroundColor: colors.bgCard, borderRadius: 16, padding: 20, maxWidth: '90%' as const },
+    tooltipHeader: { flexDirection: 'row' as const, alignItems: 'center' as const, marginBottom: 12 },
+    tooltipTitle: { fontSize: 18, fontWeight: '600' as const, color: colors.textPrimary, marginLeft: 8, flex: 1 },
+    tooltipClose: { padding: 4 },
+    tooltipContent: { fontSize: 14, color: colors.textSecondary, lineHeight: 20 },
+  }));
+
   // Refs for cleanup and focus management
   const scrollViewRef = useRef<ScrollView>(null);
   const isMountedRef = useRef(true);
@@ -552,7 +695,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
   const renderHeader = () => (
     <View style={styles.header}>
       <TouchableOpacity style={styles.headerButton} onPress={onClose}>
-        <Ionicons name="close" size={24} color="#007AFF" />
+        <Ionicons name="close" size={24} color={colors.accent} />
       </TouchableOpacity>
       <Text style={styles.title}>
         {isViewMode ? 'Template Details' : isEditMode ? 'Edit Template' : 'Create Template'}
@@ -563,7 +706,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
         disabled={loading || isViewMode}
       >
         {loading ? (
-          <ActivityIndicator size="small" color="#007AFF" />
+          <ActivityIndicator size="small" color={colors.accent} />
         ) : (
           <Text style={[styles.saveText, (loading || isViewMode) && styles.saveTextDisabled]}>
             Save
@@ -576,13 +719,13 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
   const renderTemplateOverview = () => (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Ionicons name="help-circle" size={20} color="#007AFF" />
+        <Ionicons name="help-circle" size={20} color={colors.accent} />
         <Text style={styles.sectionTitle}>What is an Execution Template?</Text>
         <TouchableOpacity 
           style={styles.tooltipButton}
           onPress={() => setShowTooltip('overview')}
         >
-          <Ionicons name="information-circle" size={20} color="#007AFF" />
+          <Ionicons name="information-circle" size={20} color={colors.accent} />
         </TouchableOpacity>
       </View>
       <View style={styles.infoCard}>
@@ -597,7 +740,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
   const renderBasicInfo = () => (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Ionicons name="information-circle" size={20} color="#007AFF" />
+        <Ionicons name="information-circle" size={20} color={colors.accent} />
         <Text style={styles.sectionTitle}>Basic Information</Text>
       </View>
       
@@ -606,7 +749,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
           <View style={styles.labelContainer}>
             <Text style={styles.fieldLabel}>Template Name</Text>
             <TouchableOpacity onPress={() => setShowTooltip('name')}>
-              <Ionicons name="help-circle-outline" size={16} color="#007AFF" />
+              <Ionicons name="help-circle-outline" size={16} color={colors.accent} />
             </TouchableOpacity>
           </View>
           <EnhancedTextEditor
@@ -632,7 +775,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
         <View style={styles.labelContainer}>
           <Text style={styles.fieldLabel}>Description</Text>
           <TouchableOpacity onPress={() => setShowTooltip('description')}>
-            <Ionicons name="help-circle-outline" size={16} color="#007AFF" />
+            <Ionicons name="help-circle-outline" size={16} color={colors.accent} />
           </TouchableOpacity>
         </View>
         <EnhancedTextEditor
@@ -658,10 +801,10 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
   const renderPromptSection = () => (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Ionicons name="chatbox" size={20} color="#007AFF" />
+        <Ionicons name="chatbox" size={20} color={colors.accent} />
         <Text style={styles.sectionTitle}>Template Prompt</Text>
         <TouchableOpacity onPress={() => setShowTooltip('prompt')}>
-          <Ionicons name="help-circle-outline" size={16} color="#007AFF" />
+          <Ionicons name="help-circle-outline" size={16} color={colors.accent} />
         </TouchableOpacity>
       </View>
       
@@ -725,10 +868,10 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
   const renderContextSection = () => (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Ionicons name="library" size={20} color="#007AFF" />
+        <Ionicons name="library" size={20} color={colors.accent} />
         <Text style={styles.sectionTitle}>Context Template</Text>
         <TouchableOpacity onPress={() => setShowTooltip('context')}>
-          <Ionicons name="help-circle-outline" size={16} color="#007AFF" />
+          <Ionicons name="help-circle-outline" size={16} color={colors.accent} />
         </TouchableOpacity>
       </View>
       
@@ -780,10 +923,10 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
     return (
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Ionicons name="settings" size={20} color="#007AFF" />
+          <Ionicons name="settings" size={20} color={colors.accent} />
           <Text style={styles.sectionTitle}>Configuration</Text>
           <TouchableOpacity onPress={() => setShowTooltip('configuration')}>
-            <Ionicons name="help-circle-outline" size={16} color="#007AFF" />
+            <Ionicons name="help-circle-outline" size={16} color={colors.accent} />
           </TouchableOpacity>
         </View>
 
@@ -817,7 +960,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
                 </Text>
               )}
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
+            <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
           </View>
         </TouchableOpacity>
       </View>
@@ -827,10 +970,10 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
   const renderFunctionsSection = () => (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Ionicons name="extension-puzzle" size={20} color="#007AFF" />
+        <Ionicons name="extension-puzzle" size={20} color={colors.accent} />
         <Text style={styles.sectionTitle}>Function Calling</Text>
         <TouchableOpacity onPress={() => setShowTooltip('functions')}>
-          <Ionicons name="help-circle-outline" size={16} color="#007AFF" />
+          <Ionicons name="help-circle-outline" size={16} color={colors.accent} />
         </TouchableOpacity>
       </View>
 
@@ -845,8 +988,8 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
           value={formData.enableFunctionCalling}
           onValueChange={(value) => updateFormData('enableFunctionCalling', value)}
           disabled={isViewMode}
-          trackColor={{ false: '#E1E5E9', true: '#007AFF' }}
-          thumbColor={Platform.OS === 'android' ? (formData.enableFunctionCalling ? '#FFFFFF' : '#F4F3F4') : ''}
+          trackColor={{ false: colors.borderLight, true: colors.accent }}
+          thumbColor={Platform.OS === 'android' ? (formData.enableFunctionCalling ? colors.textInverse : '#F4F3F4') : ''}
         />
       </View>
 
@@ -862,7 +1005,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
                 <Text style={styles.functionsLabel}>
                   Selected Functions ({selectedFunctions.length})
                 </Text>
-                <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
+                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
               </View>
             </TouchableOpacity>
           )}
@@ -878,7 +1021,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
                   {selectedFunctionDetails.map((func, index) => func ? (
                     <View key={func.id || index} style={styles.functionItem}>
                       <View style={styles.functionItemHeader}>
-                        <Ionicons name="cube" size={16} color="#007AFF" />
+                        <Ionicons name="cube" size={16} color={colors.accent} />
                         <Text style={styles.functionName}>{func.name}</Text>
                       </View>
                       {func.description && (
@@ -902,10 +1045,10 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
   const renderParametersSection = () => (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Ionicons name="options" size={20} color="#007AFF" />
+        <Ionicons name="options" size={20} color={colors.accent} />
         <Text style={styles.sectionTitle}>Parameters</Text>
         <TouchableOpacity onPress={() => setShowTooltip('parameters')}>
-          <Ionicons name="help-circle-outline" size={16} color="#007AFF" />
+          <Ionicons name="help-circle-outline" size={16} color={colors.accent} />
         </TouchableOpacity>
       </View>
 
@@ -927,7 +1070,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
         <View key={index} style={styles.parameterCard}>
           <View style={styles.parameterHeader}>
             <View style={styles.parameterHeaderLeft}>
-              <Ionicons name="cube-outline" size={16} color="#007AFF" />
+              <Ionicons name="cube-outline" size={16} color={colors.accent} />
               <Text style={styles.parameterTitle}>{`{{${param.name}}}`}</Text>
               <View style={styles.autoDetectedBadge}>
                 <Text style={styles.autoDetectedText}>Auto-detected</Text>
@@ -939,7 +1082,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
                 style={styles.removeButton}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Ionicons name="trash" size={16} color="#FF3B30" />
+                <Ionicons name="trash" size={16} color={colors.statusError} />
               </TouchableOpacity>
             )}
           </View>
@@ -1075,698 +1218,19 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
       </Modal>
 
       {Object.entries(tooltips).map(([key, tooltip]) => (
-        <Tooltip
+        <TooltipComponent
           key={key}
           title={tooltip.title}
           content={tooltip.content}
           icon={tooltip.icon}
           visible={showTooltip === key}
           onClose={() => setShowTooltip('')}
+          themedStyles={styles}
+          themeColors={colors}
         />
       ))}
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: containerColors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E1E5E9',
-    ...shadowPresets.subtle,
-  },
-  headerButton: {
-    padding: 8,
-  },
-  headerButtonDisabled: {
-    opacity: 0.5,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  saveText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#007AFF',
-  },
-  saveTextDisabled: {
-    color: '#8E8E93',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  section: {
-    marginVertical: 16,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    gap: 8,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    flex: 1,
-  },
-  tooltipButton: {
-    padding: 4,
-  },
-  infoCard: {
-    backgroundColor: '#F8F9FA',
-    padding: 16,
-    borderRadius: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#007AFF',
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#5A6C7D',
-    lineHeight: 20,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-  },
-  inputContainer: {
-    flex: 1,
-  },
-  labelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  fieldLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1A1A1A',
-  },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  promptArea: {
-    minHeight: 120,
-    textAlignVertical: 'top',
-  },
-  variablesContainer: {
-    marginBottom: 12,
-  },
-  variablesLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#8E8E93',
-    marginBottom: 8,
-  },
-  variableChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  variableChip: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  variableChipText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#FFFFFF',
-  },
-  
-  // Detected Parameters Feedback
-  detectedParametersContainer: {
-    backgroundColor: '#F0F9FF',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 12,
-    borderLeftWidth: 3,
-    borderLeftColor: '#0EA5E9',
-  },
-  detectedParametersLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#0369A1',
-    marginBottom: 8,
-  },
-  detectedParametersList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  detectedParameterChip: {
-    backgroundColor: '#E0F2FE',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#0EA5E9',
-  },
-  detectedParameterText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#0369A1',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  },
-  selectorButton: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E1E5E9',
-    ...shadowPresets.subtle,
-  },
-  selectorContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  selectorMain: {
-    flex: 1,
-  },
-  selectorLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#8E8E93',
-    marginBottom: 4,
-  },
-  selectorValue: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1A1A1A',
-  },
-  
-  // Enhanced Model Selector
-  enhancedSelectorButton: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E1E5E9',
-    ...shadowPresets.subtle,
-  },
-  modelSelectorContent: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-  },
-  modelSelectorMain: {
-    flex: 1,
-    marginRight: 12,
-  },
-  modelSelectorHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  modelSelectorLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#8E8E93',
-  },
-  modelSelectorValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 4,
-  },
-  modelSelectorDescription: {
-    fontSize: 14,
-    color: '#5A6C7D',
-    lineHeight: 18,
-    marginBottom: 4,
-  },
-  modelIdealFor: {
-    fontSize: 12,
-    color: '#007AFF',
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  modelTokenInfo: {
-    fontSize: 11,
-    color: '#8E8E93',
-    fontWeight: '400',
-  },
-  switchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E1E5E9',
-    ...shadowPresets.subtle,
-  },
-  switchLabel: {
-    flex: 1,
-    marginRight: 16,
-  },
-  switchText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1A1A1A',
-    marginBottom: 4,
-  },
-  switchDescription: {
-    fontSize: 12,
-    color: '#8E8E93',
-  },
-  functionsButton: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: '#E1E5E9',
-    ...shadowPresets.subtle,
-  },
-  functionsContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  functionsLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1A1A1A',
-  },
-  functionsViewContainer: {
-    marginTop: 12,
-  },
-  functionsViewLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1A1A1A',
-    marginBottom: 8,
-  },
-  functionsList: {
-    gap: 8,
-  },
-  functionItem: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#E1E5E9',
-  },
-  functionItemHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-    gap: 8,
-  },
-  functionName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    flex: 1,
-  },
-  functionDescription: {
-    fontSize: 12,
-    color: '#8E8E93',
-    lineHeight: 16,
-  },
-  noFunctionsContainer: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E1E5E9',
-  },
-  noFunctionsText: {
-    fontSize: 14,
-    color: '#8E8E93',
-    fontStyle: 'italic',
-  },
-  parameterCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E1E5E9',
-    ...shadowPresets.subtle,
-  },
-  parameterHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  parameterTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  removeButton: {
-    padding: 8,
-  },
-  parameterRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
-  },
-  parameterField: {
-    flex: 1,
-  },
-  parameterFieldLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#8E8E93',
-    marginBottom: 4,
-  },
-  parameterInput: {
-    fontSize: 14,
-  },
-  pickerContainer: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E1E5E9',
-  },
-  picker: {
-    height: 44,
-  },
-  addParameterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F8F9FA',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#007AFF',
-    borderStyle: 'dashed',
-    gap: 8,
-  },
-  addParameterText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#007AFF',
-  },
-  
-  // Enhanced Parameter Styles
-  parametersInfo: {
-    backgroundColor: '#F0F7FF',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: '#007AFF',
-  },
-  parametersInfoText: {
-    fontSize: 14,
-    color: '#2C5282',
-    lineHeight: 18,
-  },
-  parameterHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: 8,
-  },
-  autoDetectedBadge: {
-    backgroundColor: '#E8F5E8',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#4CAF50',
-  },
-  autoDetectedText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#2E7D32',
-  },
-  parameterNameContainer: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#E1E5E9',
-  },
-  parameterNameValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  },
-  parameterNameNote: {
-    fontSize: 12,
-    color: '#8E8E93',
-    marginTop: 2,
-  },
-  parameterDescriptionContainer: {
-    marginTop: 12,
-  },
-  parameterDescriptionInput: {
-    fontSize: 14,
-    minHeight: 60,
-    textAlignVertical: 'top',
-  },
-  errorText: {
-    fontSize: 12,
-    color: '#FF3B30',
-    marginTop: 4,
-  },
-  
-  // Modal Styles
-  modalContainer: {
-    flex: 1,
-    backgroundColor: containerColors.background,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E1E5E9',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  modalCloseButton: {
-    padding: 4,
-  },
-  
-  // Model Selector
-  modelList: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  modelCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E1E5E9',
-    position: 'relative',
-    ...shadowPresets.subtle,
-  },
-  modelCardSelected: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
-  },
-  modelCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  modelCardTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    flex: 1,
-    marginRight: 8,
-  },
-  modelCardTitleSelected: {
-    color: '#FFFFFF',
-  },
-  modelCardDescription: {
-    fontSize: 14,
-    color: '#8E8E93',
-    lineHeight: 18,
-    marginBottom: 4,
-  },
-  modelCardDescriptionSelected: {
-    color: '#FFFFFF',
-    opacity: 0.9,
-  },
-  modelCardTokens: {
-    fontSize: 12,
-    color: '#8E8E93',
-    fontWeight: '500',
-  },
-  recommendedBadge: {
-    backgroundColor: '#FF9500',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  selectedIndicator: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-  },
-  
-  // Enhanced Model Card
-  enhancedModelCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E1E5E9',
-    position: 'relative',
-    ...shadowPresets.subtle,
-  },
-  enhancedModelCardSelected: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#007AFF',
-    borderWidth: 2,
-    ...shadowPresets.dramatic,
-  },
-  enhancedModelCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  modelCardTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: 12,
-  },
-  enhancedModelCardTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1A1A1A',
-    flex: 1,
-  },
-  enhancedModelCardTitleSelected: {
-    color: '#007AFF',
-  },
-  enhancedModelCardDescription: {
-    fontSize: 15,
-    color: '#5A6C7D',
-    lineHeight: 20,
-    marginBottom: 8,
-  },
-  enhancedModelCardDescriptionSelected: {
-    color: '#5A6C7D',
-    opacity: 1,
-  },
-  modelIdealForCard: {
-    fontSize: 13,
-    color: '#007AFF',
-    fontWeight: '600',
-    marginBottom: 8,
-    fontStyle: 'italic',
-  },
-  modelDetailsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  useCasesContainer: {
-    marginTop: 8,
-  },
-  useCasesTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#5A6C7D',
-    marginBottom: 8,
-  },
-  useCasesList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  useCaseChip: {
-    backgroundColor: '#F0F7FF',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#B3D9FF',
-  },
-  useCaseText: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#2C5282',
-  },
-  useCaseTextSelected: {
-    color: '#2C5282',
-  },
-  
-  // Tooltip Styles
-  tooltipOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  tooltipContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    maxWidth: '90%',
-    ...shadowPresets.dramatic,
-  },
-  tooltipHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  tooltipTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginLeft: 8,
-    flex: 1,
-  },
-  tooltipClose: {
-    padding: 4,
-  },
-  tooltipContent: {
-    fontSize: 14,
-    color: '#8E8E93',
-    lineHeight: 20,
-  },
-});
-
-export default TemplateForm; 
+export default TemplateForm;

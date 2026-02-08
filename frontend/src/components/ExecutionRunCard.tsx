@@ -2,12 +2,12 @@ import React from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ExecutionRunCardProps } from '../types';
 import { AlertAPI } from './CustomAlert';
+import { useTheme, useThemedStyles } from '../theme';
 
 const ExecutionRunCard: React.FC<ExecutionRunCardProps> = ({
   executionRun,
@@ -16,6 +16,97 @@ const ExecutionRunCard: React.FC<ExecutionRunCardProps> = ({
   onReExecute,
   onCreateTemplate,
 }) => {
+  const { colors } = useTheme();
+
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 16,
+      marginTop: 12,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    header: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 8,
+    },
+    iconContainer: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.bgHover,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      marginRight: 12,
+    },
+    titleContainer: {
+      flex: 1,
+    },
+    executionName: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 2,
+    },
+    metadataRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+    },
+    timeText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    separator: {
+      fontSize: 12,
+      color: colors.textTertiary,
+      marginHorizontal: 6,
+    },
+    deleteButton: {
+      padding: 8,
+      borderRadius: 6,
+      backgroundColor: '#FFF5F5',
+    },
+    descriptionContainer: {
+      marginBottom: 8,
+      paddingLeft: 52, // Align with title (icon width + margin)
+    },
+    descriptionText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 18,
+    },
+    footer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      paddingTop: 8,
+      borderTopWidth: 0.5,
+      borderTopColor: colors.borderLight,
+    },
+    viewDetailsText: {
+      fontSize: 14,
+      color: colors.accent,
+      fontWeight: '500' as const,
+    },
+    actionsContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 8,
+    },
+    createTemplateButton: {
+      padding: 8,
+      borderRadius: 6,
+      backgroundColor: '#F0FDF4',
+    },
+    reExecuteButton: {
+      padding: 8,
+      borderRadius: 6,
+      backgroundColor: '#F0F9FF',
+    },
+  }));
+
   const handleDelete = () => {
     AlertAPI.alert(
       'Delete Execution',
@@ -35,7 +126,7 @@ const ExecutionRunCard: React.FC<ExecutionRunCardProps> = ({
     const date = new Date(dateString);
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
+
     if (diffInHours < 1) {
       const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
       return diffInMinutes < 1 ? 'Just now' : `${diffInMinutes}m ago`;
@@ -69,9 +160,9 @@ const ExecutionRunCard: React.FC<ExecutionRunCardProps> = ({
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.iconContainer}>
-          <Ionicons name="play-circle" size={24} color="#007AFF" />
+          <Ionicons name="play-circle" size={24} color={colors.accent} />
         </View>
-        
+
         <View style={styles.titleContainer}>
           <Text style={styles.executionName} numberOfLines={1}>
             {executionRun.name}
@@ -93,7 +184,7 @@ const ExecutionRunCard: React.FC<ExecutionRunCardProps> = ({
             onPress={() => onCreateTemplate(executionRun)}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="document-text-outline" size={20} color="#34C759" />
+            <Ionicons name="document-text-outline" size={20} color={colors.statusSuccess} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -101,7 +192,7 @@ const ExecutionRunCard: React.FC<ExecutionRunCardProps> = ({
             onPress={() => onReExecute(executionRun)}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="refresh-outline" size={20} color="#007AFF" />
+            <Ionicons name="refresh-outline" size={20} color={colors.accent} />
           </TouchableOpacity>
 
         <TouchableOpacity
@@ -109,7 +200,7 @@ const ExecutionRunCard: React.FC<ExecutionRunCardProps> = ({
           onPress={handleDelete}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+          <Ionicons name="trash-outline" size={20} color={colors.statusError} />
         </TouchableOpacity>
         </View>
       </View>
@@ -126,99 +217,10 @@ const ExecutionRunCard: React.FC<ExecutionRunCardProps> = ({
       {/* Footer with chevron */}
       <View style={styles.footer}>
         <Text style={styles.viewDetailsText}>View details</Text>
-        <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
+        <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
       </View>
     </TouchableOpacity>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F0F8FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  titleContainer: {
-    flex: 1,
-  },
-  executionName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 2,
-  },
-  metadataRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  timeText: {
-    fontSize: 12,
-    color: '#8E8E93',
-  },
-  separator: {
-    fontSize: 12,
-    color: '#C7C7CC',
-    marginHorizontal: 6,
-  },
-  deleteButton: {
-    padding: 8,
-    borderRadius: 6,
-    backgroundColor: '#FFF5F5',
-  },
-  descriptionContainer: {
-    marginBottom: 8,
-    paddingLeft: 52, // Align with title (icon width + margin)
-  },
-  descriptionText: {
-    fontSize: 14,
-    color: '#8E8E93',
-    lineHeight: 18,
-  },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 8,
-    borderTopWidth: 0.5,
-    borderTopColor: '#E5E5EA',
-  },
-  viewDetailsText: {
-    fontSize: 14,
-    color: '#007AFF',
-    fontWeight: '500',
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  createTemplateButton: {
-    padding: 8,
-    borderRadius: 6,
-    backgroundColor: '#F0FDF4',
-  },
-  reExecuteButton: {
-    padding: 8,
-    borderRadius: 6,
-    backgroundColor: '#F0F9FF',
-  },
-});
-
-export default ExecutionRunCard; 
+export default ExecutionRunCard;

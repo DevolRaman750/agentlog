@@ -2,12 +2,12 @@ import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   Animated,
   Easing,
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme, useThemedStyles } from '../theme';
 
 interface ExecutionLoadingIndicatorProps {
   progress: number; // 0-100
@@ -24,10 +24,98 @@ const ExecutionLoadingIndicator: React.FC<ExecutionLoadingIndicatorProps> = ({
   maxProgress,
   message = 'Processing...',
   size = 'medium',
-  color = '#007AFF',
+  color,
   onCancel,
   showCancel = true,
 }) => {
+  const { colors } = useTheme();
+  const effectiveColor = color || colors.accent;
+
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      paddingVertical: 20,
+    },
+    outerRing: {
+      position: 'absolute' as const,
+      borderRadius: 1000,
+      borderWidth: 2,
+    },
+    progressContainer: {
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      position: 'relative' as const,
+    },
+    progressBackground: {
+      position: 'absolute' as const,
+      borderRadius: 1000,
+      borderWidth: 3,
+    },
+    progressIndicator: {
+      position: 'absolute' as const,
+      borderRadius: 1000,
+      borderWidth: 3,
+      borderTopColor: 'transparent',
+      borderRightColor: 'transparent',
+      borderBottomColor: 'transparent',
+    },
+    centerContent: {
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      zIndex: 10,
+    },
+    progressText: {
+      fontWeight: '700' as const,
+      marginTop: 2,
+    },
+    messageContainer: {
+      alignItems: 'center' as const,
+      marginTop: 16,
+    },
+    message: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      textAlign: 'center' as const,
+    },
+    subMessage: {
+      fontSize: 14,
+      fontWeight: '500' as const,
+      marginTop: 4,
+      textAlign: 'center' as const,
+    },
+    dotsContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      marginTop: 12,
+      gap: 4,
+    },
+    dot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+    },
+    cancelButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      marginTop: 20,
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      backgroundColor: '#FFF5F5',
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: '#FFE4E1',
+      gap: 8,
+    },
+    cancelButtonText: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.statusError,
+    },
+  }));
+
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
@@ -116,9 +204,9 @@ const ExecutionLoadingIndicator: React.FC<ExecutionLoadingIndicatorProps> = ({
   const progressArc = (progressPercentage / 100) * 360;
 
   return (
-    <Animated.View 
+    <Animated.View
       style={[
-        styles.container, 
+        styles.container,
         { opacity: fadeAnim }
       ]}
     >
@@ -129,7 +217,7 @@ const ExecutionLoadingIndicator: React.FC<ExecutionLoadingIndicatorProps> = ({
           {
             width: config.containerSize + 20,
             height: config.containerSize + 20,
-            borderColor: `${color}20`,
+            borderColor: `${effectiveColor}20`,
             transform: [{ scale: pulseAnim }],
           },
         ]}
@@ -152,7 +240,7 @@ const ExecutionLoadingIndicator: React.FC<ExecutionLoadingIndicatorProps> = ({
             {
               width: config.containerSize,
               height: config.containerSize,
-              borderColor: `${color}15`,
+              borderColor: `${effectiveColor}15`,
             },
           ]}
         />
@@ -164,7 +252,7 @@ const ExecutionLoadingIndicator: React.FC<ExecutionLoadingIndicatorProps> = ({
             {
               width: config.containerSize,
               height: config.containerSize,
-              borderColor: color,
+              borderColor: effectiveColor,
               transform: [
                 { rotate: rotateInterpolate },
                 { scale: scaleAnim },
@@ -175,12 +263,12 @@ const ExecutionLoadingIndicator: React.FC<ExecutionLoadingIndicatorProps> = ({
 
         {/* Center content */}
         <View style={styles.centerContent}>
-          <Ionicons 
-            name="rocket" 
-            size={config.iconSize} 
-            color={color} 
+          <Ionicons
+            name="rocket"
+            size={config.iconSize}
+            color={effectiveColor}
           />
-          <Text style={[styles.progressText, { fontSize: config.fontSize, color }]}>
+          <Text style={[styles.progressText, { fontSize: config.fontSize, color: effectiveColor }]}>
             {Math.round(progressPercentage)}%
           </Text>
         </View>
@@ -188,8 +276,8 @@ const ExecutionLoadingIndicator: React.FC<ExecutionLoadingIndicatorProps> = ({
 
       {/* Message */}
       <View style={styles.messageContainer}>
-        <Text style={[styles.message, { color }]}>{message}</Text>
-        <Text style={[styles.subMessage, { color: `${color}80` }]}>
+        <Text style={[styles.message, { color: effectiveColor }]}>{message}</Text>
+        <Text style={[styles.subMessage, { color: `${effectiveColor}80` }]}>
           {progress}/{maxProgress}
         </Text>
       </View>
@@ -202,7 +290,7 @@ const ExecutionLoadingIndicator: React.FC<ExecutionLoadingIndicatorProps> = ({
             style={[
               styles.dot,
               {
-                backgroundColor: color,
+                backgroundColor: effectiveColor,
                 transform: [
                   {
                     translateY: pulseAnim.interpolate({
@@ -229,12 +317,12 @@ const ExecutionLoadingIndicator: React.FC<ExecutionLoadingIndicatorProps> = ({
 
       {/* Cancel button */}
       {showCancel && onCancel && (
-        <TouchableOpacity 
-          style={styles.cancelButton} 
+        <TouchableOpacity
+          style={styles.cancelButton}
           onPress={onCancel}
           activeOpacity={0.7}
         >
-          <Ionicons name="stop-circle" size={20} color="#FF3B30" />
+          <Ionicons name="stop-circle" size={20} color={colors.statusError} />
           <Text style={styles.cancelButtonText}>Cancel Execution</Text>
         </TouchableOpacity>
       )}
@@ -242,89 +330,4 @@ const ExecutionLoadingIndicator: React.FC<ExecutionLoadingIndicatorProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 20,
-  },
-  outerRing: {
-    position: 'absolute',
-    borderRadius: 1000,
-    borderWidth: 2,
-  },
-  progressContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  progressBackground: {
-    position: 'absolute',
-    borderRadius: 1000,
-    borderWidth: 3,
-  },
-  progressIndicator: {
-    position: 'absolute',
-    borderRadius: 1000,
-    borderWidth: 3,
-    borderTopColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderBottomColor: 'transparent',
-  },
-  centerContent: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-  },
-  progressText: {
-    fontWeight: '700',
-    marginTop: 2,
-  },
-  messageContainer: {
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  message: {
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  subMessage: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  dotsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 12,
-    gap: 4,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  cancelButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 20,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    backgroundColor: '#FFF5F5',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#FFE4E1',
-    gap: 8,
-  },
-  cancelButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FF3B30',
-  },
-});
-
-export default ExecutionLoadingIndicator; 
+export default ExecutionLoadingIndicator;

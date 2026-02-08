@@ -180,7 +180,7 @@ func (s *GRPCServer) Execute(_ context.Context, req *pb.ExecuteRequest) (*pb.Exe
 func (s *GRPCServer) GetExecutionStatus(ctx context.Context, req *pb.GetExecutionStatusRequest) (*pb.GetExecutionStatusResponse, error) {
 	execStatus, startTime, endTime, errorMessage, result, err := s.businessLogic.GetExecutionStatus(ctx, req.ExecutionId)
 	if err != nil {
-		return nil, status.Errorf(codes.NotFound, err.Error())
+		return nil, status.Error(codes.NotFound, err.Error())
 	}
 
 	response := &pb.GetExecutionStatusResponse{

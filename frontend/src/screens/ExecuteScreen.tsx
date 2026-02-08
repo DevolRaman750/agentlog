@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TextInput,
   TouchableOpacity,
@@ -44,6 +43,8 @@ import ConfigurationModal from '../components/ConfigurationModal';
 import FunctionsModal from '../components/FunctionsModal';
 import OtherOptionsModal from '../components/OtherOptionsModal';
 import { webInputStyles } from '../styles/containers';
+import { useTheme, useThemedStyles } from '../theme';
+import type { ThemeColors } from '../theme';
 import { getModelKeyRequirements, areModelKeysConfigured, ModelKeyRequirement } from '../utils/modelKeyUtils';
 import ScreenContainer from '../components/ScreenContainer';
 
@@ -67,6 +68,8 @@ interface ExecutionModeInfo {
 }
 
 const ExecuteScreen: React.FC = () => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const navigation = useNavigation();
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const { 
@@ -95,7 +98,7 @@ const ExecuteScreen: React.FC = () => {
       title: 'Agent Execution',
       description: 'Execute with a specific Agent - all activity tracked within the agent',
       icon: 'person-circle',
-      color: '#007AFF',
+      color: colors.accent,
       allowMultipleConfigs: false
     },
     {
@@ -103,7 +106,7 @@ const ExecuteScreen: React.FC = () => {
       title: 'Template Execution',
       description: 'Execute a specific template with predefined prompt and settings',
       icon: 'document-text',
-      color: '#1976D2',
+      color: colors.statusInfo,
       allowMultipleConfigs: false
     },
     {
@@ -111,7 +114,7 @@ const ExecuteScreen: React.FC = () => {
       title: 'Experiment Mode',
       description: 'Compare responses across multiple AI configurations',
       icon: 'flask',
-      color: '#FF9500',
+      color: colors.statusWarning,
       allowMultipleConfigs: true
     }
   ];
@@ -1323,7 +1326,7 @@ const ExecuteScreen: React.FC = () => {
               style={styles.modeInfoButton}
               onPress={() => setShowModeTooltip(!showModeTooltip)}
             >
-              <Ionicons name="information-circle-outline" size={18} color="#007AFF" />
+              <Ionicons name="information-circle-outline" size={18} color={colors.accent} />
             </TouchableOpacity>
           </View>
           
@@ -1346,7 +1349,7 @@ const ExecuteScreen: React.FC = () => {
                   <Ionicons 
                     name={mode.icon as any} 
                     size={16} 
-                    color={isSelected ? '#FFFFFF' : (isDisabled ? '#C7C7CC' : mode.color)} 
+                    color={isSelected ? colors.textInverse : (isDisabled ? colors.textTertiary : mode.color)} 
                   />
                   <Text style={[
                     styles.compactModeButtonText,
@@ -1386,7 +1389,7 @@ const ExecuteScreen: React.FC = () => {
         {currentExecutionMode === 'agent' && hasAgentsOrTeams && (
           <View style={styles.selectionContainer}>
             <View style={styles.labelContainer}>
-              <Ionicons name="person-circle" size={18} color="#007AFF" />
+              <Ionicons name="person-circle" size={18} color={colors.accent} />
               <Text style={styles.fieldLabel}>Select Agent</Text>
               <Text style={styles.requiredText}>Required</Text>
             </View>
@@ -1425,7 +1428,7 @@ const ExecuteScreen: React.FC = () => {
                     Choose an agent for execution...
                   </Text>
                 )}
-                <Ionicons name="chevron-down" size={20} color="#C7C7CC" />
+                <Ionicons name="chevron-down" size={20} color={colors.textTertiary} />
               </View>
             </TouchableOpacity>
           </View>
@@ -1435,7 +1438,7 @@ const ExecuteScreen: React.FC = () => {
         {currentExecutionMode === 'template' && availableTemplates.length > 0 && (
           <View style={styles.selectionContainer}>
             <View style={styles.labelContainer}>
-              <Ionicons name="document-text" size={18} color="#1976D2" />
+              <Ionicons name="document-text" size={18} color={colors.statusInfo} />
               <Text style={styles.fieldLabel}>Select Template</Text>
               <Text style={styles.requiredText}>Required</Text>
             </View>
@@ -1448,7 +1451,7 @@ const ExecuteScreen: React.FC = () => {
                 {selectedTemplate ? (
                   <View style={styles.selectedInfo}>
                     <View style={styles.templateIcon}>
-                      <Ionicons name="document-text" size={20} color="#1976D2" />
+                      <Ionicons name="document-text" size={20} color={colors.statusInfo} />
                     </View>
                     <View style={styles.selectedDetails}>
                       <Text style={styles.selectedName}>
@@ -1466,7 +1469,7 @@ const ExecuteScreen: React.FC = () => {
                     Choose a template for execution...
                   </Text>
                 )}
-                <Ionicons name="chevron-down" size={20} color="#C7C7CC" />
+                <Ionicons name="chevron-down" size={20} color={colors.textTertiary} />
               </View>
             </TouchableOpacity>
           </View>
@@ -1497,7 +1500,7 @@ const ExecuteScreen: React.FC = () => {
                     onPress={() => setAgentData(prev => ({ ...prev, showTooltip: !prev.showTooltip }))}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
-                    <Ionicons name="information-circle-outline" size={18} color="#007AFF" />
+                    <Ionicons name="information-circle-outline" size={18} color={colors.accent} />
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.agentSubtitle}>Agent Execution</Text>
@@ -1544,7 +1547,7 @@ const ExecuteScreen: React.FC = () => {
             {/* Mode-specific warnings or info */}
             {currentExecutionMode === 'experiment' && formState.selectedConfigs.length > 1 && (
               <View style={styles.warningContainer}>
-                <Ionicons name="warning" size={16} color="#FF9500" />
+                <Ionicons name="warning" size={16} color={colors.statusWarning} />
                 <Text style={styles.warningText}>
                   Multiple configurations selected - this will run {formState.selectedConfigs.length} separate executions
                 </Text>
@@ -1553,7 +1556,7 @@ const ExecuteScreen: React.FC = () => {
             
             {currentExecutionMode === 'agent' && !hasAgentsOrTeams && (
               <View style={styles.infoContainer}>
-                <Ionicons name="information-circle" size={16} color="#007AFF" />
+                <Ionicons name="information-circle" size={16} color={colors.accent} />
                 <Text style={styles.infoText}>
                   Create an agent first to use agent execution mode
                 </Text>
@@ -1567,7 +1570,7 @@ const ExecuteScreen: React.FC = () => {
           <>
             <View style={[styles.fieldContainer, styles.primaryField, (templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution) && styles.readOnlyField]}>
               <View style={styles.labelContainer}>
-                <Ionicons name="chatbubble-ellipses" size={18} color="#007AFF" />
+                <Ionicons name="chatbubble-ellipses" size={18} color={colors.accent} />
                 <Text style={[styles.fieldLabel, styles.primaryFieldLabel]}>
                   {(templateExecutionData.isTemplateExecution || templateExecutionData.isAgentExecution) 
                     ? (templateExecutionData.isAgentExecution ? 'Agent Prompt Template' : 'Template Prompt')
@@ -1623,7 +1626,7 @@ const ExecuteScreen: React.FC = () => {
             {showParameters && parameterValues.length > 0 && (
               <View style={[styles.fieldContainer, styles.parametersField]}>
                 <View style={styles.labelContainer}>
-                  <Ionicons name="code-slash" size={18} color="#FF9500" />
+                  <Ionicons name="code-slash" size={18} color={colors.statusWarning} />
                   <Text style={[styles.fieldLabel, styles.parametersFieldLabel]}>Template Parameters</Text>
                   <View style={styles.parameterBadge}>
                     <Text style={styles.parameterBadgeText}>{parameterValues.length}</Text>
@@ -1665,7 +1668,7 @@ const ExecuteScreen: React.FC = () => {
                           value={param.value}
                           onChangeText={(value) => updateParameterValue(param.name, value)}
                           placeholder={`Enter value for ${param.name}...`}
-                          placeholderTextColor="#8E8E93"
+                          placeholderTextColor={colors.textSecondary}
                           multiline={param.value.length > 50}
                           numberOfLines={param.value.length > 50 ? 3 : 1}
                         />
@@ -1707,7 +1710,7 @@ const ExecuteScreen: React.FC = () => {
                 disabled={!isConnected || currentExecution?.isExecuting}
               >
                 <View style={styles.executeContent}>
-                  <Ionicons name="rocket" size={24} color="#FFFFFF" />
+                  <Ionicons name="rocket" size={24} color={colors.textInverse} />
                   <Text style={styles.executeButtonText}>Run Execution</Text>
                 </View>
               </TouchableOpacity>
@@ -1734,14 +1737,14 @@ const ExecuteScreen: React.FC = () => {
           >
             <View style={styles.executionFeedbackContainer}>
               <View style={styles.executionFeedbackIcon}>
-                <Ionicons name="rocket" size={32} color="#FFFFFF" />
+                <Ionicons name="rocket" size={32} color={colors.textInverse} />
               </View>
               <Text style={styles.executionFeedbackTitle}>🚀 Execution Started!</Text>
               <Text style={styles.executionFeedbackMessage}>
                 Your AI models are now processing your request
               </Text>
               <View style={styles.executionFeedbackProgress}>
-                <ActivityIndicator size="small" color="#007AFF" />
+                <ActivityIndicator size="small" color={colors.accent} />
                 <Text style={styles.executionFeedbackProgressText}>Initializing...</Text>
               </View>
             </View>
@@ -1752,7 +1755,7 @@ const ExecuteScreen: React.FC = () => {
         {currentExecution?.executionResult && !showExecutionResults && (
           <View style={styles.resultContainer}>
             <View style={styles.resultHeader}>
-              <Ionicons name="checkmark-circle" size={24} color="#34C759" />
+              <Ionicons name="checkmark-circle" size={24} color={colors.statusSuccess} />
               <Text style={styles.resultTitle}>Execution Complete!</Text>
             </View>
             <Text style={styles.resultText}>
@@ -1762,7 +1765,7 @@ const ExecuteScreen: React.FC = () => {
               style={styles.viewResultsButton}
               onPress={() => setShowExecutionResults(true)}
             >
-              <Ionicons name="eye" size={20} color="#FFFFFF" />
+              <Ionicons name="eye" size={20} color={colors.textInverse} />
               <Text style={styles.viewResultsButtonText}>View Full Results</Text>
             </TouchableOpacity>
           </View>
@@ -1865,7 +1868,7 @@ const ExecuteScreen: React.FC = () => {
               // No agents screen
               <View style={styles.noAgentsContainer}>
                 <View style={styles.noAgentsIconContainer}>
-                  <Ionicons name="people-outline" size={80} color="#C7C7CC" />
+                  <Ionicons name="people-outline" size={80} color={colors.textTertiary} />
                 </View>
                 <Text style={styles.noAgentsTitle}>No Agents Found</Text>
                 <Text style={styles.noAgentsDescription}>
@@ -1880,7 +1883,7 @@ const ExecuteScreen: React.FC = () => {
                       (navigation as any).navigate('Marketplace');
                     }}
                   >
-                    <Ionicons name="storefront" size={20} color="#FFFFFF" />
+                    <Ionicons name="storefront" size={20} color={colors.textInverse} />
                     <Text style={styles.noAgentsMarketplaceButtonText}>Browse Marketplace</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -1891,7 +1894,7 @@ const ExecuteScreen: React.FC = () => {
                       (navigation as any).navigate('Agents');
                     }}
                   >
-                    <Ionicons name="add-circle-outline" size={20} color="#007AFF" />
+                    <Ionicons name="add-circle-outline" size={20} color={colors.accent} />
                     <Text style={styles.noAgentsCreateButtonText}>Create Agent</Text>
                   </TouchableOpacity>
                 </View>
@@ -1940,7 +1943,7 @@ const ExecuteScreen: React.FC = () => {
                     </Text>
                   </View>
                   {selectedAgent?.id === agent.id && (
-                    <Ionicons name="checkmark-circle" size={24} color="#007AFF" />
+                    <Ionicons name="checkmark-circle" size={24} color={colors.accent} />
                   )}
                 </TouchableOpacity>
               ))
@@ -1977,7 +1980,7 @@ const ExecuteScreen: React.FC = () => {
                 }}
               >
                 <View style={styles.templateIcon}>
-                  <Ionicons name="document-text" size={24} color="#1976D2" />
+                  <Ionicons name="document-text" size={24} color={colors.statusInfo} />
                 </View>
                 <View style={styles.modalItemDetails}>
                   <Text style={styles.modalItemName}>
@@ -1993,7 +1996,7 @@ const ExecuteScreen: React.FC = () => {
                   </Text>
                 </View>
                 {selectedTemplate?.id === template.id && (
-                  <Ionicons name="checkmark-circle" size={24} color="#1976D2" />
+                  <Ionicons name="checkmark-circle" size={24} color={colors.statusInfo} />
                 )}
               </TouchableOpacity>
             ))}
@@ -2004,7 +2007,7 @@ const ExecuteScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => ({
   scrollContent: {
     padding: Platform.OS === 'ios' ? 16 : 14, // Slightly less padding on Android
     paddingBottom: Platform.OS === 'ios' ? 120 : 100, // Platform-specific bottom spacing
@@ -2024,23 +2027,23 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#1A1A1A',
+    color: colors.textPrimary,
   },
   subtitle: {
     fontSize: 16,
-    color: '#6B6B6B',
+    color: colors.textSecondary,
     lineHeight: 22,
   },
   fieldContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderRadius: 12,
     padding: Platform.OS === 'ios' ? 16 : 14, // Slightly less padding on Android
     marginBottom: 16, // Reduced margin for better density on mobile
     borderWidth: Platform.OS === 'ios' ? 1 : 0.5, // Thinner borders on Android
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderLight,
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: colors.shadowColor,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.05,
         shadowRadius: 2,
@@ -2060,28 +2063,28 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: colors.textPrimary,
     marginLeft: 8,
     flex: 1, // Allow label to take available space
     minWidth: 100, // Minimum width before wrapping
   },
      optionalText: {
      fontSize: 14,
-     color: '#6B6B6B',
+     color: colors.textSecondary,
      marginLeft: 8,
      paddingHorizontal: 6,
      paddingVertical: 2,
-     backgroundColor: '#F8F9FA',
+     backgroundColor: colors.bgSurface,
      borderRadius: 4,
    },
    requiredText: {
      fontSize: 12, // Slightly smaller on mobile
-     color: '#FF3B30',
+     color: colors.statusError,
      marginLeft: 8,
      marginTop: Platform.OS === 'ios' ? 1 : 0, // Slight offset on iOS
      paddingHorizontal: 6,
      paddingVertical: 2,
-     backgroundColor: '#FFF5F5',
+     backgroundColor: colors.bgSurface,
      borderRadius: 4,
      fontWeight: '500',
      alignSelf: 'flex-start', // Prevent stretching
@@ -2089,18 +2092,18 @@ const styles = StyleSheet.create({
    },
   fieldDescription: {
     fontSize: 14,
-    color: '#6B6B6B',
+    color: colors.textSecondary,
     lineHeight: 18,
     marginBottom: 12,
   },
   input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    color: '#1A1A1A',
+    color: colors.textPrimary,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderLight,
   },
   textArea: {
     minHeight: 120,
@@ -2110,14 +2113,14 @@ const styles = StyleSheet.create({
     minHeight: 120, // Minimum height for the main prompt, allowing growth
   },
   selectorButton: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderRadius: 12,
     padding: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderLight,
   },
   selectorLeft: {
     flexDirection: 'row',
@@ -2125,7 +2128,7 @@ const styles = StyleSheet.create({
   },
   selectorText: {
     fontSize: 16,
-    color: '#1A1A1A',
+    color: colors.textPrimary,
     marginLeft: 8,
   },
   executeContainer: {
@@ -2138,19 +2141,19 @@ const styles = StyleSheet.create({
     minHeight: 800,
   },
   executingContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderRadius: 16,
     marginBottom: 32,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
-    shadowColor: '#007AFF',
+    borderColor: colors.borderLight,
+    shadowColor: colors.accent,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
   },
   executeButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: colors.accent,
     borderRadius: 12,
     padding: Platform.OS === 'ios' ? 16 : 14, // Slightly less padding on Android
     flexDirection: 'row',
@@ -2160,7 +2163,7 @@ const styles = StyleSheet.create({
     minHeight: 56, // Ensure consistent touch target
     ...Platform.select({
       ios: {
-        shadowColor: '#007AFF',
+        shadowColor: colors.accent,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 4,
@@ -2171,25 +2174,25 @@ const styles = StyleSheet.create({
     }),
   },
   executeButtonDisabled: {
-    backgroundColor: '#C7C7CC',
+    backgroundColor: colors.textTertiary,
   },
   executeContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   executeButtonText: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
     fontSize: 18,
     fontWeight: '600',
     marginLeft: 8,
   },
   executeDescription: {
     fontSize: 14,
-    color: '#6B6B6B',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   resultContainer: {
-    backgroundColor: '#E8F5E8',
+    backgroundColor: colors.bgSurface,
     borderRadius: 12,
     padding: 16,
     marginTop: 16,
@@ -2202,16 +2205,16 @@ const styles = StyleSheet.create({
   resultTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#2D7D32',
+    color: colors.statusSuccess,
     marginLeft: 8,
   },
   resultText: {
     fontSize: 16,
-    color: '#2D7D32',
+    color: colors.statusSuccess,
     marginBottom: 16,
   },
   viewResultsButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: colors.accent,
     borderRadius: 12,
     padding: 16,
     flexDirection: 'row',
@@ -2220,23 +2223,23 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   viewResultsButtonText: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
   },
      modalContainer: {
      flex: 1,
-     backgroundColor: '#F2F2F7',
+     backgroundColor: colors.bgApp,
    },
    modalHeader: {
      flexDirection: 'row',
      justifyContent: 'space-between',
      alignItems: 'center',
      padding: 20,
-     backgroundColor: '#FFFFFF',
+     backgroundColor: colors.bgCard,
      borderBottomWidth: 1,
-     borderBottomColor: '#E5E5EA',
-     shadowColor: '#000',
+     borderBottomColor: colors.borderLight,
+     shadowColor: colors.shadowColor,
      shadowOffset: { width: 0, height: 1 },
      shadowOpacity: 0.1,
      shadowRadius: 3,
@@ -2245,16 +2248,16 @@ const styles = StyleSheet.create({
    modalTitle: {
      fontSize: 20,
      fontWeight: '700',
-     color: '#000000',
+     color: colors.textPrimary,
    },
    modalCancelButton: {
      fontSize: 17,
-     color: '#8E8E93',
+     color: colors.textSecondary,
      fontWeight: '500',
    },
    modalSaveButton: {
      fontSize: 17,
-     color: '#007AFF',
+     color: colors.accent,
      fontWeight: '700',
    },
    modalContent: {
@@ -2275,13 +2278,13 @@ const styles = StyleSheet.create({
    noAgentsTitle: {
      fontSize: 24,
      fontWeight: '700',
-     color: '#1A1A1A',
+     color: colors.textPrimary,
      textAlign: 'center',
      marginBottom: 12,
    },
    noAgentsDescription: {
      fontSize: 16,
-     color: '#6B6B6B',
+     color: colors.textSecondary,
      textAlign: 'center',
      lineHeight: 22,
      marginBottom: 32,
@@ -2292,7 +2295,7 @@ const styles = StyleSheet.create({
      marginBottom: 24,
    },
    noAgentsMarketplaceButton: {
-     backgroundColor: '#007AFF',
+     backgroundColor: colors.accent,
      flexDirection: 'row',
      alignItems: 'center',
      justifyContent: 'center',
@@ -2302,14 +2305,14 @@ const styles = StyleSheet.create({
      gap: 8,
    },
    noAgentsMarketplaceButtonText: {
-     color: '#FFFFFF',
+     color: colors.textInverse,
      fontSize: 16,
      fontWeight: '600',
    },
    noAgentsCreateButton: {
-     backgroundColor: '#FFFFFF',
+     backgroundColor: colors.bgCard,
      borderWidth: 2,
-     borderColor: '#007AFF',
+     borderColor: colors.accent,
      flexDirection: 'row',
      alignItems: 'center',
      justifyContent: 'center',
@@ -2319,13 +2322,13 @@ const styles = StyleSheet.create({
      gap: 8,
    },
    noAgentsCreateButtonText: {
-     color: '#007AFF',
+     color: colors.accent,
      fontSize: 16,
      fontWeight: '600',
    },
    noAgentsHint: {
      fontSize: 14,
-     color: '#8E8E93',
+     color: colors.textSecondary,
      textAlign: 'center',
      lineHeight: 20,
    },
@@ -2338,32 +2341,32 @@ const styles = StyleSheet.create({
    },
    modalSubtitle: {
      fontSize: 14,
-     color: '#6B6B6B',
+     color: colors.textSecondary,
      lineHeight: 20,
      flex: 1,
    },
    selectedCount: {
      fontSize: 14,
      fontWeight: '600',
-     color: '#007AFF',
+     color: colors.accent,
    },
    configCard: {
-     backgroundColor: '#FFFFFF',
+     backgroundColor: colors.bgCard,
      borderRadius: 12,
      padding: 16,
      marginBottom: 12,
      borderWidth: 1,
-     borderColor: '#E5E5EA',
-     shadowColor: '#000',
+     borderColor: colors.borderLight,
+     shadowColor: colors.shadowColor,
      shadowOffset: { width: 0, height: 1 },
      shadowOpacity: 0.05,
      shadowRadius: 2,
      elevation: 1,
    },
    configCardSelected: {
-     borderColor: '#007AFF',
+     borderColor: colors.accent,
      borderWidth: 2,
-     shadowColor: '#007AFF',
+     shadowColor: colors.accent,
      shadowOffset: { width: 0, height: 2 },
      shadowOpacity: 0.1,
      shadowRadius: 4,
@@ -2381,7 +2384,7 @@ const styles = StyleSheet.create({
    configDisplayName: {
      fontSize: 18,
      fontWeight: '600',
-     color: '#000000',
+     color: colors.textPrimary,
      marginBottom: 8,
    },
    configMeta: {
@@ -2397,12 +2400,12 @@ const styles = StyleSheet.create({
    },
    metaValue: {
      fontSize: 12,
-     color: '#000000',
+     color: colors.textPrimary,
      fontWeight: '600',
    },
    configDescription: {
      fontSize: 14,
-     color: '#8E8E93',
+     color: colors.textSecondary,
      lineHeight: 20,
    },
    selectionCheckbox: {
@@ -2410,32 +2413,32 @@ const styles = StyleSheet.create({
      height: 28,
      borderRadius: 8,
      borderWidth: 2,
-     borderColor: '#E5E5EA',
+     borderColor: colors.borderLight,
      justifyContent: 'center',
      alignItems: 'center',
-     backgroundColor: '#FFFFFF',
+     backgroundColor: colors.bgCard,
    },
    selectionCheckboxSelected: {
-     backgroundColor: '#007AFF',
-     borderColor: '#007AFF',
+     backgroundColor: colors.accent,
+     borderColor: colors.accent,
    },
    functionCard: {
-     backgroundColor: '#FFFFFF',
+     backgroundColor: colors.bgCard,
      borderRadius: 12,
      padding: 16,
      marginBottom: 12,
      borderWidth: 1,
-     borderColor: '#E5E5EA',
-     shadowColor: '#000',
+     borderColor: colors.borderLight,
+     shadowColor: colors.shadowColor,
      shadowOffset: { width: 0, height: 1 },
      shadowOpacity: 0.05,
      shadowRadius: 2,
      elevation: 1,
    },
    functionCardSelected: {
-     borderColor: '#34C759',
+     borderColor: colors.statusSuccess,
      borderWidth: 2,
-     shadowColor: '#34C759',
+     shadowColor: colors.statusSuccess,
      shadowOffset: { width: 0, height: 2 },
      shadowOpacity: 0.1,
      shadowRadius: 4,
@@ -2453,12 +2456,12 @@ const styles = StyleSheet.create({
    functionDisplayName: {
      fontSize: 18,
      fontWeight: '600',
-     color: '#000000',
+     color: colors.textPrimary,
      marginBottom: 4,
    },
    functionDescription: {
      fontSize: 14,
-     color: '#8E8E93',
+     color: colors.textSecondary,
      lineHeight: 20,
      marginBottom: 8,
    },
@@ -2473,13 +2476,13 @@ const styles = StyleSheet.create({
          functionGroupTitle: {
    fontSize: 16,
    fontWeight: '600',
-   color: '#000000',
+   color: colors.textPrimary,
  },
   // Primary prompt styles
   primaryField: {
     borderWidth: 2,
-    borderColor: '#007AFF',
-    shadowColor: '#007AFF',
+    borderColor: colors.accent,
+    shadowColor: colors.accent,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -2497,8 +2500,8 @@ const styles = StyleSheet.create({
   // Template parameters styles
   parametersField: {
     borderWidth: 2,
-    borderColor: '#FF9500',
-    shadowColor: '#FF9500',
+    borderColor: colors.statusWarning,
+    shadowColor: colors.statusWarning,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -2507,10 +2510,10 @@ const styles = StyleSheet.create({
   parametersFieldLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FF9500',
+    color: colors.statusWarning,
   },
   parameterBadge: {
-    backgroundColor: '#FFF0E0',
+    backgroundColor: colors.bgSurface,
     borderRadius: 12,
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -2519,11 +2522,11 @@ const styles = StyleSheet.create({
   parameterBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FF9500',
+    color: colors.statusWarning,
   },
   parametersDescription: {
     fontSize: 14,
-    color: '#6B6B6B',
+    color: colors.textSecondary,
     lineHeight: 18,
     marginBottom: 16,
   },
@@ -2531,11 +2534,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   parameterInputContainer: {
-    backgroundColor: '#FFF8F0',
+    backgroundColor: colors.bgSurface,
     borderRadius: 8,
     padding: Platform.OS === 'ios' ? 12 : 10, // Slightly less padding on Android
     borderWidth: Platform.OS === 'ios' ? 1 : 0.5, // Thinner borders on Android
-    borderColor: '#FFE4B8',
+    borderColor: colors.borderLight,
     marginBottom: 8, // Add spacing between parameters
   },
   parameterHeader: {
@@ -2549,49 +2552,49 @@ const styles = StyleSheet.create({
   parameterName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FF9500',
+    color: colors.statusWarning,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   parameterRequired: {
     fontSize: 12,
-    color: '#FF3B30',
+    color: colors.statusError,
     fontWeight: '500',
-    backgroundColor: '#FFF5F5',
+    backgroundColor: colors.bgSurface,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
   parameterInput: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderRadius: 6,
     padding: 12,
     fontSize: 16,
-    color: '#1A1A1A',
+    color: colors.textPrimary,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderLight,
     minHeight: 44,
   },
   parameterDescription: {
     fontSize: 12,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     marginTop: 4,
     fontStyle: 'italic',
   },
   // Optional section styles
   optionalSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderRadius: 12,
     marginBottom: 20,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderLight,
   },
   optionalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: colors.bgSurface,
   },
   optionalHeaderLeft: {
     flexDirection: 'row',
@@ -2601,11 +2604,11 @@ const styles = StyleSheet.create({
   optionalHeaderText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6B6B6B',
+    color: colors.textSecondary,
     marginLeft: 8,
   },
   optionalBadge: {
-    backgroundColor: '#E5E5EA',
+    backgroundColor: colors.borderLight,
     borderRadius: 12,
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -2616,12 +2619,12 @@ const styles = StyleSheet.create({
   optionalBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6B6B6B',
+    color: colors.textSecondary,
   },
   optionalFields: {
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#F2F2F7',
+    borderTopColor: colors.bgApp,
   },
   // Compact field styles
   compactFieldContainer: {
@@ -2635,17 +2638,17 @@ const styles = StyleSheet.create({
   compactFieldLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: colors.textPrimary,
     marginLeft: 6,
   },
   compactInput: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: colors.bgSurface,
     borderRadius: 8,
     padding: 12,
     fontSize: 15,
-    color: '#1A1A1A',
+    color: colors.textPrimary,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderLight,
     ...webInputStyles,
   },
   compactTextArea: {
@@ -2658,18 +2661,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 12,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: colors.bgSurface,
     borderRadius: 8,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderLight,
   },
   functionGroupTitleContainer: {
     flex: 1,
   },
   functionGroupCount: {
     fontSize: 12,
-    color: '#6B6B6B',
+    color: colors.textSecondary,
     marginTop: 2,
     fontWeight: '500',
   },
@@ -2678,29 +2681,29 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderLight,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
   },
   categorySelectionCheckboxSelected: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   categorySelectionCheckboxPartial: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#007AFF',
+    backgroundColor: colors.bgCard,
+    borderColor: colors.accent,
   },
   // Agent header styles
   agentHeader: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderLight,
     borderLeftWidth: 4,
-    borderLeftColor: '#007AFF',
+    borderLeftColor: colors.accent,
   },
   agentInfo: {
     flexDirection: 'row',
@@ -2717,7 +2720,7 @@ const styles = StyleSheet.create({
   agentName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: colors.textPrimary,
   },
   tooltipIcon: {
     marginLeft: 8,
@@ -2725,17 +2728,17 @@ const styles = StyleSheet.create({
   },
   agentSubtitle: {
     fontSize: 14,
-    color: '#007AFF',
+    color: colors.accent,
     fontWeight: '500',
     marginTop: 2,
   },
   agentTemplate: {
     fontSize: 14,
-    color: '#6B6B6B',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   tooltip: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: colors.bgSurface,
     borderRadius: 8,
     padding: 12,
     marginTop: 12,
@@ -2752,11 +2755,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 6,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderBottomColor: '#F8F9FA',
+    borderBottomColor: colors.bgSurface,
   },
   tooltipText: {
     fontSize: 14,
-    color: '#6B6B6B',
+    color: colors.textSecondary,
     lineHeight: 20,
   },
   headerCompact: {
@@ -2764,11 +2767,11 @@ const styles = StyleSheet.create({
   },
   // Template execution styles
   readOnlyField: {
-    borderColor: '#8E8E93',
-    backgroundColor: '#F8F9FA',
+    borderColor: colors.textSecondary,
+    backgroundColor: colors.bgSurface,
   },
   templateBadge: {
-    backgroundColor: '#E3F2FD',
+    backgroundColor: colors.accentSoft,
     borderRadius: 12,
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -2777,26 +2780,26 @@ const styles = StyleSheet.create({
   templateBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#1976D2',
+    color: colors.statusInfo,
   },
   templateDescription: {
     fontSize: 14,
-    color: '#6B6B6B',
+    color: colors.textSecondary,
     lineHeight: 18,
     marginBottom: 12,
     fontStyle: 'italic',
   },
   // Execution Mode Selector Styles - Compact Design
   modeSelector: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderLight,
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: colors.shadowColor,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.05,
         shadowRadius: 2,
@@ -2815,7 +2818,7 @@ const styles = StyleSheet.create({
   modeSelectorTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: colors.textPrimary,
   },
   modeInfoButton: {
     padding: 4,
@@ -2829,10 +2832,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F8F9FA',
+    backgroundColor: colors.bgSurface,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderLight,
     paddingVertical: 10,
     paddingHorizontal: 12,
     gap: 6,
@@ -2841,67 +2844,67 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   compactModeButtonDisabled: {
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.bgApp,
     opacity: 0.6,
   },
   compactModeButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: colors.textPrimary,
   },
   compactModeButtonTextSelected: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
   },
   compactModeButtonTextDisabled: {
-    color: '#C7C7CC',
+    color: colors.textTertiary,
   },
   modeDescriptionBox: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: colors.bgSurface,
     borderRadius: 8,
     padding: 12,
     marginTop: 12,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderLight,
   },
   modeDescriptionText: {
     fontSize: 13,
-    color: '#1A1A1A',
+    color: colors.textPrimary,
     lineHeight: 18,
   },
   modeDescriptionNote: {
     fontSize: 12,
-    color: '#FF9500',
+    color: colors.statusWarning,
     fontStyle: 'italic',
     marginTop: 4,
   },
   autoConfigStatus: {
-    backgroundColor: '#E8F5E8',
+    backgroundColor: colors.bgSurface,
     borderRadius: 8,
     padding: 12,
     marginTop: 12,
     borderWidth: 1,
-    borderColor: '#C8E6C9',
+    borderColor: colors.borderLight,
   },
   autoConfigStatusText: {
     fontSize: 13,
-    color: '#2E7D32',
+    color: colors.statusSuccess,
     textAlign: 'center',
     fontWeight: '500',
   },
   // Selection Container Styles (shared by agent and template)
   selectionContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderLight,
   },
   selector: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: colors.bgSurface,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderLight,
     padding: 12,
   },
   selectorContent: {
@@ -2911,7 +2914,7 @@ const styles = StyleSheet.create({
   },
   selectorPlaceholder: {
     fontSize: 16,
-    color: '#8E8E93',
+    color: colors.textSecondary,
   },
   selectedInfo: {
     flexDirection: 'row',
@@ -2925,18 +2928,18 @@ const styles = StyleSheet.create({
   selectedName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: colors.textPrimary,
   },
   selectedSubtitle: {
     fontSize: 14,
-    color: '#6B6B6B',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   templateIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#E3F2FD',
+    backgroundColor: colors.accentSoft,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -2946,10 +2949,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F2F2F7',
+    borderBottomColor: colors.bgApp,
   },
   modalItemSelected: {
-    backgroundColor: '#F0F8FF',
+    backgroundColor: colors.bgHover,
   },
   modalItemDetails: {
     flex: 1,
@@ -2958,23 +2961,23 @@ const styles = StyleSheet.create({
   modalItemName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: colors.textPrimary,
   },
   modalItemSubtitle: {
     fontSize: 14,
-    color: '#6B6B6B',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   modalItemMeta: {
     fontSize: 12,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   // Warning and Info Containers
   warningContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF8F0',
+    backgroundColor: colors.bgSurface,
     borderRadius: 6,
     padding: 8,
     marginTop: 12,
@@ -2982,13 +2985,13 @@ const styles = StyleSheet.create({
   },
   warningText: {
     fontSize: 13,
-    color: '#FF9500',
+    color: colors.statusWarning,
     flex: 1,
   },
   infoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0F8FF',
+    backgroundColor: colors.bgHover,
     borderRadius: 6,
     padding: 8,
     marginTop: 12,
@@ -2996,7 +2999,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 13,
-    color: '#007AFF',
+    color: colors.accent,
     flex: 1,
   },
   // Execution Feedback Overlay Styles
@@ -3012,7 +3015,7 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   executionFeedbackContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderRadius: 20,
     padding: 32,
     alignItems: 'center',
@@ -3020,7 +3023,7 @@ const styles = StyleSheet.create({
     minWidth: 280,
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: colors.shadowColor,
         shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.25,
         shadowRadius: 16,
@@ -3034,7 +3037,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#007AFF',
+    backgroundColor: colors.accent,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -3042,13 +3045,13 @@ const styles = StyleSheet.create({
   executionFeedbackTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1A1A1A',
+    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: 8,
   },
   executionFeedbackMessage: {
     fontSize: 16,
-    color: '#6B6B6B',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 20,
@@ -3060,7 +3063,7 @@ const styles = StyleSheet.create({
   },
   executionFeedbackProgressText: {
     fontSize: 14,
-    color: '#007AFF',
+    color: colors.accent,
     fontWeight: '500',
   },
 });

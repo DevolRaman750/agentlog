@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   FlatList,
   RefreshControl,
@@ -11,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
+import { useThemedStyles } from '../theme';
 import { goGentAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
@@ -48,6 +48,8 @@ const TeamDetailScreen: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showTeamMemoryModal, setShowTeamMemoryModal] = useState(false);
   const [showAgentMemoryModal, setShowAgentMemoryModal] = useState(false);
+
+  const styles = useTeamDetailStyles();
 
   // Show loading screen while auth is loading
   if (authLoading) {
@@ -323,7 +325,7 @@ const TeamDetailScreen: React.FC = () => {
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <Ionicons name="people-outline" size={64} color="#ccc" />
+      <Ionicons name="people-outline" size={64} color={styles.emptyMessage.color} />
       <Text style={styles.emptyTitle}>No Agents in Team</Text>
       <Text style={styles.emptyMessage}>
         This team doesn't have any agents yet. Create agents from the main Agents screen and assign them to this team.
@@ -332,7 +334,7 @@ const TeamDetailScreen: React.FC = () => {
         style={styles.goToAgentsButton}
         onPress={() => navigation.navigate('Agents')}
       >
-        <Ionicons name="add" size={20} color="white" />
+        <Ionicons name="add" size={20} color={styles.goToAgentsButtonText.color} />
         <Text style={styles.goToAgentsButtonText}>Go to Agents</Text>
       </TouchableOpacity>
     </View>
@@ -368,7 +370,7 @@ const TeamDetailScreen: React.FC = () => {
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color="#007AFF" />
+            <Ionicons name="arrow-back" size={24} color={styles.backButtonText.color} />
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
             <Text style={[styles.title, isCompact && styles.titleCompact]}>
@@ -383,7 +385,7 @@ const TeamDetailScreen: React.FC = () => {
           style={styles.teamMemoryButton}
           onPress={handleTeamMemoryPress}
         >
-          <Ionicons name="library" size={20} color="#007AFF" />
+          <Ionicons name="library" size={20} color={styles.backButtonText.color} />
         </TouchableOpacity>
       </View>
 
@@ -494,30 +496,30 @@ const TeamDetailScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const useTeamDetailStyles = () => useThemedStyles((colors) => ({
   centeredContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F2F2F7',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    backgroundColor: colors.bgApp,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-    backgroundColor: 'white',
+    borderBottomColor: colors.borderSubtle,
+    backgroundColor: colors.bgCard,
   },
   headerCompact: {
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
   headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
     flex: 1,
   },
   backButton: {
@@ -529,31 +531,31 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
+    fontWeight: 'bold' as const,
+    color: colors.textPrimary,
   },
   titleCompact: {
     fontSize: 20,
   },
   subtitle: {
     fontSize: 14,
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   teamMemoryButton: {
     padding: 8,
-    backgroundColor: '#F0F8FF',
+    backgroundColor: colors.bgHover,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#007AFF',
+    borderColor: colors.accent,
   },
   teamInfoSection: {
     padding: 16,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.bgApp,
   },
   listContainer: {
     padding: 16,
-    paddingBottom: 100, // Extra space for tab bar on mobile
+    paddingBottom: 100,
   },
   agentCard: {
     marginBottom: 16,
@@ -563,56 +565,56 @@ const styles = StyleSheet.create({
   },
   emptyScrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: 'center' as const,
     paddingHorizontal: 16,
     paddingVertical: 40,
   },
   emptyState: {
-    alignItems: 'center',
+    alignItems: 'center' as const,
     paddingVertical: 40,
     paddingHorizontal: 20,
   },
   emptyTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#666',
+    fontWeight: '600' as const,
+    color: colors.textSecondary,
     marginTop: 16,
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: 'center' as const,
   },
   emptyMessage: {
     fontSize: 16,
-    color: '#999',
-    textAlign: 'center',
+    color: colors.textTertiary,
+    textAlign: 'center' as const,
     marginBottom: 24,
     lineHeight: 22,
     paddingHorizontal: 10,
     maxWidth: 350,
   },
   goToAgentsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#007AFF',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: colors.accent,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
     gap: 8,
   },
   goToAgentsButtonText: {
-    color: 'white',
+    color: colors.textInverse,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600' as const,
   },
   messageText: {
     fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
+    color: colors.textSecondary,
+    textAlign: 'center' as const,
   },
   backButtonText: {
     fontSize: 16,
-    color: '#007AFF',
+    color: colors.accent,
     marginTop: 16,
   },
-});
+}));
 
 export default TeamDetailScreen;

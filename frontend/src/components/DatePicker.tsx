@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, Platform, TextInput } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme, useThemedStyles } from '../theme';
 
 interface DatePickerProps {
   label?: string;
@@ -28,11 +29,78 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   required = false,
   error,
 }) => {
+  const { colors } = useTheme();
   const [show, setShow] = useState(false);
+
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      marginBottom: 16,
+    },
+    labelContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 4,
+    },
+    label: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    required: {
+      color: colors.statusError,
+      fontSize: 16,
+      fontWeight: '600' as const,
+    },
+    description: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginBottom: 8,
+      lineHeight: 20,
+    },
+    dateButton: {
+      backgroundColor: colors.bgCard,
+      borderWidth: 1,
+      borderColor: colors.borderMedium,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      minHeight: 48,
+      justifyContent: 'center' as const,
+    },
+    dateButtonError: {
+      borderColor: colors.statusError,
+    },
+    dateButtonPlaceholder: {
+      backgroundColor: colors.bgSurface,
+    },
+    dateContent: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+    },
+    calendarIcon: {
+      marginRight: 8,
+    },
+    dateText: {
+      fontSize: 16,
+      color: colors.textPrimary,
+      flex: 1,
+    },
+    placeholderText: {
+      color: colors.textSecondary,
+    },
+    clearButton: {
+      marginLeft: 8,
+    },
+    errorText: {
+      fontSize: 14,
+      color: colors.statusError,
+      marginTop: 4,
+    },
+  }));
 
   const formatDate = (date: Date | null): string => {
     if (!date) return '';
-    
+
     if (mode === 'date') {
       return date.toLocaleDateString();
     } else if (mode === 'time') {
@@ -44,13 +112,13 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
   const formatDateForInput = (date: Date | null | undefined): string => {
     if (!date) return '';
-    
+
     // Check if the date is valid before formatting
     if (isNaN(date.getTime())) {
       console.warn('Attempted to format invalid date for input:', date);
       return '';
     }
-    
+
     // Format for HTML input type="date" (YYYY-MM-DD)
     return date.toISOString().split('T')[0];
   };
@@ -59,7 +127,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     if (Platform.OS !== 'web') {
       setShow(Platform.OS === 'ios'); // Keep open on iOS, close on Android
     }
-    
+
     if (selectedDate) {
       onChange(selectedDate);
     }
@@ -69,7 +137,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     if (dateString) {
       // Create date object with proper validation
       const selectedDate = new Date(dateString + 'T00:00:00');
-      
+
       // Check if the date is valid
       if (!isNaN(selectedDate.getTime())) {
         onChange(selectedDate);
@@ -100,7 +168,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             </Text>
           </View>
         )}
-        
+
         {description && (
           <Text style={styles.description}>{description}</Text>
         )}
@@ -111,10 +179,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           !value && styles.dateButtonPlaceholder
         ]}>
           <View style={styles.dateContent}>
-            <Ionicons 
-              name="calendar-outline" 
-              size={20} 
-              color={value ? '#007AFF' : '#8E8E93'} 
+            <Ionicons
+              name="calendar-outline"
+              size={20}
+              color={value ? colors.accent : colors.textSecondary}
               style={styles.calendarIcon}
             />
             {/* @ts-ignore - Web-specific HTML input */}
@@ -127,7 +195,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
               max={maximumDate ? formatDateForInput(maximumDate) : undefined}
               style={{
                 fontSize: 16,
-                color: '#1D1D1F',
+                color: colors.textPrimary,
                 flex: 1,
                 border: 'none',
                 outlineStyle: 'none',
@@ -147,7 +215,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                 style={styles.clearButton}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Ionicons name="close-circle" size={20} color="#8E8E93" />
+                <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             )}
           </View>
@@ -169,7 +237,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           </Text>
         </View>
       )}
-      
+
       {description && (
         <Text style={styles.description}>{description}</Text>
       )}
@@ -183,10 +251,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         onPress={() => setShow(true)}
       >
         <View style={styles.dateContent}>
-          <Ionicons 
-            name="calendar-outline" 
-            size={20} 
-            color={value ? '#007AFF' : '#8E8E93'} 
+          <Ionicons
+            name="calendar-outline"
+            size={20}
+            color={value ? colors.accent : colors.textSecondary}
             style={styles.calendarIcon}
           />
           <Text style={[
@@ -201,7 +269,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
               style={styles.clearButton}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Ionicons name="close-circle" size={20} color="#8E8E93" />
+              <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
@@ -226,29 +294,29 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 // Utility function to format date for backend API calls
 export const formatDateForAPI = (date: Date | null): string | undefined => {
   if (!date) return undefined;
-  
+
   // Check if the date is valid before calling toISOString
   if (isNaN(date.getTime())) {
     console.warn('Attempted to format invalid date:', date);
     return undefined;
   }
-  
+
   return date.toISOString();
 };
 
 // Utility function to parse date from backend response
 export const parseDateFromAPI = (dateString: string | null): Date | null => {
   if (!dateString || dateString.trim() === '') return null;
-  
+
   try {
     const parsedDate = new Date(dateString);
-    
+
     // Check if the parsed date is valid
     if (isNaN(parsedDate.getTime())) {
       console.warn('Failed to parse date - invalid date:', dateString);
       return null;
     }
-    
+
     return parsedDate;
   } catch (error) {
     console.warn('Failed to parse date:', dateString, error);
@@ -256,70 +324,4 @@ export const parseDateFromAPI = (dateString: string | null): Date | null => {
   }
 };
 
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: 16,
-  },
-  labelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1D1D1F',
-  },
-  required: {
-    color: '#FF3B30',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  description: {
-    fontSize: 14,
-    color: '#8E8E93',
-    marginBottom: 8,
-    lineHeight: 20,
-  },
-  dateButton: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#D1D1D6',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    minHeight: 48,
-    justifyContent: 'center',
-  },
-  dateButtonError: {
-    borderColor: '#FF3B30',
-  },
-  dateButtonPlaceholder: {
-    backgroundColor: '#F9F9F9',
-  },
-  dateContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  calendarIcon: {
-    marginRight: 8,
-  },
-  dateText: {
-    fontSize: 16,
-    color: '#1D1D1F',
-    flex: 1,
-  },
-  placeholderText: {
-    color: '#8E8E93',
-  },
-  clearButton: {
-    marginLeft: 8,
-  },
-  errorText: {
-    fontSize: 14,
-    color: '#FF3B30',
-    marginTop: 4,
-  },
-});
-
-export default DatePicker; 
+export default DatePicker;

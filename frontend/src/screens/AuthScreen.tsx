@@ -14,18 +14,22 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
 import { AlertAPI } from '../components/CustomAlert';
 import { webInputStyles } from '../styles/containers';
+import { useTheme, useThemedStyles } from '../theme';
+import type { ThemeColors } from '../theme';
 import ScreenContainer from '../components/ScreenContainer';
 
 type AuthFlow = 'welcome' | 'account-info' | 'connect-email' | 'change-password' | 'login' | 'register';
 
 const AuthScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const { 
-    user, 
-    isAuthenticated, 
-    loading, 
-    login, 
-    register, 
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
+  const {
+    user,
+    isAuthenticated,
+    loading,
+    login,
+    register,
     logout,
     createTemporaryUser,
     connectTemporaryToEmail,
@@ -275,10 +279,10 @@ const AuthScreen: React.FC = () => {
   const renderAccountInfo = () => (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Ionicons 
-          name={user?.is_temporary ? "time-outline" : "person-circle"} 
-          size={60} 
-          color={user?.is_temporary ? "#FF9500" : "#34C759"} 
+        <Ionicons
+          name={user?.is_temporary ? "time-outline" : "person-circle"}
+          size={60}
+          color={user?.is_temporary ? colors.statusWarning : colors.statusSuccess}
         />
         <Text style={styles.headerTitle}>
           {user?.is_temporary ? "Temporary Account" : "Your Account"}
@@ -291,7 +295,7 @@ const AuthScreen: React.FC = () => {
       <View style={styles.infoSection}>
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Status:</Text>
-          <Text style={[styles.infoValue, { color: user?.is_temporary ? "#FF9500" : "#34C759" }]}>
+          <Text style={[styles.infoValue, { color: user?.is_temporary ? colors.statusWarning : colors.statusSuccess }]}>
             {user?.is_temporary ? "Temporary (Data not permanently saved)" : "Connected Account"}
           </Text>
         </View>
@@ -322,11 +326,11 @@ const AuthScreen: React.FC = () => {
             onPress={() => navigation.navigate('Execute')}
           >
             <View style={styles.quickLinkContent}>
-              <Ionicons name="play-circle" size={24} color="#007AFF" />
+              <Ionicons name="play-circle" size={24} color={colors.accent} />
               <Text style={styles.quickLinkTitle}>Execute</Text>
               <Text style={styles.quickLinkDescription}>Run prompts and execute tasks</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
+            <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -334,11 +338,11 @@ const AuthScreen: React.FC = () => {
             onPress={() => navigation.navigate('Agents')}
           >
             <View style={styles.quickLinkContent}>
-              <Ionicons name="construct" size={24} color="#007AFF" />
+              <Ionicons name="construct" size={24} color={colors.accent} />
               <Text style={styles.quickLinkTitle}>Agents</Text>
               <Text style={styles.quickLinkDescription}>Manage your AI agents</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
+            <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -350,7 +354,7 @@ const AuthScreen: React.FC = () => {
               style={[styles.actionButton, styles.primaryButton]}
               onPress={() => setCurrentFlow('connect-email')}
             >
-              <Ionicons name="mail-outline" size={20} color="#FFFFFF" />
+              <Ionicons name="mail-outline" size={20} color={colors.textInverse} />
               <Text style={styles.primaryButtonText}>Connect to Email</Text>
             </TouchableOpacity>
             
@@ -364,7 +368,7 @@ const AuthScreen: React.FC = () => {
               style={[styles.actionButton, styles.secondaryButton]}
               onPress={() => setCurrentFlow('change-password')}
             >
-              <Ionicons name="lock-closed-outline" size={20} color="#007AFF" />
+              <Ionicons name="lock-closed-outline" size={20} color={colors.accent} />
               <Text style={styles.secondaryButtonText}>Change Password</Text>
             </TouchableOpacity>
           </>
@@ -386,7 +390,7 @@ const AuthScreen: React.FC = () => {
             );
           }}
         >
-          <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
+          <Ionicons name="log-out-outline" size={20} color={colors.statusError} />
           <Text style={styles.logoutButtonText}>Logout</Text>
         </TouchableOpacity>
 
@@ -409,7 +413,7 @@ const AuthScreen: React.FC = () => {
           style={styles.backButton}
           onPress={() => setCurrentFlow('account-info')}
         >
-          <Ionicons name="arrow-back" size={24} color="#007AFF" />
+          <Ionicons name="arrow-back" size={24} color={colors.accent} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Connect to Email</Text>
         <Text style={styles.headerSubtitle}>
@@ -459,10 +463,10 @@ const AuthScreen: React.FC = () => {
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <ActivityIndicator size="small" color={colors.textInverse} />
           ) : (
             <>
-              <Ionicons name="checkmark-circle-outline" size={20} color="#FFFFFF" />
+              <Ionicons name="checkmark-circle-outline" size={20} color={colors.textInverse} />
               <Text style={styles.primaryButtonText}>Connect Account</Text>
             </>
           )}
@@ -482,7 +486,7 @@ const AuthScreen: React.FC = () => {
           style={styles.backButton}
           onPress={() => setCurrentFlow('account-info')}
         >
-          <Ionicons name="arrow-back" size={24} color="#007AFF" />
+          <Ionicons name="arrow-back" size={24} color={colors.accent} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Change Password</Text>
         <Text style={styles.headerSubtitle}>
@@ -530,10 +534,10 @@ const AuthScreen: React.FC = () => {
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <ActivityIndicator size="small" color={colors.textInverse} />
           ) : (
             <>
-              <Ionicons name="lock-closed" size={20} color="#FFFFFF" />
+              <Ionicons name="lock-closed" size={20} color={colors.textInverse} />
               <Text style={styles.primaryButtonText}>Update Password</Text>
             </>
           )}
@@ -549,7 +553,7 @@ const AuthScreen: React.FC = () => {
           style={styles.backButton}
           onPress={() => setCurrentFlow(user ? 'account-info' : 'welcome')}
         >
-          <Ionicons name="arrow-back" size={24} color="#007AFF" />
+          <Ionicons name="arrow-back" size={24} color={colors.accent} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Login</Text>
         <Text style={styles.headerSubtitle}>
@@ -588,10 +592,10 @@ const AuthScreen: React.FC = () => {
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <ActivityIndicator size="small" color={colors.textInverse} />
           ) : (
             <>
-              <Ionicons name="log-in-outline" size={20} color="#FFFFFF" />
+              <Ionicons name="log-in-outline" size={20} color={colors.textInverse} />
               <Text style={styles.primaryButtonText}>Login</Text>
             </>
           )}
@@ -618,7 +622,7 @@ const AuthScreen: React.FC = () => {
           style={styles.backButton}
           onPress={() => setCurrentFlow(user ? 'account-info' : 'welcome')}
         >
-          <Ionicons name="arrow-back" size={24} color="#007AFF" />
+          <Ionicons name="arrow-back" size={24} color={colors.accent} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Create Account</Text>
         <Text style={styles.headerSubtitle}>
@@ -683,7 +687,7 @@ const AuthScreen: React.FC = () => {
             <Ionicons 
               name={linkTempAccount ? "checkbox" : "square-outline"} 
               size={24} 
-              color="#007AFF" 
+              color={colors.accent} 
             />
             <Text style={styles.checkboxLabel}>
               Link this account to my existing temporary account
@@ -697,10 +701,10 @@ const AuthScreen: React.FC = () => {
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <ActivityIndicator size="small" color={colors.textInverse} />
           ) : (
             <>
-              <Ionicons name="person-add-outline" size={20} color="#FFFFFF" />
+              <Ionicons name="person-add-outline" size={20} color={colors.textInverse} />
               <Text style={styles.primaryButtonText}>Create Account</Text>
             </>
           )}
@@ -719,7 +723,7 @@ const AuthScreen: React.FC = () => {
   const renderWelcome = () => (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Ionicons name="rocket" size={60} color="#007AFF" />
+        <Ionicons name="rocket" size={60} color={colors.accent} />
         <Text style={styles.headerTitle}>Welcome to GoGent</Text>
         <Text style={styles.headerSubtitle}>
           Choose how you'd like to get started
@@ -741,7 +745,7 @@ const AuthScreen: React.FC = () => {
             setCurrentFlow('account-info');
           }}
         >
-          <Ionicons name="flash-outline" size={20} color="#FFFFFF" />
+          <Ionicons name="flash-outline" size={20} color={colors.textInverse} />
           <Text style={styles.primaryButtonText}>Continue with Temporary Account</Text>
         </TouchableOpacity>
         <Text style={styles.helpText}>
@@ -752,7 +756,7 @@ const AuthScreen: React.FC = () => {
           style={[styles.actionButton, styles.secondaryButton]}
           onPress={() => setCurrentFlow('login')}
         >
-          <Ionicons name="log-in-outline" size={20} color="#007AFF" />
+          <Ionicons name="log-in-outline" size={20} color={colors.accent} />
           <Text style={styles.secondaryButtonText}>Login to Existing Account</Text>
         </TouchableOpacity>
 
@@ -760,7 +764,7 @@ const AuthScreen: React.FC = () => {
           style={[styles.actionButton, styles.secondaryButton]}
           onPress={() => setCurrentFlow('register')}
         >
-          <Ionicons name="person-add-outline" size={20} color="#007AFF" />
+          <Ionicons name="person-add-outline" size={20} color={colors.accent} />
           <Text style={styles.secondaryButtonText}>Create New Account</Text>
         </TouchableOpacity>
 
@@ -812,10 +816,10 @@ const AuthScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => ({
   scrollContainer: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.bgApp,
   },
   scrollContent: {
     paddingBottom: 120,
@@ -835,26 +839,26 @@ const styles = StyleSheet.create({
     top: 10,
     padding: 8,
     borderRadius: 8,
-    backgroundColor: '#F0F8FF',
+    backgroundColor: colors.bgHover,
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#1A1A1A',
+    color: colors.textPrimary,
     marginTop: 20,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     marginTop: 8,
     textAlign: 'center',
   },
   infoSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderRadius: 12,
     padding: 20,
     marginBottom: 20,
-    shadowColor: '#000',
+    shadowColor: colors.shadowColor,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -866,24 +870,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F2F2F7',
+    borderBottomColor: colors.bgApp,
   },
   infoLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#8E8E93',
+    color: colors.textSecondary,
     flex: 1,
   },
   infoValue: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#1A1A1A',
+    color: colors.textPrimary,
     flex: 2,
     textAlign: 'right',
   },
   passwordText: {
     fontFamily: 'monospace',
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.bgApp,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
@@ -900,16 +904,16 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#1A1A1A',
+    color: colors.textPrimary,
   },
   input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderRadius: 8,
     padding: 16,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#E1E5E9',
-    shadowColor: '#000',
+    borderColor: colors.borderLight,
+    shadowColor: colors.shadowColor,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -925,8 +929,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   primaryButton: {
-    backgroundColor: '#007AFF',
-    shadowColor: '#007AFF',
+    backgroundColor: colors.accent,
+    shadowColor: colors.accent,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -935,27 +939,27 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textInverse,
   },
   secondaryButton: {
-    backgroundColor: '#F0F8FF',
+    backgroundColor: colors.bgHover,
     borderWidth: 1,
-    borderColor: '#007AFF',
+    borderColor: colors.accent,
   },
   secondaryButtonText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#007AFF',
+    color: colors.accent,
   },
   logoutButton: {
-    backgroundColor: '#FFF0F0',
+    backgroundColor: colors.bgSurface,
     borderWidth: 1,
-    borderColor: '#FF3B30',
+    borderColor: colors.statusError,
   },
   logoutButtonText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#FF3B30',
+    color: colors.statusError,
   },
   linkButton: {
     backgroundColor: 'transparent',
@@ -963,19 +967,19 @@ const styles = StyleSheet.create({
   },
   linkButtonText: {
     fontSize: 14,
-    color: '#007AFF',
+    color: colors.accent,
     textAlign: 'center',
   },
   helpText: {
     fontSize: 13,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 18,
     paddingHorizontal: 20,
   },
   footerText: {
     fontSize: 12,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 16,
     marginTop: 10,
@@ -988,27 +992,27 @@ const styles = StyleSheet.create({
   },
   checkboxLabel: {
     fontSize: 14,
-    color: '#1A1A1A',
+    color: colors.textPrimary,
     flex: 1,
   },
   debugInfo: {
-    backgroundColor: '#F0F0F0',
+    backgroundColor: colors.bgSurface,
     padding: 8,
     borderRadius: 4,
     marginTop: 10,
   },
   debugText: {
     fontSize: 10,
-    color: '#666',
+    color: colors.textTertiary,
     textAlign: 'center',
   },
   // Quick Links Styles
   quickLinksSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderRadius: 12,
     padding: 20,
     marginBottom: 20,
-    shadowColor: '#000',
+    shadowColor: colors.shadowColor,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -1017,12 +1021,12 @@ const styles = StyleSheet.create({
   quickLinksTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   quickLinksSubtitle: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     marginBottom: 16,
   },
   quickLinksContainer: {
@@ -1031,11 +1035,11 @@ const styles = StyleSheet.create({
   quickLinkButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8F9FA',
+    backgroundColor: colors.bgSurface,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E1E5E9',
+    borderColor: colors.borderLight,
   },
   quickLinkContent: {
     flex: 1,
@@ -1046,12 +1050,12 @@ const styles = StyleSheet.create({
   quickLinkTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: colors.textPrimary,
     flex: 1,
   },
   quickLinkDescription: {
     fontSize: 12,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     flex: 2,
   },
 });

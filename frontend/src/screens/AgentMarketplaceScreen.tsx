@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   Modal,
@@ -12,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { useThemedStyles } from '../theme';
 import ScreenContainer from '../components/ScreenContainer';
 import AgentMarketplaceCard from '../components/AgentMarketplaceCard';
 import TeamMarketplaceCard from '../components/TeamMarketplaceCard';
@@ -38,6 +38,7 @@ type MarketplaceView = 'agents' | 'teams';
 const AgentMarketplaceScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { screenWidth, isSidebarLayout } = useResponsive();
+  const styles = useMarketplaceStyles();
   
   const [agents] = useState<MarketplaceAgent[]>(generateMarketplaceAgents());
   const [teams] = useState<MarketplaceTeam[]>(generateMarketplaceTeams());
@@ -409,7 +410,7 @@ const AgentMarketplaceScreen: React.FC = () => {
           style={styles.filterButton}
           onPress={() => setShowFilters(!showFilters)}
         >
-          <Ionicons name="options" size={24} color="#007AFF" />
+          <Ionicons name="options" size={24} color={styles.filterButtonText.color} />
           <Text style={styles.filterButtonText}>Filters</Text>
         </TouchableOpacity>
       </View>
@@ -423,7 +424,7 @@ const AgentMarketplaceScreen: React.FC = () => {
           <Ionicons 
             name="person" 
             size={20} 
-            color={currentView === 'agents' ? '#FFFFFF' : '#007AFF'} 
+            color={currentView === 'agents' ? styles.viewToggleTextActive.color : styles.viewToggleText.color}
           />
           <Text style={[styles.viewToggleText, currentView === 'agents' && styles.viewToggleTextActive]}>
             Individual Agents
@@ -436,7 +437,7 @@ const AgentMarketplaceScreen: React.FC = () => {
           <Ionicons 
             name="people" 
             size={20} 
-            color={currentView === 'teams' ? '#FFFFFF' : '#007AFF'} 
+            color={currentView === 'teams' ? styles.viewToggleTextActive.color : styles.viewToggleText.color} 
           />
           <Text style={[styles.viewToggleText, currentView === 'teams' && styles.viewToggleTextActive]}>
             Complete Teams
@@ -446,7 +447,7 @@ const AgentMarketplaceScreen: React.FC = () => {
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#8E8E93" style={styles.searchIcon} />
+        <Ionicons name="search" size={20} color={styles.resultsCount.color} style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
           placeholder={currentView === 'agents' 
@@ -455,14 +456,14 @@ const AgentMarketplaceScreen: React.FC = () => {
           }
           value={filters.searchTerm}
           onChangeText={(text) => setFilters(prev => ({ ...prev, searchTerm: text }))}
-          placeholderTextColor="#8E8E93"
+          placeholderTextColor={styles.resultsCount.color}
         />
         {filters.searchTerm.length > 0 && (
           <TouchableOpacity
             style={styles.clearSearchButton}
             onPress={() => setFilters(prev => ({ ...prev, searchTerm: '' }))}
           >
-            <Ionicons name="close-circle" size={20} color="#8E8E93" />
+            <Ionicons name="close-circle" size={20} color={styles.resultsCount.color} />
           </TouchableOpacity>
         )}
       </View>
@@ -489,7 +490,7 @@ const AgentMarketplaceScreen: React.FC = () => {
           style={styles.createAgentButton}
           onPress={() => navigation.navigate('Agents')}
         >
-          <Ionicons name="add-circle" size={20} color="#FFFFFF" />
+          <Ionicons name="add-circle" size={20} color={styles.createAgentButtonText.color} />
           <Text style={styles.createAgentButtonText}>Create Agent from Scratch</Text>
         </TouchableOpacity>
       </View>
@@ -669,42 +670,42 @@ const AgentMarketplaceScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const useMarketplaceStyles = () => useThemedStyles((colors) => ({
   container: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: colors.bgSurface,
   },
   scrollContent: {
     flexGrow: 1,
   },
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+    borderBottomColor: colors.borderSubtle,
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 16,
   },
   headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'flex-start' as const,
     marginBottom: 16,
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
+    fontWeight: 'bold' as const,
+    color: colors.textPrimary,
     marginBottom: 2,
   },
   subtitle: {
     fontSize: 15,
-    color: '#6B6B6B',
+    color: colors.textSecondary,
     lineHeight: 20,
   },
   filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F2F2F7',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: colors.bgApp,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -712,41 +713,41 @@ const styles = StyleSheet.create({
   },
   filterButtonText: {
     fontSize: 16,
-    color: '#007AFF',
-    fontWeight: '500',
+    color: colors.accent,
+    fontWeight: '500' as const,
   },
   viewToggleContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#F2F2F7',
+    flexDirection: 'row' as const,
+    backgroundColor: colors.bgApp,
     borderRadius: 12,
     padding: 4,
     marginBottom: 16,
   },
   viewToggleButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
     gap: 6,
   },
   viewToggleButtonActive: {
-    backgroundColor: '#007AFF',
+    backgroundColor: colors.accent,
   },
   viewToggleText: {
     fontSize: 14,
-    color: '#007AFF',
-    fontWeight: '500',
+    color: colors.accent,
+    fontWeight: '500' as const,
   },
   viewToggleTextActive: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
   },
   searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F2F2F7',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: colors.bgApp,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -758,44 +759,44 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: '#1A1A1A',
+    color: colors.textPrimary,
   },
   clearSearchButton: {
     marginLeft: 8,
   },
   resultsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
   },
   resultsLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
     gap: 12,
   },
   resultsCount: {
     fontSize: 16,
-    color: '#6B6B6B',
-    fontWeight: '500',
+    color: colors.textSecondary,
+    fontWeight: '500' as const,
   },
   createAgentButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#007AFF',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: colors.accent,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
     gap: 8,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: colors.shadowColor,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
   createAgentButtonText: {
     fontSize: 14,
-    color: '#FFFFFF',
-    fontWeight: '600',
+    color: colors.textInverse,
+    fontWeight: '600' as const,
   },
   clearFiltersButton: {
     paddingHorizontal: 12,
@@ -803,13 +804,13 @@ const styles = StyleSheet.create({
   },
   clearFiltersText: {
     fontSize: 14,
-    color: '#007AFF',
-    fontWeight: '500',
+    color: colors.accent,
+    fontWeight: '500' as const,
   },
   filtersContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+    borderBottomColor: colors.borderSubtle,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
@@ -818,51 +819,50 @@ const styles = StyleSheet.create({
   },
   filterSectionTitle: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#1A1A1A',
+    fontWeight: '600' as const,
+    color: colors.textPrimary,
     marginBottom: 8,
   },
   filterChipsContainer: {
-    flexDirection: 'row',
+    flexDirection: 'row' as const,
     gap: 8,
   },
   filterChip: {
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.bgApp,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderSubtle,
   },
   filterChipSelected: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   filterChipText: {
     fontSize: 14,
-    color: '#1A1A1A',
-    fontWeight: '500',
+    color: colors.textPrimary,
+    fontWeight: '500' as const,
   },
   filterChipTextSelected: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
   },
   agentGrid: {
     padding: 16,
     paddingTop: 12,
-    minHeight: 200, // Ensure minimum height for better layout
-    overflow: 'hidden', // Prevent horizontal overflow
+    minHeight: 200,
+    overflow: 'hidden' as const,
   },
   gridRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
+    flexDirection: 'row' as const,
+    justifyContent: 'flex-start' as const,
     marginBottom: 16,
-    flexWrap: 'nowrap', // Prevent wrapping to maintain grid structure
-    overflow: 'hidden', // Prevent cards from overflowing
+    flexWrap: 'nowrap' as const,
+    overflow: 'hidden' as const,
   },
   gridItem: {
-    flexShrink: 0, // Prevent shrinking to maintain card width
-    // marginBottom handled by gridRow marginBottom
+    flexShrink: 0,
   },
-});
+}));
 
 export default AgentMarketplaceScreen;

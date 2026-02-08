@@ -8,7 +8,6 @@ import {
   ScrollView,
   Dimensions,
   Platform,
-  StyleSheet,
   KeyboardAvoidingView,
   StatusBar,
   Animated,
@@ -16,6 +15,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { webInputStyles } from '../styles/containers';
+import { useTheme, useThemedStyles } from '../theme';
+import type { ThemeColors } from '../theme';
 
 export interface EnhancedTextEditorProps {
   value: string;
@@ -58,6 +59,268 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const isTablet = screenWidth >= 768;
 const isMobile = screenWidth < 768;
 
+const createStyles = (colors: ThemeColors) => ({
+  container: {
+    marginBottom: 16,
+  },
+  labelContainer: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    marginBottom: 8,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    flex: 1,
+  },
+  requiredIndicator: {
+    color: colors.statusError,
+    fontWeight: '700' as const,
+  },
+  expandButton: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: colors.bgHover,
+    borderRadius: 6,
+    gap: 4,
+  },
+  expandButtonText: {
+    fontSize: 14,
+    color: colors.accent,
+    fontWeight: '500' as const,
+  },
+  editorContainer: {
+    borderWidth: 1.5,
+    borderRadius: 12,
+    overflow: 'hidden' as const,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.shadowColor,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  focusedContainer: {
+    ...Platform.select({
+      ios: {
+        shadowOpacity: 0.15,
+        shadowRadius: 5,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  errorContainer: {
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.statusError,
+        shadowOpacity: 0.15,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  editorContent: {
+    flexDirection: 'row' as const,
+    flex: 1,
+  },
+  lineNumberContainer: {
+    minWidth: 40,
+    paddingHorizontal: 8,
+    paddingVertical: 12,
+    borderRightWidth: 1,
+    borderRightColor: colors.borderLight,
+  },
+  lineNumberContent: {
+    alignItems: 'flex-end' as const,
+  },
+  lineNumber: {
+    fontSize: 14,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    lineHeight: 22,
+    marginBottom: 0,
+  },
+  textInput: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    lineHeight: 22,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
+    ...webInputStyles,
+  },
+  statsContainer: {
+    marginTop: 8,
+    alignItems: 'flex-end' as const,
+  },
+  statsText: {
+    fontSize: 12,
+    fontWeight: '500' as const,
+  },
+  helperContainer: {
+    marginTop: 4,
+  },
+  helperText: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
+
+  // Fullscreen styles
+  fullscreenContainer: {
+    flex: 1,
+  },
+  fullscreenKeyboard: {
+    flex: 1,
+  },
+  fullscreenHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+    minHeight: 60,
+  },
+  headerLeft: {
+    flex: 1,
+    alignItems: 'flex-start' as const,
+  },
+  headerButton: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 4,
+  },
+  headerButtonText: {
+    fontSize: 16,
+    color: colors.accent,
+    fontWeight: '500' as const,
+  },
+  headerTitle: {
+    flex: 2,
+    fontSize: 18,
+    fontWeight: '600' as const,
+    textAlign: 'center' as const,
+  },
+  headerRight: {
+    flex: 1,
+    alignItems: 'flex-end' as const,
+  },
+  fullscreenEditorContainer: {
+    flex: 1,
+  },
+  fullscreenEditorContent: {
+    flex: 1,
+    flexDirection: 'row' as const,
+  },
+  fullscreenLineNumbers: {
+    width: 60,
+    paddingHorizontal: 8,
+    paddingVertical: 16,
+    borderRightWidth: 1,
+    borderRightColor: colors.borderLight,
+  },
+  fullscreenLineNumber: {
+    fontSize: 14,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    lineHeight: 22,
+    textAlign: 'right' as const,
+  },
+  fullscreenTextInput: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    fontSize: 16,
+    lineHeight: 22,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
+    ...webInputStyles,
+  },
+
+  // Toolbar styles
+  toolbar: {
+    borderTopWidth: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.shadowColor,
+        shadowOffset: { width: 0, height: -1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  toolbarContent: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 12,
+    paddingHorizontal: 4,
+  },
+  toolbarButton: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: colors.bgSurface,
+    borderRadius: 8,
+    gap: 4,
+    minWidth: 70,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  mobileToolbarButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    minWidth: 40,
+    borderRadius: 6,
+  },
+  toolbarButtonText: {
+    fontSize: 12,
+    color: colors.accent,
+    fontWeight: '500' as const,
+  },
+  secondaryToolbarContent: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+    paddingHorizontal: 4,
+    marginTop: 8,
+  },
+  secondaryToolbarButton: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: colors.bgApp,
+    borderRadius: 6,
+    gap: 3,
+    minWidth: 55,
+  },
+  mobileSecondaryToolbarButton: {
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    minWidth: 32,
+    borderRadius: 4,
+  },
+  secondaryToolbarButtonText: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    fontWeight: '400' as const,
+  },
+});
+
 const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
   value = '',
   onChangeText,
@@ -93,7 +356,7 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
   const [selectionEnd, setSelectionEnd] = useState(0);
   const [historyStack, setHistoryStack] = useState<string[]>([value]);
   const [historyIndex, setHistoryIndex] = useState(0);
-  
+
   // Refs
   const textInputRef = useRef<TextInput>(null);
   const fullscreenInputRef = useRef<TextInput>(null);
@@ -108,24 +371,26 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
   const hasError = !!errorMessage || isOverLimit;
 
   // Theme configuration
+  const { colors: appColors } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const themeColors = {
     light: {
-      background: '#FFFFFF',
-      border: '#E5E5EA',
-      focusBorder: '#007AFF',
-      errorBorder: '#FF3B30',
-      text: '#1A1A1A',
-      placeholder: '#8E8E93',
-      lineNumbers: '#C7C7CC',
-      lineNumberBg: '#F8F9FA',
-      stats: '#6B6B6B',
-      headerBg: '#F8F9FA',
-      toolbarBg: '#FFFFFF',
-      toolbarBorder: '#E5E5EA',
-      shadowColor: '#000',
+      background: appColors.bgCard,
+      border: appColors.borderLight,
+      focusBorder: appColors.accent,
+      errorBorder: appColors.statusError,
+      text: appColors.textPrimary,
+      placeholder: appColors.textSecondary,
+      lineNumbers: appColors.textTertiary,
+      lineNumberBg: appColors.bgSurface,
+      stats: appColors.textSecondary,
+      headerBg: appColors.bgSurface,
+      toolbarBg: appColors.bgCard,
+      toolbarBorder: appColors.borderLight,
+      shadowColor: appColors.shadowColor,
       overlayBg: 'rgba(0, 0, 0, 0.4)',
-      helperText: '#6B6B6B',
-      errorText: '#FF3B30',
+      helperText: appColors.textSecondary,
+      errorText: appColors.statusError,
     },
     dark: {
       background: '#1C1C1E',
@@ -153,14 +418,14 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
   const addToHistory = useCallback((text: string) => {
     const newStack = historyStack.slice(0, historyIndex + 1);
     newStack.push(text);
-    
+
     // Limit history to 50 items for performance
     if (newStack.length > 50) {
       newStack.shift();
     } else {
       setHistoryIndex(newStack.length - 1);
     }
-    
+
     setHistoryStack(newStack);
   }, [historyStack, historyIndex]);
 
@@ -204,7 +469,7 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
         const newText = `${before}**${selected || 'bold text'}**${after}`;
         onChangeText(newText);
         addToHistory(newText);
-        
+
         // Update cursor position
         const newCursorPos = selectionStart + (selected ? selected.length + 4 : 11);
         setTimeout(() => {
@@ -225,7 +490,7 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
         const newText = `${before}*${selected || 'italic text'}*${after}`;
         onChangeText(newText);
         addToHistory(newText);
-        
+
         // Update cursor position
         const newCursorPos = selectionStart + (selected ? selected.length + 2 : 13);
         setTimeout(() => {
@@ -243,7 +508,7 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
         const lines = value.split('\n');
         const currentLineIndex = value.substring(0, selectionStart).split('\n').length - 1;
         const currentLine = lines[currentLineIndex];
-        
+
         // Toggle bullet point
         if (currentLine.startsWith('• ')) {
           lines[currentLineIndex] = currentLine.substring(2);
@@ -252,7 +517,7 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
         } else {
           lines[currentLineIndex] = `• ${currentLine}`;
         }
-        
+
         const newText = lines.join('\n');
         onChangeText(newText);
         addToHistory(newText);
@@ -266,14 +531,14 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
         const lines = value.split('\n');
         const currentLineIndex = value.substring(0, selectionStart).split('\n').length - 1;
         const currentLine = lines[currentLineIndex];
-        
+
         // Add or toggle numbered list
         if (/^\d+\.\s/.test(currentLine)) {
           lines[currentLineIndex] = currentLine.replace(/^\d+\.\s/, '');
         } else {
           lines[currentLineIndex] = `1. ${currentLine}`;
         }
-        
+
         const newText = lines.join('\n');
         onChangeText(newText);
         addToHistory(newText);
@@ -301,14 +566,14 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
         const lines = value.split('\n');
         const currentLineIndex = value.substring(0, selectionStart).split('\n').length - 1;
         const currentLine = lines[currentLineIndex];
-        
+
         // Toggle quote
         if (currentLine.startsWith('> ')) {
           lines[currentLineIndex] = currentLine.substring(2);
         } else {
           lines[currentLineIndex] = `> ${currentLine}`;
         }
-        
+
         const newText = lines.join('\n');
         onChangeText(newText);
         addToHistory(newText);
@@ -322,7 +587,7 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
         const before = value.substring(0, selectionStart);
         const selected = value.substring(selectionStart, selectionEnd);
         const after = value.substring(selectionEnd);
-        
+
         if (selected.includes('\n')) {
           // Multi-line code block
           const newText = `${before}\`\`\`\n${selected || 'code here'}\n\`\`\`${after}`;
@@ -343,7 +608,7 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
         const lines = value.split('\n');
         const currentLineIndex = value.substring(0, selectionStart).split('\n').length - 1;
         const currentLine = lines[currentLineIndex];
-        
+
         // Cycle through heading levels
         if (currentLine.startsWith('### ')) {
           lines[currentLineIndex] = currentLine.substring(4);
@@ -354,7 +619,7 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
         } else {
           lines[currentLineIndex] = `# ${currentLine}`;
         }
-        
+
         const newText = lines.join('\n');
         onChangeText(newText);
         addToHistory(newText);
@@ -384,7 +649,7 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
   const handleFocus = useCallback(() => {
     setIsFocused(true);
     onFocus?.();
-    
+
     // Auto-expand to fullscreen on mobile when user clicks into the input
     if (isMobile && allowFullscreen && autoExpandOnFocus) {
       // Small delay to ensure the focus event is processed first
@@ -407,11 +672,11 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
   // Text change with history
   const handleTextChange = useCallback((text: string) => {
     onChangeText(text);
-    
+
     // Add to history if significant change (prevent spam from typing)
     const currentTime = Date.now();
     const lastTime = (handleTextChange as any).lastTime || 0;
-    
+
     if (currentTime - lastTime > 1000) { // 1 second debounce
       addToHistory(text);
       (handleTextChange as any).lastTime = currentTime;
@@ -423,7 +688,7 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
     if (Platform.OS === 'web') {
       const { key, metaKey, ctrlKey, shiftKey } = event.nativeEvent;
       const isCmd = Platform.OS === 'web' ? (metaKey || ctrlKey) : metaKey;
-      
+
       if (isCmd) {
         switch (key) {
           case 'z':
@@ -516,7 +781,7 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
 
     const stats = [];
     if (showCharacterCount) {
-      const charText = maxLength 
+      const charText = maxLength
         ? `${characterCount}/${maxLength} chars`
         : `${characterCount} chars`;
       stats.push(charText);
@@ -527,7 +792,7 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
     return (
       <View style={styles.statsContainer}>
         <Text style={[
-          styles.statsText, 
+          styles.statsText,
           { color: isOverLimit ? colors.errorText : colors.stats }
         ]}>
           {stats.join(' • ')}
@@ -545,25 +810,25 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
     const secondaryActions = toolbarActions.slice(6); // Additional actions
 
     return (
-      <View style={[styles.toolbar, { 
+      <View style={[styles.toolbar, {
         backgroundColor: colors.toolbarBg,
         borderTopColor: colors.toolbarBorder,
       }]}>
         {/* Primary toolbar row */}
-        <ScrollView 
-          horizontal 
+        <ScrollView
+          horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.toolbarContent}
         >
           {primaryActions.map((action) => {
             const isDisabled = (action.id === 'undo' && historyIndex === 0) ||
                               (action.id === 'redo' && historyIndex === historyStack.length - 1);
-            
+
             return (
               <TouchableOpacity
                 key={action.id}
                 style={[
-                  styles.toolbarButton, 
+                  styles.toolbarButton,
                   { opacity: isDisabled ? 0.5 : 1 },
                   isMobile && styles.mobileToolbarButton
                 ]}
@@ -575,32 +840,32 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
                 accessibilityRole="button"
                 accessibilityState={{ disabled: isDisabled }}
               >
-                <Ionicons 
-                  name={action.icon as any} 
-                  size={isMobile ? 18 : 20} 
-                  color={isDisabled ? "#C7C7CC" : "#007AFF"} 
+                <Ionicons
+                  name={action.icon as any}
+                  size={isMobile ? 18 : 20}
+                  color={isDisabled ? appColors.textTertiary : appColors.accent}
                 />
                 {!isMobile && <Text style={styles.toolbarButtonText}>{action.label}</Text>}
               </TouchableOpacity>
             );
           })}
         </ScrollView>
-        
+
         {/* Secondary toolbar row for additional actions */}
         {secondaryActions.length > 0 && (
-          <ScrollView 
-            horizontal 
+          <ScrollView
+            horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.secondaryToolbarContent}
           >
             {secondaryActions.map((action) => {
               const isDisabled = action.id === 'clear' && !value.trim();
-              
+
               return (
                 <TouchableOpacity
                   key={action.id}
                   style={[
-                    styles.secondaryToolbarButton, 
+                    styles.secondaryToolbarButton,
                     { opacity: isDisabled ? 0.5 : 1 },
                     isMobile && styles.mobileSecondaryToolbarButton
                   ]}
@@ -611,10 +876,10 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
                   accessibilityRole="button"
                   accessibilityState={{ disabled: isDisabled }}
                 >
-                  <Ionicons 
-                    name={action.icon as any} 
-                    size={isMobile ? 16 : 18} 
-                    color={isDisabled ? "#C7C7CC" : "#6B6B6B"} 
+                  <Ionicons
+                    name={action.icon as any}
+                    size={isMobile ? 16 : 18}
+                    color={isDisabled ? appColors.textTertiary : appColors.textSecondary}
                   />
                   {!isMobile && <Text style={styles.secondaryToolbarButtonText}>{action.label}</Text>}
                 </TouchableOpacity>
@@ -657,7 +922,7 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
               onPress={() => setIsFullscreen(true)}
               activeOpacity={0.7}
             >
-              <Ionicons name="expand-outline" size={16} color="#007AFF" />
+              <Ionicons name="expand-outline" size={16} color={appColors.accent} />
               <Text style={styles.expandButtonText}>Expand</Text>
             </TouchableOpacity>
           )}
@@ -669,7 +934,7 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
           styles.editorContainer,
           {
             backgroundColor: colors.background,
-            borderColor: hasError ? colors.errorBorder : 
+            borderColor: hasError ? colors.errorBorder :
                         isFocused ? colors.focusBorder : colors.border,
             minHeight: contentHeight,
           },
@@ -741,7 +1006,7 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
                 style={styles.headerButton}
                 onPress={() => setIsFullscreen(false)}
               >
-                <Ionicons name="chevron-down" size={24} color="#007AFF" />
+                <Ionicons name="chevron-down" size={24} color={appColors.accent} />
                 <Text style={styles.headerButtonText}>Done</Text>
               </TouchableOpacity>
             </View>
@@ -823,267 +1088,5 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
     </>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: 16,
-  },
-  labelContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    flex: 1,
-  },
-  requiredIndicator: {
-    color: '#FF3B30',
-    fontWeight: '700',
-  },
-  expandButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: '#F0F8FF',
-    borderRadius: 6,
-    gap: 4,
-  },
-  expandButtonText: {
-    fontSize: 14,
-    color: '#007AFF',
-    fontWeight: '500',
-  },
-  editorContainer: {
-    borderWidth: 1.5,
-    borderRadius: 12,
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  focusedContainer: {
-    ...Platform.select({
-      ios: {
-        shadowOpacity: 0.15,
-        shadowRadius: 5,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
-  errorContainer: {
-    ...Platform.select({
-      ios: {
-        shadowColor: '#FF3B30',
-        shadowOpacity: 0.15,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  editorContent: {
-    flexDirection: 'row',
-    flex: 1,
-  },
-  lineNumberContainer: {
-    minWidth: 40,
-    paddingHorizontal: 8,
-    paddingVertical: 12,
-    borderRightWidth: 1,
-    borderRightColor: '#E5E5EA',
-  },
-  lineNumberContent: {
-    alignItems: 'flex-end',
-  },
-  lineNumber: {
-    fontSize: 14,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    lineHeight: 22,
-    marginBottom: 0,
-  },
-  textInput: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    lineHeight: 22,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
-    ...webInputStyles,
-  },
-  statsContainer: {
-    marginTop: 8,
-    alignItems: 'flex-end',
-  },
-  statsText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  helperContainer: {
-    marginTop: 4,
-  },
-  helperText: {
-    fontSize: 12,
-    lineHeight: 16,
-  },
-
-  // Fullscreen styles
-  fullscreenContainer: {
-    flex: 1,
-  },
-  fullscreenKeyboard: {
-    flex: 1,
-  },
-  fullscreenHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-    minHeight: 60,
-  },
-  headerLeft: {
-    flex: 1,
-    alignItems: 'flex-start',
-  },
-  headerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  headerButtonText: {
-    fontSize: 16,
-    color: '#007AFF',
-    fontWeight: '500',
-  },
-  headerTitle: {
-    flex: 2,
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  headerRight: {
-    flex: 1,
-    alignItems: 'flex-end',
-  },
-  fullscreenEditorContainer: {
-    flex: 1,
-  },
-  fullscreenEditorContent: {
-    flex: 1,
-    flexDirection: 'row',
-  },
-  fullscreenLineNumbers: {
-    width: 60,
-    paddingHorizontal: 8,
-    paddingVertical: 16,
-    borderRightWidth: 1,
-    borderRightColor: '#E5E5EA',
-  },
-  fullscreenLineNumber: {
-    fontSize: 14,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    lineHeight: 22,
-    textAlign: 'right',
-  },
-  fullscreenTextInput: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    fontSize: 16,
-    lineHeight: 22,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
-    ...webInputStyles,
-  },
-
-  // Toolbar styles
-  toolbar: {
-    borderTopWidth: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
-  toolbarContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 4,
-  },
-  toolbarButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    gap: 4,
-    minWidth: 70,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  mobileToolbarButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    minWidth: 40,
-    borderRadius: 6,
-  },
-  toolbarButtonText: {
-    fontSize: 12,
-    color: '#007AFF',
-    fontWeight: '500',
-  },
-  secondaryToolbarContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 4,
-    marginTop: 8,
-  },
-  secondaryToolbarButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    backgroundColor: '#F2F2F7',
-    borderRadius: 6,
-    gap: 3,
-    minWidth: 55,
-  },
-  mobileSecondaryToolbarButton: {
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    minWidth: 32,
-    borderRadius: 4,
-  },
-  secondaryToolbarButtonText: {
-    fontSize: 11,
-    color: '#6B6B6B',
-    fontWeight: '400',
-  },
-});
 
 export default EnhancedTextEditor;

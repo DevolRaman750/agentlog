@@ -2,7 +2,6 @@ import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   Modal,
   ScrollView,
@@ -11,6 +10,7 @@ import {
   Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme, useThemedStyles } from '../theme';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -48,6 +48,216 @@ const ParameterSlider: React.FC<ParameterSliderProps> = ({
   presets,
   helpInfo,
 }) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      marginBottom: 24,
+    },
+    header: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      marginBottom: 12,
+    },
+    label: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    helpButton: {
+      padding: 4,
+    },
+    valueContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 16,
+      gap: 12,
+    },
+    valueText: {
+      fontSize: 24,
+      fontWeight: '700' as const,
+      color: colors.textPrimary,
+    },
+    valueIndicator: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+    },
+    valueIndicatorText: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: colors.textInverse,
+    },
+    sliderContainer: {
+      marginBottom: 20,
+    },
+    sliderTrack: {
+      height: 6,
+      backgroundColor: colors.borderLight,
+      borderRadius: 3,
+      position: 'relative' as const,
+    },
+    sliderFill: {
+      height: 6,
+      backgroundColor: colors.accent,
+      borderRadius: 3,
+      position: 'absolute' as const,
+    },
+    sliderKnob: {
+      position: 'absolute' as const,
+      top: -9,
+      width: 24,
+      height: 24,
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+      elevation: 4,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+    },
+    knobInner: {
+      width: 12,
+      height: 12,
+      backgroundColor: colors.accent,
+      borderRadius: 6,
+    },
+    sliderLabels: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      marginTop: 8,
+    },
+    sliderLabel: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    presetsContainer: {
+      marginBottom: 12,
+    },
+    presetsLabel: {
+      fontSize: 14,
+      fontWeight: '500' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    presetsList: {
+      flexDirection: 'row' as const,
+    },
+    presetButton: {
+      backgroundColor: colors.bgApp,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 8,
+      marginRight: 8,
+      alignItems: 'center' as const,
+      minWidth: 60,
+    },
+    presetButtonActive: {
+      backgroundColor: colors.accent,
+    },
+    presetButtonText: {
+      fontSize: 12,
+      fontWeight: '500' as const,
+      color: colors.textPrimary,
+    },
+    presetButtonTextActive: {
+      color: colors.textInverse,
+    },
+    presetValue: {
+      fontSize: 10,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    presetValueActive: {
+      color: colors.textInverse,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+    },
+    helpModal: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 16,
+      width: screenWidth * 0.9,
+      maxHeight: '80%' as const,
+      overflow: 'hidden' as const,
+    },
+    helpHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      padding: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    helpTitle: {
+      fontSize: 20,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    helpContent: {
+      padding: 20,
+    },
+    helpDescription: {
+      fontSize: 14,
+      color: colors.textPrimary,
+      lineHeight: 20,
+      marginBottom: 20,
+    },
+    helpSection: {
+      marginBottom: 20,
+    },
+    helpSectionTitle: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 12,
+    },
+    helpRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 8,
+    },
+    helpDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      marginRight: 12,
+    },
+    helpRowText: {
+      fontSize: 14,
+      color: colors.textPrimary,
+      flex: 1,
+    },
+    recommendationCard: {
+      backgroundColor: colors.bgSurface,
+      padding: 12,
+      borderRadius: 8,
+      marginBottom: 8,
+    },
+    recommendationTask: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    recommendationRange: {
+      fontSize: 12,
+      fontWeight: '500' as const,
+      color: colors.accent,
+      marginBottom: 4,
+    },
+    recommendationDescription: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      lineHeight: 16,
+    },
+  }));
+
   const [showHelp, setShowHelp] = useState(false);
   const translateX = useRef(new Animated.Value(0)).current;
   const sliderWidth = screenWidth - 80; // Account for padding
@@ -61,7 +271,7 @@ const ParameterSlider: React.FC<ParameterSliderProps> = ({
   }, [value, min, max, sliderWidth]);
 
   const [currentPosition, setCurrentPosition] = useState(0);
-  
+
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onMoveShouldSetPanResponder: () => true,
@@ -73,12 +283,12 @@ const ParameterSlider: React.FC<ParameterSliderProps> = ({
       const percentage = (value - min) / (max - min);
       const startPosition = percentage * (sliderWidth - knobSize);
       const newX = Math.max(0, Math.min(sliderWidth - knobSize, startPosition + gestureState.dx));
-      
+
       // Calculate new value
       const newPercentage = newX / (sliderWidth - knobSize);
       const newValue = min + newPercentage * (max - min);
       const steppedValue = Math.round(newValue / step) * step;
-      
+
       onValueChange(steppedValue);
     },
     onPanResponderRelease: () => {
@@ -92,9 +302,9 @@ const ParameterSlider: React.FC<ParameterSliderProps> = ({
 
   const getValueColor = () => {
     const percentage = (value - min) / (max - min);
-    if (percentage < 0.3) return '#34C759'; // Green for low
-    if (percentage < 0.7) return '#FF9500'; // Orange for medium  
-    return '#FF3B30'; // Red for high
+    if (percentage < 0.3) return colors.statusSuccess;
+    if (percentage < 0.7) return colors.statusWarning;
+    return colors.statusError;
   };
 
   const getValueDescription = () => {
@@ -112,7 +322,7 @@ const ParameterSlider: React.FC<ParameterSliderProps> = ({
           onPress={() => setShowHelp(true)}
           style={styles.helpButton}
         >
-          <Ionicons name="help-circle-outline" size={20} color="#007AFF" />
+          <Ionicons name="help-circle-outline" size={20} color={colors.accent} />
         </TouchableOpacity>
       </View>
 
@@ -125,7 +335,7 @@ const ParameterSlider: React.FC<ParameterSliderProps> = ({
 
       <View style={styles.sliderContainer}>
         <View style={styles.sliderTrack}>
-          <Animated.View 
+          <Animated.View
             style={[
               styles.sliderFill,
               {
@@ -135,9 +345,9 @@ const ParameterSlider: React.FC<ParameterSliderProps> = ({
                   extrapolate: 'clamp',
                 }),
               }
-            ]} 
+            ]}
           />
-          <Animated.View 
+          <Animated.View
             {...panResponder.panHandlers}
             style={[
               styles.sliderKnob,
@@ -149,7 +359,7 @@ const ParameterSlider: React.FC<ParameterSliderProps> = ({
             <View style={styles.knobInner} />
           </Animated.View>
         </View>
-        
+
         <View style={styles.sliderLabels}>
           <Text style={styles.sliderLabel}>{min}</Text>
           <Text style={styles.sliderLabel}>{max}</Text>
@@ -196,21 +406,21 @@ const ParameterSlider: React.FC<ParameterSliderProps> = ({
             <View style={styles.helpHeader}>
               <Text style={styles.helpTitle}>{helpInfo.title}</Text>
               <TouchableOpacity onPress={() => setShowHelp(false)}>
-                <Ionicons name="close" size={24} color="#8E8E93" />
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.helpContent}>
               <Text style={styles.helpDescription}>{helpInfo.description}</Text>
-              
+
               <View style={styles.helpSection}>
                 <Text style={styles.helpSectionTitle}>Understanding Values:</Text>
                 <View style={styles.helpRow}>
-                  <View style={[styles.helpDot, { backgroundColor: '#34C759' }]} />
+                  <View style={[styles.helpDot, { backgroundColor: colors.statusSuccess }]} />
                   <Text style={styles.helpRowText}>Low Values: {helpInfo.lowValue}</Text>
                 </View>
                 <View style={styles.helpRow}>
-                  <View style={[styles.helpDot, { backgroundColor: '#FF3B30' }]} />
+                  <View style={[styles.helpDot, { backgroundColor: colors.statusError }]} />
                   <Text style={styles.helpRowText}>High Values: {helpInfo.highValue}</Text>
                 </View>
               </View>
@@ -233,213 +443,4 @@ const ParameterSlider: React.FC<ParameterSliderProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: 24,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  helpButton: {
-    padding: 4,
-  },
-  valueContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    gap: 12,
-  },
-  valueText: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1A1A1A',
-  },
-  valueIndicator: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  valueIndicatorText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  sliderContainer: {
-    marginBottom: 20,
-  },
-  sliderTrack: {
-    height: 6,
-    backgroundColor: '#E5E5EA',
-    borderRadius: 3,
-    position: 'relative',
-  },
-  sliderFill: {
-    height: 6,
-    backgroundColor: '#007AFF',
-    borderRadius: 3,
-    position: 'absolute',
-  },
-  sliderKnob: {
-    position: 'absolute',
-    top: -9,
-    width: 24,
-    height: 24,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  knobInner: {
-    width: 12,
-    height: 12,
-    backgroundColor: '#007AFF',
-    borderRadius: 6,
-  },
-  sliderLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  sliderLabel: {
-    fontSize: 12,
-    color: '#8E8E93',
-  },
-  presetsContainer: {
-    marginBottom: 12,
-  },
-  presetsLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1A1A1A',
-    marginBottom: 8,
-  },
-  presetsList: {
-    flexDirection: 'row',
-  },
-  presetButton: {
-    backgroundColor: '#F2F2F7',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginRight: 8,
-    alignItems: 'center',
-    minWidth: 60,
-  },
-  presetButtonActive: {
-    backgroundColor: '#007AFF',
-  },
-  presetButtonText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#1A1A1A',
-  },
-  presetButtonTextActive: {
-    color: '#FFFFFF',
-  },
-  presetValue: {
-    fontSize: 10,
-    color: '#8E8E93',
-    marginTop: 2,
-  },
-  presetValueActive: {
-    color: '#FFFFFF',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  helpModal: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    width: screenWidth * 0.9,
-    maxHeight: '80%',
-    overflow: 'hidden',
-  },
-  helpHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  helpTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  helpContent: {
-    padding: 20,
-  },
-  helpDescription: {
-    fontSize: 14,
-    color: '#1A1A1A',
-    lineHeight: 20,
-    marginBottom: 20,
-  },
-  helpSection: {
-    marginBottom: 20,
-  },
-  helpSectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 12,
-  },
-  helpRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  helpDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 12,
-  },
-  helpRowText: {
-    fontSize: 14,
-    color: '#1A1A1A',
-    flex: 1,
-  },
-  recommendationCard: {
-    backgroundColor: '#F8F9FA',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  recommendationTask: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 4,
-  },
-  recommendationRange: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#007AFF',
-    marginBottom: 4,
-  },
-  recommendationDescription: {
-    fontSize: 12,
-    color: '#6C757D',
-    lineHeight: 16,
-  },
-});
-
-export default ParameterSlider; 
+export default ParameterSlider;

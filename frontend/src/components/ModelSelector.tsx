@@ -5,13 +5,13 @@ import {
   TouchableOpacity,
   Modal,
   FlatList,
-  StyleSheet,
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { APIConfiguration } from '../types';
+import { useTheme, useThemedStyles } from '../theme';
 
 const { width } = Dimensions.get('window');
 
@@ -83,6 +83,167 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
   style,
   disabled = false,
 }) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      marginBottom: 20,
+    },
+    selector: {
+      backgroundColor: colors.bgApp,
+      borderRadius: 12,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    disabledSelector: {
+      backgroundColor: colors.bgSurface,
+      borderColor: colors.borderLight,
+    },
+    selectorContent: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+    },
+    selectedModelInfo: {
+      flex: 1,
+    },
+    selectedDisplayName: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 2,
+    },
+    selectedModelName: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    disabledText: {
+      color: colors.textTertiary,
+    },
+    modalContainer: {
+      flex: 1,
+      backgroundColor: colors.bgCard,
+    },
+    modalHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      padding: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    closeButton: {
+      padding: 4,
+    },
+    modelList: {
+      padding: 20,
+    },
+    modelItem: {
+      backgroundColor: colors.bgApp,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      position: 'relative' as const,
+    },
+    selectedModelItem: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+    },
+    modelItemHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'flex-start' as const,
+      marginBottom: 8,
+    },
+    modelDisplayName: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      flex: 1,
+      marginRight: 8,
+    },
+    selectedModelText: {
+      color: colors.textInverse,
+    },
+    modelBadges: {
+      flexDirection: 'row' as const,
+      gap: 6,
+    },
+    recommendedBadge: {
+      backgroundColor: colors.statusSuccess,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+    },
+    newBadge: {
+      backgroundColor: colors.statusWarning,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+    },
+    badgeText: {
+      fontSize: 10,
+      fontWeight: '600' as const,
+      color: colors.textInverse,
+      textTransform: 'uppercase' as const,
+    },
+    modelName: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginBottom: 4,
+    },
+    selectedModelSecondaryText: {
+      color: colors.borderLight,
+    },
+    modelDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+    },
+    selectedIndicator: {
+      position: 'absolute' as const,
+      top: 16,
+      right: 16,
+    },
+    emptyState: {
+      flex: 1,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      padding: 40,
+    },
+    emptyStateTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginTop: 16,
+      marginBottom: 8,
+    },
+    emptyStateDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      textAlign: 'center' as const,
+      lineHeight: 20,
+    },
+    loadingState: {
+      flex: 1,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      padding: 40,
+    },
+    loadingText: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      marginTop: 16,
+    },
+  }));
+
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -94,15 +255,15 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
       setIsLoading(true);
       try {
         // Filter system configurations and transform to models
-        const systemConfigs = state.configurations.filter(config => 
-          (config.id && config.id.startsWith('system-config-')) || 
+        const systemConfigs = state.configurations.filter(config =>
+          (config.id && config.id.startsWith('system-config-')) ||
           config.variationName.includes('System configuration:') ||
           // Also include configs that look like system configs based on naming patterns
           (config.id && ['gemini-1-5-pro', 'gemini-2-5-pro', 'kimi-k2', 'claude-3-5-sonnet', 'gpt-4o'].includes(config.id))
         );
-        
+
         const models = systemConfigs.map(transformConfigurationToModel);
-        
+
         // Sort models: recommended first, then by category, then by name
         models.sort((a, b) => {
           if (a.isRecommended && !b.isRecommended) return -1;
@@ -110,9 +271,9 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
           if (a.category !== b.category) return a.category.localeCompare(b.category);
           return a.displayName.localeCompare(b.displayName);
         });
-        
+
         setAvailableModels(models);
-        console.log('📋 Loaded', models.length, 'models from configurations');
+        console.log('Loaded', models.length, 'models from configurations');
       } catch (error) {
         console.error('Failed to load models:', error);
         setAvailableModels([]);
@@ -173,7 +334,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
       </Text>
       {selectedModel === item.name && (
         <View style={styles.selectedIndicator}>
-          <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+          <Ionicons name="checkmark-circle" size={20} color={colors.textInverse} />
         </View>
       )}
     </TouchableOpacity>
@@ -181,7 +342,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <Ionicons name="warning-outline" size={48} color="#8E8E93" />
+      <Ionicons name="warning-outline" size={48} color={colors.textSecondary} />
       <Text style={styles.emptyStateTitle}>No Models Available</Text>
       <Text style={styles.emptyStateDescription}>
         No model configurations found. Please check your system configuration.
@@ -191,7 +352,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
 
   const renderLoadingState = () => (
     <View style={styles.loadingState}>
-      <ActivityIndicator size="large" color="#007AFF" />
+      <ActivityIndicator size="large" color={colors.accent} />
       <Text style={styles.loadingText}>Loading models...</Text>
     </View>
   );
@@ -224,7 +385,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
           <Ionicons
             name="chevron-down"
             size={20}
-            color={disabled ? "#C7C7CC" : "#8E8E93"}
+            color={disabled ? colors.textTertiary : colors.textSecondary}
           />
         </View>
       </TouchableOpacity>
@@ -242,10 +403,10 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
               onPress={() => setIsModalVisible(false)}
               style={styles.closeButton}
             >
-              <Ionicons name="close" size={24} color="#8E8E93" />
+              <Ionicons name="close" size={24} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
-          
+
           {isLoading ? (
             renderLoadingState()
           ) : availableModels.length === 0 ? (
@@ -264,165 +425,5 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: 20,
-  },
-  selector: {
-    backgroundColor: '#F2F2F7',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  disabledSelector: {
-    backgroundColor: '#F8F8F8',
-    borderColor: '#E5E5EA',
-  },
-  selectorContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  selectedModelInfo: {
-    flex: 1,
-  },
-  selectedDisplayName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 2,
-  },
-  selectedModelName: {
-    fontSize: 14,
-    color: '#8E8E93',
-  },
-  disabledText: {
-    color: '#C7C7CC',
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  closeButton: {
-    padding: 4,
-  },
-  modelList: {
-    padding: 20,
-  },
-  modelItem: {
-    backgroundColor: '#F2F2F7',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    position: 'relative',
-  },
-  selectedModelItem: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
-  },
-  modelItemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  modelDisplayName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-    flex: 1,
-    marginRight: 8,
-  },
-  selectedModelText: {
-    color: '#FFFFFF',
-  },
-  modelBadges: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  recommendedBadge: {
-    backgroundColor: '#34C759',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  newBadge: {
-    backgroundColor: '#FF9500',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    textTransform: 'uppercase',
-  },
-  modelName: {
-    fontSize: 14,
-    color: '#8E8E93',
-    marginBottom: 4,
-  },
-  selectedModelSecondaryText: {
-    color: '#E5E5EA',
-  },
-  modelDescription: {
-    fontSize: 14,
-    color: '#8E8E93',
-    lineHeight: 20,
-  },
-  selectedIndicator: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
-  },
-  emptyStateTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000000',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyStateDescription: {
-    fontSize: 14,
-    color: '#8E8E93',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  loadingState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#8E8E93',
-    marginTop: 16,
-  },
-});
 
 export default ModelSelector;

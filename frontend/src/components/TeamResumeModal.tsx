@@ -5,12 +5,12 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  StyleSheet,
   Dimensions,
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MarketplaceTeam } from '../types/marketplace';
+import { useTheme, useThemedStyles } from '../theme';
 
 interface TeamResumeModalProps {
   visible: boolean;
@@ -27,8 +27,301 @@ const TeamResumeModal: React.FC<TeamResumeModalProps> = ({
   onClose,
   onHire,
 }) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bgSurface,
+    },
+    header: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      paddingHorizontal: 16,
+      paddingTop: 16,
+      paddingBottom: 12,
+      backgroundColor: colors.bgCard,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    closeButton: {
+      padding: 4,
+    },
+    headerTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    placeholder: {
+      width: 32,
+    },
+    content: {
+      flex: 1,
+    },
+    teamHeader: {
+      flexDirection: 'row' as const,
+      padding: 20,
+      backgroundColor: colors.bgCard,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    teamAvatar: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      marginRight: 16,
+    },
+    teamAvatarText: {
+      fontSize: 32,
+      fontWeight: 'bold' as const,
+    },
+    teamInfo: {
+      flex: 1,
+    },
+    teamName: {
+      fontSize: 24,
+      fontWeight: 'bold' as const,
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    teamCategory: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      marginBottom: 12,
+    },
+    teamMetrics: {
+      flexDirection: 'row' as const,
+      gap: 16,
+    },
+    metric: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 4,
+    },
+    metricText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      fontWeight: '500' as const,
+    },
+    section: {
+      backgroundColor: colors.bgCard,
+      marginTop: 12,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 12,
+    },
+    description: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      lineHeight: 24,
+    },
+    agentCard: {
+      backgroundColor: colors.bgSurface,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 12,
+    },
+    agentHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'flex-start' as const,
+      marginBottom: 8,
+    },
+    agentInfo: {
+      flex: 1,
+    },
+    agentName: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 2,
+    },
+    agentRole: {
+      fontSize: 14,
+      color: colors.accent,
+      fontWeight: '500' as const,
+    },
+    agentConfig: {
+      alignItems: 'flex-end' as const,
+    },
+    configText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    agentDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+      marginBottom: 12,
+    },
+    agentCapabilities: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: 6,
+    },
+    capabilityTag: {
+      backgroundColor: '#E3F2FD',
+      borderRadius: 6,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+    },
+    capabilityTagText: {
+      fontSize: 12,
+      color: '#1976D2',
+      fontWeight: '500' as const,
+    },
+    moreCapabilities: {
+      fontSize: 12,
+      color: colors.accent,
+      fontWeight: '500' as const,
+      alignSelf: 'center' as const,
+    },
+    capabilityItem: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 8,
+    },
+    capabilityText: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      marginLeft: 12,
+      flex: 1,
+    },
+    tagContainer: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: 8,
+    },
+    coverageTag: {
+      backgroundColor: '#E8F5E8',
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+    },
+    coverageTagText: {
+      fontSize: 14,
+      color: '#2E7D32',
+      fontWeight: '500' as const,
+    },
+    integrationTag: {
+      backgroundColor: '#FFF3E0',
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+    },
+    integrationTagText: {
+      fontSize: 14,
+      color: '#F57C00',
+      fontWeight: '500' as const,
+    },
+    apiKeyItem: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 8,
+    },
+    apiKeyText: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      marginLeft: 12,
+    },
+    highlightItem: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+      marginBottom: 8,
+    },
+    highlightText: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      marginLeft: 12,
+      flex: 1,
+    },
+    testimonialCard: {
+      backgroundColor: colors.bgSurface,
+      borderRadius: 12,
+      padding: 16,
+      borderLeftWidth: 4,
+      borderLeftColor: colors.accent,
+    },
+    testimonialText: {
+      fontSize: 16,
+      color: colors.textPrimary,
+      fontStyle: 'italic' as const,
+      lineHeight: 24,
+      marginBottom: 12,
+    },
+    testimonialAuthor: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+    },
+    authorName: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      fontWeight: '500' as const,
+    },
+    rating: {
+      flexDirection: 'row' as const,
+      gap: 2,
+    },
+    contextDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+      marginBottom: 12,
+    },
+    contextInput: {
+      backgroundColor: colors.bgSurface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      fontSize: 16,
+      color: colors.textPrimary,
+      minHeight: 100,
+      maxHeight: 150,
+    },
+    characterCount: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      textAlign: 'right' as const,
+      marginTop: 4,
+    },
+    bottomPadding: {
+      height: 100,
+    },
+    actionContainer: {
+      backgroundColor: colors.bgCard,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      borderTopWidth: 1,
+      borderTopColor: colors.borderLight,
+    },
+    hireButton: {
+      backgroundColor: colors.accent,
+      borderRadius: 12,
+      paddingVertical: 16,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      gap: 8,
+    },
+    hireButtonText: {
+      fontSize: 16,
+      color: colors.textInverse,
+      fontWeight: '600' as const,
+    },
+  }));
+
   const [sharedTeamContext, setSharedTeamContext] = useState('');
-  
+
   if (!team) return null;
 
   return (
@@ -42,7 +335,7 @@ const TeamResumeModal: React.FC<TeamResumeModalProps> = ({
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Ionicons name="close" size={24} color="#6B6B6B" />
+            <Ionicons name="close" size={24} color={colors.textSecondary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Team Details</Text>
           <View style={styles.placeholder} />
@@ -61,11 +354,11 @@ const TeamResumeModal: React.FC<TeamResumeModalProps> = ({
               <Text style={styles.teamCategory}>{team.category}</Text>
               <View style={styles.teamMetrics}>
                 <View style={styles.metric}>
-                  <Ionicons name="people" size={16} color="#007AFF" />
+                  <Ionicons name="people" size={16} color={colors.accent} />
                   <Text style={styles.metricText}>{team.teamSize} Agents</Text>
                 </View>
                 <View style={styles.metric}>
-                  <Ionicons name="card" size={16} color="#34C759" />
+                  <Ionicons name="card" size={16} color={colors.statusSuccess} />
                   <Text style={styles.metricText}>{team.estimatedCost}</Text>
                 </View>
               </View>
@@ -119,7 +412,7 @@ const TeamResumeModal: React.FC<TeamResumeModalProps> = ({
             <Text style={styles.sectionTitle}>Team Capabilities</Text>
             {team.capabilities.overview.map((capability, index) => (
               <View key={index} style={styles.capabilityItem}>
-                <Ionicons name="checkmark-circle" size={20} color="#34C759" />
+                <Ionicons name="checkmark-circle" size={20} color={colors.statusSuccess} />
                 <Text style={styles.capabilityText}>{capability}</Text>
               </View>
             ))}
@@ -154,7 +447,7 @@ const TeamResumeModal: React.FC<TeamResumeModalProps> = ({
             <Text style={styles.sectionTitle}>Required API Keys</Text>
             {team.apiRequirements.displayNames.map((keyName, index) => (
               <View key={index} style={styles.apiKeyItem}>
-                <Ionicons name="key" size={16} color="#FF9500" />
+                <Ionicons name="key" size={16} color={colors.statusWarning} />
                 <Text style={styles.apiKeyText}>{keyName}</Text>
               </View>
             ))}
@@ -165,7 +458,7 @@ const TeamResumeModal: React.FC<TeamResumeModalProps> = ({
             <Text style={styles.sectionTitle}>Key Highlights</Text>
             {team.highlights.map((highlight, index) => (
               <View key={index} style={styles.highlightItem}>
-                <Ionicons name="star" size={16} color="#FF9500" />
+                <Ionicons name="star" size={16} color={colors.statusWarning} />
                 <Text style={styles.highlightText}>{highlight}</Text>
               </View>
             ))}
@@ -181,7 +474,7 @@ const TeamResumeModal: React.FC<TeamResumeModalProps> = ({
                   <Text style={styles.authorName}>{team.testimonial.author}</Text>
                   <View style={styles.rating}>
                     {[...Array(team.testimonial.rating)].map((_, i) => (
-                      <Ionicons key={i} name="star" size={14} color="#FF9500" />
+                      <Ionicons key={i} name="star" size={14} color={colors.statusWarning} />
                     ))}
                   </View>
                 </View>
@@ -198,7 +491,7 @@ const TeamResumeModal: React.FC<TeamResumeModalProps> = ({
             <TextInput
               style={styles.contextInput}
               placeholder="e.g., Project guidelines, company policies, specific requirements, shared knowledge..."
-              placeholderTextColor="#8E8E93"
+              placeholderTextColor={colors.textSecondary}
               value={sharedTeamContext}
               onChangeText={setSharedTeamContext}
               multiline
@@ -216,11 +509,11 @@ const TeamResumeModal: React.FC<TeamResumeModalProps> = ({
 
         {/* Action Button */}
         <View style={styles.actionContainer}>
-          <TouchableOpacity 
-            style={styles.hireButton} 
+          <TouchableOpacity
+            style={styles.hireButton}
             onPress={() => onHire?.(sharedTeamContext.trim() || undefined)}
           >
-            <Ionicons name="add-circle" size={20} color="#FFFFFF" />
+            <Ionicons name="add-circle" size={20} color={colors.textInverse} />
             <Text style={styles.hireButtonText}>Deploy This Team</Text>
           </TouchableOpacity>
         </View>
@@ -228,297 +521,5 @@ const TeamResumeModal: React.FC<TeamResumeModalProps> = ({
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8F9FA',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  closeButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  placeholder: {
-    width: 32,
-  },
-  content: {
-    flex: 1,
-  },
-  teamHeader: {
-    flexDirection: 'row',
-    padding: 20,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  teamAvatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-  },
-  teamAvatarText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-  },
-  teamInfo: {
-    flex: 1,
-  },
-  teamName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-    marginBottom: 4,
-  },
-  teamCategory: {
-    fontSize: 16,
-    color: '#6B6B6B',
-    marginBottom: 12,
-  },
-  teamMetrics: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  metric: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  metricText: {
-    fontSize: 14,
-    color: '#6B6B6B',
-    fontWeight: '500',
-  },
-  section: {
-    backgroundColor: '#FFFFFF',
-    marginTop: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 12,
-  },
-  description: {
-    fontSize: 16,
-    color: '#6B6B6B',
-    lineHeight: 24,
-  },
-  agentCard: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-  },
-  agentHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  agentInfo: {
-    flex: 1,
-  },
-  agentName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 2,
-  },
-  agentRole: {
-    fontSize: 14,
-    color: '#007AFF',
-    fontWeight: '500',
-  },
-  agentConfig: {
-    alignItems: 'flex-end',
-  },
-  configText: {
-    fontSize: 12,
-    color: '#6B6B6B',
-  },
-  agentDescription: {
-    fontSize: 14,
-    color: '#6B6B6B',
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  agentCapabilities: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  capabilityTag: {
-    backgroundColor: '#E3F2FD',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  capabilityTagText: {
-    fontSize: 12,
-    color: '#1976D2',
-    fontWeight: '500',
-  },
-  moreCapabilities: {
-    fontSize: 12,
-    color: '#007AFF',
-    fontWeight: '500',
-    alignSelf: 'center',
-  },
-  capabilityItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  capabilityText: {
-    fontSize: 16,
-    color: '#6B6B6B',
-    marginLeft: 12,
-    flex: 1,
-  },
-  tagContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  coverageTag: {
-    backgroundColor: '#E8F5E8',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  coverageTagText: {
-    fontSize: 14,
-    color: '#2E7D32',
-    fontWeight: '500',
-  },
-  integrationTag: {
-    backgroundColor: '#FFF3E0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  integrationTagText: {
-    fontSize: 14,
-    color: '#F57C00',
-    fontWeight: '500',
-  },
-  apiKeyItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  apiKeyText: {
-    fontSize: 16,
-    color: '#6B6B6B',
-    marginLeft: 12,
-  },
-  highlightItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  highlightText: {
-    fontSize: 16,
-    color: '#6B6B6B',
-    marginLeft: 12,
-    flex: 1,
-  },
-  testimonialCard: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: '#007AFF',
-  },
-  testimonialText: {
-    fontSize: 16,
-    color: '#1A1A1A',
-    fontStyle: 'italic',
-    lineHeight: 24,
-    marginBottom: 12,
-  },
-  testimonialAuthor: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  authorName: {
-    fontSize: 14,
-    color: '#6B6B6B',
-    fontWeight: '500',
-  },
-  rating: {
-    flexDirection: 'row',
-    gap: 2,
-  },
-  contextDescription: {
-    fontSize: 14,
-    color: '#6B6B6B',
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  contextInput: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#1A1A1A',
-    minHeight: 100,
-    maxHeight: 150,
-  },
-  characterCount: {
-    fontSize: 12,
-    color: '#8E8E93',
-    textAlign: 'right',
-    marginTop: 4,
-  },
-  bottomPadding: {
-    height: 100,
-  },
-  actionContainer: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5EA',
-  },
-  hireButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
-    paddingVertical: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  hireButtonText: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-});
 
 export default TeamResumeModal;

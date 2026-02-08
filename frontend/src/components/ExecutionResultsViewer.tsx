@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   Modal,
@@ -17,6 +16,7 @@ import ExecutionLogsCard from './ExecutionLogsCard';
 import ExecutionFlowGraph from './ExecutionFlowGraph';
 import ExecutionComparisonChart from './ExecutionComparisonChart';
 import { AlertAPI } from './CustomAlert';
+import { useTheme, useThemedStyles } from '../theme';
 
 interface ExecutionResultsViewerProps {
   executionResult: ExecutionResult;
@@ -35,6 +35,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
   showReExecuteButton = true,
   embedded = false,
 }) => {
+  const { colors } = useTheme();
   const [showExecutionLogs, setShowExecutionLogs] = useState(false);
   const [showExecutionFlowGraph, setShowExecutionFlowGraph] = useState(false);
   const [showDetailedComparison, setShowDetailedComparison] = useState(false);
@@ -49,6 +50,508 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
     }
     return initialExpanded;
   });
+
+  const styles = useThemedStyles((colors) => ({
+    modalContainer: {
+      flex: 1,
+      backgroundColor: colors.bgApp,
+    },
+    embeddedContainer: {
+      flex: 1,
+      backgroundColor: colors.bgApp,
+    },
+    modalHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      padding: 20,
+      backgroundColor: colors.bgCard,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+      elevation: 3,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: '700' as const,
+      color: colors.textPrimary,
+      flex: 1,
+      textAlign: 'center' as const,
+    },
+    modalCancelButton: {
+      fontSize: 17,
+      color: colors.accent,
+      fontWeight: '500' as const,
+    },
+    headerSpacer: {
+      width: 50,
+    },
+    content: {
+      flex: 1,
+      padding: 16,
+    },
+    summarySection: {
+      marginBottom: 24,
+    },
+    sectionTitle: {
+      fontSize: 20,
+      fontWeight: '700' as const,
+      color: colors.textPrimary,
+      marginBottom: 16,
+    },
+    summaryGrid: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: 12,
+    },
+    summaryCard: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 16,
+      alignItems: 'center' as const,
+      minWidth: 80,
+      flex: 1,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 1,
+    },
+    summaryValue: {
+      fontSize: 24,
+      fontWeight: '700' as const,
+      color: colors.accent,
+      marginBottom: 4,
+    },
+    summaryLabel: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      textAlign: 'center' as const,
+      fontWeight: '500' as const,
+    },
+    promptSection: {
+      marginBottom: 24,
+    },
+    promptCard: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 12,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 1,
+    },
+    promptHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      marginBottom: 8,
+    },
+    promptLabel: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    promptText: {
+      fontSize: 15,
+      color: colors.textPrimary,
+      lineHeight: 22,
+    },
+    copyButton: {
+      padding: 8,
+      borderRadius: 6,
+      backgroundColor: colors.bgHover,
+    },
+    comparisonSection: {
+      marginBottom: 24,
+    },
+    comparisonHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      marginBottom: 16,
+    },
+    detailedComparisonButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: '#2196F3',
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+      gap: 8,
+    },
+    detailedComparisonButtonText: {
+      color: colors.textInverse,
+      fontSize: 14,
+      fontWeight: '600' as const,
+    },
+    comparisonCard: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 16,
+      borderWidth: 2,
+      borderColor: '#FFD700',
+      shadowColor: '#FFD700',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    bestConfigHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 12,
+    },
+    bestConfigTitle: {
+      fontSize: 18,
+      fontWeight: '700' as const,
+      color: '#B8860B',
+      marginLeft: 8,
+    },
+    bestConfigDetails: {
+      gap: 8,
+    },
+    bestConfigId: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    },
+    analysisNotesContainer: {
+      backgroundColor: '#FFFEF7',
+      borderRadius: 8,
+      padding: 12,
+      borderLeftWidth: 3,
+      borderLeftColor: '#FFD700',
+    },
+    analysisNotesLabel: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: '#B8860B',
+      marginBottom: 4,
+    },
+    analysisNotes: {
+      fontSize: 15,
+      color: colors.textPrimary,
+      lineHeight: 22,
+    },
+    noComparisonCard: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 16,
+      alignItems: 'center' as const,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 1,
+    },
+    noComparisonText: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      fontStyle: 'italic' as const,
+    },
+    noComparisonHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 8,
+      gap: 12,
+    },
+    noComparisonTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    quickMetricsPreview: {
+      marginTop: 16,
+      paddingTop: 16,
+      borderTopWidth: 1,
+      borderTopColor: colors.borderLight,
+    },
+    quickMetricsTitle: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 12,
+    },
+    quickMetricsGrid: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: 8,
+    },
+    quickMetricCard: {
+      backgroundColor: colors.bgSurface,
+      borderRadius: 8,
+      padding: 12,
+      flex: 1,
+      minWidth: 150,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    bestQuickMetricCard: {
+      backgroundColor: '#E8F5E8',
+      borderColor: '#4CAF50',
+    },
+    quickMetricName: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    bestQuickMetricText: {
+      color: '#4CAF50',
+    },
+    quickMetricStats: {
+      gap: 4,
+    },
+    quickMetricStat: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    quickMetricScore: {
+      fontSize: 14,
+      fontWeight: 'bold' as const,
+      color: '#2196F3',
+    },
+    bestQuickMetricScore: {
+      color: '#4CAF50',
+    },
+    modalCloseButton: {
+      padding: 8,
+    },
+    resultsSection: {
+      marginBottom: 24,
+    },
+    resultCard: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      marginBottom: 12,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 1,
+      overflow: 'hidden' as const,
+    },
+    bestResultCard: {
+      borderWidth: 2,
+      borderColor: '#FFD700',
+      shadowColor: '#FFD700',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    resultHeader: {
+      padding: 16,
+    },
+    resultTitleRow: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      marginBottom: 8,
+    },
+    resultConfigName: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      flex: 1,
+    },
+    bestConfigName: {
+      color: '#B8860B',
+    },
+    bestBadge: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: '#FFD700',
+      borderRadius: 6,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      gap: 4,
+    },
+    bestBadgeText: {
+      fontSize: 10,
+      fontWeight: '700' as const,
+      color: '#B8860B',
+    },
+    resultMeta: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: 16,
+      marginBottom: 8,
+    },
+    metaRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 4,
+    },
+    metaText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      fontWeight: '500' as const,
+    },
+    resultDetails: {
+      paddingHorizontal: 16,
+      paddingBottom: 16,
+      borderTopWidth: 1,
+      borderTopColor: colors.bgApp,
+    },
+    responseContainer: {
+      backgroundColor: colors.bgSurface,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 12,
+      borderLeftWidth: 3,
+      borderLeftColor: colors.statusSuccess,
+    },
+    responseHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      marginBottom: 8,
+    },
+    responseLabel: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    responseText: {
+      fontSize: 15,
+      lineHeight: 22,
+      color: colors.textPrimary,
+    },
+    errorContainer: {
+      backgroundColor: '#FFEBEE',
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 12,
+      borderLeftWidth: 3,
+      borderLeftColor: colors.statusError,
+    },
+    errorLabel: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: '#D32F2F',
+      marginBottom: 8,
+    },
+    errorText: {
+      fontSize: 15,
+      lineHeight: 22,
+      color: '#D32F2F',
+    },
+    usageContainer: {
+      backgroundColor: colors.bgHover,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 12,
+    },
+    usageLabel: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.accent,
+      marginBottom: 4,
+    },
+    usageText: {
+      fontSize: 14,
+      color: colors.accent,
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    },
+    functionsContainer: {
+      backgroundColor: '#FFF8E1',
+      borderRadius: 8,
+      padding: 12,
+    },
+    functionsLabel: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: '#F57C00',
+      marginBottom: 8,
+    },
+    functionCall: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 6,
+      padding: 8,
+      marginBottom: 6,
+      borderLeftWidth: 2,
+      borderLeftColor: colors.statusWarning,
+    },
+    functionName: {
+      fontSize: 13,
+      fontWeight: '600' as const,
+      color: '#F57C00',
+      marginBottom: 4,
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    },
+    functionResult: {
+      fontSize: 13,
+      color: colors.textPrimary,
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    },
+    actionButtons: {
+      flexDirection: 'row' as const,
+      gap: 12,
+      marginTop: 16,
+    },
+    actionButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 16,
+      flex: 1,
+      justifyContent: 'center' as const,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 1,
+    },
+    reExecuteButton: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+    },
+    actionButtonText: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.accent,
+      marginLeft: 8,
+    },
+    reExecuteButtonText: {
+      color: colors.textInverse,
+    },
+    configActionButtons: {
+      flexDirection: 'row' as const,
+      gap: 8,
+      marginTop: 16,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: colors.bgApp,
+    },
+    configActionButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: colors.bgSurface,
+      borderRadius: 8,
+      padding: 12,
+      flex: 1,
+      justifyContent: 'center' as const,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    configActionButtonText: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.accent,
+      marginLeft: 6,
+    },
+  }));
 
   // Update expanded results when execution result changes
   React.useEffect(() => {
@@ -82,16 +585,16 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
 
   const handleReExecute = () => {
     if (!onReExecute) return;
-    
+
     // Use function tools from the execution run if available
     let functionTools: any[] = [];
     if (executionResult.executionRun.functionTools && executionResult.executionRun.functionTools.length > 0) {
       // Use the stored function tools from the execution run
       functionTools = executionResult.executionRun.functionTools;
-      console.log('✅ Using stored function tools from execution run:', functionTools.length);
+      console.log('Using stored function tools from execution run:', functionTools.length);
     } else if (executionResult.results && executionResult.results.length > 0) {
       // Fallback: Extract function tools from the execution data (for backward compatibility)
-      console.log('⚠️ No function tools in executionRun, falling back to extraction from results');
+      console.log('No function tools in executionRun, falling back to extraction from results');
       executionResult.results.forEach(result => {
         if (result.functionCalls && result.functionCalls.length > 0) {
           result.functionCalls.forEach(functionCall => {
@@ -123,17 +626,17 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
       // Pass agent information if this was an agent execution
       agentId: executionResult.executionRun.agentId || undefined
     };
-    
+
     if (functionTools.length === 0 && executionResult.executionRun.enableFunctionCalling) {
-      console.log('⚠️ No function tools found for re-execution despite function calling being enabled');
+      console.log('No function tools found for re-execution despite function calling being enabled');
     }
-    
+
     onReExecute(reExecutionData);
   };
 
   const renderExecutionSummary = () => (
     <View style={styles.summarySection}>
-      <Text style={styles.sectionTitle}>📊 Execution Summary</Text>
+      <Text style={styles.sectionTitle}>Execution Summary</Text>
       <View style={styles.summaryGrid}>
         <View style={styles.summaryCard}>
           <Text style={styles.summaryValue}>{executionResult.results?.length || 0}</Text>
@@ -141,7 +644,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
         </View>
         <View style={styles.summaryCard}>
           <Text style={styles.summaryValue}>
-            {executionResult.results?.length > 0 
+            {executionResult.results?.length > 0
               ? Math.round((executionResult.successCount / executionResult.results.length) * 100)
               : 0}%
           </Text>
@@ -164,37 +667,37 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
   const renderOriginalPrompt = () => {
     const basePrompt = executionResult.results?.[0]?.request?.prompt || executionResult.executionRun.basePrompt || '';
     const context = executionResult.results?.[0]?.request?.context || executionResult.executionRun.contextPrompt || '';
-    
+
     if (!basePrompt && !context) return null;
 
     return (
       <View style={styles.promptSection}>
-        <Text style={styles.sectionTitle}>📝 Original Prompt</Text>
-        
+        <Text style={styles.sectionTitle}>Original Prompt</Text>
+
         {basePrompt && (
           <View style={styles.promptCard}>
             <View style={styles.promptHeader}>
               <Text style={styles.promptLabel}>Base Prompt</Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.copyButton}
                 onPress={() => copyToClipboard(basePrompt, 'Base prompt')}
               >
-                <Ionicons name="copy" size={16} color="#007AFF" />
+                <Ionicons name="copy" size={16} color={colors.accent} />
               </TouchableOpacity>
             </View>
             <Text style={styles.promptText}>{basePrompt}</Text>
           </View>
         )}
-        
+
         {context && (
           <View style={styles.promptCard}>
             <View style={styles.promptHeader}>
               <Text style={styles.promptLabel}>Context</Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.copyButton}
                 onPress={() => copyToClipboard(context, 'Context')}
               >
-                <Ionicons name="copy" size={16} color="#007AFF" />
+                <Ionicons name="copy" size={16} color={colors.accent} />
               </TouchableOpacity>
             </View>
             <Text style={styles.promptText}>{context}</Text>
@@ -210,41 +713,41 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
     return (
       <View style={styles.comparisonSection}>
         <View style={styles.comparisonHeader}>
-          <Text style={styles.sectionTitle}>🏆 Comparison Analysis</Text>
-          
+          <Text style={styles.sectionTitle}>Comparison Analysis</Text>
+
           {/* Detailed Comparison Button */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.detailedComparisonButton}
             onPress={() => setShowDetailedComparison(true)}
           >
-            <Ionicons name="analytics" size={18} color="#FFF" />
+            <Ionicons name="analytics" size={18} color={colors.textInverse} />
             <Text style={styles.detailedComparisonButtonText}>Detailed Analysis</Text>
           </TouchableOpacity>
         </View>
-        
+
         {executionResult.comparison?.bestConfigurationId ? (
           <View style={styles.comparisonCard}>
             <View style={styles.bestConfigHeader}>
               <Ionicons name="trophy" size={24} color="#FFD700" />
               <Text style={styles.bestConfigTitle}>Best Configuration</Text>
             </View>
-            
+
             <View style={styles.bestConfigDetails}>
               <Text style={styles.bestConfigId}>
                 ID: {formatConfigId(executionResult.comparison.bestConfigurationId)}
               </Text>
-              
+
               {executionResult.comparison.analysisNotes && (
                 <View style={styles.analysisNotesContainer}>
                   <Text style={styles.analysisNotesLabel}>Analysis:</Text>
                   <Text style={styles.analysisNotes}>
                     {executionResult.comparison.analysisNotes}
                   </Text>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.copyButton}
                     onPress={() => copyToClipboard(executionResult.comparison!.analysisNotes!, 'Analysis notes')}
                   >
-                    <Ionicons name="copy" size={16} color="#007AFF" />
+                    <Ionicons name="copy" size={16} color={colors.accent} />
                   </TouchableOpacity>
                 </View>
               )}
@@ -258,7 +761,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
                   {executionResult.results.map((result) => {
                     const scores = executionResult.comparison!.configurationScores![result.configuration.id!] || {};
                     const isBest = result.configuration.id === executionResult.comparison!.bestConfigurationId;
-                    
+
                     return (
                       <View key={result.configuration.id} style={[styles.quickMetricCard, isBest && styles.bestQuickMetricCard]}>
                         <Text style={[styles.quickMetricName, isBest && styles.bestQuickMetricText]}>
@@ -289,11 +792,11 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
         ) : (
           <View style={styles.comparisonCard}>
             <View style={styles.noComparisonHeader}>
-              <Ionicons name="analytics-outline" size={24} color="#666" />
+              <Ionicons name="analytics-outline" size={24} color={colors.textSecondary} />
               <Text style={styles.noComparisonTitle}>Multiple Configurations Detected</Text>
             </View>
             <Text style={styles.noComparisonText}>
-              {executionResult.results?.length || 0} configurations executed. 
+              {executionResult.results?.length || 0} configurations executed.
               Use detailed analysis to compare performance metrics.
             </Text>
           </View>
@@ -307,18 +810,18 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
 
     return (
       <View style={styles.resultsSection}>
-        <Text style={styles.sectionTitle}>🤖 AI Responses</Text>
-        
+        <Text style={styles.sectionTitle}>AI Responses</Text>
+
         {executionResult.results.map((result, index) => {
           const isBestConfig = executionResult.comparison?.bestConfigurationId === result.configuration.id;
           const isExpanded = expandedResults.has(index);
-          
+
           return (
             <View key={index} style={[
               styles.resultCard,
               isBestConfig && styles.bestResultCard
             ]}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.resultHeader}
                 onPress={() => toggleResultExpansion(index)}
                 activeOpacity={0.7}
@@ -337,49 +840,49 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
                     </View>
                   )}
                 </View>
-                
+
                 <View style={styles.resultMeta}>
                   <View style={styles.metaRow}>
-                    <Ionicons name="hardware-chip" size={14} color="#007AFF" />
+                    <Ionicons name="hardware-chip" size={14} color={colors.accent} />
                     <Text style={styles.metaText}>{result.configuration.modelName}</Text>
                   </View>
                   <View style={styles.metaRow}>
-                    <Ionicons name="time" size={14} color="#FF9500" />
+                    <Ionicons name="time" size={14} color={colors.statusWarning} />
                     <Text style={styles.metaText}>{result.response.responseTimeMs || 0}ms</Text>
                   </View>
                   <View style={styles.metaRow}>
-                    <Ionicons 
-                      name={result.response.responseStatus === 'success' ? 'checkmark-circle' : 'close-circle'} 
-                      size={14} 
-                      color={result.response.responseStatus === 'success' ? '#34C759' : '#FF3B30'} 
+                    <Ionicons
+                      name={result.response.responseStatus === 'success' ? 'checkmark-circle' : 'close-circle'}
+                      size={14}
+                      color={result.response.responseStatus === 'success' ? colors.statusSuccess : colors.statusError}
                     />
                     <Text style={[
                       styles.metaText,
-                      { color: result.response.responseStatus === 'success' ? '#34C759' : '#FF3B30' }
+                      { color: result.response.responseStatus === 'success' ? colors.statusSuccess : colors.statusError }
                     ]}>
                       {result.response.responseStatus}
                     </Text>
                   </View>
                 </View>
-                
-                <Ionicons 
-                  name={isExpanded ? "chevron-up" : "chevron-down"} 
-                  size={20} 
-                  color="#8E8E93" 
+
+                <Ionicons
+                  name={isExpanded ? "chevron-up" : "chevron-down"}
+                  size={20}
+                  color={colors.textSecondary}
                 />
               </TouchableOpacity>
-              
+
               {isExpanded && (
                 <View style={styles.resultDetails}>
                   {result.response.responseText && (
                     <View style={styles.responseContainer}>
                       <View style={styles.responseHeader}>
                         <Text style={styles.responseLabel}>AI Response:</Text>
-                        <TouchableOpacity 
+                        <TouchableOpacity
                           style={styles.copyButton}
                           onPress={() => copyToClipboard(result.response.responseText!, 'AI response')}
                         >
-                          <Ionicons name="copy" size={16} color="#007AFF" />
+                          <Ionicons name="copy" size={16} color={colors.accent} />
                         </TouchableOpacity>
                       </View>
                       <Text style={styles.responseText}>
@@ -387,7 +890,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
                       </Text>
                     </View>
                   )}
-                  
+
                   {result.response.responseStatus === 'error' && result.response.errorMessage && (
                     <View style={styles.errorContainer}>
                       <Text style={styles.errorLabel}>Error:</Text>
@@ -396,25 +899,25 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
                       </Text>
                     </View>
                   )}
-                  
+
                   {result.response.usageMetadata && (() => {
                     // Debug: Log the usage metadata structure
-                    console.log('🔍 Usage Metadata:', JSON.stringify(result.response.usageMetadata, null, 2));
-                    
+                    console.log('Usage Metadata:', JSON.stringify(result.response.usageMetadata, null, 2));
+
                     return (
                       <View style={styles.usageContainer}>
                         <Text style={styles.usageLabel}>Token Usage:</Text>
                         <Text style={styles.usageText}>
                           Total: {result.response.usageMetadata.total_tokens || result.response.usageMetadata.totalTokens || 'N/A'}
-                          {(result.response.usageMetadata.prompt_tokens || result.response.usageMetadata.promptTokens) && 
-                           (result.response.usageMetadata.completion_tokens || result.response.usageMetadata.completionTokens) && 
+                          {(result.response.usageMetadata.prompt_tokens || result.response.usageMetadata.promptTokens) &&
+                           (result.response.usageMetadata.completion_tokens || result.response.usageMetadata.completionTokens) &&
                             ` (${result.response.usageMetadata.prompt_tokens || result.response.usageMetadata.promptTokens} prompt + ${result.response.usageMetadata.completion_tokens || result.response.usageMetadata.completionTokens} completion)`
                           }
                         </Text>
                       </View>
                     );
                   })()}
-                  
+
                   {result.functionCalls && result.functionCalls.length > 0 && (
                     <View style={styles.functionsContainer}>
                       <Text style={styles.functionsLabel}>Function Calls ({result.functionCalls.length}):</Text>
@@ -428,7 +931,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
                       ))}
                     </View>
                   )}
-                  
+
                   {/* Per-configuration action buttons */}
                   <View style={styles.configActionButtons}>
                     <TouchableOpacity
@@ -438,10 +941,10 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
                         setShowExecutionLogs(true);
                       }}
                     >
-                      <Ionicons name="document-text" size={16} color="#007AFF" />
+                      <Ionicons name="document-text" size={16} color={colors.accent} />
                       <Text style={styles.configActionButtonText}>View Logs</Text>
                     </TouchableOpacity>
-                    
+
                     <TouchableOpacity
                       style={styles.configActionButton}
                       onPress={() => {
@@ -449,7 +952,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
                         setShowExecutionFlowGraph(true);
                       }}
                     >
-                      <Ionicons name="git-network" size={16} color="#007AFF" />
+                      <Ionicons name="git-network" size={16} color={colors.accent} />
                       <Text style={styles.configActionButtonText}>Flow Graph</Text>
                     </TouchableOpacity>
                   </View>
@@ -469,7 +972,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
           style={[styles.actionButton, styles.reExecuteButton]}
           onPress={handleReExecute}
         >
-          <Ionicons name="refresh" size={20} color="#FFFFFF" />
+          <Ionicons name="refresh" size={20} color={colors.textInverse} />
           <Text style={[styles.actionButtonText, styles.reExecuteButtonText]}>
             Re-Execute
           </Text>
@@ -492,7 +995,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
     return (
       <View style={styles.embeddedContainer}>
         {content}
-        
+
         {/* Execution Logs Modal */}
         {showExecutionLogs && (
           <ExecutionLogsCard
@@ -503,7 +1006,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
             configurationId={selectedConfigurationId}
           />
         )}
-        
+
         {/* Execution Flow Graph Modal */}
         {showExecutionFlowGraph && (
           <Modal visible={showExecutionFlowGraph} animationType="slide" presentationStyle="pageSheet">
@@ -523,11 +1026,11 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
             <View style={styles.modalContainer}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Detailed Configuration Comparison</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.modalCloseButton}
                   onPress={() => setShowDetailedComparison(false)}
                 >
-                  <Ionicons name="close" size={24} color="#666" />
+                  <Ionicons name="close" size={24} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
               <ExecutionComparisonChart
@@ -554,9 +1057,9 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
           <Text style={styles.modalTitle}>{executionResult.executionRun.name}</Text>
           <View style={styles.headerSpacer} />
         </View>
-        
+
         {content}
-        
+
         {/* Execution Logs Modal */}
         {showExecutionLogs && (
           <ExecutionLogsCard
@@ -567,7 +1070,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
             configurationId={selectedConfigurationId}
           />
         )}
-        
+
         {/* Execution Flow Graph Modal */}
         {showExecutionFlowGraph && (
           <Modal visible={showExecutionFlowGraph} animationType="slide" presentationStyle="pageSheet">
@@ -587,11 +1090,11 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
             <View style={styles.modalContainer}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Detailed Configuration Comparison</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.modalCloseButton}
                   onPress={() => setShowDetailedComparison(false)}
                 >
-                  <Ionicons name="close" size={24} color="#666" />
+                  <Ionicons name="close" size={24} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
               <ExecutionComparisonChart
@@ -609,506 +1112,4 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-  },
-  embeddedContainer: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#000000',
-    flex: 1,
-    textAlign: 'center',
-  },
-  modalCancelButton: {
-    fontSize: 17,
-    color: '#007AFF',
-    fontWeight: '500',
-  },
-  headerSpacer: {
-    width: 50,
-  },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
-  summarySection: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#000000',
-    marginBottom: 16,
-  },
-  summaryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  summaryCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    minWidth: 80,
-    flex: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  summaryValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#007AFF',
-    marginBottom: 4,
-  },
-  summaryLabel: {
-    fontSize: 12,
-    color: '#8E8E93',
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  promptSection: {
-    marginBottom: 24,
-  },
-  promptCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  promptHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  promptLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  promptText: {
-    fontSize: 15,
-    color: '#000000',
-    lineHeight: 22,
-  },
-  copyButton: {
-    padding: 8,
-    borderRadius: 6,
-    backgroundColor: '#F0F8FF',
-  },
-  comparisonSection: {
-    marginBottom: 24,
-  },
-  comparisonHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  detailedComparisonButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#2196F3',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 8,
-  },
-  detailedComparisonButtonText: {
-    color: '#FFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  comparisonCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: '#FFD700',
-    shadowColor: '#FFD700',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  bestConfigHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  bestConfigTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#B8860B',
-    marginLeft: 8,
-  },
-  bestConfigDetails: {
-    gap: 8,
-  },
-  bestConfigId: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  },
-  analysisNotesContainer: {
-    backgroundColor: '#FFFEF7',
-    borderRadius: 8,
-    padding: 12,
-    borderLeftWidth: 3,
-    borderLeftColor: '#FFD700',
-  },
-  analysisNotesLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#B8860B',
-    marginBottom: 4,
-  },
-  analysisNotes: {
-    fontSize: 15,
-    color: '#000000',
-    lineHeight: 22,
-  },
-  noComparisonCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  noComparisonText: {
-    fontSize: 16,
-    color: '#8E8E93',
-    fontStyle: 'italic',
-  },
-  noComparisonHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    gap: 12,
-  },
-  noComparisonTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-  },
-  quickMetricsPreview: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-  },
-  quickMetricsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 12,
-  },
-  quickMetricsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  quickMetricCard: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    padding: 12,
-    flex: 1,
-    minWidth: 150,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  bestQuickMetricCard: {
-    backgroundColor: '#E8F5E8',
-    borderColor: '#4CAF50',
-  },
-  quickMetricName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  bestQuickMetricText: {
-    color: '#4CAF50',
-  },
-  quickMetricStats: {
-    gap: 4,
-  },
-  quickMetricStat: {
-    fontSize: 12,
-    color: '#666',
-  },
-  quickMetricScore: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#2196F3',
-  },
-  bestQuickMetricScore: {
-    color: '#4CAF50',
-  },
-  modalCloseButton: {
-    padding: 8,
-  },
-  resultsSection: {
-    marginBottom: 24,
-  },
-  resultCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-    overflow: 'hidden',
-  },
-  bestResultCard: {
-    borderWidth: 2,
-    borderColor: '#FFD700',
-    shadowColor: '#FFD700',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  resultHeader: {
-    padding: 16,
-  },
-  resultTitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  resultConfigName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000000',
-    flex: 1,
-  },
-  bestConfigName: {
-    color: '#B8860B',
-  },
-  bestBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFD700',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    gap: 4,
-  },
-  bestBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#B8860B',
-  },
-  resultMeta: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-    marginBottom: 8,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  metaText: {
-    fontSize: 14,
-    color: '#8E8E93',
-    fontWeight: '500',
-  },
-  resultDetails: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#F2F2F7',
-  },
-  responseContainer: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-    borderLeftWidth: 3,
-    borderLeftColor: '#34C759',
-  },
-  responseHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  responseLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  responseText: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#000000',
-  },
-  errorContainer: {
-    backgroundColor: '#FFEBEE',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-    borderLeftWidth: 3,
-    borderLeftColor: '#FF3B30',
-  },
-  errorLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#D32F2F',
-    marginBottom: 8,
-  },
-  errorText: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#D32F2F',
-  },
-  usageContainer: {
-    backgroundColor: '#F0F8FF',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-  },
-  usageLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#007AFF',
-    marginBottom: 4,
-  },
-  usageText: {
-    fontSize: 14,
-    color: '#007AFF',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  },
-  functionsContainer: {
-    backgroundColor: '#FFF8E1',
-    borderRadius: 8,
-    padding: 12,
-  },
-  functionsLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#F57C00',
-    marginBottom: 8,
-  },
-  functionCall: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 6,
-    padding: 8,
-    marginBottom: 6,
-    borderLeftWidth: 2,
-    borderLeftColor: '#FF9500',
-  },
-  functionName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#F57C00',
-    marginBottom: 4,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  },
-  functionResult: {
-    fontSize: 13,
-    color: '#000000',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 16,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    flex: 1,
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  reExecuteButton: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
-  },
-  actionButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#007AFF',
-    marginLeft: 8,
-  },
-  reExecuteButtonText: {
-    color: '#FFFFFF',
-  },
-  configActionButtons: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 16,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F2F2F7',
-  },
-  configActionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    padding: 12,
-    flex: 1,
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  configActionButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#007AFF',
-    marginLeft: 6,
-  },
-});
-
-export default ExecutionResultsViewer; 
+export default ExecutionResultsViewer;

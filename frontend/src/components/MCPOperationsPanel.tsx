@@ -13,7 +13,7 @@ import { Picker } from '@react-native-picker/picker';
 import TextEditor from './TextEditor';
 
 import { FunctionDefinition } from '../types';
-import { StyleSheet } from 'react-native';
+import { useTheme, useThemedStyles } from '../theme';
 
 interface MCPOperationsPanelProps {
   onExecuteOperation: (operationData: MCPOperationData) => void;
@@ -98,6 +98,259 @@ export const MCPOperationsPanel: React.FC<MCPOperationsPanelProps> = ({
   loading = false,
   mcpFunction
 }) => {
+  const { colors } = useTheme();
+
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bgSurface,
+      paddingHorizontal: 16,
+    },
+    header: {
+      paddingVertical: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+      marginBottom: 20,
+    },
+    titleRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 8,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginLeft: 12,
+    },
+    subtitle: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      lineHeight: 22,
+    },
+    section: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    sectionHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      marginBottom: 16,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    exampleButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      backgroundColor: colors.bgHover,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.accent,
+    },
+    exampleButtonText: {
+      color: colors.accent,
+      fontSize: 14,
+      fontWeight: '500' as const,
+      marginLeft: 4,
+    },
+    operationGrid: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      marginHorizontal: -6,
+    },
+    operationCard: {
+      flex: 1,
+      minWidth: '45%' as any,
+      margin: 6,
+      padding: 16,
+      backgroundColor: colors.bgSurface,
+      borderRadius: 12,
+      borderWidth: 2,
+      borderColor: colors.borderLight,
+      alignItems: 'center' as const,
+    },
+    operationCardActive: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+    },
+    operationLabel: {
+      marginTop: 8,
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      textAlign: 'center' as const,
+    },
+    operationLabelActive: {
+      color: colors.textInverse,
+    },
+    operationInfo: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginTop: 12,
+      padding: 12,
+      backgroundColor: colors.bgSurface,
+      borderRadius: 8,
+    },
+    operationDescription: {
+      marginLeft: 8,
+      fontSize: 14,
+      color: colors.textSecondary,
+      flex: 1,
+    },
+    repositoryInput: {
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      borderRadius: 8,
+    },
+    quickRepos: {
+      marginTop: 12,
+    },
+    quickReposLabel: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    quickRepoButton: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      backgroundColor: colors.bgHover,
+      borderRadius: 8,
+      marginRight: 8,
+      borderWidth: 1,
+      borderColor: colors.accent,
+    },
+    quickRepoText: {
+      color: colors.accent,
+      fontSize: 12,
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    },
+    parametersEditor: {
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      borderRadius: 8,
+    },
+    parametersEditorError: {
+      borderColor: colors.statusError,
+    },
+    errorContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginTop: 8,
+      paddingHorizontal: 8,
+    },
+    errorText: {
+      color: colors.statusError,
+      fontSize: 14,
+      marginLeft: 6,
+      flex: 1,
+    },
+    guidelinesContainer: {
+      marginTop: 12,
+      padding: 12,
+      backgroundColor: colors.bgSurface,
+      borderRadius: 8,
+    },
+    guidelinesTitle: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    guidelinesText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    },
+    executeSection: {
+      paddingVertical: 20,
+    },
+    executeButton: {
+      backgroundColor: colors.accent,
+      borderRadius: 12,
+      paddingVertical: 16,
+      paddingHorizontal: 24,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      shadowColor: colors.accent,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    executeButtonDisabled: {
+      backgroundColor: colors.textTertiary,
+      shadowOpacity: 0,
+    },
+    executeButtonText: {
+      color: colors.textInverse,
+      fontSize: 16,
+      fontWeight: '600' as const,
+      marginLeft: 8,
+    },
+    warningContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginTop: 12,
+      paddingHorizontal: 8,
+    },
+    warningText: {
+      color: colors.statusWarning,
+      fontSize: 14,
+      marginLeft: 6,
+      flex: 1,
+    },
+    alertOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+    },
+    alertContainer: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 20,
+      marginHorizontal: 20,
+      maxWidth: 300,
+    },
+    alertTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    alertMessage: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginBottom: 20,
+    },
+    alertButton: {
+      backgroundColor: colors.accent,
+      borderRadius: 8,
+      paddingVertical: 12,
+      alignItems: 'center' as const,
+    },
+    alertButtonText: {
+      color: colors.textInverse,
+      fontSize: 16,
+      fontWeight: '600' as const,
+    },
+  }));
+
   const [operationData, setOperationData] = useState<MCPOperationData>({
     operation: 'create_branch',
     repository: '',
@@ -210,7 +463,7 @@ export const MCPOperationsPanel: React.FC<MCPOperationsPanelProps> = ({
 
   const handleExecuteOperation = () => {
     const validationErrors = validateOperation();
-    
+
     if (validationErrors.length > 0) {
       setAlertConfig({
         visible: true,
@@ -258,7 +511,7 @@ export const MCPOperationsPanel: React.FC<MCPOperationsPanelProps> = ({
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          <Ionicons name="git-branch-outline" size={24} color="#007AFF" />
+          <Ionicons name="git-branch-outline" size={24} color={colors.accent} />
           <Text style={styles.title}>MCP GitHub Operations</Text>
         </View>
         <Text style={styles.subtitle}>
@@ -271,7 +524,7 @@ export const MCPOperationsPanel: React.FC<MCPOperationsPanelProps> = ({
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Operation Type</Text>
           <TouchableOpacity style={styles.exampleButton} onPress={loadExample}>
-            <Ionicons name="bulb-outline" size={16} color="#007AFF" />
+            <Ionicons name="bulb-outline" size={16} color={colors.accent} />
             <Text style={styles.exampleButtonText}>Example</Text>
           </TouchableOpacity>
         </View>
@@ -289,7 +542,7 @@ export const MCPOperationsPanel: React.FC<MCPOperationsPanelProps> = ({
               <Ionicons
                 name={operation.icon as any}
                 size={24}
-                color={operationData.operation === operation.value ? '#FFFFFF' : '#007AFF'}
+                color={operationData.operation === operation.value ? colors.textInverse : colors.accent}
               />
               <Text style={[
                 styles.operationLabel,
@@ -303,7 +556,7 @@ export const MCPOperationsPanel: React.FC<MCPOperationsPanelProps> = ({
 
         {selectedOperation && (
           <View style={styles.operationInfo}>
-            <Ionicons name="information-circle-outline" size={16} color="#666" />
+            <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
             <Text style={styles.operationDescription}>
               {getOperationDescription(operationData.operation)}
             </Text>
@@ -314,7 +567,7 @@ export const MCPOperationsPanel: React.FC<MCPOperationsPanelProps> = ({
       {/* Repository Configuration */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Repository</Text>
-        
+
         <TextEditor
           value={operationData.repository}
           onChangeText={handleRepositoryChange}
@@ -346,7 +599,7 @@ export const MCPOperationsPanel: React.FC<MCPOperationsPanelProps> = ({
       {/* Parameters */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Parameters (JSON)</Text>
-        
+
         <TextEditor
           value={parametersJson}
           onChangeText={handleParametersChange}
@@ -361,7 +614,7 @@ export const MCPOperationsPanel: React.FC<MCPOperationsPanelProps> = ({
         {/* Validation Errors */}
         {errors.map((error, index) => (
           <View key={index} style={styles.errorContainer}>
-            <Ionicons name="warning-outline" size={16} color="#FF3B30" />
+            <Ionicons name="warning-outline" size={16} color={colors.statusError} />
             <Text style={styles.errorText}>{error.message}</Text>
           </View>
         ))}
@@ -386,9 +639,9 @@ export const MCPOperationsPanel: React.FC<MCPOperationsPanelProps> = ({
           disabled={!isValid || loading}
         >
           {loading ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
+            <ActivityIndicator color={colors.textInverse} size="small" />
           ) : (
-            <Ionicons name="play" size={20} color="#FFFFFF" />
+            <Ionicons name="play" size={20} color={colors.textInverse} />
           )}
           <Text style={styles.executeButtonText}>
             {loading ? 'Executing...' : `Execute ${selectedOperation?.label}`}
@@ -397,7 +650,7 @@ export const MCPOperationsPanel: React.FC<MCPOperationsPanelProps> = ({
 
         {!mcpFunction && (
           <View style={styles.warningContainer}>
-            <Ionicons name="warning-outline" size={16} color="#FF9500" />
+            <Ionicons name="warning-outline" size={16} color={colors.statusWarning} />
             <Text style={styles.warningText}>
               MCP function not found. Please ensure the MCP server is configured.
             </Text>
@@ -410,7 +663,7 @@ export const MCPOperationsPanel: React.FC<MCPOperationsPanelProps> = ({
           <View style={styles.alertContainer}>
             <Text style={styles.alertTitle}>{alertConfig.title}</Text>
             <Text style={styles.alertMessage}>{alertConfig.message}</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.alertButton}
               onPress={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
               activeOpacity={0.7}
@@ -458,254 +711,3 @@ function getParameterGuidelines(operation: string): string {
       return 'No parameters required';
   }
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8F9FA',
-    paddingHorizontal: 16,
-  },
-  header: {
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-    marginBottom: 20,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginLeft: 12,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6B6B6B',
-    lineHeight: 22,
-  },
-  section: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  exampleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: '#F0F9FF',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#007AFF',
-  },
-  exampleButtonText: {
-    color: '#007AFF',
-    fontSize: 14,
-    fontWeight: '500',
-    marginLeft: 4,
-  },
-  operationGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -6,
-  },
-  operationCard: {
-    flex: 1,
-    minWidth: '45%',
-    margin: 6,
-    padding: 16,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#E5E5EA',
-    alignItems: 'center',
-  },
-  operationCardActive: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
-  },
-  operationLabel: {
-    marginTop: 8,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    textAlign: 'center',
-  },
-  operationLabelActive: {
-    color: '#FFFFFF',
-  },
-  operationInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-  },
-  operationDescription: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: '#666',
-    flex: 1,
-  },
-  repositoryInput: {
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    borderRadius: 8,
-  },
-  quickRepos: {
-    marginTop: 12,
-  },
-  quickReposLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 8,
-  },
-  quickRepoButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: '#F0F9FF',
-    borderRadius: 8,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: '#007AFF',
-  },
-  quickRepoText: {
-    color: '#007AFF',
-    fontSize: 12,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  },
-  parametersEditor: {
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    borderRadius: 8,
-  },
-  parametersEditorError: {
-    borderColor: '#FF3B30',
-  },
-  errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    paddingHorizontal: 8,
-  },
-  errorText: {
-    color: '#FF3B30',
-    fontSize: 14,
-    marginLeft: 6,
-    flex: 1,
-  },
-  guidelinesContainer: {
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-  },
-  guidelinesTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 4,
-  },
-  guidelinesText: {
-    fontSize: 14,
-    color: '#666',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  },
-  executeSection: {
-    paddingVertical: 20,
-  },
-  executeButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#007AFF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  executeButtonDisabled: {
-    backgroundColor: '#C7C7CC',
-    shadowOpacity: 0,
-  },
-  executeButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  warningContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
-    paddingHorizontal: 8,
-  },
-  warningText: {
-    color: '#FF9500',
-    fontSize: 14,
-    marginLeft: 6,
-    flex: 1,
-  },
-  alertOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  alertContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 20,
-    marginHorizontal: 20,
-    maxWidth: 300,
-  },
-  alertTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 8,
-  },
-  alertMessage: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 20,
-  },
-  alertButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  alertButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-}); 

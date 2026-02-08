@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   Modal,
@@ -11,6 +10,7 @@ import {
   Clipboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useThemedStyles } from '../theme';
 
 // Template data - this will eventually come from the backend system functions
 const SYSTEM_TEMPLATES = [
@@ -313,6 +313,410 @@ interface TemplatePreviewModalProps {
   onUseTemplate: (template: any) => void;
 }
 
+const useTemplateStyles = () => useThemedStyles((colors) => ({
+  container: {
+    flex: 1,
+    backgroundColor: colors.bgApp,
+  },
+  embeddedContainer: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 0,
+  },
+  header: {
+    backgroundColor: colors.bgCard,
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderSubtle,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '700' as const,
+    color: colors.textPrimary,
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: colors.textSecondary,
+  },
+  searchContainer: {
+    padding: 12,
+  },
+  searchInputContainer: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: colors.bgCard,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+    shadowColor: colors.shadowColor,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: colors.textPrimary,
+  },
+  categoryContainer: {
+    paddingHorizontal: 12,
+    marginBottom: 12,
+    maxHeight: 44,
+  },
+  embeddedCategoryContainer: {
+    paddingHorizontal: 0,
+    marginBottom: 8,
+    maxHeight: 40,
+  },
+  categoryContentContainer: {
+    paddingHorizontal: 12,
+    alignItems: 'center' as const,
+  },
+  categoryChip: {
+    backgroundColor: colors.bgCard,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    minHeight: 32,
+  },
+  selectedCategoryChip: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  categoryChipText: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: colors.textSecondary,
+    lineHeight: 16,
+  },
+  selectedCategoryChipText: {
+    color: colors.textInverse,
+  },
+  templatesContainer: {
+    flex: 1,
+    paddingHorizontal: 12,
+  },
+  templatesGrid: {
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+    gap: 12,
+    paddingBottom: 16,
+  },
+  templateCard: {
+    backgroundColor: colors.bgCard,
+    borderRadius: 12,
+    padding: 12,
+    width: '48%' as const,
+    shadowColor: colors.shadowColor,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    minHeight: 140,
+  },
+  selectedTemplateCard: {
+    borderWidth: 2,
+    borderColor: colors.accent,
+  },
+  templateCardHeader: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'flex-start' as const,
+    marginBottom: 8,
+  },
+  templateCardIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  templateCardMeta: {
+    alignItems: 'flex-end' as const,
+  },
+  templateCardCategory: {
+    fontSize: 12,
+    fontWeight: '500' as const,
+    color: colors.textSecondary,
+  },
+  templateCardComplexity: {
+    fontSize: 10,
+    fontWeight: '500' as const,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  templateCardTitle: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: colors.textPrimary,
+    marginBottom: 6,
+    lineHeight: 18,
+  },
+  templateCardDescription: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    lineHeight: 14,
+    marginBottom: 8,
+    flex: 1,
+  },
+  templateCardTags: {
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+    gap: 3,
+    marginBottom: 8,
+  },
+  templateCardTag: {
+    backgroundColor: colors.bgApp,
+    borderRadius: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+  },
+  templateCardTagText: {
+    fontSize: 9,
+    fontWeight: '500' as const,
+    color: colors.textSecondary,
+    lineHeight: 12,
+  },
+  templateCardMoreTags: {
+    fontSize: 10,
+    color: colors.textSecondary,
+    fontStyle: 'italic' as const,
+  },
+  templateCardFooter: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+  },
+  templateCardMethod: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 4,
+  },
+  templateCardMethodText: {
+    fontSize: 12,
+    fontWeight: '500' as const,
+    color: colors.textSecondary,
+  },
+  templateCardPreviewButton: {
+    padding: 4,
+  },
+  emptyState: {
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    paddingVertical: 40,
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: '600' as const,
+    color: colors.textSecondary,
+    marginTop: 16,
+    marginBottom: 4,
+  },
+  emptyStateSubtitle: {
+    fontSize: 14,
+    color: colors.textTertiary,
+    textAlign: 'center' as const,
+  },
+  previewModal: {
+    flex: 1,
+    backgroundColor: colors.bgApp,
+  },
+  previewHeader: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    padding: 20,
+    backgroundColor: colors.bgCard,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderSubtle,
+  },
+  previewTitle: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: colors.textPrimary,
+  },
+  previewCancelButton: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    fontWeight: '500' as const,
+  },
+  previewUseButton: {
+    fontSize: 16,
+    color: colors.accent,
+    fontWeight: '700' as const,
+  },
+  previewContent: {
+    flex: 1,
+    padding: 16,
+  },
+  previewTemplateHeader: {
+    backgroundColor: colors.bgCard,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    flexDirection: 'row' as const,
+    gap: 16,
+  },
+  previewTemplateIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  previewTemplateInfo: {
+    flex: 1,
+  },
+  previewTemplateName: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: colors.textPrimary,
+    marginBottom: 4,
+  },
+  previewTemplateDescription: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  previewTemplateMeta: {
+    flexDirection: 'row' as const,
+    gap: 16,
+    marginBottom: 12,
+  },
+  previewMetaItem: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 4,
+  },
+  previewMetaText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontWeight: '500' as const,
+  },
+  previewTagsContainer: {
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+    gap: 6,
+  },
+  previewTag: {
+    backgroundColor: colors.bgApp,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  previewTagText: {
+    fontSize: 11,
+    fontWeight: '500' as const,
+    color: colors.textSecondary,
+  },
+  previewTabContainer: {
+    flexDirection: 'row' as const,
+    backgroundColor: colors.bgCard,
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 16,
+  },
+  previewTab: {
+    flex: 1,
+    alignItems: 'center' as const,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  previewActiveTab: {
+    backgroundColor: colors.accent,
+  },
+  previewTabText: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: colors.textSecondary,
+  },
+  previewActiveTabText: {
+    color: colors.textInverse,
+  },
+  previewTabContent: {
+    backgroundColor: colors.bgCard,
+    borderRadius: 16,
+    padding: 20,
+  },
+  previewSection: {
+    marginBottom: 20,
+  },
+  previewSectionHeader: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    marginBottom: 12,
+  },
+  previewSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: colors.textPrimary,
+  },
+  previewCopyButton: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 4,
+    padding: 8,
+  },
+  previewCopyText: {
+    fontSize: 14,
+    color: colors.accent,
+    fontWeight: '500' as const,
+  },
+  previewConfigItem: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.bgApp,
+  },
+  previewConfigLabel: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: colors.textSecondary,
+  },
+  previewConfigValue: {
+    fontSize: 14,
+    color: colors.textPrimary,
+    fontFamily: 'monospace',
+  },
+  previewCodeBlock: {
+    backgroundColor: colors.bgSurface,
+    borderRadius: 12,
+    padding: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.accent,
+  },
+  previewCodeText: {
+    fontFamily: 'monospace',
+    fontSize: 12,
+    color: colors.textPrimary,
+    lineHeight: 16,
+  },
+  previewEmptyState: {
+    alignItems: 'center' as const,
+    paddingVertical: 20,
+  },
+  previewEmptyText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 8,
+    textAlign: 'center' as const,
+  },
+  previewHelpText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 8,
+    fontStyle: 'italic' as const,
+  },
+}));
+
 const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
   visible,
   template,
@@ -320,6 +724,7 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
   onUseTemplate
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'query' | 'schema' | 'fallback'>('overview');
+  const styles = useTemplateStyles();
 
   if (!template) return null;
 
@@ -353,22 +758,22 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
           {/* Template Header */}
           <View style={styles.previewTemplateHeader}>
             <View style={[styles.previewTemplateIcon, { backgroundColor: template.color }]}>
-              <Ionicons name={template.icon as any} size={32} color="#FFFFFF" />
+              <Ionicons name={template.icon as any} size={32} color={styles.selectedCategoryChipText.color} />
             </View>
             <View style={styles.previewTemplateInfo}>
               <Text style={styles.previewTemplateName}>{template.displayName}</Text>
               <Text style={styles.previewTemplateDescription}>{template.description}</Text>
               <View style={styles.previewTemplateMeta}>
                 <View style={styles.previewMetaItem}>
-                  <Ionicons name="layers-outline" size={16} color="#8E8E93" />
+                  <Ionicons name="layers-outline" size={16} color={styles.previewMetaText.color} />
                   <Text style={styles.previewMetaText}>{template.category}</Text>
                 </View>
                 <View style={styles.previewMetaItem}>
-                  <Ionicons name="speedometer-outline" size={16} color="#8E8E93" />
+                  <Ionicons name="speedometer-outline" size={16} color={styles.previewMetaText.color} />
                   <Text style={styles.previewMetaText}>{template.complexity}</Text>
                 </View>
                 <View style={styles.previewMetaItem}>
-                  <Ionicons name="code-outline" size={16} color="#8E8E93" />
+                  <Ionicons name="code-outline" size={16} color={styles.previewMetaText.color} />
                   <Text style={styles.previewMetaText}>{template.httpMethod}</Text>
                 </View>
               </View>
@@ -432,7 +837,7 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
                       onPress={() => copyToClipboard(template.queryTemplate, 'Query template')}
                       style={styles.previewCopyButton}
                     >
-                      <Ionicons name="copy-outline" size={16} color="#007AFF" />
+                      <Ionicons name="copy-outline" size={16} color={styles.previewCopyText.color} />
                       <Text style={styles.previewCopyText}>Copy</Text>
                     </TouchableOpacity>
                   )}
@@ -443,7 +848,7 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
                   </View>
                 ) : (
                   <View style={styles.previewEmptyState}>
-                    <Ionicons name="information-circle-outline" size={24} color="#8E8E93" />
+                    <Ionicons name="information-circle-outline" size={24} color={styles.previewMetaText.color} />
                     <Text style={styles.previewEmptyText}>This template uses HTTP endpoints instead of query templates</Text>
                   </View>
                 )}
@@ -460,7 +865,7 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
                     onPress={() => copyToClipboard(formatJSON(template.parametersSchema), 'Parameters schema')}
                     style={styles.previewCopyButton}
                   >
-                    <Ionicons name="copy-outline" size={16} color="#007AFF" />
+                    <Ionicons name="copy-outline" size={16} color={styles.previewCopyText.color} />
                     <Text style={styles.previewCopyText}>Copy</Text>
                   </TouchableOpacity>
                 </View>
@@ -480,7 +885,7 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
                     onPress={() => copyToClipboard(formatJSON(template.fallbackData), 'Fallback data')}
                     style={styles.previewCopyButton}
                   >
-                    <Ionicons name="copy-outline" size={16} color="#007AFF" />
+                    <Ionicons name="copy-outline" size={16} color={styles.previewCopyText.color} />
                     <Text style={styles.previewCopyText}>Copy</Text>
                   </TouchableOpacity>
                 </View>
@@ -499,11 +904,12 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({
   );
 };
 
-const TemplateLibraryScreen: React.FC<TemplateLibraryProps> = ({ 
-  onSelectTemplate, 
+const TemplateLibraryScreen: React.FC<TemplateLibraryProps> = ({
+  onSelectTemplate,
   embedded = false,
-  selectedTemplateId 
+  selectedTemplateId
 }) => {
+  const styles = useTemplateStyles();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [previewTemplate, setPreviewTemplate] = useState<any>(null);
@@ -553,7 +959,7 @@ const TemplateLibraryScreen: React.FC<TemplateLibraryProps> = ({
       {!embedded && (
         <View style={styles.searchContainer}>
           <View style={styles.searchInputContainer}>
-            <Ionicons name="search-outline" size={20} color="#8E8E93" />
+            <Ionicons name="search-outline" size={20} color={styles.previewMetaText.color} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search templates..."
@@ -603,7 +1009,7 @@ const TemplateLibraryScreen: React.FC<TemplateLibraryProps> = ({
             >
               <View style={styles.templateCardHeader}>
                 <View style={[styles.templateCardIcon, { backgroundColor: template.color }]}>
-                  <Ionicons name={template.icon as any} size={20} color="#FFFFFF" />
+                  <Ionicons name={template.icon as any} size={20} color={styles.selectedCategoryChipText.color} />
                 </View>
                 <View style={styles.templateCardMeta}>
                   <Text style={styles.templateCardCategory}>{template.category}</Text>
@@ -629,7 +1035,7 @@ const TemplateLibraryScreen: React.FC<TemplateLibraryProps> = ({
 
               <View style={styles.templateCardFooter}>
                 <View style={styles.templateCardMethod}>
-                  <Ionicons name="code-outline" size={14} color="#8E8E93" />
+                  <Ionicons name="code-outline" size={14} color={styles.previewMetaText.color} />
                   <Text style={styles.templateCardMethodText}>{template.httpMethod}</Text>
                 </View>
                 {!embedded && (
@@ -640,7 +1046,7 @@ const TemplateLibraryScreen: React.FC<TemplateLibraryProps> = ({
                       setShowPreview(true);
                     }}
                   >
-                    <Ionicons name="eye-outline" size={16} color="#007AFF" />
+                    <Ionicons name="eye-outline" size={16} color={styles.previewCopyText.color} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -650,7 +1056,7 @@ const TemplateLibraryScreen: React.FC<TemplateLibraryProps> = ({
 
         {filteredTemplates.length === 0 && (
           <View style={styles.emptyState}>
-            <Ionicons name="library-outline" size={48} color="#C7C7CC" />
+            <Ionicons name="library-outline" size={48} color={styles.emptyStateSubtitle.color} />
             <Text style={styles.emptyStateTitle}>No templates found</Text>
             <Text style={styles.emptyStateSubtitle}>
               Try adjusting your search or category filter
@@ -669,409 +1075,4 @@ const TemplateLibraryScreen: React.FC<TemplateLibraryProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-  },
-  embeddedContainer: {
-    backgroundColor: 'transparent',
-    paddingHorizontal: 0,
-  },
-  header: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#000000',
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: '#8E8E93',
-  },
-  searchContainer: {
-    padding: 12,
-  },
-  searchInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#000000',
-  },
-  categoryContainer: {
-    paddingHorizontal: 12,
-    marginBottom: 12,
-    maxHeight: 44,
-  },
-  embeddedCategoryContainer: {
-    paddingHorizontal: 0,
-    marginBottom: 8,
-    maxHeight: 40,
-  },
-  categoryContentContainer: {
-    paddingHorizontal: 12,
-    alignItems: 'center',
-  },
-  categoryChip: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    minHeight: 32,
-  },
-  selectedCategoryChip: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
-  },
-  categoryChipText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#8E8E93',
-    lineHeight: 16,
-  },
-  selectedCategoryChipText: {
-    color: '#FFFFFF',
-  },
-  templatesContainer: {
-    flex: 1,
-    paddingHorizontal: 12,
-  },
-  templatesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    paddingBottom: 16,
-  },
-  templateCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 12,
-    width: '48%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-    minHeight: 140,
-  },
-  selectedTemplateCard: {
-    borderWidth: 2,
-    borderColor: '#007AFF',
-  },
-  templateCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  templateCardIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  templateCardMeta: {
-    alignItems: 'flex-end',
-  },
-  templateCardCategory: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#8E8E93',
-  },
-  templateCardComplexity: {
-    fontSize: 10,
-    fontWeight: '500',
-    color: '#8E8E93',
-    marginTop: 2,
-  },
-  templateCardTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 6,
-    lineHeight: 18,
-  },
-  templateCardDescription: {
-    fontSize: 11,
-    color: '#8E8E93',
-    lineHeight: 14,
-    marginBottom: 8,
-    flex: 1,
-  },
-  templateCardTags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 3,
-    marginBottom: 8,
-  },
-  templateCardTag: {
-    backgroundColor: '#F2F2F7',
-    borderRadius: 4,
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-  },
-  templateCardTagText: {
-    fontSize: 9,
-    fontWeight: '500',
-    color: '#8E8E93',
-    lineHeight: 12,
-  },
-  templateCardMoreTags: {
-    fontSize: 10,
-    color: '#8E8E93',
-    fontStyle: 'italic',
-  },
-  templateCardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  templateCardMethod: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  templateCardMethodText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#8E8E93',
-  },
-  templateCardPreviewButton: {
-    padding: 4,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
-  },
-  emptyStateTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#8E8E93',
-    marginTop: 16,
-    marginBottom: 4,
-  },
-  emptyStateSubtitle: {
-    fontSize: 14,
-    color: '#C7C7CC',
-    textAlign: 'center',
-  },
-  // Preview Modal Styles
-  previewModal: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-  },
-  previewHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  previewTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#000000',
-  },
-  previewCancelButton: {
-    fontSize: 16,
-    color: '#8E8E93',
-    fontWeight: '500',
-  },
-  previewUseButton: {
-    fontSize: 16,
-    color: '#007AFF',
-    fontWeight: '700',
-  },
-  previewContent: {
-    flex: 1,
-    padding: 16,
-  },
-  previewTemplateHeader: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    flexDirection: 'row',
-    gap: 16,
-  },
-  previewTemplateIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  previewTemplateInfo: {
-    flex: 1,
-  },
-  previewTemplateName: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#000000',
-    marginBottom: 4,
-  },
-  previewTemplateDescription: {
-    fontSize: 14,
-    color: '#8E8E93',
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  previewTemplateMeta: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 12,
-  },
-  previewMetaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  previewMetaText: {
-    fontSize: 12,
-    color: '#8E8E93',
-    fontWeight: '500',
-  },
-  previewTagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  previewTag: {
-    backgroundColor: '#F2F2F7',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  previewTagText: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#8E8E93',
-  },
-  previewTabContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 16,
-  },
-  previewTab: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  previewActiveTab: {
-    backgroundColor: '#007AFF',
-  },
-  previewTabText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#8E8E93',
-  },
-  previewActiveTabText: {
-    color: '#FFFFFF',
-  },
-  previewTabContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-  },
-  previewSection: {
-    marginBottom: 20,
-  },
-  previewSectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  previewSectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#000000',
-  },
-  previewCopyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    padding: 8,
-  },
-  previewCopyText: {
-    fontSize: 14,
-    color: '#007AFF',
-    fontWeight: '500',
-  },
-  previewConfigItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F2F2F7',
-  },
-  previewConfigLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#8E8E93',
-  },
-  previewConfigValue: {
-    fontSize: 14,
-    color: '#000000',
-    fontFamily: 'monospace',
-  },
-  previewCodeBlock: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 16,
-    borderLeftWidth: 3,
-    borderLeftColor: '#007AFF',
-  },
-  previewCodeText: {
-    fontFamily: 'monospace',
-    fontSize: 12,
-    color: '#000000',
-    lineHeight: 16,
-  },
-  previewEmptyState: {
-    alignItems: 'center',
-    paddingVertical: 20,
-  },
-  previewEmptyText: {
-    fontSize: 14,
-    color: '#8E8E93',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  previewHelpText: {
-    fontSize: 12,
-    color: '#8E8E93',
-    marginTop: 8,
-    fontStyle: 'italic',
-  },
-});
-
-export default TemplateLibraryScreen; 
+export default TemplateLibraryScreen;

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
@@ -12,6 +11,8 @@ import { Team, Agent } from '../types';
 import { goGentAPI } from '../api/client';
 import { AlertAPI } from './CustomAlert';
 import EditTeamContextModal from './EditTeamContextModal';
+import { useTheme, useThemedStyles } from '../theme';
+import type { ThemeColors } from '../theme';
 
 interface TeamCardProps {
   team: Team;
@@ -22,9 +23,164 @@ interface TeamCardProps {
   onNavigateToTeam?: (teamId: string, teamName: string) => void;
 }
 
-const TeamCard: React.FC<TeamCardProps> = ({ 
-  team, 
-  agents, 
+const createStyles = (colors: ThemeColors) => ({
+  container: {
+    backgroundColor: colors.bgCard,
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.statusSuccess,
+  },
+  header: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'flex-start' as const,
+    marginBottom: 16,
+  },
+  teamInfo: {
+    flexDirection: 'row' as const,
+    flex: 1,
+    alignItems: 'flex-start' as const,
+  },
+  teamIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.accentSoft,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+  },
+  teamDetails: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  teamName: {
+    fontSize: 18,
+    fontWeight: '600' as const,
+    color: colors.textPrimary,
+  },
+  teamDescription: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 4,
+    lineHeight: 18,
+  },
+  controls: {
+    flexDirection: 'row' as const,
+    marginLeft: 12,
+  },
+  controlButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    marginLeft: 8,
+    borderWidth: 1,
+  },
+  viewTeamButton: {
+    borderColor: 'rgba(16, 185, 129, 0.40)',
+    backgroundColor: colors.accentSoft,
+  },
+  memoryButton: {
+    borderColor: 'rgba(251, 191, 36, 0.40)',
+    backgroundColor: 'rgba(251, 191, 36, 0.15)',
+  },
+  contextButton: {
+    borderColor: 'rgba(139, 92, 246, 0.40)',
+    backgroundColor: 'rgba(139, 92, 246, 0.15)',
+  },
+  pauseButton: {
+    borderColor: 'rgba(251, 191, 36, 0.40)',
+    backgroundColor: 'rgba(251, 191, 36, 0.15)',
+  },
+  resumeButton: {
+    borderColor: 'rgba(16, 185, 129, 0.40)',
+    backgroundColor: colors.accentSoft,
+  },
+  agentStats: {
+    flexDirection: 'row' as const,
+    marginBottom: 16,
+  },
+  statItem: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    marginRight: 20,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  statText: {
+    fontSize: 14,
+    color: colors.textPrimary,
+    fontWeight: '500' as const,
+  },
+  tokenSection: {
+    marginBottom: 16,
+  },
+  tokenHeader: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    marginBottom: 8,
+  },
+  tokenLabel: {
+    fontSize: 14,
+    color: colors.textTertiary,
+    fontWeight: '500' as const,
+  },
+  tokenValue: {
+    fontSize: 14,
+    color: colors.textPrimary,
+    fontWeight: '600' as const,
+  },
+  progressBarContainer: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+  },
+  progressBarBackground: {
+    flex: 1,
+    height: 6,
+    backgroundColor: colors.accentSoft,
+    borderRadius: 3,
+    marginRight: 8,
+  },
+  progressBarFill: {
+    height: '100%' as const,
+    borderRadius: 3,
+    minWidth: 2,
+  },
+  progressText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontWeight: '600' as const,
+    minWidth: 35,
+  },
+  summary: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+  },
+  summaryItem: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    flex: 1,
+  },
+  summaryText: {
+    fontSize: 12,
+    color: colors.textTertiary,
+    marginLeft: 4,
+  },
+});
+
+const TeamCard: React.FC<TeamCardProps> = ({
+  team,
+  agents,
   onTeamUpdate,
   onTeamPress,
   onMemoryPress,
@@ -34,12 +190,14 @@ const TeamCard: React.FC<TeamCardProps> = ({
   if (!team) {
     return null;
   }
-  
+
   // Ensure agents is an array
   const safeAgents = Array.isArray(agents) ? agents : [];
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [showEditContextModal, setShowEditContextModal] = useState(false);
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   const activeAgents = safeAgents.filter(agent => agent?.lifecycleStatus === 'ACTIVE');
   const pausedAgents = safeAgents.filter(agent => agent?.lifecycleStatus === 'PAUSED');
@@ -69,10 +227,10 @@ const TeamCard: React.FC<TeamCardProps> = ({
   };
 
   const handleResumeAll = async () => {
-    const pausableAgents = safeAgents.filter(agent => 
+    const pausableAgents = safeAgents.filter(agent =>
       agent?.lifecycleStatus === 'PAUSED' || agent?.lifecycleStatus === 'STANDBY'
     );
-    
+
     if (!pausableAgents || pausableAgents.length === 0) {
       AlertAPI.alert('Info', 'No paused agents to resume in this team');
       return;
@@ -97,9 +255,9 @@ const TeamCard: React.FC<TeamCardProps> = ({
 
   const getTokenUsageColor = () => {
     const percentage = (team.tokensUsedToday / team.maxTokensPerDay) * 100;
-    if (percentage >= 90) return '#FF3B30';
-    if (percentage >= 70) return '#FF9500';
-    return '#34C759';
+    if (percentage >= 90) return colors.statusError;
+    if (percentage >= 70) return colors.statusWarning;
+    return colors.statusSuccess;
   };
 
   const getTokenUsagePercentage = () => {
@@ -153,7 +311,7 @@ const TeamCard: React.FC<TeamCardProps> = ({
   };
 
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.container}
       onPress={() => onTeamPress && onTeamPress(team)}
       activeOpacity={0.7}
@@ -162,7 +320,7 @@ const TeamCard: React.FC<TeamCardProps> = ({
       <View style={styles.header}>
         <View style={styles.teamInfo}>
           <View style={styles.teamIcon}>
-            <Ionicons name="people" size={24} color="#007AFF" />
+            <Ionicons name="people" size={24} color={colors.statusSuccess} />
           </View>
           <View style={styles.teamDetails}>
             <Text style={styles.teamName}>{team.name || 'Unnamed Team'}</Text>
@@ -173,7 +331,7 @@ const TeamCard: React.FC<TeamCardProps> = ({
             ) : null}
           </View>
         </View>
-        
+
         {/* Team Controls */}
         <View style={styles.controls}>
           {/* View Team Button */}
@@ -183,10 +341,10 @@ const TeamCard: React.FC<TeamCardProps> = ({
               onPress={() => onNavigateToTeam(team.id, team.name)}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name="eye" size={16} color="#007AFF" />
+              <Ionicons name="eye" size={16} color={colors.statusSuccess} />
             </TouchableOpacity>
           )}
-          
+
           {/* Team Memory Button */}
           <TouchableOpacity
             style={[styles.controlButton, styles.memoryButton]}
@@ -194,39 +352,39 @@ const TeamCard: React.FC<TeamCardProps> = ({
             onLongPress={handleMemoryButtonLongPress}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Ionicons name="library" size={16} color="#FF6B35" />
+            <Ionicons name="library" size={16} color={colors.accentSecondary} />
           </TouchableOpacity>
-          
+
           {/* Edit Team Context Button */}
           <TouchableOpacity
             style={[styles.controlButton, styles.contextButton]}
             onPress={() => setShowEditContextModal(true)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Ionicons name="document-text" size={16} color="#5856D6" />
+            <Ionicons name="document-text" size={16} color="#8B5CF6" />
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[styles.controlButton, styles.pauseButton]}
             onPress={handlePauseAll}
             disabled={isLoading || activeAgents.length === 0}
           >
             {isLoading ? (
-              <ActivityIndicator size="small" color="#FF9500" />
+              <ActivityIndicator size="small" color={colors.accentSecondary} />
             ) : (
-              <Ionicons name="pause" size={16} color="#FF9500" />
+              <Ionicons name="pause" size={16} color={colors.accentSecondary} />
             )}
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[styles.controlButton, styles.resumeButton]}
             onPress={handleResumeAll}
             disabled={isLoading || (pausedAgents.length === 0 && standbyAgents.length === 0)}
           >
             {isLoading ? (
-              <ActivityIndicator size="small" color="#34C759" />
+              <ActivityIndicator size="small" color={colors.statusSuccess} />
             ) : (
-              <Ionicons name="play" size={16} color="#34C759" />
+              <Ionicons name="play" size={16} color={colors.statusSuccess} />
             )}
           </TouchableOpacity>
         </View>
@@ -235,20 +393,20 @@ const TeamCard: React.FC<TeamCardProps> = ({
       {/* Agent Stats */}
       <View style={styles.agentStats}>
         <View style={styles.statItem}>
-          <View style={[styles.statusDot, { backgroundColor: '#34C759' }]} />
+          <View style={[styles.statusDot, { backgroundColor: colors.statusSuccess }]} />
           <Text style={styles.statText}>{activeAgents.length || 0} Active</Text>
         </View>
         <View style={styles.statItem}>
-          <View style={[styles.statusDot, { backgroundColor: '#FF9500' }]} />
+          <View style={[styles.statusDot, { backgroundColor: colors.accentSecondary }]} />
           <Text style={styles.statText}>{pausedAgents.length || 0} Paused</Text>
         </View>
         <View style={styles.statItem}>
-          <View style={[styles.statusDot, { backgroundColor: '#8E8E93' }]} />
+          <View style={[styles.statusDot, { backgroundColor: colors.textTertiary }]} />
           <Text style={styles.statText}>{standbyAgents.length || 0} Standby</Text>
         </View>
         {team.memory ? (
           <View style={styles.statItem}>
-            <View style={[styles.statusDot, { backgroundColor: '#FF6B35' }]} />
+            <View style={[styles.statusDot, { backgroundColor: colors.accentSecondary }]} />
             <Text style={styles.statText}>Memory</Text>
           </View>
         ) : null}
@@ -264,14 +422,14 @@ const TeamCard: React.FC<TeamCardProps> = ({
         </View>
         <View style={styles.progressBarContainer}>
           <View style={styles.progressBarBackground}>
-            <View 
+            <View
               style={[
-                styles.progressBarFill, 
-                { 
+                styles.progressBarFill,
+                {
                   width: `${getTokenUsagePercentage()}%`,
                   backgroundColor: getTokenUsageColor()
                 }
-              ]} 
+              ]}
             />
           </View>
           <Text style={styles.progressText}>
@@ -283,15 +441,15 @@ const TeamCard: React.FC<TeamCardProps> = ({
       {/* Team Summary */}
       <View style={styles.summary}>
         <View style={styles.summaryItem}>
-          <Ionicons name="people-outline" size={16} color="#6B6B6B" />
+          <Ionicons name="people-outline" size={16} color={colors.textTertiary} />
           <Text style={styles.summaryText}>{safeAgents.length} agents</Text>
         </View>
         <View style={styles.summaryItem}>
-          <Ionicons name="flash-outline" size={16} color="#6B6B6B" />
+          <Ionicons name="flash-outline" size={16} color={colors.textTertiary} />
           <Text style={styles.summaryText}>{team.totalExecutions || 0} executions</Text>
         </View>
         <View style={styles.summaryItem}>
-          <Ionicons name="calendar-outline" size={16} color="#6B6B6B" />
+          <Ionicons name="calendar-outline" size={16} color={colors.textTertiary} />
           <Text style={styles.summaryText}>
             Created {formatCreatedDate()}
           </Text>
@@ -312,159 +470,4 @@ const TeamCard: React.FC<TeamCardProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    borderLeftWidth: 4,
-    borderLeftColor: '#007AFF',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  teamInfo: {
-    flexDirection: 'row',
-    flex: 1,
-    alignItems: 'flex-start',
-  },
-  teamIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#F0F8FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  teamDetails: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  teamName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  teamDescription: {
-    fontSize: 14,
-    color: '#6B6B6B',
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  controls: {
-    flexDirection: 'row',
-    marginLeft: 12,
-  },
-  controlButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-    borderWidth: 1,
-  },
-  viewTeamButton: {
-    borderColor: '#007AFF',
-    backgroundColor: '#F0F8FF',
-  },
-  memoryButton: {
-    borderColor: '#FF6B35',
-    backgroundColor: '#FFF4F0',
-  },
-  contextButton: {
-    borderColor: '#5856D6',
-    backgroundColor: '#F0F0FF',
-  },
-  pauseButton: {
-    borderColor: '#FF9500',
-    backgroundColor: '#FFF8F0',
-  },
-  resumeButton: {
-    borderColor: '#34C759',
-    backgroundColor: '#F0FFF4',
-  },
-  agentStats: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 20,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
-  },
-  statText: {
-    fontSize: 14,
-    color: '#1A1A1A',
-    fontWeight: '500',
-  },
-  tokenSection: {
-    marginBottom: 16,
-  },
-  tokenHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  tokenLabel: {
-    fontSize: 14,
-    color: '#6B6B6B',
-    fontWeight: '500',
-  },
-  tokenValue: {
-    fontSize: 14,
-    color: '#1A1A1A',
-    fontWeight: '600',
-  },
-  progressBarContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  progressBarBackground: {
-    flex: 1,
-    height: 6,
-    backgroundColor: '#F2F2F7',
-    borderRadius: 3,
-    marginRight: 8,
-  },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: 3,
-    minWidth: 2,
-  },
-  progressText: {
-    fontSize: 12,
-    color: '#6B6B6B',
-    fontWeight: '600',
-    minWidth: 35,
-  },
-  summary: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  summaryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  summaryText: {
-    fontSize: 12,
-    color: '#6B6B6B',
-    marginLeft: 4,
-  },
-});
-
-export default TeamCard; 
+export default TeamCard;

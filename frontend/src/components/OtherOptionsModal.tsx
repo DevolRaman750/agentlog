@@ -1,17 +1,17 @@
 import React from 'react';
-import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  ScrollView, 
-  Modal, 
-  StyleSheet,
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Modal,
   TextInput
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import EnhancedTextEditor from './EnhancedTextEditor';
 import { useResponsive } from '../context/ResponsiveContext';
+import { useTheme, useThemedStyles } from '../theme';
 
 interface OtherOptionsModalProps {
   visible: boolean;
@@ -36,7 +36,186 @@ const OtherOptionsModal: React.FC<OtherOptionsModalProps> = ({
   onContextChange,
   defaultExecutionName,
 }) => {
+  const { colors } = useTheme();
   const { screenWidth } = useResponsive();
+
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bgApp,
+    },
+    header: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      backgroundColor: colors.bgCard,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    headerButton: {
+      padding: 8,
+      minWidth: 60,
+      minHeight: 44,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    doneButton: {
+      alignItems: 'flex-end' as const,
+    },
+    doneButtonText: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.accent,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    subtitle: {
+      backgroundColor: colors.bgCard,
+      paddingHorizontal: 16,
+      paddingBottom: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    subtitleText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+      marginBottom: 8,
+    },
+    selectionInfo: {
+      flexDirection: 'row' as const,
+      justifyContent: 'flex-end' as const,
+    },
+    selectionCount: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.statusWarning,
+      backgroundColor: '#FFF8F0',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+    },
+    controls: {
+      backgroundColor: colors.bgCard,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+      flexDirection: 'row' as const,
+      justifyContent: 'flex-end' as const,
+    },
+    clearButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      backgroundColor: '#FFF5F5',
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: '#FFD7D7',
+      gap: 6,
+    },
+    clearButtonText: {
+      fontSize: 14,
+      fontWeight: '500' as const,
+      color: colors.statusError,
+    },
+    scrollContent: {
+      flex: 1,
+    },
+    scrollContentContainer: {
+      padding: 16,
+    },
+    fieldContainer: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    fieldHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      marginBottom: 8,
+    },
+    fieldLabelContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 8,
+    },
+    fieldLabel: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    fieldDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+      marginBottom: 12,
+    },
+    textInput: {
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      borderRadius: 8,
+      padding: 12,
+      fontSize: 16,
+      color: colors.textPrimary,
+      backgroundColor: colors.bgSurface,
+    },
+    characterCount: {
+      fontSize: 12,
+      color: colors.textTertiary,
+      textAlign: 'right' as const,
+      marginTop: 4,
+    },
+    tipsContainer: {
+      backgroundColor: '#FFF8F0',
+      borderRadius: 12,
+      padding: 16,
+      marginTop: 8,
+      borderWidth: 1,
+      borderColor: '#FFE4B5',
+    },
+    tipsHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 12,
+      gap: 8,
+    },
+    tipsTitle: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.statusWarning,
+    },
+    tipsList: {
+      gap: 8,
+    },
+    tipItem: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+      gap: 8,
+    },
+    tipBullet: {
+      fontSize: 16,
+      color: colors.statusWarning,
+      fontWeight: 'bold' as const,
+      marginTop: 2,
+    },
+    tipText: {
+      flex: 1,
+      fontSize: 14,
+      color: '#B8860B',
+      lineHeight: 20,
+    },
+  }));
 
   const getFilledOptionsCount = () => {
     let count = 0;
@@ -60,43 +239,43 @@ const OtherOptionsModal: React.FC<OtherOptionsModalProps> = ({
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.headerButton}>
-            <Ionicons name="close" size={24} color="#007AFF" />
+            <Ionicons name="close" size={24} color={colors.accent} />
           </TouchableOpacity>
-          
+
           <Text style={styles.title}>Other Options</Text>
-          
-          <TouchableOpacity 
-            onPress={onClose} 
+
+          <TouchableOpacity
+            onPress={onClose}
             style={[styles.headerButton, styles.doneButton]}
           >
             <Text style={styles.doneButtonText}>Done</Text>
           </TouchableOpacity>
         </View>
-        
+
         {/* Subtitle and info */}
         <View style={styles.subtitle}>
           <Text style={styles.subtitleText}>
             Add optional details to customize your execution
           </Text>
-          
+
           <View style={styles.selectionInfo}>
             <Text style={styles.selectionCount}>
               {getFilledOptionsCount()} filled
             </Text>
           </View>
         </View>
-        
+
         {/* Controls */}
         <View style={styles.controls}>
           <TouchableOpacity onPress={clearAllFields} style={styles.clearButton}>
-            <Ionicons name="refresh" size={16} color="#FF3B30" />
+            <Ionicons name="refresh" size={16} color={colors.statusError} />
             <Text style={styles.clearButtonText}>Clear All</Text>
           </TouchableOpacity>
         </View>
-        
+
         {/* Content */}
-        <ScrollView 
-          style={styles.scrollContent} 
+        <ScrollView
+          style={styles.scrollContent}
           contentContainerStyle={styles.scrollContentContainer}
           showsVerticalScrollIndicator={false}
         >
@@ -104,30 +283,30 @@ const OtherOptionsModal: React.FC<OtherOptionsModalProps> = ({
           <View style={styles.fieldContainer}>
             <View style={styles.fieldHeader}>
               <View style={styles.fieldLabelContainer}>
-                <Ionicons name="bookmark" size={18} color="#FF9500" />
+                <Ionicons name="bookmark" size={18} color={colors.statusWarning} />
                 <Text style={styles.fieldLabel}>Execution Name</Text>
               </View>
-              
+
               {executionName?.trim() && (
                 <TouchableOpacity onPress={() => onExecutionNameChange('')}>
-                  <Ionicons name="close-circle" size={20} color="#666" />
+                  <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
                 </TouchableOpacity>
               )}
             </View>
-            
+
             <Text style={styles.fieldDescription}>
               Give this execution a memorable name for easy identification in your history
             </Text>
-            
+
             <TextInput
               style={styles.textInput}
               value={executionName}
               onChangeText={onExecutionNameChange}
               placeholder={defaultExecutionName || 'My AI Execution'}
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.textTertiary}
               multiline={false}
             />
-            
+
             <Text style={styles.characterCount}>
               {executionName?.length || 0}/100 characters
             </Text>
@@ -137,17 +316,17 @@ const OtherOptionsModal: React.FC<OtherOptionsModalProps> = ({
           <View style={styles.fieldContainer}>
             <View style={styles.fieldHeader}>
               <View style={styles.fieldLabelContainer}>
-                <Ionicons name="document-text" size={18} color="#FF9500" />
+                <Ionicons name="document-text" size={18} color={colors.statusWarning} />
                 <Text style={styles.fieldLabel}>Description</Text>
               </View>
-              
+
               {description?.trim() && (
                 <TouchableOpacity onPress={() => onDescriptionChange('')}>
-                  <Ionicons name="close-circle" size={20} color="#666" />
+                  <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
                 </TouchableOpacity>
               )}
             </View>
-            
+
             <EnhancedTextEditor
               value={description}
               onChangeText={onDescriptionChange}
@@ -169,17 +348,17 @@ const OtherOptionsModal: React.FC<OtherOptionsModalProps> = ({
           <View style={styles.fieldContainer}>
             <View style={styles.fieldHeader}>
               <View style={styles.fieldLabelContainer}>
-                <Ionicons name="information-circle" size={18} color="#FF9500" />
+                <Ionicons name="information-circle" size={18} color={colors.statusWarning} />
                 <Text style={styles.fieldLabel}>Additional Context</Text>
               </View>
-              
+
               {context?.trim() && (
                 <TouchableOpacity onPress={() => onContextChange('')}>
-                  <Ionicons name="close-circle" size={20} color="#666" />
+                  <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
                 </TouchableOpacity>
               )}
             </View>
-            
+
             <EnhancedTextEditor
               value={context}
               onChangeText={onContextChange}
@@ -200,10 +379,10 @@ const OtherOptionsModal: React.FC<OtherOptionsModalProps> = ({
           {/* Usage Tips */}
           <View style={styles.tipsContainer}>
             <View style={styles.tipsHeader}>
-              <Ionicons name="bulb" size={16} color="#FF9500" />
+              <Ionicons name="bulb" size={16} color={colors.statusWarning} />
               <Text style={styles.tipsTitle}>Tips</Text>
             </View>
-            
+
             <View style={styles.tipsList}>
               <View style={styles.tipItem}>
                 <Text style={styles.tipBullet}>•</Text>
@@ -211,14 +390,14 @@ const OtherOptionsModal: React.FC<OtherOptionsModalProps> = ({
                   Use descriptive names to easily find executions later
                 </Text>
               </View>
-              
+
               <View style={styles.tipItem}>
                 <Text style={styles.tipBullet}>•</Text>
                 <Text style={styles.tipText}>
                   Add context to help AI understand your specific requirements
                 </Text>
               </View>
-              
+
               <View style={styles.tipItem}>
                 <Text style={styles.tipBullet}>•</Text>
                 <Text style={styles.tipText}>
@@ -232,183 +411,5 @@ const OtherOptionsModal: React.FC<OtherOptionsModalProps> = ({
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  headerButton: {
-    padding: 8, // Increased for better touch target
-    minWidth: 60,
-    minHeight: 44, // Ensure minimum touch target size
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  doneButton: {
-    alignItems: 'flex-end',
-  },
-  doneButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#007AFF',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  subtitle: {
-    backgroundColor: 'white',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  subtitleText: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-    marginBottom: 8,
-  },
-  selectionInfo: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-  },
-  selectionCount: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FF9500',
-    backgroundColor: '#FFF8F0',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  controls: {
-    backgroundColor: 'white',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-  },
-  clearButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#FFF5F5',
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#FFD7D7',
-    gap: 6,
-  },
-  clearButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#FF3B30',
-  },
-  scrollContent: {
-    flex: 1,
-  },
-  scrollContentContainer: {
-    padding: 16,
-  },
-  fieldContainer: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  fieldHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  fieldLabelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  fieldLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  fieldDescription: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  textInput: {
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: '#1A1A1A',
-    backgroundColor: '#F8F9FA',
-  },
-  characterCount: {
-    fontSize: 12,
-    color: '#999',
-    textAlign: 'right',
-    marginTop: 4,
-  },
-  tipsContainer: {
-    backgroundColor: '#FFF8F0',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: '#FFE4B5',
-  },
-  tipsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
-  },
-  tipsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FF9500',
-  },
-  tipsList: {
-    gap: 8,
-  },
-  tipItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-  },
-  tipBullet: {
-    fontSize: 16,
-    color: '#FF9500',
-    fontWeight: 'bold',
-    marginTop: 2,
-  },
-  tipText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#B8860B',
-    lineHeight: 20,
-  },
-});
 
 export default OtherOptionsModal;

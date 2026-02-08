@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   TextInput,
@@ -16,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useToast } from '../context/ToastContext';
 import { goGentAPI } from '../api/client';
 import { CreateApiKeyRequest } from '../types';
+import { useTheme, useThemedStyles } from '../theme';
 
 interface WhatsAppOnboardingSetupProps {
   onComplete: (success: boolean) => void;
@@ -28,6 +28,7 @@ export const WhatsAppOnboardingSetup: React.FC<WhatsAppOnboardingSetupProps> = (
   isLoading,
   setIsLoading,
 }) => {
+  const { colors } = useTheme();
   const { showSuccess, showError } = useToast();
   const [step, setStep] = useState<'setup' | 'instructions'>('setup');
   const [formData, setFormData] = useState({
@@ -37,18 +38,198 @@ export const WhatsAppOnboardingSetup: React.FC<WhatsAppOnboardingSetupProps> = (
     verifyToken: '',
   });
 
+  const styles = useThemedStyles((colors) => ({
+    modalContainer: {
+      flex: 1,
+      backgroundColor: colors.bgApp,
+    },
+    modalHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      backgroundColor: colors.bgCard,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    modalTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    headerSpacer: {
+      width: 24,
+    },
+    container: {
+      flex: 1,
+      padding: 16,
+    },
+    header: {
+      alignItems: 'center' as const,
+      marginBottom: 24,
+    },
+    iconContainer: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: '#25D36620',
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      marginBottom: 16,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: '700' as const,
+      color: colors.textPrimary,
+      textAlign: 'center' as const,
+      marginBottom: 8,
+    },
+    subtitle: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      textAlign: 'center' as const,
+      lineHeight: 22,
+    },
+    formContainer: {
+      marginBottom: 24,
+    },
+    inputGroup: {
+      marginBottom: 20,
+    },
+    inputLabel: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    textInput: {
+      backgroundColor: colors.bgCard,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      fontSize: 16,
+      color: colors.textPrimary,
+    },
+    inputHelp: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginTop: 4,
+    },
+    actionsContainer: {
+      gap: 12,
+    },
+    helpButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      paddingVertical: 12,
+    },
+    helpButtonText: {
+      fontSize: 16,
+      color: colors.accent,
+      marginLeft: 8,
+    },
+    saveButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      backgroundColor: '#25D366',
+      borderRadius: 8,
+      paddingVertical: 16,
+      gap: 8,
+    },
+    saveButtonDisabled: {
+      opacity: 0.6,
+    },
+    saveButtonText: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textInverse,
+    },
+    instructionsContainer: {
+      marginBottom: 24,
+    },
+    instructionStep: {
+      flexDirection: 'row' as const,
+      marginBottom: 24,
+    },
+    stepNumber: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: colors.accent,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      marginRight: 16,
+    },
+    stepNumberText: {
+      fontSize: 16,
+      fontWeight: '700' as const,
+      color: colors.textInverse,
+    },
+    stepContent: {
+      flex: 1,
+    },
+    stepTitle: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    stepDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+      marginBottom: 8,
+    },
+    linkButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 4,
+    },
+    linkButtonText: {
+      fontSize: 14,
+      color: colors.accent,
+      textDecorationLine: 'underline' as const,
+    },
+    helpLinks: {
+      marginBottom: 24,
+    },
+    helpLink: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 8,
+      paddingVertical: 12,
+    },
+    helpLinkText: {
+      fontSize: 16,
+      color: colors.accent,
+    },
+    backButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      gap: 8,
+      paddingVertical: 16,
+    },
+    backButtonText: {
+      fontSize: 16,
+      color: colors.accent,
+    },
+  }));
+
   const validateAccessToken = (token: string): boolean => {
-    // WhatsApp Business API tokens start with EAA
     return /^EAA[a-zA-Z0-9]{100,}$/.test(token);
   };
 
   const validatePhoneNumberId = (id: string): boolean => {
-    // Phone number IDs are typically long numeric strings
     return /^\d{10,}$/.test(id);
   };
 
   const validateBusinessAccountId = (id: string): boolean => {
-    // Business account IDs are typically long numeric strings
     return /^\d{10,}$/.test(id);
   };
 
@@ -69,7 +250,6 @@ export const WhatsAppOnboardingSetup: React.FC<WhatsAppOnboardingSetupProps> = (
     }
 
     if (!formData.verifyToken.trim()) {
-      // Make verify token optional for pull-based approach
       formData.verifyToken = 'agentlog_whatsapp_verify_token';
     }
 
@@ -95,7 +275,7 @@ export const WhatsAppOnboardingSetup: React.FC<WhatsAppOnboardingSetupProps> = (
       };
 
       const response = await goGentAPI.createApiKey(createRequest);
-      
+
       if (response.success) {
         showSuccess('WhatsApp Business API configured successfully!');
         onComplete(true);
@@ -149,7 +329,7 @@ export const WhatsAppOnboardingSetup: React.FC<WhatsAppOnboardingSetupProps> = (
             value={formData.accessToken}
             onChangeText={(text) => setFormData(prev => ({ ...prev, accessToken: text }))}
             placeholder="EAA..."
-            placeholderTextColor="#8E8E93"
+            placeholderTextColor={colors.textSecondary}
             secureTextEntry
             autoCapitalize="none"
             autoCorrect={false}
@@ -166,7 +346,7 @@ export const WhatsAppOnboardingSetup: React.FC<WhatsAppOnboardingSetupProps> = (
             value={formData.phoneNumberId}
             onChangeText={(text) => setFormData(prev => ({ ...prev, phoneNumberId: text }))}
             placeholder="123456789012345"
-            placeholderTextColor="#8E8E93"
+            placeholderTextColor={colors.textSecondary}
             keyboardType="numeric"
             autoCapitalize="none"
             autoCorrect={false}
@@ -183,7 +363,7 @@ export const WhatsAppOnboardingSetup: React.FC<WhatsAppOnboardingSetupProps> = (
             value={formData.businessAccountId}
             onChangeText={(text) => setFormData(prev => ({ ...prev, businessAccountId: text }))}
             placeholder="123456789012345"
-            placeholderTextColor="#8E8E93"
+            placeholderTextColor={colors.textSecondary}
             keyboardType="numeric"
             autoCapitalize="none"
             autoCorrect={false}
@@ -200,7 +380,7 @@ export const WhatsAppOnboardingSetup: React.FC<WhatsAppOnboardingSetupProps> = (
             value={formData.verifyToken}
             onChangeText={(text) => setFormData(prev => ({ ...prev, verifyToken: text }))}
             placeholder="your_custom_verify_token"
-            placeholderTextColor="#8E8E93"
+            placeholderTextColor={colors.textSecondary}
             autoCapitalize="none"
             autoCorrect={false}
           />
@@ -215,7 +395,7 @@ export const WhatsAppOnboardingSetup: React.FC<WhatsAppOnboardingSetupProps> = (
           style={styles.helpButton}
           onPress={() => setStep('instructions')}
         >
-          <Ionicons name="help-circle" size={20} color="#007AFF" />
+          <Ionicons name="help-circle" size={20} color={colors.accent} />
           <Text style={styles.helpButtonText}>Need help setting up?</Text>
         </TouchableOpacity>
 
@@ -225,9 +405,9 @@ export const WhatsAppOnboardingSetup: React.FC<WhatsAppOnboardingSetupProps> = (
           disabled={isLoading}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <ActivityIndicator size="small" color={colors.textInverse} />
           ) : (
-            <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+            <Ionicons name="checkmark" size={20} color={colors.textInverse} />
           )}
           <Text style={styles.saveButtonText}>
             {isLoading ? 'Saving...' : 'Save Configuration'}
@@ -241,7 +421,7 @@ export const WhatsAppOnboardingSetup: React.FC<WhatsAppOnboardingSetupProps> = (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <View style={styles.iconContainer}>
-          <Ionicons name="document-text" size={48} color="#007AFF" />
+          <Ionicons name="document-text" size={48} color={colors.accent} />
         </View>
         <Text style={styles.title}>Setup Instructions</Text>
         <Text style={styles.subtitle}>
@@ -261,7 +441,7 @@ export const WhatsAppOnboardingSetup: React.FC<WhatsAppOnboardingSetupProps> = (
             </Text>
             <TouchableOpacity style={styles.linkButton} onPress={openMetaDeveloperPortal}>
               <Text style={styles.linkButtonText}>Open Meta Developer Portal</Text>
-              <Ionicons name="open-outline" size={16} color="#007AFF" />
+              <Ionicons name="open-outline" size={16} color={colors.accent} />
             </TouchableOpacity>
           </View>
         </View>
@@ -329,7 +509,7 @@ export const WhatsAppOnboardingSetup: React.FC<WhatsAppOnboardingSetupProps> = (
 
       <View style={styles.helpLinks}>
         <TouchableOpacity style={styles.helpLink} onPress={openWhatsAppDocs}>
-          <Ionicons name="document-text" size={20} color="#007AFF" />
+          <Ionicons name="document-text" size={20} color={colors.accent} />
           <Text style={styles.helpLinkText}>WhatsApp Business API Documentation</Text>
         </TouchableOpacity>
       </View>
@@ -338,7 +518,7 @@ export const WhatsAppOnboardingSetup: React.FC<WhatsAppOnboardingSetupProps> = (
         style={styles.backButton}
         onPress={() => setStep('setup')}
       >
-        <Ionicons name="arrow-back" size={20} color="#007AFF" />
+        <Ionicons name="arrow-back" size={20} color={colors.accent} />
         <Text style={styles.backButtonText}>Back to Setup</Text>
       </TouchableOpacity>
     </ScrollView>
@@ -348,7 +528,7 @@ export const WhatsAppOnboardingSetup: React.FC<WhatsAppOnboardingSetupProps> = (
     <View style={styles.modalContainer}>
       <View style={styles.modalHeader}>
         <TouchableOpacity onPress={() => onComplete(false)}>
-          <Ionicons name="close" size={24} color="#8E8E93" />
+          <Ionicons name="close" size={24} color={colors.textSecondary} />
         </TouchableOpacity>
         <Text style={styles.modalTitle}>WhatsApp Business</Text>
         <View style={styles.headerSpacer} />
@@ -358,188 +538,5 @@ export const WhatsAppOnboardingSetup: React.FC<WhatsAppOnboardingSetupProps> = (
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1D1D1F',
-  },
-  headerSpacer: {
-    width: 24,
-  },
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  iconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#25D36620',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1D1D1F',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#8E8E93',
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  formContainer: {
-    marginBottom: 24,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1D1D1F',
-    marginBottom: 8,
-  },
-  textInput: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#1D1D1F',
-  },
-  inputHelp: {
-    fontSize: 14,
-    color: '#8E8E93',
-    marginTop: 4,
-  },
-  actionsContainer: {
-    gap: 12,
-  },
-  helpButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-  },
-  helpButtonText: {
-    fontSize: 16,
-    color: '#007AFF',
-    marginLeft: 8,
-  },
-  saveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#25D366',
-    borderRadius: 8,
-    paddingVertical: 16,
-    gap: 8,
-  },
-  saveButtonDisabled: {
-    opacity: 0.6,
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  instructionsContainer: {
-    marginBottom: 24,
-  },
-  instructionStep: {
-    flexDirection: 'row',
-    marginBottom: 24,
-  },
-  stepNumber: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#007AFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  stepNumberText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  stepContent: {
-    flex: 1,
-  },
-  stepTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1D1D1F',
-    marginBottom: 4,
-  },
-  stepDescription: {
-    fontSize: 14,
-    color: '#8E8E93',
-    lineHeight: 20,
-    marginBottom: 8,
-  },
-  linkButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  linkButtonText: {
-    fontSize: 14,
-    color: '#007AFF',
-    textDecorationLine: 'underline',
-  },
-  helpLinks: {
-    marginBottom: 24,
-  },
-  helpLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 12,
-  },
-  helpLinkText: {
-    fontSize: 16,
-    color: '#007AFF',
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: '#007AFF',
-  },
-});
 
 export default WhatsAppOnboardingSetup;

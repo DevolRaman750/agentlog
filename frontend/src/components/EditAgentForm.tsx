@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TextInput,
   TouchableOpacity,
   ScrollView,
@@ -17,7 +16,8 @@ import { goGentAPI } from '../api/client';
 import { AlertAPI } from './CustomAlert';
 import AgentAvatar from './AgentAvatar';
 import { Agent, AgentFormData, AgentFormErrors, LifecycleStatus, ExecutionTemplate } from '../types';
-import { containerStyles, shadowPresets, textInputStyles, containerColors } from '../styles/containers';
+import { useTheme, useThemedStyles } from '../theme';
+import { useContainerStyles } from '../styles/useContainerStyles';
 
 interface EditAgentFormProps {
   agent: Agent;
@@ -30,20 +30,22 @@ interface TooltipProps {
   content: string;
   visible: boolean;
   onClose: () => void;
+  themedStyles: any;
+  colors: any;
 }
 
-const Tooltip: React.FC<TooltipProps> = ({ title, content, visible, onClose }) => (
+const Tooltip: React.FC<TooltipProps> = ({ title, content, visible, onClose, themedStyles, colors }) => (
   <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-    <TouchableOpacity style={styles.tooltipOverlay} onPress={onClose}>
-      <View style={styles.tooltipContainer}>
-        <View style={styles.tooltipHeader}>
-          <Ionicons name="information-circle" size={24} color="#007AFF" />
-          <Text style={styles.tooltipTitle}>{title}</Text>
+    <TouchableOpacity style={themedStyles.tooltipOverlay} onPress={onClose}>
+      <View style={themedStyles.tooltipContainer}>
+        <View style={themedStyles.tooltipHeader}>
+          <Ionicons name="information-circle" size={24} color={colors.accent} />
+          <Text style={themedStyles.tooltipTitle}>{title}</Text>
           <TouchableOpacity onPress={onClose}>
-            <Ionicons name="close" size={20} color="#666" />
+            <Ionicons name="close" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
-        <Text style={styles.tooltipContent}>{content}</Text>
+        <Text style={themedStyles.tooltipContent}>{content}</Text>
       </View>
     </TouchableOpacity>
   </Modal>
@@ -51,6 +53,391 @@ const Tooltip: React.FC<TooltipProps> = ({ title, content, visible, onClose }) =
 
 const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCancel }) => {
   const navigation = useNavigation();
+  const { colors } = useTheme();
+  const { containerStyles, shadowPresets, textInputStyles } = useContainerStyles();
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bgApp,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      backgroundColor: colors.bgApp,
+    },
+    loadingText: {
+      marginTop: 16,
+      fontSize: 16,
+      color: colors.textSecondary,
+    },
+    header: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 20,
+      paddingTop: Platform.OS === 'ios' ? 60 : 20,
+      paddingBottom: 20,
+      backgroundColor: colors.bgCard,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    headerLeft: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 12,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: 'bold' as const,
+      color: colors.textPrimary,
+    },
+    closeButton: {
+      padding: 8,
+    },
+    content: {
+      flex: 1,
+      padding: 20,
+    },
+    overviewSection: {
+      marginBottom: 24,
+    },
+    overviewHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 8,
+      backgroundColor: colors.bgCard,
+      padding: 16,
+      borderRadius: 12,
+    },
+    overviewTitle: {
+      flex: 1,
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.accent,
+    },
+    characterPreview: {
+      backgroundColor: colors.bgSurface,
+      borderRadius: 16,
+      padding: 20,
+      marginBottom: 24,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    previewHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 16,
+      gap: 8,
+    },
+    previewTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    previewContent: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 20,
+    },
+    previewText: {
+      flex: 1,
+    },
+    previewName: {
+      fontSize: 20,
+      fontWeight: 'bold' as const,
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    previewRole: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      fontStyle: 'italic' as const,
+      marginBottom: 8,
+    },
+    previewChanges: {
+      fontSize: 14,
+      color: colors.accent,
+      fontWeight: '500' as const,
+    },
+    section: {
+      marginBottom: 24,
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 20,
+    },
+    sectionHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 8,
+      marginBottom: 16,
+    },
+    sectionTitle: {
+      flex: 1,
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    inputRow: {
+      flexDirection: 'row' as const,
+      gap: 16,
+    },
+    inputColumn: {
+      flex: 1,
+    },
+    labelRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 4,
+      marginBottom: 8,
+    },
+    label: {
+      fontSize: 16,
+      fontWeight: '500' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    inputError: {
+      borderColor: colors.statusError,
+      borderWidth: 1,
+    },
+    errorText: {
+      color: colors.statusError,
+      fontSize: 14,
+      marginTop: 4,
+    },
+    selectorButton: {
+      backgroundColor: colors.bgSurface,
+      borderRadius: 12,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    selectorContent: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 12,
+    },
+    selectorMain: {
+      flex: 1,
+    },
+    selectorLabel: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginBottom: 4,
+    },
+    selectorValue: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    selectorPlaceholder: {
+      fontSize: 16,
+      color: colors.textTertiary,
+      marginBottom: 4,
+    },
+    selectorDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 18,
+    },
+    statusIndicator: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 8,
+      marginBottom: 4,
+    },
+    footer: {
+      flexDirection: 'row' as const,
+      gap: 12,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      backgroundColor: colors.bgCard,
+      borderTopWidth: 1,
+      borderTopColor: colors.borderLight,
+    },
+    cancelButton: {
+      flex: 1,
+      backgroundColor: colors.bgSurface,
+      paddingVertical: 14,
+      borderRadius: 8,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    cancelButtonText: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textSecondary,
+    },
+    saveButton: {
+      flex: 1,
+      backgroundColor: colors.accent,
+      paddingVertical: 14,
+      borderRadius: 8,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      gap: 8,
+    },
+    saveButtonDisabled: {
+      backgroundColor: colors.borderMedium,
+    },
+    saveButtonText: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textInverse,
+    },
+    modalContainer: {
+      flex: 1,
+      backgroundColor: colors.bgApp,
+    },
+    modalHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 20,
+      paddingTop: Platform.OS === 'ios' ? 60 : 20,
+      paddingBottom: 20,
+      backgroundColor: colors.bgCard,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: 'bold' as const,
+      color: colors.textPrimary,
+    },
+    modalList: {
+      padding: 20,
+      gap: 12,
+    },
+    templateCard: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    templateCardSelected: {
+      borderColor: colors.accent,
+      borderWidth: 2,
+    },
+    templateCardHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 8,
+      marginBottom: 8,
+    },
+    templateCardName: {
+      flex: 1,
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    templateBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+    },
+    templateBadgeText: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: colors.textInverse,
+    },
+    templateCardDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 18,
+    },
+    statusCard: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    statusCardSelected: {
+      borderColor: colors.accent,
+      borderWidth: 2,
+    },
+    statusCardContent: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 16,
+    },
+    statusCardText: {
+      flex: 1,
+    },
+    statusCardName: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      marginBottom: 4,
+    },
+    statusCardDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 18,
+    },
+    tooltipOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      padding: 20,
+    },
+    tooltipContainer: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 20,
+      maxWidth: '90%' as const,
+    },
+    tooltipHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 8,
+      marginBottom: 12,
+    },
+    tooltipTitle: {
+      flex: 1,
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    tooltipContent: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+    },
+    fieldHelpContainer: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'flex-start' as const,
+      marginTop: 6,
+    },
+    fieldHelp: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      marginTop: 6,
+      lineHeight: 18,
+      flex: 1,
+    },
+    manageTemplatesLink: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginLeft: 8,
+      padding: 4,
+      borderRadius: 6,
+      backgroundColor: colors.bgApp,
+    },
+    linkText: {
+      fontSize: 12,
+      color: colors.accent,
+      fontWeight: '500' as const,
+      marginLeft: 4,
+    },
+  }));
+
   const [formData, setFormData] = useState<AgentFormData>({
     firstName: agent.firstName,
     lastName: agent.lastName,
@@ -130,7 +517,7 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
     try {
       setIsSubmitting(true);
       const response = await goGentAPI.updateAgent(agent.id, formData);
-      
+
       if (response.success) {
         AlertAPI.alert('Success', 'Agent updated successfully!', [
           { text: 'OK', onPress: onSuccess }
@@ -176,7 +563,7 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
       case 'KILLED':
         return {
           description: 'Permanently disabled - Cannot be reactivated',
-          color: '#dc3545',
+          color: colors.statusError,
           icon: 'close-circle'
         };
       default:
@@ -201,7 +588,7 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={colors.accent} />
         <Text style={styles.loadingText}>Loading templates...</Text>
       </View>
     );
@@ -212,42 +599,42 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Ionicons name="pencil" size={28} color="#007AFF" />
+          <Ionicons name="pencil" size={28} color={colors.accent} />
           <Text style={styles.title}>Edit Agent</Text>
         </View>
         <TouchableOpacity onPress={onCancel} style={styles.closeButton}>
-          <Ionicons name="close" size={24} color="#666" />
+          <Ionicons name="close" size={24} color={colors.textSecondary} />
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Agent Overview Tooltip */}
         <View style={styles.overviewSection}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.overviewHeader}
             onPress={() => setShowAgentTooltip(true)}
           >
-            <Ionicons name="information-circle-outline" size={20} color="#007AFF" />
+            <Ionicons name="information-circle-outline" size={20} color={colors.accent} />
             <Text style={styles.overviewTitle}>About Agent Editing</Text>
-            <Ionicons name="chevron-forward" size={16} color="#007AFF" />
+            <Ionicons name="chevron-forward" size={16} color={colors.accent} />
           </TouchableOpacity>
         </View>
 
         {/* Character Preview */}
         <View style={styles.characterPreview}>
           <View style={styles.previewHeader}>
-            <Ionicons name="sparkles" size={20} color="#007AFF" />
+            <Ionicons name="sparkles" size={20} color={colors.accent} />
             <Text style={styles.previewTitle}>Character Profile</Text>
           </View>
           <View style={styles.previewContent}>
-            <AgentAvatar 
+            <AgentAvatar
               agent={{
                 firstName: formData.firstName || agent.firstName,
                 lastName: formData.lastName || agent.lastName,
                 lifecycleStatus: formData.lifecycleStatus,
                 templateName: selectedTemplate?.name || agent.templateName
-              }} 
-              size="xl" 
+              }}
+              size="xl"
               showStatus={true}
               animated={true}
             />
@@ -268,10 +655,10 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
         {/* Basic Information */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="person" size={20} color="#007AFF" />
+            <Ionicons name="person" size={20} color={colors.accent} />
             <Text style={styles.sectionTitle}>Basic Information</Text>
           </View>
-          
+
           <View style={styles.inputRow}>
             <View style={styles.inputColumn}>
               <Text style={styles.label}>First Name *</Text>
@@ -280,11 +667,11 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
                 value={formData.firstName}
                 onChangeText={(value) => updateFormData('firstName', value)}
                 placeholder="Enter first name"
-                placeholderTextColor="#999"
+                placeholderTextColor={colors.textTertiary}
               />
               {errors.firstName && <Text style={styles.errorText}>{errors.firstName}</Text>}
             </View>
-            
+
             <View style={styles.inputColumn}>
               <Text style={styles.label}>Last Name *</Text>
               <TextInput
@@ -292,7 +679,7 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
                 value={formData.lastName}
                 onChangeText={(value) => updateFormData('lastName', value)}
                 placeholder="Enter last name"
-                placeholderTextColor="#999"
+                placeholderTextColor={colors.textTertiary}
               />
               {errors.lastName && <Text style={styles.errorText}>{errors.lastName}</Text>}
             </View>
@@ -302,14 +689,14 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
         {/* Template Selection */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="document-text" size={20} color="#007AFF" />
+            <Ionicons name="document-text" size={20} color={colors.accent} />
             <Text style={styles.sectionTitle}>Archetype Template</Text>
             <TouchableOpacity onPress={() => setShowTemplateTooltip(true)}>
-              <Ionicons name="help-circle-outline" size={18} color="#666" />
+              <Ionicons name="help-circle-outline" size={18} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={[styles.selectorButton, errors.templateId && styles.inputError]}
             onPress={() => setShowTemplateModal(true)}
           >
@@ -325,7 +712,7 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
                   </Text>
                 )}
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#007AFF" />
+              <Ionicons name="chevron-forward" size={20} color={colors.accent} />
             </View>
           </TouchableOpacity>
           {errors.templateId && <Text style={styles.errorText}>{errors.templateId}</Text>}
@@ -333,11 +720,11 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
             <Text style={styles.fieldHelp}>
               The archetype template defines what your agent can do. System templates are pre-built, custom templates are your own creations.
             </Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.manageTemplatesLink}
               onPress={() => navigation.navigate('Execution Templates' as never)}
             >
-              <Ionicons name="open-outline" size={14} color="#007AFF" />
+              <Ionicons name="open-outline" size={14} color={colors.accent} />
               <Text style={styles.linkText}>Manage Templates</Text>
             </TouchableOpacity>
           </View>
@@ -346,16 +733,16 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
         {/* Behavior Settings */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="settings" size={20} color="#007AFF" />
+            <Ionicons name="settings" size={20} color={colors.accent} />
             <Text style={styles.sectionTitle}>Behavior Settings</Text>
           </View>
-          
+
           <View style={styles.inputRow}>
             <View style={styles.inputColumn}>
               <View style={styles.labelRow}>
                 <Text style={styles.label}>Heartbeat (min) *</Text>
                 <TouchableOpacity onPress={() => setShowHeartbeatTooltip(true)}>
-                  <Ionicons name="help-circle-outline" size={16} color="#666" />
+                  <Ionicons name="help-circle-outline" size={16} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
               <TextInput
@@ -363,17 +750,17 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
                 value={formData.heartbeatMinutes.toString()}
                 onChangeText={(value) => updateFormData('heartbeatMinutes', parseInt(value) || 5)}
                 placeholder="5"
-                placeholderTextColor="#999"
+                placeholderTextColor={colors.textTertiary}
                 keyboardType="numeric"
               />
               {errors.heartbeatMinutes && <Text style={styles.errorText}>{errors.heartbeatMinutes}</Text>}
             </View>
-            
+
             <View style={styles.inputColumn}>
               <View style={styles.labelRow}>
                 <Text style={styles.label}>Max Tokens/Day *</Text>
                 <TouchableOpacity onPress={() => setShowTokensTooltip(true)}>
-                  <Ionicons name="help-circle-outline" size={16} color="#666" />
+                  <Ionicons name="help-circle-outline" size={16} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
               <TextInput
@@ -381,7 +768,7 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
                 value={formData.maxTokensPerDay.toString()}
                 onChangeText={(value) => updateFormData('maxTokensPerDay', parseInt(value) || 10000)}
                 placeholder="10000"
-                placeholderTextColor="#999"
+                placeholderTextColor={colors.textTertiary}
                 keyboardType="numeric"
               />
               {errors.maxTokensPerDay && <Text style={styles.errorText}>{errors.maxTokensPerDay}</Text>}
@@ -392,14 +779,14 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
         {/* Lifecycle Status */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="pulse" size={20} color="#007AFF" />
+            <Ionicons name="pulse" size={20} color={colors.accent} />
             <Text style={styles.sectionTitle}>Lifecycle Status</Text>
             <TouchableOpacity onPress={() => setShowStatusTooltip(true)}>
-              <Ionicons name="help-circle-outline" size={18} color="#666" />
+              <Ionicons name="help-circle-outline" size={18} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.selectorButton}
             onPress={() => setShowStatusModal(true)}
           >
@@ -416,7 +803,7 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
                   {statusInfo.description}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#007AFF" />
+              <Ionicons name="chevron-forward" size={20} color={colors.accent} />
             </View>
           </TouchableOpacity>
         </View>
@@ -427,20 +814,20 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
         <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
           <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={[
-            styles.saveButton, 
+            styles.saveButton,
             (!hasChanges() || isSubmitting) && styles.saveButtonDisabled
-          ]} 
+          ]}
           onPress={handleSubmit}
           disabled={!hasChanges() || isSubmitting}
         >
           {isSubmitting ? (
-            <ActivityIndicator size="small" color="white" />
+            <ActivityIndicator size="small" color={colors.textInverse} />
           ) : (
             <>
-              <Ionicons name="checkmark" size={20} color="white" />
+              <Ionicons name="checkmark" size={20} color={colors.textInverse} />
               <Text style={styles.saveButtonText}>Save Changes</Text>
             </>
           )}
@@ -453,10 +840,10 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Select Archetype Template</Text>
             <TouchableOpacity onPress={() => setShowTemplateModal(false)}>
-              <Ionicons name="close" size={24} color="#666" />
+              <Ionicons name="close" size={24} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
-          
+
           <FlatList
             data={templates}
             keyExtractor={(item) => item.id}
@@ -475,14 +862,14 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
                   <Text style={styles.templateCardName}>{item.name}</Text>
                   <View style={[
                     styles.templateBadge,
-                    { backgroundColor: item.isPublic ? '#007AFF' : '#28a745' }
+                    { backgroundColor: item.isPublic ? colors.accent : colors.statusSuccess }
                   ]}>
                     <Text style={styles.templateBadgeText}>
                       {item.isPublic ? 'Public' : 'Private'}
                     </Text>
                   </View>
                   {formData.templateId === item.id && (
-                    <Ionicons name="checkmark-circle" size={24} color="#007AFF" />
+                    <Ionicons name="checkmark-circle" size={24} color={colors.accent} />
                   )}
                 </View>
                 <Text style={styles.templateCardDescription} numberOfLines={3}>
@@ -501,10 +888,10 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Select Status</Text>
             <TouchableOpacity onPress={() => setShowStatusModal(false)}>
-              <Ionicons name="close" size={24} color="#666" />
+              <Ionicons name="close" size={24} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.modalList}>
             {(['STANDBY', 'ACTIVE', 'PAUSED', 'KILLED'] as LifecycleStatus[]).map((status) => {
               const info = getStatusInfo(status);
@@ -529,7 +916,7 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
                       </Text>
                     </View>
                     {isSelected && (
-                      <Ionicons name="checkmark-circle" size={24} color="#007AFF" />
+                      <Ionicons name="checkmark-circle" size={24} color={colors.accent} />
                     )}
                   </View>
                 </TouchableOpacity>
@@ -545,6 +932,8 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
         content="You're editing an existing agent. Changes to the template selection will affect how the agent behaves in future executions. The agent will maintain its execution history and current token usage."
         visible={showAgentTooltip}
         onClose={() => setShowAgentTooltip(false)}
+        themedStyles={styles}
+        colors={colors}
       />
 
       <Tooltip
@@ -561,6 +950,8 @@ Changing the template will update the agent's capabilities and behavior for futu
 💡 **Tip**: You can create and edit templates in the "Execution Templates" section to customize your agent's capabilities.`}
         visible={showTemplateTooltip}
         onClose={() => setShowTemplateTooltip(false)}
+        themedStyles={styles}
+        colors={colors}
       />
 
       <Tooltip
@@ -568,6 +959,8 @@ Changing the template will update the agent's capabilities and behavior for futu
         content="How often your agent checks for work and potentially executes. Minimum is 5 minutes. More frequent heartbeats consume more resources but provide faster response times. Consider your use case when setting this."
         visible={showHeartbeatTooltip}
         onClose={() => setShowHeartbeatTooltip(false)}
+        themedStyles={styles}
+        colors={colors}
       />
 
       <Tooltip
@@ -575,6 +968,8 @@ Changing the template will update the agent's capabilities and behavior for futu
         content="Daily limit for AI model token usage. Prevents runaway costs. Agent stops executing when limit is reached and resets at midnight UTC. Recommended: 10,000+ for active agents, 50,000+ for heavy workloads."
         visible={showTokensTooltip}
         onClose={() => setShowTokensTooltip(false)}
+        themedStyles={styles}
+        colors={colors}
       />
 
       <Tooltip
@@ -582,400 +977,11 @@ Changing the template will update the agent's capabilities and behavior for futu
         content="Controls agent behavior: STANDBY (testing/logging only), ACTIVE (full execution), PAUSED (temporarily stopped), KILLED (permanently disabled). Use STANDBY to test agent behavior safely."
         visible={showStatusTooltip}
         onClose={() => setShowStatusTooltip(false)}
+        themedStyles={styles}
+        colors={colors}
       />
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: containerColors.background,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: containerColors.background,
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 60 : 20,
-    paddingBottom: 20,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-    ...shadowPresets.small,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  closeButton: {
-    padding: 8,
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-  },
-  overviewSection: {
-    marginBottom: 24,
-  },
-  overviewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 12,
-    ...shadowPresets.small,
-  },
-  overviewTitle: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#007AFF',
-  },
-  characterPreview: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#e9ecef',
-  },
-  previewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    gap: 8,
-  },
-  previewTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
-  },
-  previewContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 20,
-  },
-  previewText: {
-    flex: 1,
-  },
-  previewName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 4,
-  },
-  previewRole: {
-    fontSize: 16,
-    color: '#666',
-    fontStyle: 'italic',
-    marginBottom: 8,
-  },
-  previewChanges: {
-    fontSize: 14,
-    color: '#007AFF',
-    fontWeight: '500',
-  },
-  section: {
-    marginBottom: 24,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 20,
-    ...shadowPresets.small,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
-  },
-  inputRow: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  inputColumn: {
-    flex: 1,
-  },
-  labelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 8,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#000',
-    marginBottom: 8,
-  },
-  inputError: {
-    borderColor: '#dc3545',
-    borderWidth: 1,
-  },
-  errorText: {
-    color: '#dc3545',
-    fontSize: 14,
-    marginTop: 4,
-  },
-  selectorButton: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  selectorContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  selectorMain: {
-    flex: 1,
-  },
-  selectorLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
-  },
-  selectorValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 4,
-  },
-  selectorPlaceholder: {
-    fontSize: 16,
-    color: '#999',
-    marginBottom: 4,
-  },
-  selectorDescription: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 18,
-  },
-  statusIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
-  footer: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: 'white',
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5EA',
-    ...shadowPresets.small,
-  },
-  cancelButton: {
-    flex: 1,
-    backgroundColor: '#F8F9FA',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#666',
-  },
-  saveButton: {
-    flex: 1,
-    backgroundColor: '#007AFF',
-    paddingVertical: 14,
-    borderRadius: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    ...shadowPresets.small,
-  },
-  saveButtonDisabled: {
-    backgroundColor: '#ccc',
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: containerColors.background,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 60 : 20,
-    paddingBottom: 20,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  modalList: {
-    padding: 20,
-    gap: 12,
-  },
-  templateCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    ...shadowPresets.small,
-  },
-  templateCardSelected: {
-    borderColor: '#007AFF',
-    borderWidth: 2,
-  },
-  templateCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  templateCardName: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-  },
-  templateBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  templateBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: 'white',
-  },
-  templateCardDescription: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 18,
-  },
-  statusCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    ...shadowPresets.small,
-  },
-  statusCardSelected: {
-    borderColor: '#007AFF',
-    borderWidth: 2,
-  },
-  statusCardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  statusCardText: {
-    flex: 1,
-  },
-  statusCardName: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  statusCardDescription: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 18,
-  },
-  tooltipOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  tooltipContainer: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 20,
-    maxWidth: '90%',
-    ...shadowPresets.medium,
-  },
-  tooltipHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  tooltipTitle: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
-  },
-  tooltipContent: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-  },
-  fieldHelpContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginTop: 6,
-  },
-  fieldHelp: {
-    fontSize: 13,
-    color: '#8E8E93',
-    marginTop: 6,
-    lineHeight: 18,
-    flex: 1,
-  },
-  manageTemplatesLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: 8,
-    padding: 4,
-    borderRadius: 6,
-    backgroundColor: '#F2F2F7',
-  },
-  linkText: {
-    fontSize: 12,
-    color: '#007AFF',
-    fontWeight: '500',
-    marginLeft: 4,
-  },
-});
-
-export default EditAgentForm; 
+export default EditAgentForm;

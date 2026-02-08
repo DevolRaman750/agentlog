@@ -2,6 +2,7 @@ import React, { RefObject } from 'react';
 import { StyleSheet, ViewStyle, ScrollView } from 'react-native';
 import SafeAreaWrapper from './SafeAreaWrapper';
 import KeyboardAvoidingWrapper from './KeyboardAvoidingWrapper';
+import { useTheme } from '../theme';
 
 interface ScreenContainerProps {
   children: React.ReactNode;
@@ -17,22 +18,11 @@ interface ScreenContainerProps {
   scrollViewRef?: RefObject<ScrollView>;
 }
 
-/**
- * ScreenContainer - A complete screen layout solution
- * 
- * Features:
- * - Combines SafeAreaWrapper and KeyboardAvoidingWrapper
- * - Consistent layout behavior across all screens
- * - Configurable safe area edges
- * - Optional keyboard avoidance and scrolling
- * - Platform optimizations built-in
- * - Prevents notch clipping and keyboard overlap
- */
 const ScreenContainer: React.FC<ScreenContainerProps> = ({
   children,
   style,
   contentContainerStyle,
-  backgroundColor = '#F2F2F7',
+  backgroundColor,
   safeAreaEdges = ['top', 'bottom', 'left', 'right'],
   enableKeyboardAvoiding = false,
   enableScrolling = false,
@@ -41,6 +31,9 @@ const ScreenContainer: React.FC<ScreenContainerProps> = ({
   keyboardDismissMode = 'on-drag',
   scrollViewRef
 }) => {
+  const { colors } = useTheme();
+  const bg = backgroundColor ?? colors.bgApp;
+
   const renderContent = () => {
     if (enableKeyboardAvoiding) {
       return (
@@ -56,7 +49,7 @@ const ScreenContainer: React.FC<ScreenContainerProps> = ({
         </KeyboardAvoidingWrapper>
       );
     }
-    
+
     if (enableScrolling) {
       return (
         <ScrollView
@@ -72,7 +65,7 @@ const ScreenContainer: React.FC<ScreenContainerProps> = ({
         </ScrollView>
       );
     }
-    
+
     return children;
   };
 
@@ -80,7 +73,7 @@ const ScreenContainer: React.FC<ScreenContainerProps> = ({
     <SafeAreaWrapper
       style={style}
       edges={safeAreaEdges}
-      backgroundColor={backgroundColor}
+      backgroundColor={bg}
     >
       {renderContent()}
     </SafeAreaWrapper>

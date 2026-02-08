@@ -1,5 +1,5 @@
 import React, { useState, useEffect, createContext, useContext, useMemo, useCallback } from 'react';
-import { View, Dimensions, StyleSheet } from 'react-native';
+import { View, Dimensions } from 'react-native';
 import { createStackNavigator } from '@react-navigation/stack';
 import ConfigureScreen from '../screens/ConfigureScreen';
 import FunctionScreen from '../screens/FunctionScreen';
@@ -14,6 +14,7 @@ import AgentsScreen from '../screens/AgentsScreen';
 import { ResponsiveNavigation } from '../components/ResponsiveNavigation';
 import { useAuth } from '../context/AuthContext';
 import { useResponsive } from '../context/ResponsiveContext'; // Use existing responsive context
+import { useTheme, useThemedStyles } from '../theme';
 
 const Stack = createStackNavigator();
 
@@ -29,6 +30,24 @@ export const useResponsiveLayout = () => useContext(ResponsiveLayoutContext);
 // Responsive layout wrapper component - MEMOIZED to prevent unnecessary re-renders
 const ResponsiveLayoutWrapper: React.FC<{ children: React.ReactNode }> = React.memo(({ children }) => {
   const { isSidebarLayout } = useResponsiveLayout();
+
+  const styles = useThemedStyles((colors) => ({
+    desktopContainer: {
+      flex: 1,
+      flexDirection: 'row' as const,
+      backgroundColor: colors.bgApp,
+    },
+    desktopContent: {
+      flex: 1,
+    },
+    mobileContainer: {
+      flex: 1,
+      backgroundColor: colors.bgApp,
+    },
+    mobileContent: {
+      flex: 1,
+    },
+  }));
 
   if (isSidebarLayout) {
     // Desktop/Tablet layout with sidebar
@@ -80,6 +99,7 @@ const StableTemplateTokenManagerScreen = createStableScreenWithNavigation(Templa
 const ResponsiveTabNavigator = () => {
   const { isAuthenticated, isLoading } = useAuth();
   const { isSidebarLayout, showMobileDropdown, screenWidth, screenHeight } = useResponsive();
+  const { colors } = useTheme();
 
   // Memoize the context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({
@@ -89,8 +109,8 @@ const ResponsiveTabNavigator = () => {
   // Memoize screen configurations to prevent recreation
   const screenConfig = useMemo(() => ({
     headerShown: false,
-    cardStyle: { backgroundColor: '#F2F2F7' },
-  }), []);
+    cardStyle: { backgroundColor: colors.bgApp },
+  }), [colors.bgApp]);
 
   // While auth is loading, determine initial route based on current URL
   const getInitialRoute = () => {
@@ -100,7 +120,7 @@ const ResponsiveTabNavigator = () => {
         '/experiment': 'Execute',
         '/model': 'Configure',
         '/execute': 'Execute', // Legacy support
-        '/configure': 'Configure', // Legacy support  
+        '/configure': 'Configure', // Legacy support
         '/functions': 'Functions',
         '/templates': 'Templates',
         '/api-keys': 'API Keys',
@@ -123,44 +143,44 @@ const ResponsiveTabNavigator = () => {
         initialRouteName={getInitialRoute()}
       >
         {/* All screens are always available - individual screens handle authentication */}
-        <Stack.Screen 
-          name="Execute" 
-          component={StableExecuteScreen} 
+        <Stack.Screen
+          name="Execute"
+          component={StableExecuteScreen}
         />
-        <Stack.Screen 
-          name="Configure" 
-          component={StableConfigureScreen} 
+        <Stack.Screen
+          name="Configure"
+          component={StableConfigureScreen}
         />
-        <Stack.Screen 
-          name="Functions" 
-          component={StableFunctionScreen} 
+        <Stack.Screen
+          name="Functions"
+          component={StableFunctionScreen}
         />
-        <Stack.Screen 
-          name="Execution Templates" 
-          component={StableExecutionTemplatesScreen} 
+        <Stack.Screen
+          name="Execution Templates"
+          component={StableExecutionTemplatesScreen}
         />
-        <Stack.Screen 
-          name="API Keys" 
-          component={StableApiKeysScreen} 
+        <Stack.Screen
+          name="API Keys"
+          component={StableApiKeysScreen}
         />
-        <Stack.Screen 
-          name="History" 
-          component={StableHistoryScreen} 
+        <Stack.Screen
+          name="History"
+          component={StableHistoryScreen}
         />
-        <Stack.Screen 
-          name="Database" 
-          component={StableDatabaseScreen} 
+        <Stack.Screen
+          name="Database"
+          component={StableDatabaseScreen}
         />
-        <Stack.Screen 
-          name="Agents" 
-          component={StableAgentsScreen} 
+        <Stack.Screen
+          name="Agents"
+          component={StableAgentsScreen}
         />
-        <Stack.Screen 
-          name="Account" 
-          component={StableAuthScreen} 
+        <Stack.Screen
+          name="Account"
+          component={StableAuthScreen}
         />
-        <Stack.Screen 
-          name="TemplateTokenManager" 
+        <Stack.Screen
+          name="TemplateTokenManager"
           component={StableTemplateTokenManagerScreen}
           options={{
             headerShown: false,
@@ -172,22 +192,4 @@ const ResponsiveTabNavigator = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  desktopContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: '#F2F2F7',
-  },
-  desktopContent: {
-    flex: 1,
-  },
-  mobileContainer: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-  },
-  mobileContent: {
-    flex: 1,
-  },
-});
-
-export default ResponsiveTabNavigator; 
+export default ResponsiveTabNavigator;

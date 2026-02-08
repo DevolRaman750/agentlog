@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   TextInput,
@@ -15,6 +14,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { AlertAPI } from '../components/CustomAlert';
 import { webInputStyles } from '../styles/containers';
+import { useTheme, useThemedStyles } from '../theme';
+import type { ThemeColors } from '../theme';
 import { goGentAPI } from '../api/client';
 import { UserApiKey, CreateApiKeyRequest, UpdateApiKeyRequest } from '../types';
 import { RouteProp } from '@react-navigation/native';
@@ -161,14 +162,14 @@ const SERVICE_GROUPS: ServiceGroup[] = [
   },
 ];
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => ({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.bgApp,
   },
   scrollView: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.bgApp,
   },
   content: {
     paddingBottom: 20,
@@ -178,12 +179,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.bgApp,
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#8E8E93',
+    color: colors.textSecondary,
   },
   header: {
     flexDirection: 'row',
@@ -191,18 +192,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+    borderBottomColor: colors.borderLight,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#000000',
+    color: colors.textPrimary,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   headerButtons: {
@@ -211,23 +212,23 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   onboardingButton: {
-    backgroundColor: '#F0F8FF',
+    backgroundColor: colors.bgHover,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#007AFF',
+    borderColor: colors.accent,
   },
   onboardingButtonText: {
-    color: '#007AFF',
+    color: colors.accent,
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 4,
   },
   addButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: colors.accent,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -235,7 +236,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   addButtonText: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 4,
@@ -243,12 +244,12 @@ const styles = StyleSheet.create({
   groupContainer: {
     marginTop: 20,
     marginHorizontal: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     borderRadius: 12,
     overflow: 'hidden',
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: colors.shadowColor,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
@@ -264,9 +265,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#F8F8F8',
+    backgroundColor: colors.bgSurface,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+    borderBottomColor: colors.borderLight,
   },
   groupHeaderLeft: {
     flex: 1,
@@ -274,11 +275,11 @@ const styles = StyleSheet.create({
   groupTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.textPrimary,
   },
   groupDescription: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   groupStats: {
@@ -288,7 +289,7 @@ const styles = StyleSheet.create({
   },
   groupStatsText: {
     fontSize: 12,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     marginLeft: 4,
   },
   expandIcon: {
@@ -300,7 +301,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: colors.borderSubtle,
   },
   serviceIcon: {
     width: 40,
@@ -311,13 +312,13 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   serviceIconConfigured: {
-    backgroundColor: '#34C759',
+    backgroundColor: colors.statusSuccess,
   },
   serviceIconUnconfigured: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: colors.statusError,
   },
   serviceIconPartial: {
-    backgroundColor: '#FF9500',
+    backgroundColor: colors.statusWarning,
   },
   serviceDetails: {
     flex: 1,
@@ -325,11 +326,11 @@ const styles = StyleSheet.create({
   serviceName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.textPrimary,
   },
   serviceDescription: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   serviceStatus: {
@@ -343,13 +344,13 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   serviceStatusConfigured: {
-    color: '#34C759',
+    color: colors.statusSuccess,
   },
   serviceStatusUnconfigured: {
-    color: '#FF3B30',
+    color: colors.statusError,
   },
   serviceStatusPartial: {
-    color: '#FF9500',
+    color: colors.statusWarning,
   },
   serviceActions: {
     flexDirection: 'row',
@@ -368,7 +369,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    backgroundColor: '#F8F8F8',
+    backgroundColor: colors.bgSurface,
     borderRadius: 8,
     marginBottom: 8,
   },
@@ -378,11 +379,11 @@ const styles = StyleSheet.create({
   keyName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.textPrimary,
   },
   keyDetails: {
     fontSize: 12,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   keyBadge: {
@@ -392,20 +393,20 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   keyBadgeDefault: {
-    backgroundColor: '#007AFF',
+    backgroundColor: colors.accent,
   },
   keyBadgeNormal: {
-    backgroundColor: '#E5E5EA',
+    backgroundColor: colors.borderLight,
   },
   keyBadgeText: {
     fontSize: 10,
     fontWeight: '600',
   },
   keyBadgeTextDefault: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
   },
   keyBadgeTextNormal: {
-    color: '#8E8E93',
+    color: colors.textSecondary,
   },
   emptyState: {
     flex: 1,
@@ -420,13 +421,13 @@ const styles = StyleSheet.create({
   emptyStateTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: 8,
   },
   emptyStateText: {
     fontSize: 16,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 32,
@@ -435,6 +436,8 @@ const styles = StyleSheet.create({
 });
 
 const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { groupName } = route.params || {};
   const { user } = useAuth();
   const { showSuccess, showError } = useToast();
@@ -533,12 +536,12 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'configured':
-        return '#34C759';
+        return colors.statusSuccess;
       case 'partial':
-        return '#FF9500';
+        return colors.statusWarning;
       case 'unconfigured':
       default:
-        return '#FF3B30';
+        return colors.statusError;
     }
   };
 
@@ -749,7 +752,7 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
             <Ionicons 
               name={getStatusIcon(status)} 
               size={20} 
-              color="#FFFFFF" 
+              color={colors.textInverse} 
             />
           </View>
           
@@ -785,13 +788,13 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
                     handleEditKey(keyToEdit.id);
                   }}
                 >
-                  <Ionicons name="pencil" size={18} color="#007AFF" />
+                  <Ionicons name="pencil" size={18} color={colors.accent} />
                 </TouchableOpacity>
                 <TouchableOpacity 
                   style={styles.actionButton}
                   onPress={() => handleAddKey(service.name)}
                 >
-                  <Ionicons name="add" size={18} color="#8E8E93" />
+                  <Ionicons name="add" size={18} color={colors.textSecondary} />
                 </TouchableOpacity>
               </>
             ) : (
@@ -799,7 +802,7 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
                 style={styles.actionButton}
                 onPress={() => handleAddKey(service.name)}
               >
-                <Ionicons name="add" size={20} color="#007AFF" />
+                <Ionicons name="add" size={20} color={colors.accent} />
               </TouchableOpacity>
             )}
           </View>
@@ -833,21 +836,21 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
                   style={styles.actionButton}
                   onPress={() => handleTestKey(key.id)}
                 >
-                  <Ionicons name="flask" size={16} color="#007AFF" />
+                  <Ionicons name="flask" size={16} color={colors.accent} />
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
                   style={styles.actionButton}
                   onPress={() => handleEditKey(key.id)}
                 >
-                  <Ionicons name="pencil" size={16} color="#8E8E93" />
+                  <Ionicons name="pencil" size={16} color={colors.textSecondary} />
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
                   style={styles.actionButton}
                   onPress={() => handleDeleteKey(key.id, key.displayName)}
                 >
-                  <Ionicons name="trash" size={16} color="#FF3B30" />
+                  <Ionicons name="trash" size={16} color={colors.statusError} />
                 </TouchableOpacity>
               </TouchableOpacity>
             ))}
@@ -880,7 +883,7 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
               <Ionicons 
                 name={configuredServices === group.services.length ? "checkmark-circle" : "warning"} 
                 size={12} 
-                color={configuredServices === group.services.length ? "#34C759" : "#FF9500"} 
+                color={configuredServices === group.services.length ? colors.statusSuccess : colors.statusWarning} 
               />
               <Text style={styles.groupStatsText}>
                 {configuredServices}/{group.services.length} services • {totalKeys} keys
@@ -891,7 +894,7 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
           <Ionicons 
             name={isExpanded ? "chevron-up" : "chevron-down"} 
             size={20} 
-            color="#8E8E93"
+            color={colors.textSecondary}
             style={styles.expandIcon}
           />
         </TouchableOpacity>
@@ -904,7 +907,7 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={colors.accent} />
         <Text style={styles.loadingText}>Loading API keys...</Text>
       </View>
     );
@@ -925,7 +928,7 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
             style={styles.onboardingButton}
             onPress={() => setShowOnboarding(true)}
           >
-            <Ionicons name="refresh" size={16} color="#007AFF" />
+            <Ionicons name="refresh" size={16} color={colors.accent} />
             <Text style={styles.onboardingButtonText}>Setup Guide</Text>
           </TouchableOpacity>
           
@@ -933,7 +936,7 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
             style={styles.addButton}
             onPress={() => handleAddKey('gemini')} // Default to Gemini as it's most common
           >
-            <Ionicons name="add" size={20} color="#FFFFFF" />
+            <Ionicons name="add" size={20} color={colors.textInverse} />
             <Text style={styles.addButtonText}>Add Key</Text>
           </TouchableOpacity>
         </View>
@@ -946,7 +949,7 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
-            tintColor="#007AFF"
+            tintColor={colors.accent}
           />
         }
       >
@@ -955,7 +958,7 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
             <Ionicons 
               name="key-outline" 
               size={64} 
-              color="#C7C7CC" 
+              color={colors.textTertiary} 
               style={styles.emptyStateIcon}
             />
             <Text style={styles.emptyStateTitle}>No API Keys Yet</Text>
@@ -966,7 +969,7 @@ const ApiKeysScreen: React.FC<{ route: ApiKeysScreenRouteProp }> = ({ route }) =
               style={styles.onboardingButton}
               onPress={() => setShowOnboarding(true)}
             >
-              <Ionicons name="rocket" size={20} color="#FFFFFF" />
+              <Ionicons name="rocket" size={20} color={colors.textInverse} />
               <Text style={styles.onboardingButtonText}>Get Started with API Keys</Text>
             </TouchableOpacity>
           </View>

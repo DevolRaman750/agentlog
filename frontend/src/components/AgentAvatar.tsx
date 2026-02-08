@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Agent, LifecycleStatus } from '../types';
+import { useTheme, useThemedStyles } from '../theme';
+import type { ThemeColors } from '../theme';
 
 interface AgentAvatarProps {
   agent: {
@@ -15,12 +17,15 @@ interface AgentAvatarProps {
   animated?: boolean;
 }
 
-const AgentAvatar: React.FC<AgentAvatarProps> = ({ 
-  agent, 
-  size = 'medium', 
+const AgentAvatar: React.FC<AgentAvatarProps> = ({
+  agent,
+  size = 'medium',
   showStatus = true,
-  animated = false 
+  animated = false
 }) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
+
   // Generate consistent colors based on name
   const generateColors = (firstName: string, lastName: string) => {
     const name = `${firstName}${lastName}`.toLowerCase();
@@ -28,11 +33,11 @@ const AgentAvatar: React.FC<AgentAvatarProps> = ({
     for (let i = 0; i < name.length; i++) {
       hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
-    
+
     // Generate beautiful gradient colors
     const hue1 = Math.abs(hash % 360);
     const hue2 = (hue1 + 60) % 360; // Complementary color
-    
+
     return {
       primary: `hsl(${hue1}, 70%, 60%)`,
       secondary: `hsl(${hue2}, 70%, 70%)`,
@@ -54,11 +59,11 @@ const AgentAvatar: React.FC<AgentAvatarProps> = ({
   // Get status color
   const getStatusColor = (status: LifecycleStatus): string => {
     switch (status) {
-      case 'ACTIVE': return '#28a745';
-      case 'STANDBY': return '#ffc107';
-      case 'PAUSED': return '#6c757d';
-      case 'KILLED': return '#dc3545';
-      default: return '#6c757d';
+      case 'ACTIVE': return colors.statusSuccess;
+      case 'STANDBY': return colors.accentSecondary;
+      case 'PAUSED': return colors.statusPaused;
+      case 'KILLED': return colors.statusError;
+      default: return colors.statusPaused;
     }
   };
 
@@ -73,7 +78,7 @@ const AgentAvatar: React.FC<AgentAvatarProps> = ({
     return 'construct'; // Default robot/agent icon
   };
 
-  const colors = generateColors(agent.firstName, agent.lastName);
+  const avatarColors = generateColors(agent.firstName, agent.lastName);
   const dimensions = getSizeDimensions();
   const initials = `${agent.firstName.charAt(0)}${agent.lastName.charAt(0)}`.toUpperCase();
   const statusColor = getStatusColor(agent.lifecycleStatus);
@@ -82,42 +87,42 @@ const AgentAvatar: React.FC<AgentAvatarProps> = ({
   return (
     <View style={[styles.container, { width: dimensions.width, height: dimensions.height }]}>
       {/* Main Avatar */}
-      <View 
+      <View
         style={[
           styles.avatar,
           {
             width: dimensions.width,
             height: dimensions.height,
-            backgroundColor: colors.primary,
+            backgroundColor: avatarColors.primary,
             borderRadius: dimensions.width / 2,
           },
           animated && styles.animated
         ]}
       >
         {/* Gradient Background Effect */}
-        <View 
+        <View
           style={[
             styles.gradientOverlay,
             {
               width: dimensions.width,
               height: dimensions.height,
               borderRadius: dimensions.width / 2,
-              backgroundColor: colors.secondary,
+              backgroundColor: avatarColors.secondary,
             }
           ]}
         />
-        
+
         {/* Avatar Content */}
         <View style={styles.avatarContent}>
           {size === 'small' ? (
-            <Text style={[styles.initials, { fontSize: dimensions.fontSize, color: colors.text }]}>
+            <Text style={[styles.initials, { fontSize: dimensions.fontSize, color: avatarColors.text }]}>
               {initials}
             </Text>
           ) : (
-            <Ionicons 
-              name={avatarIcon as any} 
-              size={dimensions.fontSize} 
-              color={colors.text} 
+            <Ionicons
+              name={avatarIcon as any}
+              size={dimensions.fontSize}
+              color={avatarColors.text}
             />
           )}
         </View>
@@ -125,7 +130,7 @@ const AgentAvatar: React.FC<AgentAvatarProps> = ({
 
       {/* Status Indicator */}
       {showStatus && (
-        <View 
+        <View
           style={[
             styles.statusIndicator,
             {
@@ -144,14 +149,14 @@ const AgentAvatar: React.FC<AgentAvatarProps> = ({
 
       {/* Pulse Animation for Active Status */}
       {animated && agent.lifecycleStatus === 'ACTIVE' && (
-        <View 
+        <View
           style={[
             styles.pulseRing,
             {
               width: dimensions.width + 8,
               height: dimensions.height + 8,
               borderRadius: (dimensions.width + 8) / 2,
-              borderColor: colors.primary,
+              borderColor: avatarColors.primary,
             }
           ]}
         />
@@ -160,62 +165,62 @@ const AgentAvatar: React.FC<AgentAvatarProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => ({
   container: {
-    position: 'relative',
-    justifyContent: 'center',
-    alignItems: 'center',
+    position: 'relative' as const,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
   },
   avatar: {
-    position: 'relative',
-    justifyContent: 'center',
-    alignItems: 'center',
+    position: 'relative' as const,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
     elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowColor: colors.shadowColor,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.15,
     shadowRadius: 4,
   },
   gradientOverlay: {
-    position: 'absolute',
+    position: 'absolute' as const,
     opacity: 0.3,
   },
   avatarContent: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
     zIndex: 1,
   },
   initials: {
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontWeight: 'bold' as const,
+    textAlign: 'center' as const,
   },
   statusIndicator: {
-    position: 'absolute',
-    justifyContent: 'center',
-    alignItems: 'center',
+    position: 'absolute' as const,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: colors.bgCard,
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: colors.shadowColor,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.3,
     shadowRadius: 2,
   },
   statusInner: {
-    width: '50%',
-    height: '50%',
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    width: '50%' as const,
+    height: '50%' as const,
+    backgroundColor: 'rgba(255,255,255,0.8)',
     borderRadius: 10,
   },
   animated: {
     // Animation will be handled by Animated API in usage
   },
   pulseRing: {
-    position: 'absolute',
+    position: 'absolute' as const,
     borderWidth: 2,
     opacity: 0.6,
     // Pulse animation would be added via Animated API
   },
 });
 
-export default AgentAvatar; 
+export default AgentAvatar;

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Platform, Pressable, Dimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Platform, Pressable, Dimensions } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useApp } from '../context/AppContext';
 import { goGentAPI } from '../api/client';
+import { useTheme, useThemedStyles } from '../theme';
 // import ExecutionFlowGraphVisualization from './ExecutionFlowGraphVisualization';
 
 // Type definitions for the execution flow
@@ -83,6 +84,750 @@ const ExecutionFlowGraph: React.FC<ExecutionFlowGraphProps> = ({
   const [showGraphVisualization, setShowGraphVisualization] = useState(false);
   const { state } = useApp();
   const backendUrl = state.config.backendUrl;
+  const { colors } = useTheme();
+  const { width: screenWidth } = Dimensions.get('window');
+
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bgApp,
+    },
+    header: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      backgroundColor: colors.bgCard,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    headerLeft: {
+      flex: 1,
+    },
+    headerRight: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 12,
+    },
+    subtitle: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    viewToggleButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: colors.bgSurface,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+      gap: 6,
+    },
+    viewToggleText: {
+      fontSize: 13,
+      color: colors.accent,
+      fontWeight: '600' as const,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    closeButton: {
+      padding: 4,
+    },
+    filtersContainer: {
+      flexDirection: 'row' as const,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      backgroundColor: colors.bgCard,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+      gap: 12,
+    },
+    filterButton: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      backgroundColor: colors.bgSurface,
+    },
+    activeFilterButton: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+    },
+    filterButtonText: {
+      fontSize: 13,
+      fontWeight: '500' as const,
+      color: colors.textSecondary,
+    },
+    activeFilterButtonText: {
+      color: colors.textInverse,
+      fontWeight: '600' as const,
+    },
+    statsContainer: {
+      backgroundColor: colors.bgCard,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    statsTitle: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 12,
+    },
+    statsGrid: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+    },
+    statItem: {
+      alignItems: 'center' as const,
+      flex: 1,
+    },
+    statValue: {
+      fontSize: 18,
+      fontWeight: '700' as const,
+      color: colors.accent,
+    },
+    statLabel: {
+      fontSize: 11,
+      color: colors.textSecondary,
+      textAlign: 'center' as const,
+      marginTop: 2,
+    },
+    content: {
+      flex: 1,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      paddingVertical: 40,
+    },
+    loadingText: {
+      marginTop: 12,
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    errorContainer: {
+      padding: 20,
+      alignItems: 'center' as const,
+    },
+    errorText: {
+      fontSize: 14,
+      color: colors.statusError,
+      textAlign: 'center' as const,
+      marginBottom: 12,
+    },
+    retryButton: {
+      backgroundColor: colors.accent,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 8,
+    },
+    retryButtonText: {
+      color: colors.textInverse,
+      fontSize: 14,
+      fontWeight: '600' as const,
+    },
+    eventsContainer: {
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+    },
+    eventItem: {
+      marginBottom: 8,
+    },
+    eventHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 12,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 1,
+    },
+    eventIconContainer: {
+      flexDirection: 'column' as const,
+      alignItems: 'center' as const,
+      marginRight: 12,
+      minWidth: 40,
+    },
+    eventIcon: {
+      fontSize: 20,
+      marginBottom: 4,
+    },
+    sequenceNumber: {
+      backgroundColor: colors.borderLight,
+      borderRadius: 8,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      minWidth: 24,
+      alignItems: 'center' as const,
+    },
+    sequenceText: {
+      fontSize: 10,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    eventContent: {
+      flex: 1,
+    },
+    eventTitleRow: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'flex-start' as const,
+      marginBottom: 4,
+    },
+    eventType: {
+      fontSize: 13,
+      fontWeight: '600' as const,
+      textTransform: 'capitalize' as const,
+    },
+    eventMeta: {
+      alignItems: 'flex-end' as const,
+    },
+    eventStatus: {
+      fontSize: 10,
+      fontWeight: '700' as const,
+      textTransform: 'uppercase' as const,
+      letterSpacing: 0.5,
+    },
+    eventDuration: {
+      fontSize: 10,
+      color: colors.textSecondary,
+      fontFamily: 'monospace',
+      marginTop: 2,
+    },
+    eventData: {
+      fontSize: 11,
+      color: colors.textSecondary,
+      fontFamily: 'monospace',
+      marginTop: 4,
+      backgroundColor: colors.bgSurface,
+      padding: 8,
+      borderRadius: 6,
+    },
+    expandButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      marginTop: 4,
+      paddingVertical: 4,
+    },
+    expandButtonText: {
+      fontSize: 11,
+      color: colors.accent,
+      fontWeight: '600' as const,
+    },
+    errorMessage: {
+      fontSize: 11,
+      color: colors.statusError,
+      marginTop: 4,
+      fontStyle: 'italic' as const,
+    },
+    connectionLine: {
+      width: 2,
+      height: 12,
+      backgroundColor: colors.borderLight,
+      marginLeft: 31,
+      marginVertical: 2,
+    },
+    parallelGroup: {
+      backgroundColor: colors.bgSurface,
+      borderRadius: 12,
+      padding: 12,
+      marginBottom: 12,
+      borderLeftWidth: 4,
+      borderLeftColor: colors.statusWarning,
+    },
+    parallelHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      marginBottom: 12,
+    },
+    parallelTitle: {
+      fontSize: 14,
+      fontWeight: '700' as const,
+      color: colors.statusWarning,
+    },
+    parallelCount: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      backgroundColor: colors.bgCard,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 6,
+    },
+    parallelContainer: {
+      gap: 8,
+    },
+    parallelEvent: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 8,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    parallelConnection: {
+      width: 1,
+      height: 8,
+      backgroundColor: colors.borderLight,
+      marginLeft: 31,
+      marginVertical: 2,
+    },
+    timelineOverview: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    timelineHeader: {
+      marginBottom: 12,
+    },
+    timelineTitle: {
+      fontSize: 16,
+      fontWeight: '700' as const,
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    timelineSubtitle: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    timelineBar: {
+      flexDirection: 'row' as const,
+      height: 24,
+      backgroundColor: colors.bgApp,
+      borderRadius: 12,
+      overflow: 'hidden' as const,
+      padding: 2,
+    },
+    timelineEvent: {
+      flex: 1,
+      height: '100%' as const,
+      marginRight: 1,
+      position: 'relative' as const,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      borderRadius: 8,
+      minHeight: 20,
+    },
+    timelineEventTooltip: {
+      flex: 1,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      width: '100%' as const,
+      height: '100%' as const,
+    },
+    timelineEventText: {
+      fontSize: 10,
+      opacity: 0.9,
+      textAlign: 'center' as const,
+      fontWeight: '600' as const,
+    },
+    modalContainer: {
+      flex: 1,
+      backgroundColor: colors.bgApp,
+    },
+    modalHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      backgroundColor: colors.bgCard,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+      ...Platform.select({
+        ios: {
+          shadowColor: colors.shadowColor,
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.1,
+          shadowRadius: 3,
+        },
+        android: {
+          elevation: 3,
+        },
+      }),
+    },
+    modalCloseButton: {
+      fontSize: 16,
+      color: colors.accent,
+      fontWeight: '600' as const,
+    },
+    modalTitle: {
+      fontSize: 18,
+      fontWeight: '700' as const,
+      color: colors.textPrimary,
+    },
+    headerSpacer: {
+      width: 50,
+    },
+    modalContent: {
+      flex: 1,
+      padding: 16,
+    },
+    eventDetailContainer: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    eventDetailHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 20,
+    },
+    eventDetailIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: colors.bgSurface,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      marginRight: 12,
+    },
+    eventDetailIconText: {
+      fontSize: 24,
+    },
+    eventDetailInfo: {
+      flex: 1,
+    },
+    eventDetailType: {
+      fontSize: 18,
+      fontWeight: '700' as const,
+      marginBottom: 2,
+    },
+    eventDetailSequence: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    eventDetailStatus: {
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+      borderRadius: 12,
+    },
+    eventDetailStatusText: {
+      fontSize: 11,
+      fontWeight: '700' as const,
+      color: colors.textInverse,
+      textTransform: 'uppercase' as const,
+    },
+    eventDetailSection: {
+      marginBottom: 20,
+    },
+    eventDetailSectionTitle: {
+      fontSize: 16,
+      fontWeight: '700' as const,
+      color: colors.textPrimary,
+      marginBottom: 12,
+    },
+    eventDetailRow: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'flex-start' as const,
+      marginBottom: 8,
+    },
+    eventDetailLabel: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      fontWeight: '500' as const,
+      flex: 1,
+    },
+    eventDetailValue: {
+      fontSize: 14,
+      color: colors.textPrimary,
+      fontWeight: '400' as const,
+      flex: 2,
+      textAlign: 'right' as const,
+    },
+    eventDetailDataContainer: {
+      backgroundColor: colors.bgSurface,
+      borderRadius: 8,
+      padding: 12,
+    },
+    eventDetailData: {
+      fontSize: 12,
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+      color: colors.textPrimary,
+      lineHeight: 16,
+    },
+    eventDetailErrorContainer: {
+      backgroundColor: '#FFF5F5',
+      borderRadius: 8,
+      padding: 12,
+      borderLeftWidth: 4,
+      borderLeftColor: colors.statusError,
+    },
+    eventDetailError: {
+      fontSize: 14,
+      color: colors.statusError,
+      lineHeight: 20,
+    },
+    // Graph Visualization Styles
+    graphContainer: {
+      flex: 1,
+      backgroundColor: colors.bgApp,
+    },
+    graphHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      backgroundColor: colors.bgCard,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    graphTitle: {
+      fontSize: 18,
+      fontWeight: '700' as const,
+      color: colors.textPrimary,
+    },
+    graphCloseButton: {
+      padding: 4,
+    },
+    graphContent: {
+      flex: 1,
+    },
+    graphScrollContent: {
+      padding: 16,
+    },
+    flameGraphScrollContent: {
+      paddingVertical: 16,
+      paddingHorizontal: 8,
+    },
+    flameGraphContainer: {
+      position: 'relative' as const,
+      minHeight: 200,
+      paddingHorizontal: 8,
+    },
+    flameGraphSvg: {
+      position: 'relative' as const,
+      backgroundColor: colors.bgSurface,
+      borderRadius: 12,
+      paddingVertical: 12,
+      overflow: 'visible' as const,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    flameGraphLevel: {
+      position: 'absolute' as const,
+      left: 0,
+      right: 0,
+    },
+    flameGraphBar: {
+      position: 'absolute' as const,
+      height: 28,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: 'rgba(0,0,0,0.1)',
+      ...Platform.select({
+        ios: {
+          shadowColor: colors.shadowColor,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 3,
+        },
+        android: {
+          elevation: 3,
+        },
+      }),
+    },
+    flameGraphBarContent: {
+      flex: 1,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+    },
+    flameGraphBarIcon: {
+      fontSize: 16,
+      marginRight: 8,
+    },
+    flameGraphBarText: {
+      flex: 1,
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: colors.textInverse,
+      textShadowColor: 'rgba(0,0,0,0.5)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 2,
+    },
+    flameGraphBarDuration: {
+      fontSize: 9,
+      color: colors.textInverse,
+      fontFamily: 'monospace',
+      marginLeft: 4,
+      textShadowColor: 'rgba(0,0,0,0.3)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 1,
+    },
+    flameGraphTimeAxis: {
+      position: 'absolute' as const,
+      height: 20,
+      borderTopWidth: 1,
+      borderTopColor: colors.borderMedium,
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+    },
+    flameGraphTimeLabel: {
+      fontSize: 10,
+      color: colors.textSecondary,
+      fontFamily: 'monospace',
+      fontWeight: '500' as const,
+    },
+    emptyFlameGraph: {
+      height: 200,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      backgroundColor: colors.bgSurface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    emptyFlameGraphText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    emptyFlameGraphSubtext: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      textAlign: 'center' as const,
+      marginTop: 8,
+      paddingHorizontal: 20,
+      lineHeight: 16,
+    },
+    flameGraphLegend: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 12,
+      padding: 16,
+      marginVertical: 16,
+      marginHorizontal: 8,
+      ...Platform.select({
+        ios: {
+          shadowColor: colors.shadowColor,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+        },
+        android: {
+          elevation: 2,
+        },
+      }),
+    },
+    flameGraphLegendTitle: {
+      fontSize: 16,
+      fontWeight: '700' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    flameGraphLegendText: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      lineHeight: 18,
+    },
+    graphNodes: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: 12,
+      marginBottom: 24,
+    },
+    graphNode: {
+      width: (screenWidth - 48) / 2,
+      minHeight: 120,
+      borderRadius: 16,
+      padding: 16,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      ...Platform.select({
+        ios: {
+          shadowColor: colors.shadowColor,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+        },
+        android: {
+          elevation: 4,
+        },
+      }),
+    },
+    graphNodeIcon: {
+      fontSize: 24,
+      marginBottom: 8,
+    },
+    graphNodeTitle: {
+      fontSize: 12,
+      fontWeight: '700' as const,
+      color: colors.textInverse,
+      textAlign: 'center' as const,
+      marginBottom: 4,
+    },
+    graphNodeSubtitle: {
+      fontSize: 11,
+      color: 'rgba(255,255,255,0.8)',
+      marginBottom: 4,
+    },
+    graphNodeDuration: {
+      fontSize: 10,
+      color: 'rgba(255,255,255,0.7)',
+      fontFamily: 'monospace',
+    },
+    graphStats: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 16,
+      padding: 16,
+      ...Platform.select({
+        ios: {
+          shadowColor: colors.shadowColor,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+        },
+        android: {
+          elevation: 2,
+        },
+      }),
+    },
+    graphStatsTitle: {
+      fontSize: 16,
+      fontWeight: '700' as const,
+      color: colors.textPrimary,
+      marginBottom: 16,
+    },
+    graphStatsGrid: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+    },
+    graphStatItem: {
+      alignItems: 'center' as const,
+      flex: 1,
+    },
+    graphStatValue: {
+      fontSize: 18,
+      fontWeight: '700' as const,
+      color: colors.accent,
+      marginBottom: 4,
+    },
+    graphStatLabel: {
+      fontSize: 11,
+      color: colors.textSecondary,
+      textAlign: 'center' as const,
+    },
+  }));
 
   useEffect(() => {
     if (visible && executionRunId && executionRunId.trim() !== '') {
@@ -469,17 +1214,17 @@ const ExecutionFlowGraph: React.FC<ExecutionFlowGraphProps> = ({
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity onPress={toggleViewMode} style={styles.viewToggleButton}>
-            <Ionicons 
-              name={viewMode === 'timeline' ? 'git-network-outline' : 'list-outline'} 
-              size={20} 
-              color="#007AFF" 
+            <Ionicons
+              name={viewMode === 'timeline' ? 'git-network-outline' : 'list-outline'}
+              size={20}
+              color={colors.accent}
             />
             <Text style={styles.viewToggleText}>
               {viewMode === 'timeline' ? 'Graph' : 'Timeline'}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color="#1D1D1F" />
+            <Ionicons name="close" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -587,7 +1332,7 @@ const ExecutionFlowGraph: React.FC<ExecutionFlowGraphProps> = ({
         <ScrollView style={styles.content}>
         {loading && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#007AFF" />
+            <ActivityIndicator size="large" color={colors.accent} />
             <Text style={styles.loadingText}>Loading execution flow...</Text>
           </View>
         )}
@@ -656,10 +1401,10 @@ const ExecutionFlowGraph: React.FC<ExecutionFlowGraphProps> = ({
                                       <Text style={styles.expandButtonText}>
                                         {expandedEvents.has(event.id) ? 'Show Less' : 'Show More'}
                                       </Text>
-                                      <Ionicons 
-                                        name={expandedEvents.has(event.id) ? 'chevron-up' : 'chevron-down'} 
-                                        size={12} 
-                                        color="#007AFF" 
+                                      <Ionicons
+                                        name={expandedEvents.has(event.id) ? 'chevron-up' : 'chevron-down'}
+                                        size={12}
+                                        color={colors.accent}
                                         style={{ marginLeft: 4 }}
                                       />
                                     </TouchableOpacity>
@@ -719,10 +1464,10 @@ const ExecutionFlowGraph: React.FC<ExecutionFlowGraphProps> = ({
                                 <Text style={styles.expandButtonText}>
                                   {expandedEvents.has(eventOrGroup.id) ? 'Show Less' : 'Show More'}
                                 </Text>
-                                <Ionicons 
-                                  name={expandedEvents.has(eventOrGroup.id) ? 'chevron-up' : 'chevron-down'} 
-                                  size={12} 
-                                  color="#007AFF" 
+                                <Ionicons
+                                  name={expandedEvents.has(eventOrGroup.id) ? 'chevron-up' : 'chevron-down'}
+                                  size={12}
+                                  color={colors.accent}
                                   style={{ marginLeft: 4 }}
                                 />
                               </TouchableOpacity>
@@ -763,7 +1508,7 @@ const ExecutionFlowGraph: React.FC<ExecutionFlowGraphProps> = ({
               }}
               style={styles.graphCloseButton}
             >
-              <Ionicons name="close" size={24} color="#1D1D1F" />
+              <Ionicons name="close" size={24} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
           
@@ -920,749 +1665,5 @@ const ExecutionFlowGraph: React.FC<ExecutionFlowGraphProps> = ({
     </View>
   );
 };
-
-const { width: screenWidth } = Dimensions.get('window');
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  subtitle: {
-    fontSize: 12,
-    color: '#8E8E93',
-    marginTop: 2,
-  },
-  viewToggleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FA',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 6,
-  },
-  viewToggleText: {
-    fontSize: 13,
-    color: '#007AFF',
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1D1D1F',
-  },
-  closeButton: {
-    padding: 4,
-  },
-  filtersContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-    gap: 12,
-  },
-  filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    backgroundColor: '#F8F9FA',
-  },
-  activeFilterButton: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
-  },
-  filterButtonText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#6B7280',
-  },
-  activeFilterButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  statsContainer: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  statsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1D1D1F',
-    marginBottom: 12,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  statItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#007AFF',
-  },
-  statLabel: {
-    fontSize: 11,
-    color: '#8E8E93',
-    textAlign: 'center',
-    marginTop: 2,
-  },
-  content: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#8E8E93',
-  },
-  errorContainer: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  errorText: {
-    fontSize: 14,
-    color: '#FF3B30',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  retryButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  eventsContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  eventItem: {
-    marginBottom: 8,
-  },
-  eventHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  eventIconContainer: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    marginRight: 12,
-    minWidth: 40,
-  },
-  eventIcon: {
-    fontSize: 20,
-    marginBottom: 4,
-  },
-  sequenceNumber: {
-    backgroundColor: '#E5E5EA',
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    minWidth: 24,
-    alignItems: 'center',
-  },
-  sequenceText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#1D1D1F',
-  },
-  eventContent: {
-    flex: 1,
-  },
-  eventTitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 4,
-  },
-  eventType: {
-    fontSize: 13,
-    fontWeight: '600',
-    textTransform: 'capitalize',
-  },
-  eventMeta: {
-    alignItems: 'flex-end',
-  },
-  eventStatus: {
-    fontSize: 10,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  eventDuration: {
-    fontSize: 10,
-    color: '#8E8E93',
-    fontFamily: 'monospace',
-    marginTop: 2,
-  },
-  eventData: {
-    fontSize: 11,
-    color: '#6B7280',
-    fontFamily: 'monospace',
-    marginTop: 4,
-    backgroundColor: '#F8F9FA',
-    padding: 8,
-    borderRadius: 6,
-  },
-  expandButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
-    paddingVertical: 4,
-  },
-  expandButtonText: {
-    fontSize: 11,
-    color: '#007AFF',
-    fontWeight: '600',
-  },
-  errorMessage: {
-    fontSize: 11,
-    color: '#FF3B30',
-    marginTop: 4,
-    fontStyle: 'italic',
-  },
-  connectionLine: {
-    width: 2,
-    height: 12,
-    backgroundColor: '#E5E5EA',
-    marginLeft: 31,
-    marginVertical: 2,
-  },
-  parallelGroup: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF9500',
-  },
-  parallelHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  parallelTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FF9500',
-  },
-  parallelCount: {
-    fontSize: 12,
-    color: '#8E8E93',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  parallelContainer: {
-    gap: 8,
-  },
-  parallelEvent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  parallelConnection: {
-    width: 1,
-    height: 8,
-    backgroundColor: '#E5E5EA',
-    marginLeft: 31,
-    marginVertical: 2,
-  },
-  timelineOverview: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  timelineHeader: {
-    marginBottom: 12,
-  },
-  timelineTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1D1D1F',
-    marginBottom: 4,
-  },
-  timelineSubtitle: {
-    fontSize: 12,
-    color: '#8E8E93',
-  },
-  timelineBar: {
-    flexDirection: 'row',
-    height: 24, // Increased height for better touch targets
-    backgroundColor: '#F2F2F7',
-    borderRadius: 12,
-    overflow: 'hidden',
-    padding: 2,
-  },
-  timelineEvent: {
-    flex: 1,
-    height: '100%',
-    marginRight: 1,
-    position: 'relative',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 8,
-    minHeight: 20, // Touch target height
-  },
-  timelineEventTooltip: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-    height: '100%',
-  },
-  timelineEventText: {
-    fontSize: 10,
-    opacity: 0.9,
-    textAlign: 'center',
-    fontWeight: '600',
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  modalCloseButton: {
-    fontSize: 16,
-    color: '#007AFF',
-    fontWeight: '600',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1D1D1F',
-  },
-  headerSpacer: {
-    width: 50,
-  },
-  modalContent: {
-    flex: 1,
-    padding: 16,
-  },
-  eventDetailContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  eventDetailHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  eventDetailIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#F8F9FA',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  eventDetailIconText: {
-    fontSize: 24,
-  },
-  eventDetailInfo: {
-    flex: 1,
-  },
-  eventDetailType: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  eventDetailSequence: {
-    fontSize: 14,
-    color: '#8E8E93',
-  },
-  eventDetailStatus: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  eventDetailStatusText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    textTransform: 'uppercase',
-  },
-  eventDetailSection: {
-    marginBottom: 20,
-  },
-  eventDetailSectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1D1D1F',
-    marginBottom: 12,
-  },
-  eventDetailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  eventDetailLabel: {
-    fontSize: 14,
-    color: '#8E8E93',
-    fontWeight: '500',
-    flex: 1,
-  },
-  eventDetailValue: {
-    fontSize: 14,
-    color: '#1D1D1F',
-    fontWeight: '400',
-    flex: 2,
-    textAlign: 'right',
-  },
-  eventDetailDataContainer: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    padding: 12,
-  },
-  eventDetailData: {
-    fontSize: 12,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    color: '#1D1D1F',
-    lineHeight: 16,
-  },
-  eventDetailErrorContainer: {
-    backgroundColor: '#FFF5F5',
-    borderRadius: 8,
-    padding: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF3B30',
-  },
-  eventDetailError: {
-    fontSize: 14,
-    color: '#FF3B30',
-    lineHeight: 20,
-  },
-  // Graph Visualization Styles
-  graphContainer: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-  },
-  graphHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  graphTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1D1D1F',
-  },
-  graphCloseButton: {
-    padding: 4,
-  },
-  graphContent: {
-    flex: 1,
-  },
-  graphScrollContent: {
-    padding: 16,
-  },
-  flameGraphScrollContent: {
-    paddingVertical: 16,
-    paddingHorizontal: 8,
-  },
-  flameGraphContainer: {
-    position: 'relative',
-    minHeight: 200,
-    paddingHorizontal: 8,
-  },
-  flameGraphSvg: {
-    position: 'relative',
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    paddingVertical: 12,
-    overflow: 'visible',
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  flameGraphLevel: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-  },
-  flameGraphBar: {
-    position: 'absolute',
-    height: 28,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.1)',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  flameGraphBarContent: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  flameGraphBarIcon: {
-    fontSize: 16,
-    marginRight: 8,
-  },
-  flameGraphBarText: {
-    flex: 1,
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  flameGraphBarDuration: {
-    fontSize: 9,
-    color: '#FFFFFF',
-    fontFamily: 'monospace',
-    marginLeft: 4,
-    textShadowColor: 'rgba(0,0,0,0.3)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 1,
-  },
-  flameGraphTimeAxis: {
-    position: 'absolute',
-    height: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#D1D5DB',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  flameGraphTimeLabel: {
-    fontSize: 10,
-    color: '#6B7280',
-    fontFamily: 'monospace',
-    fontWeight: '500',
-  },
-  emptyFlameGraph: {
-    height: 200,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  emptyFlameGraphText: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  emptyFlameGraphSubtext: {
-    fontSize: 12,
-    color: '#6B7280',
-    textAlign: 'center',
-    marginTop: 8,
-    paddingHorizontal: 20,
-    lineHeight: 16,
-  },
-  flameGraphLegend: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginVertical: 16,
-    marginHorizontal: 8,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  flameGraphLegendTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1D1D1F',
-    marginBottom: 8,
-  },
-  flameGraphLegendText: {
-    fontSize: 13,
-    color: '#6B7280',
-    lineHeight: 18,
-  },
-  graphNodes: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 24,
-  },
-  graphNode: {
-    width: (screenWidth - 48) / 2, // 2 columns with padding
-    minHeight: 120,
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
-  graphNodeIcon: {
-    fontSize: 24,
-    marginBottom: 8,
-  },
-  graphNodeTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  graphNodeSubtitle: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.8)',
-    marginBottom: 4,
-  },
-  graphNodeDuration: {
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.7)',
-    fontFamily: 'monospace',
-  },
-  graphStats: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  graphStatsTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1D1D1F',
-    marginBottom: 16,
-  },
-  graphStatsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  graphStatItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  graphStatValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#007AFF',
-    marginBottom: 4,
-  },
-  graphStatLabel: {
-    fontSize: 11,
-    color: '#8E8E93',
-    textAlign: 'center',
-  },
-});
 
 export default ExecutionFlowGraph; 

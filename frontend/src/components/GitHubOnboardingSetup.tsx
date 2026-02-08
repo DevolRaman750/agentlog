@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   TextInput,
@@ -13,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useToast } from '../context/ToastContext';
 import { goGentAPI } from '../api/client';
 import { CreateApiKeyRequest } from '../types';
+import { useTheme, useThemedStyles } from '../theme';
 
 interface GitHubOnboardingSetupProps {
   onComplete: (success: boolean) => void;
@@ -27,12 +27,366 @@ export const GitHubOnboardingSetup: React.FC<GitHubOnboardingSetupProps> = ({
   isLoading,
   setIsLoading,
 }) => {
+  const { colors } = useTheme();
   const { showSuccess, showError } = useToast();
   const [selectedMode, setSelectedMode] = useState<GitHubAuthMode>('personal_access_token');
   const [patToken, setPATToken] = useState('');
   const [appId, setAppId] = useState('');
   const [privateKey, setPrivateKey] = useState('');
   const [installationId, setInstallationId] = useState('');
+
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bgCard,
+    },
+    header: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+      backgroundColor: colors.bgCard,
+    },
+    backButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      paddingVertical: 8,
+    },
+    backButtonText: {
+      fontSize: 16,
+      color: colors.accent,
+      marginLeft: 4,
+    },
+    headerTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+    },
+    closeButton: {
+      padding: 8,
+    },
+    scrollContainer: {
+      flex: 1,
+    },
+    content: {
+      padding: 20,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: '700' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    subtitle: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      lineHeight: 22,
+      marginBottom: 24,
+    },
+    modeSelection: {
+      marginBottom: 24,
+    },
+    modeCard: {
+      borderWidth: 2,
+      borderColor: colors.borderLight,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 12,
+    },
+    selectedModeCard: {
+      borderColor: colors.accent,
+      backgroundColor: colors.bgHover,
+    },
+    modeHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 8,
+    },
+    modeTitle: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginLeft: 12,
+      flex: 1,
+    },
+    recommendedBadge: {
+      fontSize: 10,
+      fontWeight: '700' as const,
+      color: colors.statusSuccess,
+      backgroundColor: colors.accentSoft,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+    },
+    advancedBadge: {
+      fontSize: 10,
+      fontWeight: '700' as const,
+      color: colors.statusWarning,
+      backgroundColor: '#FFF4E6',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+    },
+    modeDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+    },
+    instructionsCard: {
+      backgroundColor: colors.bgSurface,
+      borderRadius: 12,
+      padding: 20,
+      marginBottom: 24,
+    },
+    instructionsHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 20,
+    },
+    instructionsTitle: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginLeft: 8,
+      flex: 1,
+    },
+    linkButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: colors.accent,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 6,
+    },
+    linkButtonText: {
+      fontSize: 12,
+      color: colors.textInverse,
+      fontWeight: '600' as const,
+      marginRight: 4,
+    },
+    scopesSection: {
+      marginBottom: 24,
+    },
+    scopesTitle: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    scopesDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+      marginBottom: 16,
+    },
+    scopesList: {
+      marginBottom: 16,
+    },
+    scopeItem: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+      marginBottom: 12,
+    },
+    scopeBadge: {
+      backgroundColor: colors.accent,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+      marginRight: 12,
+      minWidth: 80,
+      alignItems: 'center' as const,
+    },
+    scopeBadgeText: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: colors.textInverse,
+    },
+    scopeDetails: {
+      flex: 1,
+    },
+    scopeName: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 2,
+    },
+    scopeDescription: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      lineHeight: 18,
+    },
+    securityTip: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+      backgroundColor: colors.accentSoft,
+      padding: 12,
+      borderRadius: 8,
+    },
+    securityTipText: {
+      fontSize: 13,
+      color: colors.statusSuccess,
+      marginLeft: 8,
+      flex: 1,
+      lineHeight: 18,
+    },
+    securityTipBold: {
+      fontWeight: '600' as const,
+    },
+    permissionsList: {
+      marginBottom: 16,
+    },
+    permissionCategory: {
+      marginBottom: 16,
+    },
+    permissionCategoryTitle: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    permissionItem: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 8,
+      paddingLeft: 16,
+    },
+    permissionName: {
+      fontSize: 13,
+      color: colors.textPrimary,
+      fontWeight: '500' as const,
+      width: 100,
+    },
+    permissionLevel: {
+      backgroundColor: colors.bgHover,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 4,
+      marginRight: 12,
+    },
+    permissionLevelText: {
+      fontSize: 11,
+      fontWeight: '600' as const,
+      color: colors.accent,
+    },
+    permissionDescription: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      flex: 1,
+    },
+    repositoryTip: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+      backgroundColor: colors.bgHover,
+      padding: 12,
+      borderRadius: 8,
+    },
+    repositoryTipText: {
+      fontSize: 13,
+      color: colors.accent,
+      marginLeft: 8,
+      flex: 1,
+      lineHeight: 18,
+    },
+    repositoryTipBold: {
+      fontWeight: '600' as const,
+    },
+    stepsSection: {
+      marginBottom: 0,
+    },
+    stepsTitle: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 16,
+    },
+    stepItem: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+      marginBottom: 12,
+    },
+    stepNumber: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: colors.accent,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      marginRight: 12,
+    },
+    stepNumberText: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: colors.textInverse,
+    },
+    stepText: {
+      fontSize: 14,
+      color: colors.textPrimary,
+      flex: 1,
+      lineHeight: 20,
+    },
+    inputSection: {
+      marginBottom: 24,
+    },
+    inputContainer: {
+      marginBottom: 20,
+    },
+    inputLabel: {
+      fontSize: 16,
+      fontWeight: '500' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    textInput: {
+      borderWidth: 1,
+      borderColor: colors.borderMedium,
+      borderRadius: 8,
+      padding: 16,
+      fontSize: 16,
+      backgroundColor: colors.bgSurface,
+    },
+    textArea: {
+      borderWidth: 1,
+      borderColor: colors.borderMedium,
+      borderRadius: 8,
+      padding: 16,
+      fontSize: 14,
+      backgroundColor: colors.bgSurface,
+      minHeight: 120,
+      textAlignVertical: 'top' as const,
+    },
+    invalidInput: {
+      borderColor: colors.statusError,
+      backgroundColor: colors.bgSurface,
+    },
+    errorText: {
+      fontSize: 12,
+      color: colors.statusError,
+      marginTop: 4,
+    },
+    successText: {
+      fontSize: 12,
+      color: colors.statusSuccess,
+      marginTop: 4,
+    },
+    saveButton: {
+      backgroundColor: colors.accent,
+      borderRadius: 8,
+      paddingVertical: 16,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    disabledButton: {
+      backgroundColor: colors.borderMedium,
+    },
+    saveButtonText: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textInverse,
+    },
+  }));
 
   const validatePAT = (token: string): boolean => {
     return /^ghp_[A-Za-z0-9]{36}$/.test(token) || /^github_pat_[A-Za-z0-9_]{82}$/.test(token);
@@ -83,7 +437,7 @@ export const GitHubOnboardingSetup: React.FC<GitHubOnboardingSetupProps> = ({
         };
 
         const response = await goGentAPI.createApiKey(createRequest);
-        
+
         if (response.success) {
           showSuccess('GitHub Personal Access Token configured successfully!');
           onComplete(true);
@@ -111,7 +465,7 @@ export const GitHubOnboardingSetup: React.FC<GitHubOnboardingSetupProps> = ({
         };
 
         const response = await goGentAPI.createApiKey(createRequest);
-        
+
         if (response.success) {
           showSuccess('GitHub App configured successfully!');
           onComplete(true);
@@ -131,23 +485,23 @@ export const GitHubOnboardingSetup: React.FC<GitHubOnboardingSetupProps> = ({
   const renderPATInstructions = () => (
     <View style={styles.instructionsCard}>
       <View style={styles.instructionsHeader}>
-        <Ionicons name="list" size={20} color="#007AFF" />
+        <Ionicons name="list" size={20} color={colors.accent} />
         <Text style={styles.instructionsTitle}>Personal Access Token Setup</Text>
         <TouchableOpacity
           style={styles.linkButton}
           onPress={() => Linking.openURL('https://github.com/settings/tokens')}
         >
           <Text style={styles.linkButtonText}>Open GitHub</Text>
-          <Ionicons name="open-outline" size={16} color="#007AFF" />
+          <Ionicons name="open-outline" size={16} color={colors.accent} />
         </TouchableOpacity>
       </View>
-      
+
       <View style={styles.scopesSection}>
         <Text style={styles.scopesTitle}>🔐 Required Permissions (Scopes)</Text>
         <Text style={styles.scopesDescription}>
           When creating your token, select these scopes for optimal agent functionality:
         </Text>
-        
+
         <View style={styles.scopesList}>
           <View style={styles.scopeItem}>
             <View style={styles.scopeBadge}>
@@ -160,7 +514,7 @@ export const GitHubOnboardingSetup: React.FC<GitHubOnboardingSetupProps> = ({
               </Text>
             </View>
           </View>
-          
+
           <View style={styles.scopeItem}>
             <View style={styles.scopeBadge}>
               <Text style={styles.scopeBadgeText}>read:user</Text>
@@ -175,7 +529,7 @@ export const GitHubOnboardingSetup: React.FC<GitHubOnboardingSetupProps> = ({
         </View>
 
         <View style={styles.securityTip}>
-          <Ionicons name="shield-checkmark" size={16} color="#34C759" />
+          <Ionicons name="shield-checkmark" size={16} color={colors.statusSuccess} />
           <Text style={styles.securityTipText}>
             <Text style={styles.securityTipBold}>Security Tip:</Text> Only grant access to repositories you want your agents to work with. You can always modify permissions later.
           </Text>
@@ -212,14 +566,14 @@ export const GitHubOnboardingSetup: React.FC<GitHubOnboardingSetupProps> = ({
   const renderGitHubAppInstructions = () => (
     <View style={styles.instructionsCard}>
       <View style={styles.instructionsHeader}>
-        <Ionicons name="list" size={20} color="#007AFF" />
+        <Ionicons name="list" size={20} color={colors.accent} />
         <Text style={styles.instructionsTitle}>GitHub App Setup</Text>
         <TouchableOpacity
           style={styles.linkButton}
           onPress={() => Linking.openURL('https://github.com/settings/apps')}
         >
           <Text style={styles.linkButtonText}>Open GitHub</Text>
-          <Ionicons name="open-outline" size={16} color="#007AFF" />
+          <Ionicons name="open-outline" size={16} color={colors.accent} />
         </TouchableOpacity>
       </View>
 
@@ -228,7 +582,7 @@ export const GitHubOnboardingSetup: React.FC<GitHubOnboardingSetupProps> = ({
         <Text style={styles.scopesDescription}>
           Configure your GitHub App with these repository permissions for optimal agent functionality:
         </Text>
-        
+
         <View style={styles.permissionsList}>
           <View style={styles.permissionCategory}>
             <Text style={styles.permissionCategoryTitle}>Repository Permissions</Text>
@@ -275,7 +629,7 @@ export const GitHubOnboardingSetup: React.FC<GitHubOnboardingSetupProps> = ({
         </View>
 
         <View style={styles.repositoryTip}>
-          <Ionicons name="information-circle" size={16} color="#007AFF" />
+          <Ionicons name="information-circle" size={16} color={colors.accent} />
           <Text style={styles.repositoryTipText}>
             <Text style={styles.repositoryTipBold}>Repository Scope:</Text> Install the app only on specific repositories you want your agents to access, not all repositories.
           </Text>
@@ -316,22 +670,22 @@ export const GitHubOnboardingSetup: React.FC<GitHubOnboardingSetupProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
+        <TouchableOpacity
+          style={styles.backButton}
           onPress={() => onComplete(false)}
         >
-          <Ionicons name="chevron-back" size={24} color="#007AFF" />
+          <Ionicons name="chevron-back" size={24} color={colors.accent} />
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>GitHub Setup</Text>
-        <TouchableOpacity 
-          style={styles.closeButton} 
+        <TouchableOpacity
+          style={styles.closeButton}
           onPress={() => onComplete(false)}
         >
-          <Ionicons name="close" size={24} color="#8E8E93" />
+          <Ionicons name="close" size={24} color={colors.textSecondary} />
         </TouchableOpacity>
       </View>
-      
+
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
         <Text style={styles.title}>GitHub Integration Setup</Text>
@@ -349,10 +703,10 @@ export const GitHubOnboardingSetup: React.FC<GitHubOnboardingSetupProps> = ({
             onPress={() => setSelectedMode('personal_access_token')}
           >
             <View style={styles.modeHeader}>
-              <Ionicons 
-                name={selectedMode === 'personal_access_token' ? 'radio-button-on' : 'radio-button-off'} 
-                size={20} 
-                color={selectedMode === 'personal_access_token' ? '#007AFF' : '#999'} 
+              <Ionicons
+                name={selectedMode === 'personal_access_token' ? 'radio-button-on' : 'radio-button-off'}
+                size={20}
+                color={selectedMode === 'personal_access_token' ? colors.accent : colors.textTertiary}
               />
               <Text style={styles.modeTitle}>Personal Access Token</Text>
               <Text style={styles.recommendedBadge}>RECOMMENDED</Text>
@@ -370,10 +724,10 @@ export const GitHubOnboardingSetup: React.FC<GitHubOnboardingSetupProps> = ({
             onPress={() => setSelectedMode('github_app')}
           >
             <View style={styles.modeHeader}>
-              <Ionicons 
-                name={selectedMode === 'github_app' ? 'radio-button-on' : 'radio-button-off'} 
-                size={20} 
-                color={selectedMode === 'github_app' ? '#007AFF' : '#999'} 
+              <Ionicons
+                name={selectedMode === 'github_app' ? 'radio-button-on' : 'radio-button-off'}
+                size={20}
+                color={selectedMode === 'github_app' ? colors.accent : colors.textTertiary}
               />
               <Text style={styles.modeTitle}>GitHub App</Text>
               <Text style={styles.advancedBadge}>ADVANCED</Text>
@@ -469,7 +823,7 @@ export const GitHubOnboardingSetup: React.FC<GitHubOnboardingSetupProps> = ({
           disabled={!isFormValid() || isLoading}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <ActivityIndicator size="small" color={colors.textInverse} />
           ) : (
             <Text style={styles.saveButtonText}>
               Configure GitHub {selectedMode === 'personal_access_token' ? 'PAT' : 'App'}
@@ -481,356 +835,3 @@ export const GitHubOnboardingSetup: React.FC<GitHubOnboardingSetupProps> = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-    backgroundColor: '#FFFFFF',
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: '#007AFF',
-    marginLeft: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  closeButton: {
-    padding: 8,
-  },
-  scrollContainer: {
-    flex: 1,
-  },
-  content: {
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#000000',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#8E8E93',
-    lineHeight: 22,
-    marginBottom: 24,
-  },
-  modeSelection: {
-    marginBottom: 24,
-  },
-  modeCard: {
-    borderWidth: 2,
-    borderColor: '#E5E5EA',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-  },
-  selectedModeCard: {
-    borderColor: '#007AFF',
-    backgroundColor: '#F0F8FF',
-  },
-  modeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  modeTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-    marginLeft: 12,
-    flex: 1,
-  },
-  recommendedBadge: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#34C759',
-    backgroundColor: '#E8F5E8',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  advancedBadge: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#FF9500',
-    backgroundColor: '#FFF4E6',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  modeDescription: {
-    fontSize: 14,
-    color: '#666666',
-    lineHeight: 20,
-  },
-  instructionsCard: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 24,
-  },
-  instructionsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  instructionsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-    marginLeft: 8,
-    flex: 1,
-  },
-  linkButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  linkButtonText: {
-    fontSize: 12,
-    color: '#FFFFFF',
-    fontWeight: '600',
-    marginRight: 4,
-  },
-  scopesSection: {
-    marginBottom: 24,
-  },
-  scopesTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 8,
-  },
-  scopesDescription: {
-    fontSize: 14,
-    color: '#666666',
-    lineHeight: 20,
-    marginBottom: 16,
-  },
-  scopesList: {
-    marginBottom: 16,
-  },
-  scopeItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  scopeBadge: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginRight: 12,
-    minWidth: 80,
-    alignItems: 'center',
-  },
-  scopeBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  scopeDetails: {
-    flex: 1,
-  },
-  scopeName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 2,
-  },
-  scopeDescription: {
-    fontSize: 13,
-    color: '#666666',
-    lineHeight: 18,
-  },
-  securityTip: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#E8F5E8',
-    padding: 12,
-    borderRadius: 8,
-  },
-  securityTipText: {
-    fontSize: 13,
-    color: '#2D5016',
-    marginLeft: 8,
-    flex: 1,
-    lineHeight: 18,
-  },
-  securityTipBold: {
-    fontWeight: '600',
-  },
-  permissionsList: {
-    marginBottom: 16,
-  },
-  permissionCategory: {
-    marginBottom: 16,
-  },
-  permissionCategoryTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 8,
-  },
-  permissionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    paddingLeft: 16,
-  },
-  permissionName: {
-    fontSize: 13,
-    color: '#000000',
-    fontWeight: '500',
-    width: 100,
-  },
-  permissionLevel: {
-    backgroundColor: '#E6F3FF',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginRight: 12,
-  },
-  permissionLevelText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#007AFF',
-  },
-  permissionDescription: {
-    fontSize: 12,
-    color: '#666666',
-    flex: 1,
-  },
-  repositoryTip: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#E6F3FF',
-    padding: 12,
-    borderRadius: 8,
-  },
-  repositoryTipText: {
-    fontSize: 13,
-    color: '#0A4A84',
-    marginLeft: 8,
-    flex: 1,
-    lineHeight: 18,
-  },
-  repositoryTipBold: {
-    fontWeight: '600',
-  },
-  stepsSection: {
-    marginBottom: 0,
-  },
-  stepsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 16,
-  },
-  stepItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  stepNumber: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#007AFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  stepNumberText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  stepText: {
-    fontSize: 14,
-    color: '#333333',
-    flex: 1,
-    lineHeight: 20,
-  },
-  inputSection: {
-    marginBottom: 24,
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#000000',
-    marginBottom: 8,
-  },
-  textInput: {
-    borderWidth: 1,
-    borderColor: '#D1D1D6',
-    borderRadius: 8,
-    padding: 16,
-    fontSize: 16,
-    backgroundColor: '#FAFAFA',
-  },
-  textArea: {
-    borderWidth: 1,
-    borderColor: '#D1D1D6',
-    borderRadius: 8,
-    padding: 16,
-    fontSize: 14,
-    backgroundColor: '#FAFAFA',
-    minHeight: 120,
-    textAlignVertical: 'top',
-  },
-  invalidInput: {
-    borderColor: '#FF3B30',
-    backgroundColor: '#FFF5F5',
-  },
-  errorText: {
-    fontSize: 12,
-    color: '#FF3B30',
-    marginTop: 4,
-  },
-  successText: {
-    fontSize: 12,
-    color: '#34C759',
-    marginTop: 4,
-  },
-  saveButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  disabledButton: {
-    backgroundColor: '#D1D1D6',
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-});

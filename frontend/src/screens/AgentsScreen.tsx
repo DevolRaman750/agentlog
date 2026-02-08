@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   FlatList,
   RefreshControl,
@@ -31,12 +30,16 @@ import { Agent, AgentFormData, LifecycleStatus, ExecutionTemplate, Team, TeamWit
 import { useResponsive } from '../context/ResponsiveContext';
 import ScreenContainer from '../components/ScreenContainer';
 import { generateTemplateAgents, generateDevelopmentSupportTeam, isTemplateAgent } from '../data/templateAgents';
+import { useTheme, useThemedStyles } from '../theme';
+import type { ThemeColors } from '../theme';
 
 
 const AgentsScreen: React.FC = () => {
   const { user, isLoading: authLoading } = useAuth();
   const { setReExecutionData } = useApp();
   const { screenWidth, isSidebarLayout } = useResponsive();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const navigation = useNavigation<any>();
   const route = navigation.getState()?.routes?.[navigation.getState()?.index || 0];
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -79,7 +82,7 @@ const AgentsScreen: React.FC = () => {
       console.log('🔍 AgentsScreen useFocusEffect triggered');
       console.log('🔍 User:', !!user, user?.id);
       console.log('🔍 authLoading:', authLoading);
-      
+
       // Check for prefilled agent data from marketplace
       if (route?.params?.prefilledAgent) {
         setPrefilledAgentData(route.params.prefilledAgent);
@@ -87,7 +90,7 @@ const AgentsScreen: React.FC = () => {
         // Clear the params to prevent re-triggering
         navigation.setParams({ prefilledAgent: undefined });
       }
-      
+
       if (user && !authLoading) {
         console.log('✅ Conditions met, calling loadAgents()');
         loadAgents();
@@ -105,16 +108,16 @@ const AgentsScreen: React.FC = () => {
       console.log('🤖 Loading agents and teams...');
       console.log('🔍 User authenticated:', !!user);
       console.log('🔍 User ID:', user?.id);
-      
+
       // Load both agents and teams concurrently
       const [agentsResponse, teamsResponse] = await Promise.all([
         goGentAPI.getAgents(),
         goGentAPI.getTeams()
       ]);
-      
+
       console.log('📡 Agents Response:', agentsResponse);
       console.log('📡 Teams Response:', teamsResponse);
-      
+
       if (agentsResponse.success && agentsResponse.data) {
         const agentsData = agentsResponse.data;
         setAgents(agentsData);
@@ -174,11 +177,11 @@ const AgentsScreen: React.FC = () => {
 
   const getLifecycleStatusColor = (status: LifecycleStatus): string => {
     switch (status) {
-      case 'ACTIVE': return '#28a745';
-      case 'STANDBY': return '#ffc107';
-      case 'PAUSED': return '#6c757d';
-      case 'KILLED': return '#dc3545';
-      default: return '#6c757d';
+      case 'ACTIVE': return colors.statusSuccess;
+      case 'STANDBY': return colors.accentSecondary;
+      case 'PAUSED': return colors.statusPaused;
+      case 'KILLED': return colors.statusError;
+      default: return colors.statusPaused;
     }
   };
 
@@ -194,9 +197,9 @@ const AgentsScreen: React.FC = () => {
 
   const handleNavigateToTemplate = (templateId: string) => {
     // Navigate to template edit/detail page
-    navigation.navigate('Execution Templates', { 
+    navigation.navigate('Execution Templates', {
       templateId,
-      editMode: true 
+      editMode: true
     });
   };
 
@@ -253,12 +256,12 @@ const AgentsScreen: React.FC = () => {
     try {
       setIsLoading(true);
       const newStatus = agent.lifecycleStatus === 'PAUSED' ? 'ACTIVE' : 'PAUSED';
-      
+
       const response = await goGentAPI.updateAgent(agent.id, {
         ...agent,
         lifecycleStatus: newStatus
       });
-      
+
       if (response.success) {
         AlertAPI.alert('Success', `Agent ${newStatus.toLowerCase()} successfully`);
         loadAgents(); // Refresh the list
@@ -276,21 +279,21 @@ const AgentsScreen: React.FC = () => {
   const handleExecuteAgentNow = async (agent: Agent) => {
     try {
       setIsLoading(true);
-      
+
       // Get the template details to prepare execution data
       const templateResponse = await goGentAPI.getTemplates();
       if (!templateResponse.success || !templateResponse.data?.templates) {
         AlertAPI.alert('Error', 'Failed to load template data');
         return;
       }
-      
+
       const template = templateResponse.data.templates.find(t => t.id === agent.templateId);
       if (!template) {
         AlertAPI.alert('Error', 'Template not found');
         return;
       }
 
-      // Get configurations for the execution  
+      // Get configurations for the execution
       const configResponse = await goGentAPI.getConfigurations();
       if (!configResponse.success) {
         AlertAPI.alert('Error', 'Failed to load configurations');
@@ -299,7 +302,7 @@ const AgentsScreen: React.FC = () => {
 
       // Get configurations and find template's preferred configuration
       const configurations = configResponse.data || [];
-      
+
       if (configurations.length === 0) {
         AlertAPI.alert('Error', 'No configurations available');
         return;
@@ -307,7 +310,7 @@ const AgentsScreen: React.FC = () => {
 
       // Use template's preferred configuration if available, otherwise fallback to first available
       let selectedConfig = configurations[0]; // Default fallback
-      
+
       if (template.preferredConfigurationId) {
         const preferredConfig = configurations.find(c => c.id === template.preferredConfigurationId);
         if (preferredConfig) {
@@ -332,12 +335,12 @@ const AgentsScreen: React.FC = () => {
       let functionTools = [];
       if (template.functionIDs && template.functionIDs.length > 0) {
         console.log('🔧 Loading functions for agent execution, functionIDs:', template.functionIDs);
-        
+
         // Get available functions
         const functionsResponse = await goGentAPI.getFunctions();
         if (functionsResponse.success && functionsResponse.data) {
           const availableFunctions = functionsResponse.data;
-          
+
           // Filter functions that match the template's function IDs
           functionTools = availableFunctions
             .filter(func => template.functionIDs?.includes(func.id))
@@ -346,7 +349,7 @@ const AgentsScreen: React.FC = () => {
               description: func.description,
               parameters: func.parametersSchema || {}
             }));
-          
+
           console.log('✅ Loaded', functionTools.length, 'functions for agent execution');
         } else {
           console.warn('⚠️ Failed to load functions for agent execution');
@@ -384,7 +387,7 @@ const AgentsScreen: React.FC = () => {
       // Set the execution data and navigate to Execute screen
       setReExecutionData(agentExecutionData);
       navigation.navigate('Execute');
-      
+
     } catch (error) {
       console.error('Error preparing agent execution:', error);
       AlertAPI.alert('Error', 'Failed to prepare agent execution');
@@ -401,12 +404,12 @@ const AgentsScreen: React.FC = () => {
 
   const handleTeamCreated = (teamName?: string) => {
     setShowCreateTeamModal(false);
-    
+
     // Show success tooltip
     const message = teamName ? `Team "${teamName}" successfully created!` : 'Team successfully created!';
     setSuccessMessage(message);
     setShowSuccessTooltip(true);
-    
+
     loadAgents(); // Refresh to get updated teams and agents
   };
 
@@ -430,12 +433,12 @@ const AgentsScreen: React.FC = () => {
     try {
       setIsLoading(true);
       const newStatus = agent.lifecycleStatus === 'ACTIVE' ? 'STANDBY' : 'ACTIVE';
-      
+
       const response = await goGentAPI.updateAgent(agent.id, {
         ...agent,
         lifecycleStatus: newStatus
       });
-      
+
       if (response.success) {
         const actionText = newStatus === 'ACTIVE' ? 'live' : 'standby';
         AlertAPI.alert('Success', `Agent is now ${actionText}`);
@@ -541,7 +544,7 @@ const AgentsScreen: React.FC = () => {
               style={styles.assignTeamButton}
               onPress={() => handleAssignTeam(agent)}
             >
-              <Ionicons name="people" size={16} color="#007AFF" />
+              <Ionicons name="people" size={16} color={colors.statusSuccess} />
               <Text style={styles.assignTeamText}>Change Team</Text>
             </TouchableOpacity>
           </View>
@@ -561,7 +564,7 @@ const AgentsScreen: React.FC = () => {
             style={[styles.createTeamButton, isCompact && styles.createTeamButtonCompact]}
             onPress={() => setShowCreateTeamModal(true)}
           >
-            <Ionicons name="add" size={isCompact ? 14 : 16} color="#007AFF" />
+            <Ionicons name="add" size={isCompact ? 14 : 16} color={colors.statusSuccess} />
             <Text style={[styles.createTeamButtonText, isCompact && styles.createTeamButtonTextCompact]}>Create Team</Text>
           </TouchableOpacity>
         </View>
@@ -589,7 +592,7 @@ const AgentsScreen: React.FC = () => {
               style={styles.assignTeamButton}
               onPress={() => handleAssignTeam(agent)}
             >
-              <Ionicons name="people" size={16} color="#007AFF" />
+              <Ionicons name="people" size={16} color={colors.statusSuccess} />
               <Text style={styles.assignTeamText}>Assign Team</Text>
             </TouchableOpacity>
           </View>
@@ -600,20 +603,20 @@ const AgentsScreen: React.FC = () => {
 
   const renderEmptyState = () => {
     const exampleAgent = createExampleAgent();
-    
+
     return (
       <View style={styles.emptyState}>
         <Text style={styles.emptyTitle}>✨ Start Your Agent Journey</Text>
         <Text style={styles.emptyMessage}>
           Here's what your first agent could look like:
         </Text>
-        
+
         <View style={styles.exampleCardContainer}>
           <AgentBusinessCard
             agent={exampleAgent}
             onPress={() => {
               AlertAPI.alert(
-                '💡 Example Agent', 
+                '💡 Example Agent',
                 'This is just an example! Click "Create Agent" below to make your own.',
                 [{ text: 'Got it!' }]
               );
@@ -621,7 +624,7 @@ const AgentsScreen: React.FC = () => {
             onEdit={() => setShowCreateModal(true)}
             onDelete={() => {
               AlertAPI.alert(
-                '😄 Nice try!', 
+                '😄 Nice try!',
                 'This is just an example. You can\'t delete it, but you can create your own agent!',
                 [{ text: 'Create Agent', onPress: () => setShowCreateModal(true) }]
               );
@@ -629,45 +632,45 @@ const AgentsScreen: React.FC = () => {
             onNavigateToTemplate={handleNavigateToTemplate}
             onToggleStatus={() => {
               AlertAPI.alert(
-                '⚡ Example Only', 
+                '⚡ Example Only',
                 'This is a demo agent. Create your own to control real automation!',
                 [{ text: 'Create Agent', onPress: () => setShowCreateModal(true) }]
               );
             }}
             onExecuteNow={() => {
               AlertAPI.alert(
-                '🚀 Ready to Launch?', 
+                '🚀 Ready to Launch?',
                 'This example shows what execution would look like. Create your agent to start automating!',
                 [{ text: 'Create Agent', onPress: () => setShowCreateModal(true) }]
               );
             }}
             onGoLive={() => {
               AlertAPI.alert(
-                '🎯 Go Live Feature', 
+                '🎯 Go Live Feature',
                 'This puts your agent into active live mode! Create your own agent to use this feature.',
                 [{ text: 'Create Agent', onPress: () => setShowCreateModal(true) }]
               );
             }}
             onViewMemory={() => {
               AlertAPI.alert(
-                '🧠 Agent Memory', 
+                '🧠 Agent Memory',
                 'View and explore your agent\'s memory. Create your own agent to access this feature!',
                 [{ text: 'Create Agent', onPress: () => setShowCreateModal(true) }]
               );
             }}
             animated={true}
           />
-          
+
           <View style={styles.exampleBadge}>
             <Text style={styles.exampleBadgeText}>💫 EXAMPLE</Text>
           </View>
         </View>
-        
+
         <TouchableOpacity
           style={styles.createButton}
           onPress={() => setShowCreateModal(true)}
         >
-          <Ionicons name="add" size={20} color="white" />
+          <Ionicons name="add" size={20} color={colors.textInverse} />
           <Text style={styles.createButtonText}>Create Your Agent</Text>
         </TouchableOpacity>
       </View>
@@ -689,13 +692,13 @@ const AgentsScreen: React.FC = () => {
           style={[styles.headerButton, isCompact && styles.headerButtonCompact]}
           onPress={() => setShowCreateModal(true)}
         >
-          <Ionicons name="add" size={isCompact ? 20 : 24} color="#007AFF" />
+          <Ionicons name="add" size={isCompact ? 20 : 24} color={colors.statusSuccess} />
         </TouchableOpacity>
       </View>
 
       {/* Show empty state if no agents */}
       {agents.length === 0 ? (
-        <ScrollView 
+        <ScrollView
           style={styles.emptyScrollContainer}
           contentContainerStyle={[styles.emptyScrollContent, isCompact && styles.emptyScrollContentCompact]}
           showsVerticalScrollIndicator={false}
@@ -732,12 +735,12 @@ const AgentsScreen: React.FC = () => {
           onSuccess={(agentName?: string) => {
             setShowCreateModal(false);
             setPrefilledAgentData(null);
-            
+
             // Show success tooltip
             const message = agentName ? `Agent "${agentName}" successfully created!` : 'Agent successfully created!';
             setSuccessMessage(message);
             setShowSuccessTooltip(true);
-            
+
             loadAgents(); // Refresh the agents list
           }}
           onCancel={() => {
@@ -850,26 +853,26 @@ const AgentsScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => ({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.bgApp,
   },
   centeredContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F2F2F7',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    backgroundColor: colors.bgApp,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-    backgroundColor: 'white',
+    borderBottomColor: colors.borderSubtle,
+    backgroundColor: colors.bgApp,
   },
   headerCompact: {
     paddingHorizontal: 16,
@@ -877,8 +880,8 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#000',
+    fontWeight: 'bold' as const,
+    color: colors.textPrimary,
   },
   titleCompact: {
     fontSize: 24,
@@ -906,84 +909,84 @@ const styles = StyleSheet.create({
   },
   emptyScrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: 'center' as const,
     paddingHorizontal: 16,
     paddingVertical: 20,
-    minHeight: '100%',
+    minHeight: '100%' as const,
   },
   emptyScrollContentCompact: {
     paddingHorizontal: 12,
     paddingVertical: 16,
   },
   emptyState: {
-    alignItems: 'center',
+    alignItems: 'center' as const,
     paddingVertical: 40,
     paddingHorizontal: 20,
   },
   emptyTitle: {
     fontSize: 24,
-    fontWeight: '600',
-    color: '#666',
+    fontWeight: '600' as const,
+    color: colors.textPrimary,
     marginTop: 16,
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: 'center' as const,
     paddingHorizontal: 20,
   },
   emptyMessage: {
     fontSize: 16,
-    color: '#999',
-    textAlign: 'center',
+    color: colors.textTertiary,
+    textAlign: 'center' as const,
     marginBottom: 24,
     lineHeight: 22,
     paddingHorizontal: 10,
     maxWidth: 350,
   },
   createButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#007AFF',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: colors.statusSuccess,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 6,
     gap: 8,
   },
   createButtonText: {
-    color: 'white',
+    color: colors.textInverse,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600' as const,
   },
   messageText: {
     fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
+    color: colors.textSecondary,
+    textAlign: 'center' as const,
   },
   exampleCardContainer: {
-    position: 'relative',
+    position: 'relative' as const,
     marginVertical: 20,
-    width: '100%',
+    width: '100%' as const,
     maxWidth: 400,
   },
   exampleBadge: {
-    position: 'absolute',
+    position: 'absolute' as const,
     top: -8,
     right: 12,
-    backgroundColor: '#FF6B35',
+    backgroundColor: colors.accentSecondary,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
-    shadowColor: '#000',
+    shadowColor: colors.accentSecondary,
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 0,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
     elevation: 3,
   },
   exampleBadgeText: {
-    color: 'white',
+    color: colors.textInverse,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '700' as const,
     letterSpacing: 0.5,
   },
   // Team styles
@@ -997,31 +1000,31 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   assignTeamButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F0F8FF',
-    borderRadius: 8,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderRadius: 6,
     paddingVertical: 8,
     paddingHorizontal: 12,
     marginTop: 8,
     borderWidth: 1,
-    borderColor: '#007AFF',
+    borderColor: 'rgba(16, 185, 129, 0.40)',
   },
   assignTeamText: {
     fontSize: 14,
-    color: '#007AFF',
-    fontWeight: '500',
+    color: colors.statusSuccess,
+    fontWeight: '600' as const,
     marginLeft: 4,
   },
   unassignedSection: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: colors.bgCard,
+    borderRadius: 8,
     padding: 16,
     margin: 16,
     marginTop: 0,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: colors.borderLight,
   },
   unassignedSectionCompact: {
     padding: 12,
@@ -1030,9 +1033,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
     marginBottom: 16,
   },
   sectionHeaderCompact: {
@@ -1040,21 +1043,21 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
+    fontWeight: '600' as const,
+    color: colors.textPrimary,
   },
   sectionTitleCompact: {
     fontSize: 16,
   },
   createTeamButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 6,
+    borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#007AFF',
-    backgroundColor: '#F0F8FF',
+    borderColor: 'rgba(16, 185, 129, 0.40)',
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
   },
   createTeamButtonCompact: {
     paddingHorizontal: 8,
@@ -1063,9 +1066,9 @@ const styles = StyleSheet.create({
   },
   createTeamButtonText: {
     fontSize: 14,
-    color: '#007AFF',
+    color: colors.statusSuccess,
     marginLeft: 4,
-    fontWeight: '500',
+    fontWeight: '600' as const,
   },
   createTeamButtonTextCompact: {
     fontSize: 12,
@@ -1076,4 +1079,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AgentsScreen; 
+export default AgentsScreen;

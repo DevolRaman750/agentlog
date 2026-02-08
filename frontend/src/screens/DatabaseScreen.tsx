@@ -20,11 +20,16 @@ import { goGentAPI } from '../api/client';
 import { AlertAPI } from '../components/CustomAlert';
 import ScreenContainer from '../components/ScreenContainer';
 import LoadingScreen from '../components/LoadingScreen';
-import { containerStyles } from '../styles/containers';
+import { useContainerStyles } from '../styles/useContainerStyles';
+import { useTheme, useThemedStyles } from '../theme';
+import type { ThemeColors } from '../theme';
 
 const { width } = Dimensions.get('window');
 
 const DatabaseScreen: React.FC = () => {
+  const { colors } = useTheme();
+  const { containerStyles } = useContainerStyles();
+  const styles = useThemedStyles(createStyles);
   const { state, clearError } = useApp();
   const { user, isLoading: authLoading } = useAuth();
   const [stats, setStats] = useState<DatabaseStats | null>(null);
@@ -156,8 +161,8 @@ const DatabaseScreen: React.FC = () => {
     <View style={styles.statusContainer}>
       <View style={styles.statusRow}>
         <View style={[
-          styles.statusDot, 
-          { backgroundColor: state.isConnected ? '#34C759' : '#FF3B30' }
+          styles.statusDot,
+          { backgroundColor: state.isConnected ? colors.statusSuccess : colors.statusError }
         ]} />
         <Text style={styles.statusText}>
           {state.isConnected ? 'Connected to MySQL' : 'Disconnected'}
@@ -170,7 +175,7 @@ const DatabaseScreen: React.FC = () => {
           <Ionicons 
             name="refresh" 
             size={16} 
-            color="#007AFF" 
+            color={colors.accent} 
             style={isRefreshing ? { opacity: 0.5 } : {}} 
           />
         </TouchableOpacity>
@@ -202,42 +207,42 @@ const DatabaseScreen: React.FC = () => {
             'Execution Runs',
             stats.totalExecutionRuns.toLocaleString(),
             'play-circle',
-            '#007AFF'
+            colors.accent
           )}
-          
+
           {renderStatsCard(
             'API Requests',
             stats.totalApiRequests.toLocaleString(),
             'arrow-up-circle',
-            '#34C759'
+            colors.statusSuccess
           )}
-          
+
           {renderStatsCard(
             'API Responses',
             stats.totalApiResponses.toLocaleString(),
             'arrow-down-circle',
-            '#FF9500'
+            colors.statusWarning
           )}
-          
+
           {renderStatsCard(
             'Function Calls',
             stats.totalFunctionCalls.toLocaleString(),
             'code-working',
-            '#AF52DE'
+            colors.accentSecondary
           )}
-          
+
           {renderStatsCard(
             'Avg Response Time',
             `${stats.avgResponseTime.toFixed(0)}ms`,
             'time',
-            '#FF3B30'
+            colors.statusError
           )}
-          
+
           {renderStatsCard(
             'Success Rate',
             `${(stats.successRate * 100).toFixed(1)}%`,
             'checkmark-circle',
-            '#34C759'
+            colors.statusSuccess
           )}
         </View>
       </View>
@@ -255,10 +260,10 @@ const DatabaseScreen: React.FC = () => {
           onPress={() => loadTableData(tableName)}
         >
           <View style={styles.tableItemContent}>
-            <Ionicons name="grid" size={20} color="#007AFF" />
+            <Ionicons name="grid" size={20} color={colors.accent} />
             <Text style={styles.tableItemText}>{tableName}</Text>
           </View>
-          <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
+          <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
         </TouchableOpacity>
       ))}
 
@@ -279,7 +284,7 @@ const DatabaseScreen: React.FC = () => {
           style={styles.backButton}
           onPress={() => setViewMode('overview')}
         >
-          <Ionicons name="arrow-back" size={20} color="#007AFF" />
+          <Ionicons name="arrow-back" size={20} color={colors.accent} />
           <Text style={styles.backButtonText}>Overview</Text>
         </TouchableOpacity>
         
@@ -290,7 +295,7 @@ const DatabaseScreen: React.FC = () => {
               {(tableData.rows?.length || 0)} of {tableData.totalRows || 0} rows
             </Text>
             <TouchableOpacity style={styles.refreshButton} onPress={handleRefresh}>
-              <Ionicons name="refresh" size={18} color="#007AFF" />
+              <Ionicons name="refresh" size={18} color={colors.accent} />
             </TouchableOpacity>
           </View>
         </View>
@@ -352,7 +357,7 @@ const DatabaseScreen: React.FC = () => {
           {isLongContent ? stringValue.substring(0, maxLength) + '...' : stringValue}
         </Text>
         {isLongContent && (
-          <Ionicons name="chevron-forward" size={12} color="#C7C7CC" style={styles.expandIcon} />
+          <Ionicons name="chevron-forward" size={12} color={colors.textTertiary} style={styles.expandIcon} />
         )}
       </TouchableOpacity>
     );
@@ -428,7 +433,7 @@ const DatabaseScreen: React.FC = () => {
               onPress={() => setShowRowModal(false)}
               style={styles.modalCloseButton}
             >
-              <Ionicons name="close" size={24} color="#007AFF" />
+              <Ionicons name="close" size={24} color={colors.accent} />
             </TouchableOpacity>
           </View>
           
@@ -462,7 +467,7 @@ const DatabaseScreen: React.FC = () => {
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="server-outline" size={64} color="#C7C7CC" />
+      <Ionicons name="server-outline" size={64} color={colors.textTertiary} />
       <Text style={styles.emptyTitle}>Database Not Available</Text>
       <Text style={styles.emptySubtitle}>
         {!state.isConnected 
@@ -475,7 +480,7 @@ const DatabaseScreen: React.FC = () => {
 
   const renderLoadingState = () => (
     <View style={styles.loadingContainer}>
-      <ActivityIndicator size="large" color="#007AFF" />
+      <ActivityIndicator size="large" color={colors.accent} />
       <Text style={styles.loadingText}>Loading database information...</Text>
     </View>
   );
@@ -511,7 +516,7 @@ const DatabaseScreen: React.FC = () => {
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={handleRefresh}
-              tintColor="#007AFF"
+              tintColor={colors.accent}
             />
           }
           showsVerticalScrollIndicator={false}
@@ -528,16 +533,21 @@ const DatabaseScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => ({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.bgApp,
   },
   scrollContainer: {
     flex: 1,
   },
   statusContainer: {
-    ...containerStyles.statusContainer,
+    backgroundColor: colors.bgCard,
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
   },
   statusRow: {
     flexDirection: 'row',
@@ -551,26 +561,30 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 14,
-    color: '#000000',
+    color: colors.textPrimary,
     flex: 1,
   },
   refreshButton: {
     padding: 4,
   },
   section: {
-    ...containerStyles.primaryContainer,
+    backgroundColor: colors.bgCard,
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.textPrimary,
     marginBottom: 16,
   },
   statsGrid: {
     gap: 12,
   },
   statsCard: {
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.bgApp,
     borderRadius: 8,
     padding: 16,
     borderLeftWidth: 4,
@@ -586,11 +600,11 @@ const styles = StyleSheet.create({
   statsValue: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.textPrimary,
   },
   statsLabel: {
     fontSize: 12,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   tableItem: {
@@ -599,7 +613,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.bgApp,
     borderRadius: 8,
     marginBottom: 8,
   },
@@ -611,7 +625,7 @@ const styles = StyleSheet.create({
   tableItemText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#000000',
+    color: colors.textPrimary,
     marginLeft: 8,
   },
   emptyState: {
@@ -620,7 +634,7 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   emptyContainer: {
@@ -632,12 +646,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#8E8E93',
+    color: colors.textSecondary,
     marginTop: 16,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#C7C7CC',
+    color: colors.textTertiary,
     textAlign: 'center',
     marginTop: 8,
     lineHeight: 20,
@@ -650,12 +664,12 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#8E8E93',
+    color: colors.textSecondary,
     marginTop: 16,
   },
   tableContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     margin: 16,
     borderRadius: 12,
   },
@@ -664,7 +678,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+    borderBottomColor: colors.borderLight,
   },
   backButton: {
     flexDirection: 'row',
@@ -673,7 +687,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
-    color: '#007AFF',
+    color: colors.accent,
     marginLeft: 4,
   },
   tableInfo: {
@@ -684,11 +698,11 @@ const styles = StyleSheet.create({
   tableName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.textPrimary,
   },
   rowCount: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: colors.textSecondary,
   },
   tableScrollView: {
     flex: 1,
@@ -700,36 +714,36 @@ const styles = StyleSheet.create({
   tableRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+    borderBottomColor: colors.borderLight,
   },
   evenRow: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
   },
   oddRow: {
-    backgroundColor: '#F9F9F9',
+    backgroundColor: colors.bgSurface,
   },
   tableHeaderCell: {
-    width: 150, // Default width, will be overridden by getColumnWidth
+    width: 150,
     padding: 12,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.bgApp,
     borderRightWidth: 1,
-    borderRightColor: '#E5E5EA',
+    borderRightColor: colors.borderLight,
     justifyContent: 'center',
   },
   tableHeaderText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#000000',
-    textTransform: 'uppercase',
-    textAlign: 'center',
+    color: colors.textPrimary,
+    textTransform: 'uppercase' as const,
+    textAlign: 'center' as const,
   },
   tableCell: {
-    width: 150, // Default width, will be overridden by getColumnWidth
+    width: 150,
     padding: 8,
     borderRightWidth: 1,
-    borderRightColor: '#E5E5EA',
+    borderRightColor: colors.borderLight,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center' as const,
   },
   cellTouchable: {
     flexDirection: 'row',
@@ -740,8 +754,8 @@ const styles = StyleSheet.create({
   },
   cellValue: {
     fontSize: 12,
-    color: '#000000',
-    textAlign: 'center',
+    color: colors.textPrimary,
+    textAlign: 'center' as const,
     flex: 1,
   },
   expandIcon: {
@@ -749,17 +763,17 @@ const styles = StyleSheet.create({
   },
   nullValue: {
     fontSize: 12,
-    color: '#C7C7CC',
-    fontStyle: 'italic',
+    color: colors.textTertiary,
+    fontStyle: 'italic' as const,
   },
   booleanValue: {
     fontSize: 12,
-    color: '#007AFF',
+    color: colors.accent,
     fontWeight: '500',
   },
   numberValue: {
     fontSize: 12,
-    color: '#000000',
+    color: colors.textPrimary,
     fontFamily: 'monospace',
   },
   emptyTableState: {
@@ -768,7 +782,7 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgCard,
     padding: 20,
   },
   modalHeader: {
@@ -780,7 +794,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.textPrimary,
   },
   modalCloseButton: {
     padding: 8,
@@ -794,13 +808,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+    borderBottomColor: colors.borderLight,
   },
   modalColumnName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#000000',
-    textTransform: 'uppercase',
+    color: colors.textPrimary,
+    textTransform: 'uppercase' as const,
   },
   modalValueContainer: {
     flex: 1,
@@ -808,21 +822,21 @@ const styles = StyleSheet.create({
   },
   modalValue: {
     fontSize: 14,
-    color: '#000000',
+    color: colors.textPrimary,
   },
   modalNullValue: {
     fontSize: 14,
-    color: '#C7C7CC',
-    fontStyle: 'italic',
+    color: colors.textTertiary,
+    fontStyle: 'italic' as const,
   },
   modalBooleanValue: {
     fontSize: 14,
-    color: '#007AFF',
+    color: colors.accent,
     fontWeight: '500',
   },
   modalNumberValue: {
     fontSize: 14,
-    color: '#000000',
+    color: colors.textPrimary,
     fontFamily: 'monospace',
   },
 });
