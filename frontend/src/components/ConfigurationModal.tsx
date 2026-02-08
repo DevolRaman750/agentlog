@@ -100,7 +100,7 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
       fontSize: 14,
       fontWeight: '600' as const,
       color: colors.accent,
-      backgroundColor: '#F0F8FF',
+      backgroundColor: colors.accentSoft,
       paddingHorizontal: 8,
       paddingVertical: 4,
       borderRadius: 12,
@@ -190,7 +190,7 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
     },
     configCardSelected: {
       borderColor: colors.accent,
-      backgroundColor: '#F8FBFF',
+      backgroundColor: colors.accentSoft,
     },
     configHeader: {
       flexDirection: 'row' as const,
@@ -216,7 +216,7 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
       color: colors.textSecondary,
     },
     configModelSelected: {
-      color: '#0056CC',
+      color: colors.accent,
     },
     checkbox: {
       width: 24,
@@ -239,7 +239,7 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
       marginBottom: 8,
     },
     configPromptSelected: {
-      color: '#0056CC',
+      color: colors.accent,
     },
     configMeta: {
       flexDirection: 'row' as const,

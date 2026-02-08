@@ -95,7 +95,7 @@ const OtherOptionsModal: React.FC<OtherOptionsModalProps> = ({
       fontSize: 14,
       fontWeight: '600' as const,
       color: colors.statusWarning,
-      backgroundColor: '#FFF8F0',
+      backgroundColor: `${colors.statusWarning}15`,
       paddingHorizontal: 8,
       paddingVertical: 4,
       borderRadius: 12,
@@ -114,10 +114,10 @@ const OtherOptionsModal: React.FC<OtherOptionsModalProps> = ({
       alignItems: 'center' as const,
       paddingHorizontal: 16,
       paddingVertical: 8,
-      backgroundColor: '#FFF5F5',
+      backgroundColor: `${colors.statusError}15`,
       borderRadius: 6,
       borderWidth: 1,
-      borderColor: '#FFD7D7',
+      borderColor: `${colors.statusError}40`,
       gap: 6,
     },
     clearButtonText: {
@@ -177,12 +177,12 @@ const OtherOptionsModal: React.FC<OtherOptionsModalProps> = ({
       marginTop: 4,
     },
     tipsContainer: {
-      backgroundColor: '#FFF8F0',
+      backgroundColor: `${colors.statusWarning}15`,
       borderRadius: 12,
       padding: 16,
       marginTop: 8,
       borderWidth: 1,
-      borderColor: '#FFE4B5',
+      borderColor: `${colors.statusWarning}40`,
     },
     tipsHeader: {
       flexDirection: 'row' as const,
@@ -212,7 +212,7 @@ const OtherOptionsModal: React.FC<OtherOptionsModalProps> = ({
     tipText: {
       flex: 1,
       fontSize: 14,
-      color: '#B8860B',
+      color: colors.statusWarning,
       lineHeight: 20,
     },
   }));

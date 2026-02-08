@@ -400,7 +400,7 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      backgroundColor: '#FFE0E0',
+      backgroundColor: `${colors.statusError}15`,
       borderRadius: 8,
       paddingVertical: 10,
       marginTop: 12,
@@ -615,12 +615,12 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
 
   const getCategoryColor = (category: LogCategory): string => {
     switch (category) {
-      case 'FUNCTION_CALL': return '#FF6B6B';
-      case 'API_CALL': return '#4ECDC4';
-      case 'SETUP': return '#45B7D1';
-      case 'EXECUTION': return '#F9A825';
-      case 'COMPLETION': return '#66BB6A';
-      case 'ERROR': return '#EF5350';
+      case 'FUNCTION_CALL': return colors.statusError;
+      case 'API_CALL': return colors.accent;
+      case 'SETUP': return colors.accentSecondary;
+      case 'EXECUTION': return colors.statusWarning;
+      case 'COMPLETION': return colors.statusSuccess;
+      case 'ERROR': return colors.statusError;
       default: return colors.textSecondary;
     }
   };

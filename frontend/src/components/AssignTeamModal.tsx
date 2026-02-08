@@ -77,7 +77,7 @@ const AssignTeamModal: React.FC<AssignTeamModalProps> = ({
     },
     agentSubtitle: {
       fontSize: 14,
-      color: '#6B6B6B',
+      color: colors.textSecondary,
       marginTop: 4,
     },
     currentTeamSection: {
@@ -158,7 +158,7 @@ const AssignTeamModal: React.FC<AssignTeamModalProps> = ({
     },
     loadingText: {
       fontSize: 16,
-      color: '#6B6B6B',
+      color: colors.textSecondary,
       marginTop: 12,
     },
     emptyContainer: {
@@ -177,7 +177,7 @@ const AssignTeamModal: React.FC<AssignTeamModalProps> = ({
     },
     emptySubtitle: {
       fontSize: 14,
-      color: '#6B6B6B',
+      color: colors.textSecondary,
       textAlign: 'center' as const,
       marginTop: 8,
       lineHeight: 20,
@@ -232,7 +232,7 @@ const AssignTeamModal: React.FC<AssignTeamModalProps> = ({
     },
     teamDescription: {
       fontSize: 14,
-      color: '#6B6B6B',
+      color: colors.textSecondary,
       marginTop: 2,
       lineHeight: 18,
     },
@@ -247,7 +247,7 @@ const AssignTeamModal: React.FC<AssignTeamModalProps> = ({
     },
     statText: {
       fontSize: 12,
-      color: '#6B6B6B',
+      color: colors.textSecondary,
       marginLeft: 4,
     },
     currentBadge: {

@@ -97,7 +97,7 @@ const FunctionsModal: React.FC<FunctionsModalProps> = ({
       fontSize: 14,
       fontWeight: '600' as const,
       color: colors.statusSuccess,
-      backgroundColor: '#F0FDF4',
+      backgroundColor: `${colors.statusSuccess}15`,
       paddingHorizontal: 8,
       paddingVertical: 4,
       borderRadius: 12,
@@ -221,7 +221,7 @@ const FunctionsModal: React.FC<FunctionsModalProps> = ({
     },
     functionCardSelected: {
       borderColor: colors.statusSuccess,
-      backgroundColor: '#F8FFF9',
+      backgroundColor: `${colors.statusSuccess}10`,
     },
     functionHeader: {
       flexDirection: 'row' as const,
@@ -252,8 +252,8 @@ const FunctionsModal: React.FC<FunctionsModalProps> = ({
       alignSelf: 'flex-start' as const,
     },
     functionCategorySelected: {
-      color: '#2D7D32',
-      backgroundColor: '#E8F5E8',
+      color: colors.statusSuccess,
+      backgroundColor: `${colors.statusSuccess}15`,
     },
     checkbox: {
       width: 20,
@@ -276,7 +276,7 @@ const FunctionsModal: React.FC<FunctionsModalProps> = ({
       marginBottom: 8,
     },
     functionDescriptionSelected: {
-      color: '#2D7D32',
+      color: colors.statusSuccess,
     },
     functionMeta: {
       flexDirection: 'row' as const,

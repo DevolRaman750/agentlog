@@ -68,7 +68,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
     systemBadge: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      backgroundColor: '#E8F4FD',
+      backgroundColor: colors.accentSoft,
       borderRadius: 4,
       paddingHorizontal: 6,
       paddingVertical: 2,
@@ -115,7 +115,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
       marginTop: 8,
     },
     tag: {
-      backgroundColor: '#E8F4FD',
+      backgroundColor: colors.accentSoft,
       borderRadius: 12,
       paddingHorizontal: 8,
       paddingVertical: 4,

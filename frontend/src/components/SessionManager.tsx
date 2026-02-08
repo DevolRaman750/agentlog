@@ -151,7 +151,7 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
       gap: 12,
     },
     loginButton: {
-      backgroundColor: '#F0F8FF',
+      backgroundColor: colors.accentSoft,
       borderWidth: 1,
       borderColor: colors.accent,
     },
@@ -161,17 +161,17 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
       color: colors.accent,
     },
     logoutButton: {
-      backgroundColor: '#FFF8F0',
+      backgroundColor: `${colors.statusWarning}15`,
       borderWidth: 1,
-      borderColor: '#FF9500',
+      borderColor: colors.statusWarning,
     },
     logoutButtonText: {
       fontSize: 14,
       fontWeight: '500' as const,
-      color: '#FF9500',
+      color: colors.statusWarning,
     },
     exportButton: {
-      backgroundColor: '#F0F8FF',
+      backgroundColor: colors.accentSoft,
       borderWidth: 1,
       borderColor: colors.accent,
     },
@@ -181,7 +181,7 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
       color: colors.accent,
     },
     clearButton: {
-      backgroundColor: '#FFF0F0',
+      backgroundColor: `${colors.statusError}15`,
       borderWidth: 1,
       borderColor: colors.statusError,
     },
@@ -191,7 +191,7 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
       color: colors.statusError,
     },
     cleanupButton: {
-      backgroundColor: '#FFF0F0',
+      backgroundColor: `${colors.statusError}15`,
       borderWidth: 1,
       borderColor: colors.statusError,
     },
@@ -513,7 +513,7 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
     if (user.is_temporary) {
       return {
         icon: 'time-outline' as any,
-        color: '#FF9500',
+        color: colors.statusWarning,
         title: 'Temporary User',
         subtitle: `${user.username} (unsaved session)`,
       };

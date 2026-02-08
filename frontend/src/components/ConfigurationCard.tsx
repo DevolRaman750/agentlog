@@ -35,10 +35,10 @@ const ConfigurationCard: React.FC<ConfigurationCardProps> = ({
     systemContainer: {
       borderColor: colors.accent,
       borderWidth: 1.5,
-      backgroundColor: '#F8F9FE',
+      backgroundColor: colors.bgSurface,
     },
     systemBadge: {
-      backgroundColor: '#E3F2FD',
+      backgroundColor: colors.accentSoft,
       paddingHorizontal: 8,
       paddingVertical: 4,
       flexDirection: 'row' as const,
@@ -145,15 +145,15 @@ const ConfigurationCard: React.FC<ConfigurationCardProps> = ({
       lineHeight: 18,
     },
     systemInfo: {
-      backgroundColor: '#E3F2FD',
+      backgroundColor: colors.accentSoft,
       paddingHorizontal: 12,
       paddingVertical: 8,
       borderTopWidth: 1,
-      borderTopColor: '#B3D9FF',
+      borderTopColor: `${colors.accent}40`,
     },
     systemInfoText: {
       fontSize: 11,
-      color: '#1976D2',
+      color: colors.accent,
       textAlign: 'center' as const,
       lineHeight: 14,
     },
@@ -212,7 +212,7 @@ const ConfigurationCard: React.FC<ConfigurationCardProps> = ({
   const getTemperatureColor = (temperature?: number) => {
     if (!temperature) return colors.textSecondary;
     if (temperature <= 0.3) return colors.statusSuccess; // Green for conservative
-    if (temperature <= 0.7) return '#FF9500'; // Orange for balanced
+    if (temperature <= 0.7) return colors.statusWarning; // Orange for balanced
     return colors.statusError; // Red for creative
   };
 

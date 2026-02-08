@@ -107,10 +107,10 @@ const createStyles = (colors: ThemeColors) => ({
     alignItems: 'center' as const,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: '#FFF5F5',
+    backgroundColor: `${colors.statusError}10`,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#FFE4E1',
+    borderColor: `${colors.statusError}20`,
     gap: 4,
   },
   cancelButtonText: {
@@ -153,9 +153,9 @@ const createStyles = (colors: ThemeColors) => ({
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     padding: 12,
-    backgroundColor: '#FFF5F5',
+    backgroundColor: `${colors.statusError}10`,
     borderBottomWidth: 1,
-    borderBottomColor: '#FFE4E1',
+    borderBottomColor: `${colors.statusError}20`,
     gap: 8,
   },
   errorText: {
@@ -1132,7 +1132,7 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
               <View style={styles.simulatedEventHeader}>
                 <View style={[
                   styles.simulatedEventStatus,
-                  { backgroundColor: '#34C759' }
+                  { backgroundColor: colors.statusSuccess }
                 ]}>
                   <Text style={styles.simulatedEventIcon}>🚀</Text>
                 </View>
@@ -1149,7 +1149,7 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
               <View style={styles.simulatedEventHeader}>
                 <View style={[
                   styles.simulatedEventStatus,
-                  { backgroundColor: progress < maxProgress ? '#FF9500' : '#34C759' }
+                  { backgroundColor: progress < maxProgress ? colors.statusWarning : colors.statusSuccess }
                 ]}>
                   <Text style={styles.simulatedEventIcon}>🤖</Text>
                 </View>
@@ -1173,7 +1173,7 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
                 <View style={styles.simulatedEventHeader}>
                   <View style={[
                     styles.simulatedEventStatus,
-                    { backgroundColor: progress >= maxProgress ? '#34C759' : '#FF9500' }
+                    { backgroundColor: progress >= maxProgress ? colors.statusSuccess : colors.statusWarning }
                   ]}>
                     <Text style={styles.simulatedEventIcon}>✅</Text>
                   </View>

@@ -545,19 +545,19 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
       case 'STANDBY':
         return {
           description: 'Testing mode - Logs actions but doesn\'t execute them',
-          color: '#ffc107',
+          color: colors.statusWarning,
           icon: 'pause-circle'
         };
       case 'ACTIVE':
         return {
           description: 'Fully operational - Executes tasks according to schedule',
-          color: '#28a745',
+          color: colors.statusSuccess,
           icon: 'play-circle'
         };
       case 'PAUSED':
         return {
           description: 'Temporarily stopped - Can be resumed anytime',
-          color: '#6c757d',
+          color: colors.textSecondary,
           icon: 'stop-circle'
         };
       case 'KILLED':
@@ -567,7 +567,7 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
           icon: 'close-circle'
         };
       default:
-        return { description: '', color: '#6c757d', icon: 'help-circle' };
+        return { description: '', color: colors.textSecondary, icon: 'help-circle' };
     }
   };
 

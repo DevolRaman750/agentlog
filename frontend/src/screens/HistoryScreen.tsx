@@ -76,7 +76,7 @@ const HistoryScreen: React.FC = () => {
       color: colors.accent,
     },
     anonymousBadge: {
-      backgroundColor: '#FFF3E0',
+      backgroundColor: `${colors.statusWarning}15`,
     },
     anonymousText: {
       color: colors.statusWarning,
@@ -252,9 +252,9 @@ const HistoryScreen: React.FC = () => {
       color: colors.textSecondary,
     },
     bestConfigPreviewItem: {
-      borderColor: '#FFD700',
+      borderColor: colors.statusWarning,
       borderWidth: 2,
-      backgroundColor: '#FFF8DC',
+      backgroundColor: `${colors.statusWarning}15`,
     },
     configHeaderRow: {
       flexDirection: 'row' as const,
@@ -265,7 +265,7 @@ const HistoryScreen: React.FC = () => {
     bestConfigBadgeSmall: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      backgroundColor: '#FFD700',
+      backgroundColor: colors.statusWarning,
       borderRadius: 8,
       paddingHorizontal: 4,
       paddingVertical: 2,
@@ -289,7 +289,7 @@ const HistoryScreen: React.FC = () => {
     },
     bestConfigIndicator: {
       fontSize: 8,
-      color: '#B8860B',
+      color: colors.statusWarning,
       fontWeight: '600' as const,
     },
     bestConfigSummary: {
@@ -440,9 +440,9 @@ const HistoryScreen: React.FC = () => {
       borderColor: colors.borderSubtle,
     },
     bestResultCard: {
-      borderColor: '#FFD700',
+      borderColor: colors.statusWarning,
       borderWidth: 2,
-      backgroundColor: '#FFFEF7',
+      backgroundColor: `${colors.statusWarning}10`,
     },
     resultHeader: {
       flexDirection: 'row' as const,
@@ -456,12 +456,12 @@ const HistoryScreen: React.FC = () => {
       color: colors.textPrimary,
     },
     bestConfigName: {
-      color: '#B8860B',
+      color: colors.statusWarning,
     },
     bestBadge: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      backgroundColor: '#FFD700',
+      backgroundColor: colors.statusWarning,
       borderRadius: 6,
       paddingHorizontal: 8,
       paddingVertical: 4,
@@ -470,7 +470,7 @@ const HistoryScreen: React.FC = () => {
     bestBadgeText: {
       fontSize: 10,
       fontWeight: '700' as const,
-      color: '#B8860B',
+      color: colors.textInverse,
     },
     resultDetails: {
       fontSize: 14,
@@ -496,7 +496,7 @@ const HistoryScreen: React.FC = () => {
       color: colors.textPrimary,
     },
     errorContainer: {
-      backgroundColor: '#FFEBEE',
+      backgroundColor: `${colors.statusError}15`,
       borderRadius: 8,
       padding: 12,
       borderLeftWidth: 3,
@@ -505,13 +505,13 @@ const HistoryScreen: React.FC = () => {
     errorLabel: {
       fontSize: 14,
       fontWeight: '600' as const,
-      color: '#D32F2F',
+      color: colors.statusError,
       marginBottom: 8,
     },
     errorText: {
       fontSize: 15,
       lineHeight: 22,
-      color: '#D32F2F',
+      color: colors.statusError,
     },
     showLogsButton: {
       flexDirection: 'row' as const,
@@ -1049,7 +1049,7 @@ const HistoryScreen: React.FC = () => {
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="time-outline" size={64} color="#C7C7CC" />
+      <Ionicons name="time-outline" size={64} color={colors.textTertiary} />
       <Text style={styles.emptyTitle}>No Execution History</Text>
       <Text style={styles.emptySubtitle}>
         {!state.isConnected
@@ -1228,7 +1228,7 @@ const HistoryScreen: React.FC = () => {
                         </Text>
                         {isBestConfig && (
                           <View style={styles.bestConfigBadgeSmall}>
-                            <Ionicons name="trophy" size={12} color="#FFD700" />
+                            <Ionicons name="trophy" size={12} color={colors.textInverse} />
                             <Text style={styles.bestConfigBadgeText}>BEST</Text>
                           </View>
                         )}
@@ -1275,7 +1275,7 @@ const HistoryScreen: React.FC = () => {
                       styles.resultStatus,
                       {
                         backgroundColor: result.response.responseStatus === 'success'
-                          ? (isBestConfig ? '#FFD700' : styles.responseContainer.borderLeftColor)
+                          ? (isBestConfig ? colors.statusWarning : styles.responseContainer.borderLeftColor)
                           : styles.errorContainer.borderLeftColor
                       }
                     ]}>
@@ -1285,7 +1285,7 @@ const HistoryScreen: React.FC = () => {
                           (result.response.responseStatus === 'success' ? 'checkmark' : 'close')
                         }
                         size={12}
-                        color="#FFFFFF"
+                        color={colors.textInverse}
                       />
                     </View>
                   </View>

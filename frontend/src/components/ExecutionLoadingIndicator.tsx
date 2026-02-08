@@ -103,10 +103,10 @@ const ExecutionLoadingIndicator: React.FC<ExecutionLoadingIndicatorProps> = ({
       marginTop: 20,
       paddingVertical: 10,
       paddingHorizontal: 16,
-      backgroundColor: '#FFF5F5',
+      backgroundColor: `${colors.statusError}10`,
       borderRadius: 8,
       borderWidth: 1,
-      borderColor: '#FFE4E1',
+      borderColor: `${colors.statusError}20`,
       gap: 8,
     },
     cancelButtonText: {

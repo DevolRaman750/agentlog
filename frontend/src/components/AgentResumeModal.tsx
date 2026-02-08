@@ -122,7 +122,7 @@ const AgentResumeModal: React.FC<AgentResumeModalProps> = ({
     },
     availability: {
       fontSize: 14,
-      color: '#6B6B6B',
+      color: colors.textSecondary,
       fontWeight: '500' as const,
     },
     apiRequirementsSection: {
@@ -145,7 +145,7 @@ const AgentResumeModal: React.FC<AgentResumeModalProps> = ({
     apiRequirementTag: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      backgroundColor: '#E3F2FD',
+      backgroundColor: colors.accentSoft,
       paddingHorizontal: 12,
       paddingVertical: 6,
       borderRadius: 16,
@@ -153,7 +153,7 @@ const AgentResumeModal: React.FC<AgentResumeModalProps> = ({
     },
     apiRequirementText: {
       fontSize: 14,
-      color: '#1976D2',
+      color: colors.accent,
       fontWeight: '500' as const,
     },
     modelConfigSection: {
@@ -178,7 +178,7 @@ const AgentResumeModal: React.FC<AgentResumeModalProps> = ({
     },
     modelConfigLabel: {
       fontSize: 14,
-      color: '#6B6B6B',
+      color: colors.textSecondary,
       fontWeight: '500' as const,
     },
     modelConfigValue: {
@@ -199,7 +199,7 @@ const AgentResumeModal: React.FC<AgentResumeModalProps> = ({
     },
     description: {
       fontSize: 16,
-      color: '#6B6B6B',
+      color: colors.textSecondary,
       lineHeight: 24,
     },
     highlight: {
@@ -245,7 +245,7 @@ const AgentResumeModal: React.FC<AgentResumeModalProps> = ({
     },
     capabilityCount: {
       fontSize: 12,
-      color: '#6B6B6B',
+      color: colors.textSecondary,
     },
     specialtiesContainer: {
       flexDirection: 'row' as const,
@@ -253,14 +253,14 @@ const AgentResumeModal: React.FC<AgentResumeModalProps> = ({
       gap: 8,
     },
     specialtyTag: {
-      backgroundColor: '#E3F2FD',
+      backgroundColor: colors.accentSoft,
       paddingHorizontal: 12,
       paddingVertical: 6,
       borderRadius: 16,
     },
     specialtyText: {
       fontSize: 14,
-      color: '#1976D2',
+      color: colors.accent,
       fontWeight: '500' as const,
     },
     toolsContainer: {
@@ -299,7 +299,7 @@ const AgentResumeModal: React.FC<AgentResumeModalProps> = ({
     },
     statLabel: {
       fontSize: 12,
-      color: '#6B6B6B',
+      color: colors.textSecondary,
       textAlign: 'center' as const,
     },
     templateCard: {
@@ -324,11 +324,11 @@ const AgentResumeModal: React.FC<AgentResumeModalProps> = ({
     },
     templateCategory: {
       fontSize: 14,
-      color: '#6B6B6B',
+      color: colors.textSecondary,
     },
     templateDescription: {
       fontSize: 14,
-      color: '#6B6B6B',
+      color: colors.textSecondary,
       lineHeight: 20,
     },
     actionContainer: {
@@ -614,7 +614,7 @@ const AgentResumeModal: React.FC<AgentResumeModalProps> = ({
           <Text style={styles.sectionTitle}>Execution Template</Text>
           <View style={styles.templateCard}>
             <View style={styles.templateHeader}>
-              <Ionicons name="document-text" size={24} color="#AF52DE" />
+              <Ionicons name="document-text" size={24} color={colors.accent} />
               <View style={styles.templateInfo}>
                 <Text style={styles.templateName}>{agent.templateName}</Text>
                 <Text style={styles.templateCategory}>{agent.category}</Text>

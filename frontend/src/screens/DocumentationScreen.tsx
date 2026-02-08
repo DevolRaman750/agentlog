@@ -674,7 +674,7 @@ const DocumentationScreen: React.FC = () => {
     practiceItem: {
       flexDirection: 'row' as const,
       alignItems: 'flex-start' as const,
-      backgroundColor: '#FFF9E6',
+      backgroundColor: `${colors.statusWarning}15`,
       padding: 16,
       borderRadius: 12,
       borderLeftWidth: 4,
@@ -706,7 +706,7 @@ const DocumentationScreen: React.FC = () => {
       marginTop: 16,
     },
     troubleshootingItem: {
-      backgroundColor: '#FFF5F5',
+      backgroundColor: `${colors.statusError}15`,
       padding: 16,
       borderRadius: 12,
       borderLeftWidth: 4,
@@ -762,7 +762,7 @@ const DocumentationScreen: React.FC = () => {
       width: 40,
       height: 40,
       borderRadius: 20,
-      backgroundColor: '#30D158',
+      backgroundColor: colors.statusSuccess,
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
       marginRight: 16,
@@ -795,7 +795,7 @@ const DocumentationScreen: React.FC = () => {
     },
     quickStartTime: {
       fontSize: 12,
-      color: '#30D158',
+      color: colors.statusSuccess,
       fontWeight: '600' as const,
       marginBottom: 12,
     },

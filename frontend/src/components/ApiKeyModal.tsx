@@ -374,7 +374,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
     },
     environmentCardSelected: {
       borderColor: colors.statusSuccess,
-      backgroundColor: '#F0FFF4',
+      backgroundColor: `${colors.statusSuccess}15`,
     },
     environmentText: {
       fontSize: 12,

@@ -107,12 +107,12 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
       color: colors.textInverse,
     },
     toolbarButtonDisabledText: {
-      color: '#C7C7CC',
+      color: colors.textTertiary,
     },
     clearButton: {
-      backgroundColor: '#FFF0F0',
+      backgroundColor: `${colors.statusError}10`,
       borderWidth: 1,
-      borderColor: '#FFB3B3',
+      borderColor: `${colors.statusError}40`,
     },
     editorContent: {
       position: 'relative' as const,
@@ -152,9 +152,9 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
       alignItems: 'center' as const,
       gap: 8,
       padding: 12,
-      backgroundColor: '#FFF5F5',
+      backgroundColor: `${colors.statusError}15`,
       borderTopWidth: 1,
-      borderTopColor: '#FED7D7',
+      borderTopColor: `${colors.statusError}30`,
     },
     errorText: {
       fontSize: 12,
@@ -260,10 +260,10 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
             onPress={formatJson}
             disabled={!isValid}
           >
-            <Ionicons 
+            <Ionicons
               name={isFormatted ? "checkmark" : "code-outline"}
               size={16}
-              color={isFormatted ? colors.textInverse : (isValid ? colors.accent : "#C7C7CC")}
+              color={isFormatted ? colors.textInverse : (isValid ? colors.accent : colors.textTertiary)}
             />
             <Text style={[
               styles.toolbarButtonText, 
@@ -279,10 +279,10 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
             onPress={minifyJson}
             disabled={!isValid}
           >
-            <Ionicons 
-              name="contract-outline" 
-              size={16} 
-              color={isValid ? colors.accent : "#C7C7CC"}
+            <Ionicons
+              name="contract-outline"
+              size={16}
+              color={isValid ? colors.accent : colors.textTertiary}
             />
             <Text style={[
               styles.toolbarButtonText,
@@ -330,7 +330,7 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
             value={value}
             onChangeText={onChangeText}
             placeholder={placeholder}
-            placeholderTextColor="#C7C7CC"
+            placeholderTextColor={colors.textTertiary}
             multiline
             textAlignVertical="top"
             scrollEnabled={true}

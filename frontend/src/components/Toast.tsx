@@ -140,10 +140,10 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onDismiss }) => {
 
   const getColors = () => {
     switch (toast.type) {
-      case 'success': return { bg: colors.accentSoft, border: colors.statusSuccess, icon: colors.statusSuccess, text: colors.accent };
-      case 'error': return { bg: '#FEE2E2', border: colors.statusError, icon: colors.statusError, text: colors.statusError };
-      case 'warning': return { bg: '#FEF3C7', border: '#F59E0B', icon: '#D97706', text: '#78350F' };
-      case 'info': return { bg: '#DBEAFE', border: colors.statusInfo, icon: colors.statusInfo, text: '#1E3A8A' };
+      case 'success': return { bg: `${colors.statusSuccess}15`, border: colors.statusSuccess, icon: colors.statusSuccess, text: colors.statusSuccess };
+      case 'error': return { bg: `${colors.statusError}15`, border: colors.statusError, icon: colors.statusError, text: colors.statusError };
+      case 'warning': return { bg: `${colors.statusWarning}15`, border: colors.statusWarning, icon: colors.statusWarning, text: colors.statusWarning };
+      case 'info': return { bg: colors.accentSoft, border: colors.accent, icon: colors.accent, text: colors.accent };
       default: return { bg: colors.bgSurface, border: colors.textSecondary, icon: colors.textPrimary, text: colors.textPrimary };
     }
   };

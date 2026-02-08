@@ -273,7 +273,7 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({
     errorText: {
       fontSize: 16,
       fontWeight: '500' as const,
-      color: '#FF6B35',
+      color: colors.statusError,
       marginTop: 12,
       marginBottom: 4,
       textAlign: 'center' as const,
@@ -745,13 +745,13 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({
               </View>
 
               <View style={styles.statCard}>
-                <Ionicons name="speedometer" size={24} color="#6f42c1" />
+                <Ionicons name="speedometer" size={24} color={colors.accent} />
                 <Text style={styles.statValue}>{agentStats.averageExecutionTime.toFixed(1)}s</Text>
                 <Text style={styles.statLabel}>Avg Duration</Text>
               </View>
 
               <View style={styles.statCard}>
-                <Ionicons name="trending-up" size={24} color="#17a2b8" />
+                <Ionicons name="trending-up" size={24} color={colors.accent} />
                 <Text style={styles.statValue}>
                   {agentStats.totalExecutions > 0
                     ? Math.round((agentStats.completedExecutions / agentStats.totalExecutions) * 100)
@@ -846,7 +846,7 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({
             </View>
           ) : loadError ? (
             <View style={styles.errorContainer}>
-              <Ionicons name="warning-outline" size={24} color="#FF6B35" />
+              <Ionicons name="warning-outline" size={24} color={colors.statusError} />
               <Text style={styles.errorText}>Failed to load executions</Text>
               <Text style={styles.errorSubtext}>{loadError}</Text>
               <TouchableOpacity

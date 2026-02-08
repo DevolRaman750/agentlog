@@ -140,7 +140,7 @@ const useCreateAgentStyles = (colors: ReturnType<typeof useTheme>['colors']) => 
   marketplaceCard: {
     margin: 16,
     marginBottom: 8,
-    backgroundColor: '#F0F8FF',
+    backgroundColor: colors.accentSoft,
     borderWidth: 1,
     borderColor: colors.accent,
   },
@@ -175,7 +175,7 @@ const useCreateAgentStyles = (colors: ReturnType<typeof useTheme>['colors']) => 
   },
   marketplaceDescription: {
     fontSize: 14,
-    color: '#6B6B6B',
+    color: colors.textSecondary,
     lineHeight: 20,
     marginBottom: 16,
   },
@@ -196,7 +196,7 @@ const useCreateAgentStyles = (colors: ReturnType<typeof useTheme>['colors']) => 
   apiKeyChip: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    backgroundColor: '#E3F2FD',
+    backgroundColor: colors.accentSoft,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -204,7 +204,7 @@ const useCreateAgentStyles = (colors: ReturnType<typeof useTheme>['colors']) => 
   },
   apiKeyText: {
     fontSize: 12,
-    color: '#1976D2',
+    color: colors.accent,
     fontWeight: '500' as const,
   },
   modelSection: {
@@ -218,7 +218,7 @@ const useCreateAgentStyles = (colors: ReturnType<typeof useTheme>['colors']) => 
   },
   modelText: {
     fontSize: 14,
-    color: '#6B6B6B',
+    color: colors.textSecondary,
     fontWeight: '500' as const,
   },
   characterPreview: {
@@ -550,7 +550,7 @@ const useCreateAgentStyles = (colors: ReturnType<typeof useTheme>['colors']) => 
     opacity: 0.9,
   },
   recommendedBadge: {
-    backgroundColor: '#FF9500',
+    backgroundColor: colors.statusWarning,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -708,7 +708,7 @@ const CreateAgentForm: React.FC<CreateAgentFormProps> = ({ onSuccess, onCancel, 
         return {
           title: 'Standby Mode',
           description: 'Agent will log actions but not execute them. Perfect for testing and validation.',
-          color: '#FF9500',
+          color: colors.statusWarning,
           icon: 'pause-circle' as const,
           details: 'In standby mode, your agent will go through all the motions of executing tasks but won\'t actually perform any actions. You\'ll see all logs and can verify the agent is working correctly before going live.'
         };
@@ -846,7 +846,7 @@ const CreateAgentForm: React.FC<CreateAgentFormProps> = ({ onSuccess, onCancel, 
       {/* Introduction Card */}
       <View style={[containerStyles.primaryContainer, styles.introCard]}>
         <View style={styles.introHeader}>
-          <Ionicons name="bulb-outline" size={20} color="#FF9500" />
+          <Ionicons name="bulb-outline" size={20} color={colors.statusWarning} />
           <Text style={styles.introTitle}>
             {prefilledData?.marketplaceAgent ? 'Customize Your Agent' : 'Creating Your AI Agent'}
           </Text>

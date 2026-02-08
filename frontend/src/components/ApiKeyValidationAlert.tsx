@@ -60,7 +60,7 @@ const ApiKeyValidationAlert: React.FC<ApiKeyValidationAlertProps> = ({
     },
     message: {
       fontSize: 16,
-      color: '#3C3C43',
+      color: colors.textSecondary,
       lineHeight: 22,
       marginBottom: 20,
     },
@@ -84,7 +84,7 @@ const ApiKeyValidationAlert: React.FC<ApiKeyValidationAlertProps> = ({
     },
     serviceName: {
       fontSize: 14,
-      color: '#3C3C43',
+      color: colors.textSecondary,
     },
     buttonContainer: {
       flexDirection: 'row' as const,
