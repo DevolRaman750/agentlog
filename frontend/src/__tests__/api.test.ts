@@ -130,7 +130,7 @@ describe('API Integration Tests', () => {
       const configData: APIConfiguration = {
         id: `test-config-${Date.now()}`, // Add required ID field
         variationName: 'Test Configuration',
-        modelName: 'gemini-1.5-flash',
+        modelName: 'gemini-2.5-flash',
         systemPrompt: 'Test prompt for configuration testing.',
         temperature: 0.7,
         maxTokens: 1024,
@@ -179,7 +179,7 @@ describe('API Integration Tests', () => {
       const updatedConfig: APIConfiguration = {
         id: testConfigId,
         variationName: 'Updated Test Configuration',
-        modelName: 'gemini-1.5-flash',
+        modelName: 'gemini-2.5-flash',
         systemPrompt: 'Updated test prompt for configuration testing.',
         temperature: 0.8,
         maxTokens: 750,
@@ -358,7 +358,7 @@ describe('API Integration Tests', () => {
       const testConfig: APIConfiguration = {
         id: `test-execution-config-${Date.now()}`,
         variationName: 'Test Execution Config',
-        modelName: 'gemini-1.5-flash',
+        modelName: 'gemini-2.5-flash',
         systemPrompt: 'You are a test assistant for execution results testing.',
         temperature: 0.5,
         maxTokens: 100,

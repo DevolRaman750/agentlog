@@ -289,7 +289,7 @@ describe('Performance and Load Tests', () => {
         const configData: APIConfiguration = {
           id: `perf-test-config-${i}-${Date.now()}`,
           variationName: `Performance Test Config ${i}`,
-          modelName: 'gemini-1.5-flash',
+          modelName: 'gemini-2.5-flash',
           systemPrompt: `Performance test system prompt ${i}`,
           temperature: 0.5 + (i * 0.05),
           maxTokens: 100 + (i * 10),
@@ -360,7 +360,7 @@ describe('Performance and Load Tests', () => {
         const updatedConfig: APIConfiguration = {
           id: configId,
           variationName: `Batch Updated Config ${index}`,
-          modelName: 'gemini-1.5-flash',
+          modelName: 'gemini-2.5-flash',
           systemPrompt: `Batch updated system prompt ${index}`,
           temperature: 0.8,
           userId: testUserId,

@@ -864,7 +864,7 @@ export const ApiKeyOnboarding: React.FC<ApiKeyOnboardingProps> = ({
           ]}
           onPress={() => setSelectedModel({
             provider: 'gemini',
-            name: 'gemini-1.5-pro',
+            name: 'gemini-2.5-pro',
             displayName: 'Google Gemini 1.5 Pro'
           })}
         >

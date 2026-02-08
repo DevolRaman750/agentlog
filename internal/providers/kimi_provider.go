@@ -51,17 +51,19 @@ func (p *KimiProvider) GetProviderName() string {
 // GetSupportedModels returns list of supported OpenRouter models
 func (p *KimiProvider) GetSupportedModels() []string {
 	return []string{
-		// Kimi models (working)
+		// Anthropic Claude models
+		"anthropic/claude-sonnet-4",
+		"anthropic/claude-3.5-sonnet",
+		"anthropic/claude-3.7-sonnet",
+		"anthropic/claude-3-haiku",
+		// OpenAI models
+		"openai/gpt-4o",
+		"openai/gpt-4o-mini",
+		"openai/gpt-4.1",
+		// Kimi models
 		"moonshotai/kimi-k2",
 		"moonshotai/kimi-k2-instruct",
-		"moonshotai/Kimi-K2-Instruct",
-		// OpenAI models (working with function calling)
-		"openai/gpt-4o-2024-08-06",
-		"openai/gpt-4o-mini",
-		// Anthropic models (working with function calling)
-		"anthropic/claude-3.5-sonnet-20241022",
-		"anthropic/claude-3-haiku-20240307",
-		// Meta models (working with function calling)
+		// Meta Llama models (free tier)
 		"meta-llama/llama-3.1-8b-instruct:free",
 		"meta-llama/llama-3.1-70b-instruct:free",
 	}

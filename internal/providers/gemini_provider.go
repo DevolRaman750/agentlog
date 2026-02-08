@@ -35,13 +35,15 @@ func (p *GeminiProvider) GetProviderName() string {
 // GetSupportedModels returns list of supported Gemini models
 func (p *GeminiProvider) GetSupportedModels() []string {
 	return []string{
-		"gemini-1.5-flash",
-		"gemini-1.5-pro",
-		"gemini-1.0-pro",
-		"gemini-1.5-flash-8b",
-		"gemini-pro",
-		"gemini-pro-vision",
-		"gemini-1.5-pro-latest",
+		// Gemini 2.5 series (current stable)
+		"gemini-2.5-flash",
+		"gemini-2.5-pro",
+		"gemini-2.5-flash-lite",
+		// Gemini 3 series (latest preview)
+		"gemini-3-pro-preview",
+		"gemini-3-flash-preview",
+		// Legacy (deprecated March 2026)
+		"gemini-2.0-flash",
 	}
 }
 

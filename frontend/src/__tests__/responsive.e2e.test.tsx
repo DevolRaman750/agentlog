@@ -10,19 +10,19 @@ describe('Responsive E2E Tests', () => {
     // Test that our new multi-model architecture is working
     const supportedProviders = ['gemini', 'kimi'];
     const modelNames = [
-      'gemini-1.5-flash',
+      'gemini-2.5-flash',
       'moonshotai/kimi-k2-instruct'
     ];
 
     expect(supportedProviders).toContain('gemini');
     expect(supportedProviders).toContain('kimi');
-    expect(modelNames).toContain('gemini-1.5-flash');
+    expect(modelNames).toContain('gemini-2.5-flash');
     expect(modelNames).toContain('moonshotai/kimi-k2-instruct');
   });
 
   it('should validate provider configuration patterns', () => {
     // Test key patterns in our multi-model implementation
-    const geminiModels = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.0-pro'];
+    const geminiModels = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-3-pro-preview'];
     const kimiModels = ['moonshotai/kimi-k2', 'moonshotai/kimi-k2-instruct'];
     
     // Verify model naming patterns
