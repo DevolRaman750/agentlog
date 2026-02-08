@@ -226,6 +226,7 @@ export const GenericApiKeySetup: React.FC<GenericApiKeySetupProps> = ({
       padding: 16,
       fontSize: 16,
       backgroundColor: colors.bgSurface,
+      color: colors.textPrimary,
     },
     textArea: {
       borderWidth: 1,
@@ -234,6 +235,7 @@ export const GenericApiKeySetup: React.FC<GenericApiKeySetupProps> = ({
       padding: 16,
       fontSize: 14,
       backgroundColor: colors.bgSurface,
+      color: colors.textPrimary,
       minHeight: 160,
       textAlignVertical: 'top' as const,
     },
@@ -516,6 +518,7 @@ export const GenericApiKeySetup: React.FC<GenericApiKeySetupProps> = ({
             value={apiKey}
             onChangeText={setApiKey}
             placeholder={instructions.keyFormat}
+            placeholderTextColor={colors.textTertiary}
             multiline={service.id === 'googledrive'}
             numberOfLines={service.id === 'googledrive' ? 8 : 1}
             secureTextEntry={service.id !== 'googledrive'}

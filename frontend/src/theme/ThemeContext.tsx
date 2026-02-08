@@ -15,16 +15,16 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType>({
-  theme: lightTheme,
-  themeMode: 'light',
-  colors: lightTheme.colors,
-  isDark: false,
+  theme: darkTheme,
+  themeMode: 'dark',
+  colors: darkTheme.colors,
+  isDark: true,
   toggleTheme: () => {},
   setThemeMode: () => {},
 });
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [themeMode, setThemeModeState] = useState<ThemeMode>('light');
+  const [themeMode, setThemeModeState] = useState<ThemeMode>('dark');
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {

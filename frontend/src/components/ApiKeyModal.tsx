@@ -265,6 +265,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
       padding: 12,
       fontSize: 16,
       backgroundColor: colors.bgCard,
+      color: colors.textPrimary,
     },
     textArea: {
       height: 80,
@@ -762,6 +763,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                       value={formData.displayName}
                       onChangeText={(text) => setFormData(prev => ({ ...prev, displayName: text }))}
                       placeholder="My API Key"
+                      placeholderTextColor={colors.textTertiary}
                     />
                   </View>
 
@@ -772,6 +774,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                       value={formData.keyName}
                       onChangeText={(text) => setFormData(prev => ({ ...prev, keyName: text }))}
                       placeholder="my_api_key"
+                      placeholderTextColor={colors.textTertiary}
                       autoCapitalize="none"
                     />
                     <Text style={styles.helpText}>
@@ -786,6 +789,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                       value={formData.description}
                       onChangeText={(text) => setFormData(prev => ({ ...prev, description: text }))}
                       placeholder="Brief description of this API key..."
+                      placeholderTextColor={colors.textTertiary}
                       multiline
                       numberOfLines={2}
                     />
@@ -816,6 +820,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                       value={formData.keyValue}
                       onChangeText={(text) => setFormData(prev => ({ ...prev, keyValue: text }))}
                       placeholder={selectedService.placeholder}
+                      placeholderTextColor={colors.textTertiary}
                       autoCapitalize="none"
                       secureTextEntry={selectedService.keyType !== 'webhook_url'}
                     />
