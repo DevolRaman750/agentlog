@@ -108,7 +108,7 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
   const tokenColor = tokenPercentage > 90 ? colors.statusError : tokenPercentage > 70 ? colors.accentSecondary : colors.statusSuccess;
 
   // Determine layout based on screen size
-  const isCompactMode = screenWidth < 480; // Very small mobile screens
+  const isCompactMode = screenWidth < 600; // Compact mode for smaller screens
   const isMobile = !isSidebarLayout; // Use responsive context mobile detection
 
   return (
@@ -483,23 +483,27 @@ const createStyles = (colors: ThemeColors) => ({
   },
   cardHeader: {
     flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
     alignItems: 'flex-start' as const,
     marginBottom: 16,
+    gap: 8,
   },
   cardHeaderCompact: {
     alignItems: 'center' as const,
     marginBottom: 12,
+    gap: 6,
   },
   headerInfo: {
     flex: 1,
-    marginLeft: 16,
+    marginLeft: 12,
     marginRight: 8,
+    minWidth: 80,
   },
   headerInfoCompact: {
-    marginLeft: 12,
+    marginLeft: 8,
     marginRight: 4,
     flex: 1,
-    minWidth: 0, // Prevents text overflow
+    minWidth: 60,
   },
   agentName: {
     fontSize: 18,
@@ -543,19 +547,26 @@ const createStyles = (colors: ThemeColors) => ({
   },
   quickActions: {
     flexDirection: 'row' as const,
-    gap: 8,
+    flexWrap: 'wrap' as const,
+    gap: 6,
+    justifyContent: 'flex-end' as const,
+    maxWidth: 220,
   },
   quickActionsMobile: {
-    gap: 6,
+    gap: 4,
+    maxWidth: 180,
   },
   quickActionsCompact: {
     flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
     gap: 4,
+    justifyContent: 'flex-end' as const,
+    maxWidth: 140,
   },
   actionButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 6,
     backgroundColor: colors.bgElevated,
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
@@ -563,14 +574,14 @@ const createStyles = (colors: ThemeColors) => ({
     borderColor: colors.borderLight,
   },
   actionButtonMobile: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-  },
-  actionButtonCompact: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: 6,
+  },
+  actionButtonCompact: {
+    width: 26,
+    height: 26,
+    borderRadius: 6,
   },
   deleteAction: {
     backgroundColor: 'rgba(239, 68, 68, 0.15)',
