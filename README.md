@@ -20,7 +20,8 @@ AgentLog is a full-stack platform that solves the core challenges of AI agent de
 
 AgentLog gives you a unified interface for multi-model execution, persistent memory, real-time monitoring, and flexible function calling.
 
-<!-- Screenshot: Dashboard overview showing agents and teams -->
+<img width="1271" height="892" alt="image" src="https://github.com/user-attachments/assets/da7854c6-e198-4d5f-9384-2e47ffcac2fc" />
+
 
 ---
 
@@ -33,7 +34,7 @@ Create AI agents that run on configurable schedules (heartbeat). Each agent has:
 - Persistent memory that survives between executions
 - Assigned archetype templates defining behavior
 
-<!-- Screenshot: Agent card showing status, stats, and controls -->
+<img width="1292" height="850" alt="image" src="https://github.com/user-attachments/assets/2701137b-9d0c-4070-abaa-543c1d626bf6" />
 
 ### Teams & Collaboration
 Organize agents into teams with shared context:
@@ -42,7 +43,7 @@ Organize agents into teams with shared context:
 - Collective token budgets
 - Team-level monitoring and analytics
 
-<!-- Screenshot: Team view with multiple agents -->
+<img width="1051" height="560" alt="image" src="https://github.com/user-attachments/assets/6f402a11-c369-4b06-8b48-361352f4a893" />
 
 ### Multi-Model Execution
 Run the same prompt against multiple AI configurations simultaneously:
@@ -51,7 +52,7 @@ Run the same prompt against multiple AI configurations simultaneously:
 - Built-in A/B testing framework
 - Detailed comparison metrics
 
-<!-- Screenshot: Execution results comparison view -->
+<img width="1277" height="383" alt="image" src="https://github.com/user-attachments/assets/3599c8fe-dfc5-4cc0-84c8-7629b18f9c16" />
 
 ### Persistent Memory
 Agents and teams remember context across sessions:
@@ -59,6 +60,8 @@ Agents and teams remember context across sessions:
 - Full-text search across memories
 - Memory importance scoring and size limits
 - Real-time sync across connected agents
+
+<img width="1286" height="404" alt="image" src="https://github.com/user-attachments/assets/63a92768-8b92-4212-bf3e-5bac8e3042e8" />
 
 ### Execution Templates
 Define reusable, parameterized execution templates:
@@ -68,7 +71,7 @@ Define reusable, parameterized execution templates:
 - Auth tokens for external invocation
 - Template marketplace for discovery
 
-<!-- Screenshot: Template library or editor -->
+<img width="1047" height="701" alt="image" src="https://github.com/user-attachments/assets/5bb52a85-36d6-4ca4-8f99-271e5e14aa22" />
 
 ### Function Calling
 Extend agent capabilities with external integrations:
@@ -85,7 +88,7 @@ Full visibility into every execution:
 - Token usage and cost analysis
 - Complete audit trail
 
-<!-- Screenshot: Execution logs or flow graph -->
+<img width="1055" height="752" alt="image" src="https://github.com/user-attachments/assets/4a8e9f66-747a-4919-a41c-368a2bac2739" />
 
 ---
 
