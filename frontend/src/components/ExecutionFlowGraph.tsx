@@ -565,7 +565,7 @@ const ExecutionFlowGraph: React.FC<ExecutionFlowGraphProps> = ({
       lineHeight: 16,
     },
     eventDetailErrorContainer: {
-      backgroundColor: '#FFF5F5',
+      backgroundColor: `${colors.statusError}15`,
       borderRadius: 8,
       padding: 12,
       borderLeftWidth: 4,
@@ -908,25 +908,25 @@ const ExecutionFlowGraph: React.FC<ExecutionFlowGraphProps> = ({
 
   const getEventTypeColor = (eventType: string): string => {
     switch (eventType) {
-      case 'prompt_start': return '#007AFF';
-      case 'ai_model_call': return '#5856D6';
-      case 'function_call_start': return '#FF9500';
-      case 'function_call_end': return '#34C759';
-      case 'ai_response': return '#32D74B';
-      case 'error_occurred': return '#FF3B30';
-      case 'retry_attempt': return '#FF9500';
-      case 'execution_complete': return '#30B0C7';
-      default: return '#8E8E93';
+      case 'prompt_start': return colors.accent;
+      case 'ai_model_call': return colors.accent;
+      case 'function_call_start': return colors.statusWarning;
+      case 'function_call_end': return colors.statusSuccess;
+      case 'ai_response': return colors.statusSuccess;
+      case 'error_occurred': return colors.statusError;
+      case 'retry_attempt': return colors.statusWarning;
+      case 'execution_complete': return colors.accent;
+      default: return colors.textSecondary;
     }
   };
 
   const getStatusColor = (status: string): string => {
     switch (status) {
-      case 'success': return '#34C759';
-      case 'error': return '#FF3B30';
-      case 'timeout': return '#FF9500';
-      case 'pending': return '#8E8E93';
-      default: return '#8E8E93';
+      case 'success': return colors.statusSuccess;
+      case 'error': return colors.statusError;
+      case 'timeout': return colors.statusWarning;
+      case 'pending': return colors.textSecondary;
+      default: return colors.textSecondary;
     }
   };
 
@@ -1105,14 +1105,14 @@ const ExecutionFlowGraph: React.FC<ExecutionFlowGraphProps> = ({
 
     const getEventColor = (eventType: string) => {
       switch (eventType) {
-        case 'prompt_start': return '#28A745'; // Vibrant green
-        case 'ai_model_call': return '#0066CC'; // Rich blue
-        case 'function_call_start': return '#FD7E14'; // Bright orange
-        case 'function_call_end': return '#20C997'; // Teal green
-        case 'ai_response': return '#6F42C1'; // Purple
-        case 'error_occurred': return '#DC3545'; // Red
-        case 'execution_complete': return '#17A2B8'; // Cyan
-        default: return '#6C757D'; // Gray
+        case 'prompt_start': return colors.statusSuccess;
+        case 'ai_model_call': return colors.accent;
+        case 'function_call_start': return colors.statusWarning;
+        case 'function_call_end': return colors.statusSuccess;
+        case 'ai_response': return colors.accent;
+        case 'error_occurred': return colors.statusError;
+        case 'execution_complete': return colors.accent;
+        default: return colors.textSecondary;
       }
     };
 

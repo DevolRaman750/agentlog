@@ -195,7 +195,7 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
     defaultText: {
       fontSize: 14,
       fontWeight: '500' as const,
-      color: '#FFD700',
+      color: colors.statusWarning,
     },
     priorityText: {
       fontSize: 14,
@@ -495,7 +495,7 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
     switch (status?.toLowerCase()) {
       case 'valid': return colors.statusSuccess;
       case 'invalid': return colors.statusError;
-      case 'expired': return '#fd7e14';
+      case 'expired': return colors.statusWarning;
       case 'untested': return colors.textSecondary;
       case 'rate_limited': return colors.statusWarning;
       default: return colors.textSecondary;
@@ -538,7 +538,7 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
 
         {item.isDefault && (
           <View style={styles.defaultBadge}>
-            <Ionicons name="star" size={16} color="#FFD700" />
+            <Ionicons name="star" size={16} color={colors.statusWarning} />
             <Text style={styles.defaultText}>Default for Service</Text>
           </View>
         )}

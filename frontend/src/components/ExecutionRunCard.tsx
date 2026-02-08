@@ -66,7 +66,7 @@ const ExecutionRunCard: React.FC<ExecutionRunCardProps> = ({
     deleteButton: {
       padding: 8,
       borderRadius: 6,
-      backgroundColor: '#FFF5F5',
+      backgroundColor: `${colors.statusError}10`,
     },
     descriptionContainer: {
       marginBottom: 8,
@@ -98,12 +98,12 @@ const ExecutionRunCard: React.FC<ExecutionRunCardProps> = ({
     createTemplateButton: {
       padding: 8,
       borderRadius: 6,
-      backgroundColor: '#F0FDF4',
+      backgroundColor: `${colors.statusSuccess}10`,
     },
     reExecuteButton: {
       padding: 8,
       borderRadius: 6,
-      backgroundColor: '#F0F9FF',
+      backgroundColor: colors.accentSoft,
     },
   }));
 

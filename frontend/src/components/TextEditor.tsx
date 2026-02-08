@@ -235,34 +235,19 @@ const TextEditor: React.FC<TextEditorProps> = ({
   const wordCount = value.trim() === '' ? 0 : value.trim().split(/\s+/).length;
   const lineCount = lines.length;
 
-  const themeColors = {
-    light: {
-      background: appColors.bgCard,
-      border: appColors.borderLight,
-      focusBorder: appColors.accent,
-      text: appColors.textPrimary,
-      placeholder: appColors.textSecondary,
-      lineNumbers: appColors.textTertiary,
-      lineNumberBg: appColors.bgSurface,
-      stats: appColors.textSecondary,
-      headerBg: appColors.bgSurface,
-      shadowColor: appColors.shadowColor,
-    },
-    dark: {
-      background: '#1C1C1E',
-      border: '#38383A',
-      focusBorder: '#0A84FF',
-      text: '#FFFFFF',
-      placeholder: '#8E8E93',
-      lineNumbers: '#8E8E93',
-      lineNumberBg: '#2C2C2E',
-      stats: '#8E8E93',
-      headerBg: '#2C2C2E',
-      shadowColor: '#FFF',
-    },
+  // Use app theme colors for both light and dark modes
+  const colors = {
+    background: appColors.bgCard,
+    border: appColors.borderLight,
+    focusBorder: appColors.accent,
+    text: appColors.textPrimary,
+    placeholder: appColors.textSecondary,
+    lineNumbers: appColors.textTertiary,
+    lineNumberBg: appColors.bgSurface,
+    stats: appColors.textSecondary,
+    headerBg: appColors.bgSurface,
+    shadowColor: appColors.shadowColor,
   };
-
-  const colors = themeColors[theme];
 
   const handleContentSizeChange = useCallback((event: any) => {
     const newHeight = Math.max(

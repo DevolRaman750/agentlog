@@ -39,18 +39,18 @@ const ResultCard: React.FC<ExtendedResultCardProps> = ({
       overflow: 'hidden' as const,
     },
     bestConfigContainer: {
-      borderColor: '#FFD700',
+      borderColor: colors.statusWarning,
       borderWidth: 2,
-      shadowColor: '#FFD700',
+      shadowColor: colors.statusWarning,
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.3,
       shadowRadius: 4,
       elevation: 4,
     },
     bestConfigBadge: {
-      backgroundColor: '#FFF8DC',
+      backgroundColor: `${colors.statusWarning}15`,
       borderBottomWidth: 1,
-      borderBottomColor: '#FFD700',
+      borderBottomColor: colors.statusWarning,
       paddingHorizontal: 12,
       paddingVertical: 8,
       flexDirection: 'row' as const,
@@ -60,7 +60,7 @@ const ResultCard: React.FC<ExtendedResultCardProps> = ({
     bestConfigText: {
       fontSize: 12,
       fontWeight: '600' as const,
-      color: '#B8860B',
+      color: colors.statusWarning,
     },
     header: {
       flexDirection: 'row' as const,
@@ -151,7 +151,7 @@ const ResultCard: React.FC<ExtendedResultCardProps> = ({
       borderRadius: 4,
     },
     chevronContainerExpanded: {
-      backgroundColor: '#E3F2FD',
+      backgroundColor: colors.accentSoft,
     },
     expandedContent: {
       padding: 16,
@@ -269,7 +269,7 @@ const ResultCard: React.FC<ExtendedResultCardProps> = ({
     functionCallsContainer: {
       marginTop: 16,
       padding: 12,
-      backgroundColor: '#F0F8FF',
+      backgroundColor: colors.accentSoft,
       borderRadius: 8,
       borderWidth: 1,
       borderColor: colors.accent,
@@ -361,9 +361,9 @@ const ResultCard: React.FC<ExtendedResultCardProps> = ({
       marginLeft: 4,
     },
     bestConfigDetailItem: {
-      borderColor: '#FFD700',
+      borderColor: colors.statusWarning,
       borderWidth: 1,
-      backgroundColor: '#FFF8DC',
+      backgroundColor: `${colors.statusWarning}15`,
     },
     configIdLabelRow: {
       flexDirection: 'row' as const,
@@ -374,7 +374,7 @@ const ResultCard: React.FC<ExtendedResultCardProps> = ({
     bestIndicatorSmall: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      backgroundColor: '#FFD700',
+      backgroundColor: colors.statusWarning,
       borderRadius: 6,
       paddingHorizontal: 3,
       paddingVertical: 1,
@@ -386,7 +386,7 @@ const ResultCard: React.FC<ExtendedResultCardProps> = ({
       color: colors.textInverse,
     },
     bestConfigValue: {
-      color: '#B8860B',
+      color: colors.statusWarning,
       fontWeight: '600' as const,
     },
   }));
@@ -405,7 +405,7 @@ const ResultCard: React.FC<ExtendedResultCardProps> = ({
       case 'error':
         return colors.statusError;
       case 'timeout':
-        return '#FF9500';
+        return colors.statusWarning;
       default:
         return colors.textSecondary;
     }
@@ -434,7 +434,7 @@ const ResultCard: React.FC<ExtendedResultCardProps> = ({
   const getTemperatureColor = (temperature?: number) => {
     if (!temperature) return colors.textSecondary;
     if (temperature <= 0.3) return colors.statusSuccess;
-    if (temperature <= 0.7) return '#FF9500';
+    if (temperature <= 0.7) return colors.statusWarning;
     return colors.statusError;
   };
 
@@ -451,7 +451,7 @@ const ResultCard: React.FC<ExtendedResultCardProps> = ({
       {/* Best Configuration Badge */}
       {isBestConfiguration && (
         <View style={styles.bestConfigBadge}>
-          <Ionicons name="trophy" size={16} color="#FFD700" />
+          <Ionicons name="trophy" size={16} color={colors.statusWarning} />
           <Text style={styles.bestConfigText}>Best Configuration</Text>
         </View>
       )}
@@ -492,7 +492,7 @@ const ResultCard: React.FC<ExtendedResultCardProps> = ({
               </Text>
               {isBestConfiguration && (
                 <View style={styles.bestBadgeInline}>
-                  <Ionicons name="trophy" size={10} color="#FFD700" />
+                  <Ionicons name="trophy" size={10} color={colors.statusWarning} />
                 </View>
               )}
             </View>
@@ -581,7 +581,7 @@ const ResultCard: React.FC<ExtendedResultCardProps> = ({
                   <Text style={styles.detailLabel}>Configuration ID</Text>
                   {isBestConfiguration && (
                     <View style={styles.bestIndicatorSmall}>
-                      <Ionicons name="trophy" size={10} color="#FFD700" />
+                      <Ionicons name="trophy" size={10} color={colors.statusWarning} />
                       <Text style={styles.bestIndicatorText}>BEST</Text>
                     </View>
                   )}

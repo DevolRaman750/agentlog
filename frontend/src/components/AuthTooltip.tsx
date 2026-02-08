@@ -129,7 +129,7 @@ export const AuthTooltip: React.FC<AuthTooltipProps> = ({
       flexDirection: 'row' as const,
       marginBottom: 12,
       alignItems: 'flex-start' as const,
-      backgroundColor: '#FFF9E6',
+      backgroundColor: `${colors.statusWarning}15`,
       padding: 12,
       borderRadius: 8,
       borderLeftWidth: 3,
@@ -138,7 +138,7 @@ export const AuthTooltip: React.FC<AuthTooltipProps> = ({
     warningText: {
       fontSize: 14,
       lineHeight: 20,
-      color: '#8B4513',
+      color: colors.statusWarning,
       marginLeft: 8,
       flex: 1,
     },

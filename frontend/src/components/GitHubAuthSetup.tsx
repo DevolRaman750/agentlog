@@ -88,7 +88,7 @@ export const GitHubAuthSetup: React.FC<GitHubAuthSetupProps> = ({
       fontSize: 10,
       fontWeight: '700' as const,
       color: colors.statusWarning,
-      backgroundColor: '#FFF4E6',
+      backgroundColor: `${colors.statusWarning}15`,
       paddingHorizontal: 6,
       paddingVertical: 2,
       borderRadius: 4,

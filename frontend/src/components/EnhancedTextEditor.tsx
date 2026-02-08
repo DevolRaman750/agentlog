@@ -373,46 +373,25 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
   // Theme configuration
   const { colors: appColors } = useTheme();
   const styles = useThemedStyles(createStyles);
-  const themeColors = {
-    light: {
-      background: appColors.bgCard,
-      border: appColors.borderLight,
-      focusBorder: appColors.accent,
-      errorBorder: appColors.statusError,
-      text: appColors.textPrimary,
-      placeholder: appColors.textSecondary,
-      lineNumbers: appColors.textTertiary,
-      lineNumberBg: appColors.bgSurface,
-      stats: appColors.textSecondary,
-      headerBg: appColors.bgSurface,
-      toolbarBg: appColors.bgCard,
-      toolbarBorder: appColors.borderLight,
-      shadowColor: appColors.shadowColor,
-      overlayBg: 'rgba(0, 0, 0, 0.4)',
-      helperText: appColors.textSecondary,
-      errorText: appColors.statusError,
-    },
-    dark: {
-      background: '#1C1C1E',
-      border: '#38383A',
-      focusBorder: '#0A84FF',
-      errorBorder: '#FF453A',
-      text: '#FFFFFF',
-      placeholder: '#8E8E93',
-      lineNumbers: '#8E8E93',
-      lineNumberBg: '#2C2C2E',
-      stats: '#8E8E93',
-      headerBg: '#2C2C2E',
-      toolbarBg: '#1C1C1E',
-      toolbarBorder: '#38383A',
-      shadowColor: '#FFF',
-      overlayBg: 'rgba(255, 255, 255, 0.1)',
-      helperText: '#8E8E93',
-      errorText: '#FF453A',
-    },
+  // Use app theme colors for consistent theming
+  const colors = {
+    background: appColors.bgCard,
+    border: appColors.borderLight,
+    focusBorder: appColors.accent,
+    errorBorder: appColors.statusError,
+    text: appColors.textPrimary,
+    placeholder: appColors.textSecondary,
+    lineNumbers: appColors.textTertiary,
+    lineNumberBg: appColors.bgSurface,
+    stats: appColors.textSecondary,
+    headerBg: appColors.bgSurface,
+    toolbarBg: appColors.bgCard,
+    toolbarBorder: appColors.borderLight,
+    shadowColor: appColors.shadowColor,
+    overlayBg: 'rgba(0, 0, 0, 0.4)',
+    helperText: appColors.textSecondary,
+    errorText: appColors.statusError,
   };
-
-  const colors = themeColors[theme];
 
   // History management
   const addToHistory = useCallback((text: string) => {

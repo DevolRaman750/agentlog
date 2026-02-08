@@ -78,7 +78,7 @@ export const UserStatusBar: React.FC = () => {
     warningText: {
       fontSize: 8,
       fontWeight: '700' as const,
-      color: '#FFFFFF',
+      color: colors.textInverse,
       letterSpacing: 0.3,
     },
     warningTextCompact: {
@@ -107,7 +107,7 @@ export const UserStatusBar: React.FC = () => {
     logoutButtonText: {
       fontSize: 10,
       fontWeight: '600' as const,
-      color: '#FFFFFF',
+      color: colors.textInverse,
     },
     sessionButton: {
       backgroundColor: 'rgba(255, 255, 255, 0.9)',
@@ -167,7 +167,7 @@ export const UserStatusBar: React.FC = () => {
     if (user.is_temporary) {
       return {
         icon: 'warning' as any,
-        color: '#FFFFFF',
+        color: colors.textInverse,
         backgroundColor: colors.accentSecondary,
         title: isNarrowScreen ? 'TEMP SESSION' : 'TEMPORARY SESSION',
         subtitle: `User: ${user.username}`,
@@ -178,7 +178,7 @@ export const UserStatusBar: React.FC = () => {
 
     return {
       icon: 'checkmark-circle' as any,
-      color: '#FFFFFF',
+      color: colors.textInverse,
       backgroundColor: colors.statusSuccess,
       title: 'Authenticated',
       subtitle: `${user.username} (${user.email || 'no email'})`,

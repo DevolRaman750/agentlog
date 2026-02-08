@@ -125,7 +125,7 @@ export const GitHubOnboardingSetup: React.FC<GitHubOnboardingSetupProps> = ({
       fontSize: 10,
       fontWeight: '700' as const,
       color: colors.statusWarning,
-      backgroundColor: '#FFF4E6',
+      backgroundColor: `${colors.statusWarning}15`,
       paddingHorizontal: 8,
       paddingVertical: 4,
       borderRadius: 6,

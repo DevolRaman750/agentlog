@@ -99,7 +99,7 @@ export const ApiKeyPrompt: React.FC<ApiKeyPromptProps> = ({
     },
     required: {
       fontSize: 12,
-      color: '#e74c3c',
+      color: colors.statusError,
       marginLeft: 4,
       alignSelf: 'flex-start' as const,
       flexShrink: 0,
@@ -114,12 +114,12 @@ export const ApiKeyPrompt: React.FC<ApiKeyPromptProps> = ({
       backgroundColor: colors.bgCard,
     },
     inputError: {
-      borderColor: '#e74c3c',
-      backgroundColor: '#fef7f7',
+      borderColor: colors.statusError,
+      backgroundColor: `${colors.statusError}15`,
     },
     errorText: {
       fontSize: 12,
-      color: '#e74c3c',
+      color: colors.statusError,
       marginTop: 4,
     },
     helpText: {

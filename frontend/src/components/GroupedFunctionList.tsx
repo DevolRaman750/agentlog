@@ -120,7 +120,7 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
       elevation: 1,
     },
     selectedFunctionItem: {
-      backgroundColor: '#E8F4FD',
+      backgroundColor: colors.accentSoft,
       borderWidth: 1,
       borderColor: colors.accent,
     },

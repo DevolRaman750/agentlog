@@ -361,7 +361,7 @@ const TeamCard: React.FC<TeamCardProps> = ({
             onPress={() => setShowEditContextModal(true)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Ionicons name="document-text" size={16} color="#8B5CF6" />
+            <Ionicons name="document-text" size={16} color={colors.accent} />
           </TouchableOpacity>
 
           <TouchableOpacity

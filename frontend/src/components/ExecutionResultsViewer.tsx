@@ -179,7 +179,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
     detailedComparisonButton: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      backgroundColor: '#2196F3',
+      backgroundColor: colors.accent,
       paddingHorizontal: 16,
       paddingVertical: 8,
       borderRadius: 20,
@@ -195,8 +195,8 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
       borderRadius: 12,
       padding: 16,
       borderWidth: 2,
-      borderColor: '#FFD700',
-      shadowColor: '#FFD700',
+      borderColor: colors.statusWarning,
+      shadowColor: colors.statusWarning,
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.1,
       shadowRadius: 4,
@@ -210,7 +210,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
     bestConfigTitle: {
       fontSize: 18,
       fontWeight: '700' as const,
-      color: '#B8860B',
+      color: colors.statusWarning,
       marginLeft: 8,
     },
     bestConfigDetails: {
@@ -223,16 +223,16 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
       fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     },
     analysisNotesContainer: {
-      backgroundColor: '#FFFEF7',
+      backgroundColor: `${colors.statusWarning}10`,
       borderRadius: 8,
       padding: 12,
       borderLeftWidth: 3,
-      borderLeftColor: '#FFD700',
+      borderLeftColor: colors.statusWarning,
     },
     analysisNotesLabel: {
       fontSize: 14,
       fontWeight: '600' as const,
-      color: '#B8860B',
+      color: colors.statusWarning,
       marginBottom: 4,
     },
     analysisNotes: {
@@ -294,8 +294,8 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
       borderColor: colors.borderLight,
     },
     bestQuickMetricCard: {
-      backgroundColor: '#E8F5E8',
-      borderColor: '#4CAF50',
+      backgroundColor: `${colors.statusSuccess}15`,
+      borderColor: colors.statusSuccess,
     },
     quickMetricName: {
       fontSize: 14,
@@ -304,7 +304,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
       marginBottom: 8,
     },
     bestQuickMetricText: {
-      color: '#4CAF50',
+      color: colors.statusSuccess,
     },
     quickMetricStats: {
       gap: 4,
@@ -316,10 +316,10 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
     quickMetricScore: {
       fontSize: 14,
       fontWeight: 'bold' as const,
-      color: '#2196F3',
+      color: colors.accent,
     },
     bestQuickMetricScore: {
-      color: '#4CAF50',
+      color: colors.statusSuccess,
     },
     modalCloseButton: {
       padding: 8,
@@ -340,8 +340,8 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
     },
     bestResultCard: {
       borderWidth: 2,
-      borderColor: '#FFD700',
-      shadowColor: '#FFD700',
+      borderColor: colors.statusWarning,
+      shadowColor: colors.statusWarning,
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.1,
       shadowRadius: 4,
@@ -363,12 +363,12 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
       flex: 1,
     },
     bestConfigName: {
-      color: '#B8860B',
+      color: colors.statusWarning,
     },
     bestBadge: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      backgroundColor: '#FFD700',
+      backgroundColor: colors.statusWarning,
       borderRadius: 6,
       paddingHorizontal: 8,
       paddingVertical: 4,
@@ -377,7 +377,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
     bestBadgeText: {
       fontSize: 10,
       fontWeight: '700' as const,
-      color: '#B8860B',
+      color: colors.statusWarning,
     },
     resultMeta: {
       flexDirection: 'row' as const,
@@ -426,7 +426,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
       color: colors.textPrimary,
     },
     errorContainer: {
-      backgroundColor: '#FFEBEE',
+      backgroundColor: `${colors.statusError}15`,
       borderRadius: 8,
       padding: 12,
       marginBottom: 12,
@@ -436,13 +436,13 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
     errorLabel: {
       fontSize: 14,
       fontWeight: '600' as const,
-      color: '#D32F2F',
+      color: colors.statusError,
       marginBottom: 8,
     },
     errorText: {
       fontSize: 15,
       lineHeight: 22,
-      color: '#D32F2F',
+      color: colors.statusError,
     },
     usageContainer: {
       backgroundColor: colors.bgHover,
@@ -462,14 +462,14 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
       fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     },
     functionsContainer: {
-      backgroundColor: '#FFF8E1',
+      backgroundColor: `${colors.statusWarning}15`,
       borderRadius: 8,
       padding: 12,
     },
     functionsLabel: {
       fontSize: 14,
       fontWeight: '600' as const,
-      color: '#F57C00',
+      color: colors.statusWarning,
       marginBottom: 8,
     },
     functionCall: {
@@ -483,7 +483,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
     functionName: {
       fontSize: 13,
       fontWeight: '600' as const,
-      color: '#F57C00',
+      color: colors.statusWarning,
       marginBottom: 4,
       fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     },
@@ -656,7 +656,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
         </View>
         {executionResult.comparison?.bestConfigurationId && (
           <View style={styles.summaryCard}>
-            <Ionicons name="trophy" size={20} color="#FFD700" />
+            <Ionicons name="trophy" size={20} color={colors.statusWarning} />
             <Text style={styles.summaryLabel}>Best Found</Text>
           </View>
         )}
@@ -728,7 +728,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
         {executionResult.comparison?.bestConfigurationId ? (
           <View style={styles.comparisonCard}>
             <View style={styles.bestConfigHeader}>
-              <Ionicons name="trophy" size={24} color="#FFD700" />
+              <Ionicons name="trophy" size={24} color={colors.statusWarning} />
               <Text style={styles.bestConfigTitle}>Best Configuration</Text>
             </View>
 
@@ -835,7 +835,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
                   </Text>
                   {isBestConfig && (
                     <View style={styles.bestBadge}>
-                      <Ionicons name="trophy" size={12} color="#FFD700" />
+                      <Ionicons name="trophy" size={12} color={colors.statusWarning} />
                       <Text style={styles.bestBadgeText}>BEST</Text>
                     </View>
                   )}

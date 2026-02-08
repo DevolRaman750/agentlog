@@ -29,34 +29,49 @@ interface MetricDisplay {
   description?: string;
 }
 
-const getQualityLabel = (score: number) => {
-  if (score >= 0.8) return { label: 'Excellent', color: '#4CAF50', icon: 'star' };
-  if (score >= 0.6) return { label: 'Good', color: '#8BC34A', icon: 'thumbs-up' };
-  if (score >= 0.4) return { label: 'Fair', color: '#FFC107', icon: 'remove' };
-  if (score >= 0.2) return { label: 'Poor', color: '#FF9800', icon: 'thumbs-down' };
-  return { label: 'Very Poor', color: '#F44336', icon: 'close' };
+// Note: These functions use hardcoded colors because they return color values
+// that will be used dynamically. The colors will be applied by the component.
+const getQualityLabel = (score: number, colors?: any) => {
+  const statusSuccess = colors?.statusSuccess || '#4CAF50';
+  const statusWarning = colors?.statusWarning || '#FFC107';
+  const statusError = colors?.statusError || '#F44336';
+
+  if (score >= 0.8) return { label: 'Excellent', color: statusSuccess, icon: 'star' };
+  if (score >= 0.6) return { label: 'Good', color: statusSuccess, icon: 'thumbs-up' };
+  if (score >= 0.4) return { label: 'Fair', color: statusWarning, icon: 'remove' };
+  if (score >= 0.2) return { label: 'Poor', color: statusWarning, icon: 'thumbs-down' };
+  return { label: 'Very Poor', color: statusError, icon: 'close' };
 };
 
-const getSpeedLabel = (timeMs: number, allTimes: number[]) => {
+const getSpeedLabel = (timeMs: number, allTimes: number[], colors?: any) => {
   const minTime = Math.min(...allTimes);
   const maxTime = Math.max(...allTimes);
   const relative = (timeMs - minTime) / (maxTime - minTime);
 
-  if (timeMs === minTime) return { label: 'Fastest', color: '#4CAF50', icon: 'flash' };
-  if (relative <= 0.3) return { label: 'Fast', color: '#8BC34A', icon: 'rocket' };
-  if (relative <= 0.7) return { label: 'Moderate', color: '#FFC107', icon: 'time' };
-  return { label: 'Slow', color: '#FF5722', icon: 'hourglass' };
+  const statusSuccess = colors?.statusSuccess || '#4CAF50';
+  const statusWarning = colors?.statusWarning || '#FFC107';
+  const statusError = colors?.statusError || '#FF5722';
+
+  if (timeMs === minTime) return { label: 'Fastest', color: statusSuccess, icon: 'flash' };
+  if (relative <= 0.3) return { label: 'Fast', color: statusSuccess, icon: 'rocket' };
+  if (relative <= 0.7) return { label: 'Moderate', color: statusWarning, icon: 'time' };
+  return { label: 'Slow', color: statusError, icon: 'hourglass' };
 };
 
-const getTokenEfficiencyDisplay = (score: number, result: VariationResult) => {
+const getTokenEfficiencyDisplay = (score: number, result: VariationResult, colors?: any) => {
   const usage = result.response.usageMetadata;
-  if (!usage) return { value: 'N/A', label: 'No data', color: '#9E9E9E' };
+  const textSecondary = colors?.textSecondary || '#9E9E9E';
+  const statusSuccess = colors?.statusSuccess || '#4CAF50';
+  const statusWarning = colors?.statusWarning || '#FFC107';
+  const statusError = colors?.statusError || '#FF5722';
+
+  if (!usage) return { value: 'N/A', label: 'No data', color: textSecondary };
 
   const totalTokens = usage.totalTokens || usage.total_tokens || 0;
   const completionTokens = usage.completionTokens || usage.completion_tokens || usage.candidatesTokenCount || 0;
   const promptTokens = usage.promptTokens || usage.prompt_tokens || 0;
 
-  if (totalTokens === 0) return { value: 'N/A', label: 'No tokens', color: '#9E9E9E' };
+  if (totalTokens === 0) return { value: 'N/A', label: 'No tokens', color: textSecondary };
 
   const efficiency = completionTokens / totalTokens;
   const tokensPerSecond = Math.round(totalTokens / (result.executionTime / 1000));
@@ -66,13 +81,13 @@ const getTokenEfficiencyDisplay = (score: number, result: VariationResult) => {
 
   if (efficiency >= 0.4) {
     label = `Efficient (${tokensPerSecond}/s)`;
-    color = '#4CAF50';
+    color = statusSuccess;
   } else if (efficiency >= 0.25) {
     label = `Moderate (${tokensPerSecond}/s)`;
-    color = '#FFC107';
+    color = statusWarning;
   } else {
     label = `Low efficiency (${tokensPerSecond}/s)`;
-    color = '#FF5722';
+    color = statusError;
   }
 
   return {
@@ -83,12 +98,17 @@ const getTokenEfficiencyDisplay = (score: number, result: VariationResult) => {
   };
 };
 
-const getCostEffectivenessDisplay = (score: number, result: VariationResult) => {
+const getCostEffectivenessDisplay = (score: number, result: VariationResult, colors?: any) => {
   const usage = result.response.usageMetadata;
-  if (!usage) return { value: 'N/A', label: 'No data', color: '#9E9E9E' };
+  const textSecondary = colors?.textSecondary || '#9E9E9E';
+  const statusSuccess = colors?.statusSuccess || '#4CAF50';
+  const statusWarning = colors?.statusWarning || '#FFC107';
+  const statusError = colors?.statusError || '#FF5722';
+
+  if (!usage) return { value: 'N/A', label: 'No data', color: textSecondary };
 
   const totalTokens = usage.totalTokens || usage.total_tokens || 0;
-  if (totalTokens === 0) return { value: 'N/A', label: 'No tokens', color: '#9E9E9E' };
+  if (totalTokens === 0) return { value: 'N/A', label: 'No tokens', color: textSecondary };
 
   const costPer1kTokens = result.configuration.modelName?.includes('flash') ? 0.00015 : 0.002;
   const estimatedCost = (totalTokens / 1000) * costPer1kTokens;
@@ -98,16 +118,16 @@ const getCostEffectivenessDisplay = (score: number, result: VariationResult) => 
 
   if (estimatedCost <= 0.001) {
     label = 'Very economical';
-    color = '#4CAF50';
+    color = statusSuccess;
   } else if (estimatedCost <= 0.01) {
     label = 'Cost effective';
-    color = '#8BC34A';
+    color = statusSuccess;
   } else if (estimatedCost <= 0.05) {
     label = 'Moderate cost';
-    color = '#FFC107';
+    color = statusWarning;
   } else {
     label = 'Expensive';
-    color = '#FF5722';
+    color = statusError;
   }
 
   return {
@@ -246,7 +266,7 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
     },
     activeTab: {
       borderBottomWidth: 2,
-      borderBottomColor: '#2196F3',
+      borderBottomColor: colors.accent,
     },
     tabText: {
       marginLeft: 8,
@@ -255,7 +275,7 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
       fontWeight: '500' as const,
     },
     activeTabText: {
-      color: '#2196F3',
+      color: colors.accent,
       fontWeight: '600' as const,
     },
     tabContent: {
@@ -290,7 +310,7 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
       marginBottom: 12,
     },
     bestConfigCard: {
-      borderColor: '#4CAF50',
+      borderColor: colors.statusSuccess,
       borderWidth: 2,
     },
     configHeader: {
@@ -308,10 +328,10 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
       flex: 1,
     },
     bestConfigText: {
-      color: '#4CAF50',
+      color: colors.statusSuccess,
     },
     bestConfigTextSmall: {
-      color: '#4CAF50',
+      color: colors.statusSuccess,
       fontWeight: '600' as const,
     },
     trophyIcon: {
@@ -433,7 +453,7 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
       borderColor: colors.borderLight,
     },
     bestTokenCard: {
-      borderColor: '#4CAF50',
+      borderColor: colors.statusSuccess,
       borderWidth: 2,
     },
     tokenHeader: {
@@ -524,7 +544,7 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
     fastestBadge: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      backgroundColor: '#4CAF50',
+      backgroundColor: colors.statusSuccess,
       paddingHorizontal: 8,
       paddingVertical: 4,
       borderRadius: 12,
@@ -532,7 +552,7 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
     bestBadge: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      backgroundColor: '#2196F3',
+      backgroundColor: colors.accent,
       paddingHorizontal: 8,
       paddingVertical: 4,
       borderRadius: 12,
@@ -572,7 +592,7 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
       marginBottom: 12,
     },
     bestConfigDetailsCard: {
-      borderColor: '#4CAF50',
+      borderColor: colors.statusSuccess,
       borderWidth: 2,
     },
     configDetailsHeader: {
@@ -647,7 +667,7 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
                     {result.configuration.variationName}
                   </Text>
                   {isBest && (
-                    <Ionicons name="trophy" size={18} color="#FFD700" style={styles.trophyIcon} />
+                    <Ionicons name="trophy" size={18} color={colors.statusWarning} style={styles.trophyIcon} />
                   )}
                 </View>
                 <Text style={styles.configId}>
@@ -689,7 +709,7 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
                         styles.scoreBarFill,
                         {
                           width: `${Math.round(scores.overall_score * 100)}%`,
-                          backgroundColor: isBest ? '#4CAF50' : '#2196F3'
+                          backgroundColor: isBest ? colors.statusSuccess : colors.accent
                         }
                       ]}
                     />
@@ -745,7 +765,7 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
                 {metricValues.map((item) => {
                   const displayInfo = metric.getDisplayValue ?
                     metric.getDisplayValue(item.value, item.result) :
-                    { value: String(item.value), label: '', color: '#9E9E9E' };
+                    { value: String(item.value), label: '', color: colors.textSecondary };
 
                   return (
                     <View key={item.configId} style={styles.metricItem}>
@@ -754,7 +774,7 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
                           {item.configName}
                         </Text>
                         {item.isBest && (
-                          <Ionicons name="trophy" size={14} color="#FFD700" />
+                          <Ionicons name="trophy" size={14} color={colors.statusWarning} />
                         )}
                       </View>
 
@@ -806,7 +826,7 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
                 <Text style={[styles.configName, isBest && styles.bestConfigText]}>
                   {result.configuration.variationName}
                 </Text>
-                {isBest && <Ionicons name="trophy" size={16} color="#FFD700" />}
+                {isBest && <Ionicons name="trophy" size={16} color={colors.statusWarning} />}
               </View>
 
               <View style={styles.tokenMetrics}>
@@ -817,11 +837,11 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
 
                 <View style={styles.tokenBreakdown}>
                   <View style={styles.tokenComponent}>
-                    <View style={[styles.tokenIndicator, { backgroundColor: '#4CAF50' }]} />
+                    <View style={[styles.tokenIndicator, { backgroundColor: colors.statusSuccess }]} />
                     <Text style={styles.tokenComponentLabel}>Prompt: {promptTokens.toLocaleString()}</Text>
                   </View>
                   <View style={styles.tokenComponent}>
-                    <View style={[styles.tokenIndicator, { backgroundColor: '#2196F3' }]} />
+                    <View style={[styles.tokenIndicator, { backgroundColor: colors.accent }]} />
                     <Text style={styles.tokenComponentLabel}>Completion: {completionTokens.toLocaleString()}</Text>
                   </View>
                 </View>
@@ -831,7 +851,7 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
                     style={[
                       styles.tokenBar,
                       {
-                        backgroundColor: '#4CAF50',
+                        backgroundColor: colors.statusSuccess,
                         flex: promptTokens || 1
                       }
                     ]}
@@ -840,7 +860,7 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
                     style={[
                       styles.tokenBar,
                       {
-                        backgroundColor: '#2196F3',
+                        backgroundColor: colors.accent,
                         flex: completionTokens || 1
                       }
                     ]}
@@ -909,7 +929,7 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
                           styles.performanceBarFill,
                           {
                             width: `${percentage}%`,
-                            backgroundColor: isFastest ? '#4CAF50' : isBest ? '#2196F3' : '#9E9E9E'
+                            backgroundColor: isFastest ? colors.statusSuccess : isBest ? colors.accent : colors.textSecondary
                           }
                         ]}
                       />
@@ -933,7 +953,7 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
                   <Text style={[styles.configName, isBest && styles.bestConfigText]}>
                     {config.variationName}
                   </Text>
-                  {isBest && <Ionicons name="trophy" size={16} color="#FFD700" />}
+                  {isBest && <Ionicons name="trophy" size={16} color={colors.statusWarning} />}
                 </View>
 
                 <View style={styles.configDetailsGrid}>
@@ -1011,7 +1031,7 @@ const ExecutionComparisonChart: React.FC<ExecutionComparisonChartProps> = ({
               <Ionicons
                 name={tab.icon as any}
                 size={18}
-                color={selectedTab === tab.key ? '#2196F3' : colors.textSecondary}
+                color={selectedTab === tab.key ? colors.accent : colors.textSecondary}
               />
               <Text style={[styles.tabText, selectedTab === tab.key && styles.activeTabText]}>
                 {tab.label}

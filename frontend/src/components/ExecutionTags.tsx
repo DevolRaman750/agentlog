@@ -46,7 +46,7 @@ const ExecutionTag: React.FC<TagProps> = ({
       paddingHorizontal: 16,
       borderRadius: 8,
       borderWidth: 1,
-      borderColor: 'rgba(0, 122, 255, 0.2)',
+      borderColor: `${colors.accent}33`,
       gap: 6,
     },
     tagCompact: {
@@ -166,7 +166,7 @@ const ExecutionTags: React.FC<ExecutionTagsProps> = ({
           icon="extension-puzzle"
           onPress={onFunctionsPress}
           color={selectedFunctionsCount > 0 ? colors.statusSuccess : colors.textSecondary}
-          backgroundColor={selectedFunctionsCount > 0 ? "#F0FDF4" : colors.bgSurface}
+          backgroundColor={selectedFunctionsCount > 0 ? `${colors.statusSuccess}15` : colors.bgSurface}
         />
 
         <ExecutionTag
@@ -175,7 +175,7 @@ const ExecutionTags: React.FC<ExecutionTagsProps> = ({
           icon="ellipsis-horizontal"
           onPress={onOtherOptionsPress}
           color={otherOptionsCount > 0 ? colors.statusWarning : colors.textSecondary}
-          backgroundColor={otherOptionsCount > 0 ? "#FFF8F0" : colors.bgSurface}
+          backgroundColor={otherOptionsCount > 0 ? `${colors.statusWarning}15` : colors.bgSurface}
         />
       </View>
     </View>

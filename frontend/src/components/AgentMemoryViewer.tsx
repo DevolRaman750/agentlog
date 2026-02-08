@@ -78,7 +78,7 @@ export const AgentMemoryViewer: React.FC<AgentMemoryViewerProps> = ({ agent, onC
       backgroundColor: colors.bgSurface,
     },
     filterButtonActive: {
-      backgroundColor: '#4CAF50',
+      backgroundColor: colors.statusSuccess,
     },
     filterButtonText: {
       color: colors.textSecondary,
@@ -91,13 +91,13 @@ export const AgentMemoryViewer: React.FC<AgentMemoryViewerProps> = ({ agent, onC
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       padding: 16,
-      backgroundColor: '#ffebee',
+      backgroundColor: `${colors.statusError}15`,
       marginHorizontal: 16,
       marginTop: 8,
       borderRadius: 8,
     },
     errorText: {
-      color: '#f44336',
+      color: colors.statusError,
       marginLeft: 8,
       flex: 1,
     },
@@ -134,10 +134,10 @@ export const AgentMemoryViewer: React.FC<AgentMemoryViewerProps> = ({ agent, onC
       borderRadius: 6,
     },
     selectedNode: {
-      backgroundColor: '#e3f2fd',
+      backgroundColor: colors.accentSoft,
     },
     contextNode: {
-      backgroundColor: '#f1f8e9',
+      backgroundColor: `${colors.statusSuccess}15`,
     },
     nodeContent: {
       flexDirection: 'row' as const,
@@ -196,7 +196,7 @@ export const AgentMemoryViewer: React.FC<AgentMemoryViewerProps> = ({ agent, onC
       borderRadius: 8,
       marginBottom: 8,
       borderLeftWidth: 3,
-      borderLeftColor: '#4CAF50',
+      borderLeftColor: colors.statusSuccess,
     },
     searchResultHeader: {
       flexDirection: 'row' as const,
@@ -224,7 +224,7 @@ export const AgentMemoryViewer: React.FC<AgentMemoryViewerProps> = ({ agent, onC
     },
     searchResultRelevance: {
       fontSize: 12,
-      color: '#4CAF50',
+      color: colors.statusSuccess,
       fontWeight: 'bold' as const,
     },
     noResults: {
@@ -246,11 +246,11 @@ export const AgentMemoryViewer: React.FC<AgentMemoryViewerProps> = ({ agent, onC
     },
     relationship: {
       padding: 12,
-      backgroundColor: '#fff3e0',
+      backgroundColor: `${colors.statusWarning}15`,
       borderRadius: 8,
       marginBottom: 8,
       borderLeftWidth: 3,
-      borderLeftColor: '#FF9800',
+      borderLeftColor: colors.statusWarning,
     },
     relationshipText: {
       fontSize: 14,
@@ -259,7 +259,7 @@ export const AgentMemoryViewer: React.FC<AgentMemoryViewerProps> = ({ agent, onC
     },
     relationshipStrength: {
       fontSize: 12,
-      color: '#FF9800',
+      color: colors.statusWarning,
       fontWeight: 'bold' as const,
     },
     emptyStateContainer: {
@@ -512,10 +512,10 @@ export const AgentMemoryViewer: React.FC<AgentMemoryViewerProps> = ({ agent, onC
               size={16}
               color={
                 node.type === 'context'
-                  ? '#4CAF50'
+                  ? colors.statusSuccess
                   : node.type === 'relationship'
-                    ? '#FF9800'
-                    : '#2196F3'
+                    ? colors.statusWarning
+                    : colors.accent
               }
               style={styles.nodeIcon}
             />
@@ -530,7 +530,7 @@ export const AgentMemoryViewer: React.FC<AgentMemoryViewerProps> = ({ agent, onC
                 style={styles.clearButton}
                 onPress={() => clearMemoryContext(node.context!)}
               >
-                <MaterialCommunityIcons name="delete" size={14} color="#f44336" />
+                <MaterialCommunityIcons name="delete" size={14} color={colors.statusError} />
               </TouchableOpacity>
             )}
           </View>
@@ -592,7 +592,7 @@ export const AgentMemoryViewer: React.FC<AgentMemoryViewerProps> = ({ agent, onC
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <MaterialCommunityIcons name="brain" size={24} color="#4CAF50" />
+          <MaterialCommunityIcons name="brain" size={24} color={colors.statusSuccess} />
           <Text style={styles.title}>
             {agent.firstName} {agent.lastName} - Memory
           </Text>
@@ -636,7 +636,7 @@ export const AgentMemoryViewer: React.FC<AgentMemoryViewerProps> = ({ agent, onC
 
       {error && (
         <View style={styles.errorContainer}>
-          <MaterialCommunityIcons name="alert-circle" size={20} color="#f44336" />
+          <MaterialCommunityIcons name="alert-circle" size={20} color={colors.statusError} />
           <Text style={styles.errorText}>{error}</Text>
         </View>
       )}

@@ -167,14 +167,14 @@ const TeamResumeModal: React.FC<TeamResumeModalProps> = ({
       gap: 6,
     },
     capabilityTag: {
-      backgroundColor: '#E3F2FD',
+      backgroundColor: colors.accentSoft,
       borderRadius: 6,
       paddingHorizontal: 8,
       paddingVertical: 4,
     },
     capabilityTagText: {
       fontSize: 12,
-      color: '#1976D2',
+      color: colors.accent,
       fontWeight: '500' as const,
     },
     moreCapabilities: {
@@ -200,25 +200,25 @@ const TeamResumeModal: React.FC<TeamResumeModalProps> = ({
       gap: 8,
     },
     coverageTag: {
-      backgroundColor: '#E8F5E8',
+      backgroundColor: `${colors.statusSuccess}15`,
       borderRadius: 8,
       paddingHorizontal: 12,
       paddingVertical: 6,
     },
     coverageTagText: {
       fontSize: 14,
-      color: '#2E7D32',
+      color: colors.statusSuccess,
       fontWeight: '500' as const,
     },
     integrationTag: {
-      backgroundColor: '#FFF3E0',
+      backgroundColor: `${colors.statusWarning}15`,
       borderRadius: 8,
       paddingHorizontal: 12,
       paddingVertical: 6,
     },
     integrationTagText: {
       fontSize: 14,
-      color: '#F57C00',
+      color: colors.statusWarning,
       fontWeight: '500' as const,
     },
     apiKeyItem: {

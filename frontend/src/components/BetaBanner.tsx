@@ -7,16 +7,16 @@ export const BetaBanner: React.FC = () => {
   const styles = useThemedStyles((colors: ThemeColors) => ({
     banner: {
       width: '100%' as const,
-      backgroundColor: '#FFF4E5',
+      backgroundColor: `${colors.statusWarning}15`,
       borderBottomWidth: 1,
-      borderColor: '#FFE0B2',
+      borderColor: `${colors.statusWarning}30`,
       paddingVertical: 8,
       paddingHorizontal: 12,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
     },
     text: {
-      color: '#8A5200',
+      color: colors.statusWarning,
       fontSize: 13,
       fontWeight: '600' as const,
       textAlign: 'center' as const,

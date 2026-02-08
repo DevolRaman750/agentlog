@@ -147,13 +147,13 @@ const createStyles = (colors: ThemeColors) => ({
     fontWeight: '600' as const,
   },
   statusCard: {
-    backgroundColor: '#E8F5E8',
+    backgroundColor: `${colors.statusSuccess}15`,
     borderRadius: 12,
     padding: 20,
     marginBottom: 20,
     width: '100%' as const,
     borderWidth: 1,
-    borderColor: '#C8E6C8',
+    borderColor: `${colors.statusSuccess}30`,
   },
   statusHeader: {
     flexDirection: 'row' as const,
@@ -163,7 +163,7 @@ const createStyles = (colors: ThemeColors) => ({
   statusTitle: {
     fontSize: 18,
     fontWeight: '600' as const,
-    color: '#2D5016',
+    color: colors.statusSuccess,
     marginLeft: 8,
   },
   statusItem: {
@@ -173,7 +173,7 @@ const createStyles = (colors: ThemeColors) => ({
   },
   statusText: {
     fontSize: 14,
-    color: '#2D5016',
+    color: colors.textPrimary,
     marginLeft: 12,
     flex: 1,
     lineHeight: 20,
@@ -182,13 +182,13 @@ const createStyles = (colors: ThemeColors) => ({
     fontWeight: '600' as const,
   },
   costWarningCard: {
-    backgroundColor: '#FFF9F0',
+    backgroundColor: `${colors.statusWarning}15`,
     borderRadius: 12,
     padding: 20,
     marginBottom: 20,
     width: '100%' as const,
     borderWidth: 1,
-    borderColor: '#FFE4B5',
+    borderColor: `${colors.statusWarning}30`,
   },
   warningHeader: {
     flexDirection: 'row' as const,
@@ -203,7 +203,7 @@ const createStyles = (colors: ThemeColors) => ({
   },
   warningText: {
     fontSize: 14,
-    color: '#8B4513',
+    color: colors.textPrimary,
     lineHeight: 20,
   },
   benefitsCard: {
@@ -273,7 +273,7 @@ const createStyles = (colors: ThemeColors) => ({
     fontSize: 10,
     fontWeight: '700' as const,
     color: colors.statusSuccess,
-    backgroundColor: '#E8F5E8',
+    backgroundColor: `${colors.statusSuccess}15`,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -282,7 +282,7 @@ const createStyles = (colors: ThemeColors) => ({
     fontSize: 10,
     fontWeight: '700' as const,
     color: colors.accent,
-    backgroundColor: '#E6F3FF',
+    backgroundColor: colors.accentSoft,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -394,7 +394,7 @@ const createStyles = (colors: ThemeColors) => ({
   },
   invalidInput: {
     borderColor: colors.statusError,
-    backgroundColor: '#FFF5F5',
+    backgroundColor: `${colors.statusError}10`,
   },
   errorText: {
     fontSize: 12,
@@ -431,7 +431,7 @@ const createStyles = (colors: ThemeColors) => ({
   optionalBadge: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    backgroundColor: '#E6F3FF',
+    backgroundColor: colors.accentSoft,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -478,7 +478,7 @@ const createStyles = (colors: ThemeColors) => ({
     fontSize: 10,
     fontWeight: '700' as const,
     color: colors.statusWarning,
-    backgroundColor: '#FFF4E6',
+    backgroundColor: `${colors.statusWarning}15`,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,

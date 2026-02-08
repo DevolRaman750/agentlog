@@ -68,7 +68,7 @@ export const TeamMemoryViewer: React.FC<TeamMemoryViewerProps> = ({ team, onClos
       backgroundColor: colors.bgSurface,
     },
     filterButtonActive: {
-      backgroundColor: '#FF6B35',
+      backgroundColor: colors.accent,
     },
     filterButtonText: {
       color: colors.textSecondary,
@@ -81,7 +81,7 @@ export const TeamMemoryViewer: React.FC<TeamMemoryViewerProps> = ({ team, onClos
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       padding: 16,
-      backgroundColor: '#ffebee',
+      backgroundColor: `${colors.statusError}15`,
       marginHorizontal: 16,
       marginTop: 8,
       borderRadius: 8,
@@ -124,10 +124,10 @@ export const TeamMemoryViewer: React.FC<TeamMemoryViewerProps> = ({ team, onClos
       borderRadius: 6,
     },
     selectedNode: {
-      backgroundColor: '#e3f2fd',
+      backgroundColor: colors.accentSoft,
     },
     contextNode: {
-      backgroundColor: '#fff3e0',
+      backgroundColor: `${colors.statusWarning}15`,
     },
     nodeContent: {
       flexDirection: 'row' as const,
@@ -186,7 +186,7 @@ export const TeamMemoryViewer: React.FC<TeamMemoryViewerProps> = ({ team, onClos
       borderRadius: 8,
       marginBottom: 8,
       borderLeftWidth: 3,
-      borderLeftColor: '#FF6B35',
+      borderLeftColor: colors.accent,
     },
     searchResultHeader: {
       flexDirection: 'row' as const,
@@ -214,7 +214,7 @@ export const TeamMemoryViewer: React.FC<TeamMemoryViewerProps> = ({ team, onClos
     },
     searchResultRelevance: {
       fontSize: 12,
-      color: '#FF6B35',
+      color: colors.accent,
       fontWeight: 'bold' as const,
     },
     noResults: {
@@ -236,11 +236,11 @@ export const TeamMemoryViewer: React.FC<TeamMemoryViewerProps> = ({ team, onClos
     },
     relationship: {
       padding: 12,
-      backgroundColor: '#fff3e0',
+      backgroundColor: `${colors.statusWarning}15`,
       borderRadius: 8,
       marginBottom: 8,
       borderLeftWidth: 3,
-      borderLeftColor: '#FF9800',
+      borderLeftColor: colors.statusWarning,
     },
     relationshipText: {
       fontSize: 14,
@@ -249,7 +249,7 @@ export const TeamMemoryViewer: React.FC<TeamMemoryViewerProps> = ({ team, onClos
     },
     relationshipStrength: {
       fontSize: 12,
-      color: '#FF9800',
+      color: colors.statusWarning,
       fontWeight: 'bold' as const,
     },
     emptyStateContainer: {
@@ -534,10 +534,10 @@ export const TeamMemoryViewer: React.FC<TeamMemoryViewerProps> = ({ team, onClos
               size={16}
               color={
                 node.type === 'context'
-                  ? '#FF6B35'
+                  ? colors.accent
                   : node.type === 'relationship'
-                    ? '#FF9800'
-                    : '#2196F3'
+                    ? colors.statusWarning
+                    : colors.accentSecondary
               }
               style={styles.nodeIcon}
             />
@@ -614,7 +614,7 @@ export const TeamMemoryViewer: React.FC<TeamMemoryViewerProps> = ({ team, onClos
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <MaterialCommunityIcons name="account-group" size={24} color="#FF6B35" />
+          <MaterialCommunityIcons name="account-group" size={24} color={colors.accent} />
           <Text style={styles.title}>
             {team.name} - Team Memory
           </Text>

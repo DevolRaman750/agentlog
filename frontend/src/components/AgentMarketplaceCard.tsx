@@ -103,23 +103,23 @@ const AgentMarketplaceCard: React.FC<AgentMarketplaceCardProps> = ({
     },
     modelText: {
       fontSize: 12,
-      color: '#AF52DE',
+      color: colors.accent,
       fontWeight: '500' as const,
     },
     apiKeyTag: {
-      backgroundColor: '#E3F2FD',
+      backgroundColor: colors.accentSoft,
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderRadius: 6,
     },
     apiKeyText: {
       fontSize: 11,
-      color: '#1976D2',
+      color: colors.accent,
       fontWeight: '500' as const,
     },
     description: {
       fontSize: 15,
-      color: '#6B6B6B',
+      color: colors.textSecondary,
       lineHeight: 22,
       marginBottom: 16,
     },
@@ -171,7 +171,7 @@ const AgentMarketplaceCard: React.FC<AgentMarketplaceCardProps> = ({
     },
     moreSkillsText: {
       fontSize: 12,
-      color: '#6B6B6B',
+      color: colors.textSecondary,
       fontWeight: '500' as const,
     },
     statsContainer: {
@@ -189,7 +189,7 @@ const AgentMarketplaceCard: React.FC<AgentMarketplaceCardProps> = ({
     },
     statText: {
       fontSize: 12,
-      color: '#6B6B6B',
+      color: colors.textSecondary,
       fontWeight: '500' as const,
     },
     ctaContainer: {
@@ -213,9 +213,9 @@ const AgentMarketplaceCard: React.FC<AgentMarketplaceCardProps> = ({
   const getExperienceColor = (level: string) => {
     switch (level) {
       case 'Junior': return colors.accent;
-      case 'Mid-Level': return '#32D74B';
+      case 'Mid-Level': return colors.statusSuccess;
       case 'Senior': return colors.statusWarning;
-      case 'Expert': return '#AF52DE';
+      case 'Expert': return colors.accent;
       default: return colors.accent;
     }
   };

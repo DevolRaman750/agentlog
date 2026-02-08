@@ -133,7 +133,7 @@ const CreateTeamForm: React.FC<CreateTeamFormProps> = ({
     },
     inputError: {
       borderColor: colors.statusError,
-      backgroundColor: '#FFF5F5',
+      backgroundColor: `${colors.statusError}15`,
     },
     errorText: {
       fontSize: 14,
@@ -142,7 +142,7 @@ const CreateTeamForm: React.FC<CreateTeamFormProps> = ({
     },
     helpText: {
       fontSize: 14,
-      color: '#6B6B6B',
+      color: colors.textSecondary,
       marginTop: 4,
     },
     characterCount: {
