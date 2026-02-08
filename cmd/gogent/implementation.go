@@ -321,7 +321,7 @@ func (bl *BusinessLogic) GetDefaultConfigurations() []types.APIConfiguration {
 		{
 			ID:            "config-conservative",
 			VariationName: "Conservative",
-			ModelName:     "gemini-1.5-flash",
+			ModelName:     "gemini-2.5-flash",
 			SystemPrompt:  "You are a helpful assistant. Provide balanced, informative responses.",
 			Temperature:   &temp1,
 			MaxTokens:     &maxTokens,
@@ -332,7 +332,7 @@ func (bl *BusinessLogic) GetDefaultConfigurations() []types.APIConfiguration {
 		{
 			ID:            "config-balanced",
 			VariationName: "Balanced",
-			ModelName:     "gemini-1.5-flash",
+			ModelName:     "gemini-2.5-flash",
 			SystemPrompt:  "You are a helpful assistant. Provide balanced, informative responses.",
 			Temperature:   &temp2,
 			MaxTokens:     &maxTokens,
@@ -343,7 +343,7 @@ func (bl *BusinessLogic) GetDefaultConfigurations() []types.APIConfiguration {
 		{
 			ID:            "config-creative",
 			VariationName: "Creative",
-			ModelName:     "gemini-1.5-flash",
+			ModelName:     "gemini-2.5-flash",
 			SystemPrompt:  "You are a creative assistant. Provide imaginative and engaging responses.",
 			Temperature:   &temp3,
 			MaxTokens:     &maxTokens,

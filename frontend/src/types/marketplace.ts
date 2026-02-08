@@ -25,7 +25,7 @@ export interface MarketplaceAgent {
     displayNames: string[]; // e.g., ['GitHub API Token', 'Slack Bot Token']
   };
   modelConfig: {
-    modelName: string; // e.g., 'gemini-1.5-pro-latest'
+    modelName: string; // e.g., 'gemini-2.5-pro'
     configName: string; // e.g., 'Autonomous SWE Pro'
     temperature: number;
     maxTokens: number;

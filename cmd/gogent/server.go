@@ -2189,7 +2189,7 @@ func (s *Server) createMockExecutionResult(run *types.ExecutionRun) *types.Execu
 				Configuration: types.APIConfiguration{
 					ID:            "config-1-" + run.ID,
 					VariationName: "conservative",
-					ModelName:     "gemini-1.5-flash",
+					ModelName:     "gemini-2.5-flash",
 					SystemPrompt:  "You are a precise, analytical assistant.",
 					Temperature:   &temp1,
 					CreatedAt:     run.CreatedAt,
@@ -2222,7 +2222,7 @@ func (s *Server) createMockExecutionResult(run *types.ExecutionRun) *types.Execu
 				Configuration: types.APIConfiguration{
 					ID:            "config-2-" + run.ID,
 					VariationName: "creative",
-					ModelName:     "gemini-1.5-flash",
+					ModelName:     "gemini-2.5-flash",
 					SystemPrompt:  "You are a highly creative assistant who uses vivid imagery.",
 					Temperature:   &temp2,
 					CreatedAt:     run.CreatedAt,
@@ -3051,7 +3051,7 @@ func (s *Server) createGenericMockExecutionResult(runID string) *types.Execution
 				Configuration: types.APIConfiguration{
 					ID:            "config-1-" + runID,
 					VariationName: "conservative",
-					ModelName:     "gemini-1.5-flash",
+					ModelName:     "gemini-2.5-flash",
 					SystemPrompt:  "You are a precise, analytical assistant.",
 					Temperature:   &temp1,
 					CreatedAt:     now.Add(-2 * time.Hour),
@@ -3084,7 +3084,7 @@ func (s *Server) createGenericMockExecutionResult(runID string) *types.Execution
 				Configuration: types.APIConfiguration{
 					ID:            "config-2-" + runID,
 					VariationName: "creative",
-					ModelName:     "gemini-1.5-flash",
+					ModelName:     "gemini-2.5-flash",
 					SystemPrompt:  "You are a highly creative assistant.",
 					Temperature:   &temp2,
 					CreatedAt:     now.Add(-2 * time.Hour),

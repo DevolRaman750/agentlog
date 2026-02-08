@@ -297,27 +297,33 @@ export interface ExecutionForm {
 // Constants
 export const GEMINI_MODELS = [
   {
-    value: 'gemini-1.5-flash',
-    label: 'Gemini 1.5 Flash',
-    description: 'Fast and efficient model for quick responses with great performance',
+    value: 'gemini-2.5-flash',
+    label: 'Gemini 2.5 Flash',
+    description: 'Best price-performance ratio with excellent speed and quality',
     maxTokens: 1048576
   },
   {
-    value: 'gemini-1.5-pro',
-    label: 'Gemini 1.5 Pro',
-    description: 'Advanced model with superior reasoning capabilities and longer context',
+    value: 'gemini-2.5-pro',
+    label: 'Gemini 2.5 Pro',
+    description: 'Advanced reasoning with thinking capabilities for complex tasks',
     maxTokens: 2097152
   },
   {
-    value: 'gemini-1.0-pro',
-    label: 'Gemini 1.0 Pro',
-    description: 'Stable production model with proven performance and reliability',
-    maxTokens: 30720
+    value: 'gemini-2.5-flash-lite',
+    label: 'Gemini 2.5 Flash Lite',
+    description: 'Fastest model optimized for cost-efficiency',
+    maxTokens: 1048576
   },
   {
-    value: 'gemini-1.5-flash-8b',
-    label: 'Gemini 1.5 Flash 8B',
-    description: 'Lightweight model optimized for speed and efficiency',
+    value: 'gemini-3-pro-preview',
+    label: 'Gemini 3 Pro (Preview)',
+    description: 'Latest and most powerful model for multimodal understanding',
+    maxTokens: 2097152
+  },
+  {
+    value: 'gemini-3-flash-preview',
+    label: 'Gemini 3 Flash (Preview)',
+    description: 'Balanced model built for speed, scale, and frontier intelligence',
     maxTokens: 1048576
   }
 ] as const;

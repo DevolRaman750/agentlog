@@ -82,7 +82,7 @@ describe('Smoke Tests - Quick Validation', () => {
       const testConfig = {
         id: `smoke-test-${Date.now()}`,
         variationName: 'Smoke Test Config',
-        modelName: 'gemini-1.5-flash',
+        modelName: 'gemini-2.5-flash',
         systemPrompt: 'Smoke test prompt',
         userId: testUserId,
         isSystemResource: false,
@@ -250,7 +250,7 @@ describe('Smoke Tests - Quick Validation', () => {
         const testConfig = {
           id: `critical-path-${Date.now()}`,
           variationName: 'Critical Path Test',
-          modelName: 'gemini-1.5-flash',
+          modelName: 'gemini-2.5-flash',
           systemPrompt: 'Critical path test',
           userId: testUserId,
           isSystemResource: false,

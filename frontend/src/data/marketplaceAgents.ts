@@ -58,7 +58,7 @@ export const generateMarketplaceAgents = (): MarketplaceAgent[] => {
         displayNames: ['GitHub API Token', 'Slack Bot Token']
       },
       modelConfig: {
-        modelName: 'gemini-1.5-pro-latest',
+        modelName: 'gemini-2.5-pro',
         configName: 'Gemini Pro Default',
         temperature: 0.5,
         maxTokens: 2048
@@ -115,7 +115,7 @@ export const generateMarketplaceAgents = (): MarketplaceAgent[] => {
         displayNames: ['GitHub API Token']
       },
       modelConfig: {
-        modelName: 'gemini-1.5-pro-latest',
+        modelName: 'gemini-2.5-pro',
         configName: 'Gemini Pro Default',
         temperature: 0.3,
         maxTokens: 4096
@@ -174,7 +174,7 @@ export const generateMarketplaceAgents = (): MarketplaceAgent[] => {
         displayNames: ['GitHub API Token', 'Slack Bot Token']
       },
       modelConfig: {
-        modelName: 'gemini-1.5-pro-latest',
+        modelName: 'gemini-2.5-pro',
         configName: 'Gemini Pro Default',
         temperature: 0.4,
         maxTokens: 3072
@@ -232,7 +232,7 @@ export const generateMarketplaceAgents = (): MarketplaceAgent[] => {
         displayNames: ['GitHub API Token (Write Access)']
       },
       modelConfig: {
-        modelName: 'gemini-1.5-pro-latest',
+        modelName: 'gemini-2.5-pro',
         configName: 'Autonomous SWE Pro',
         temperature: 0.3,
         maxTokens: 4096

@@ -39,12 +39,12 @@ const getModelCategory = (modelName: string): ModelInfo['category'] => {
 // Helper function to determine if a model should be marked as recommended
 const isRecommendedModel = (modelName: string): boolean => {
   const recommendedModels = [
-    'gemini-1.5-pro',
+    'gemini-2.5-flash',
     'gemini-2.5-pro',
-    'moonshotai/kimi-k2-instruct',
-    'moonshotai/kimi-k2',
+    'anthropic/claude-sonnet-4',
     'anthropic/claude-3.5-sonnet',
-    'openai/gpt-4o'
+    'openai/gpt-4o',
+    'moonshotai/kimi-k2-instruct'
   ];
   return recommendedModels.includes(modelName);
 };
@@ -52,9 +52,10 @@ const isRecommendedModel = (modelName: string): boolean => {
 // Helper function to determine if a model should be marked as new
 const isNewModel = (modelName: string): boolean => {
   const newModels = [
-    'gemini-2.5-pro',
-    'anthropic/claude-3.5-sonnet',
-    'openai/gpt-4o'
+    'gemini-3-pro-preview',
+    'gemini-3-flash-preview',
+    'anthropic/claude-sonnet-4',
+    'openai/gpt-4.1'
   ];
   return newModels.includes(modelName);
 };

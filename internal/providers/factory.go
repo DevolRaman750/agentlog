@@ -163,24 +163,30 @@ func (f *ProviderFactory) GetSupportedModels() map[string][]string {
 
 	return map[string][]string{
 		ProviderTypeGemini: {
-			"gemini-1.5-flash",
-			"gemini-1.5-pro",
+			// Gemini 2.5 series (current stable)
+			"gemini-2.5-flash",
 			"gemini-2.5-pro",
-			"gemini-1.0-pro",
-			"gemini-1.5-flash-8b",
-			"gemini-pro",
-			"gemini-pro-vision",
-			"gemini-1.5-pro-latest",
+			"gemini-2.5-flash-lite",
+			// Gemini 3 series (latest preview)
+			"gemini-3-pro-preview",
+			"gemini-3-flash-preview",
+			// Legacy (deprecated March 2026)
+			"gemini-2.0-flash",
 		},
 		ProviderTypeKimi: {
-			// All OpenRouter models (including Kimi, OpenAI, Anthropic, Meta, etc.)
+			// Anthropic Claude models
+			"anthropic/claude-sonnet-4",
+			"anthropic/claude-3.5-sonnet",
+			"anthropic/claude-3.7-sonnet",
+			"anthropic/claude-3-haiku",
+			// OpenAI models
+			"openai/gpt-4o",
+			"openai/gpt-4o-mini",
+			"openai/gpt-4.1",
+			// Kimi models
 			"moonshotai/kimi-k2",
 			"moonshotai/kimi-k2-instruct",
-			"moonshotai/Kimi-K2-Instruct",
-			"openai/gpt-4o-2024-08-06",
-			"openai/gpt-4o-mini",
-			"anthropic/claude-3.5-sonnet-20241022",
-			"anthropic/claude-3-haiku-20240307",
+			// Meta Llama models (free tier)
 			"meta-llama/llama-3.1-8b-instruct:free",
 			"meta-llama/llama-3.1-70b-instruct:free",
 		},
