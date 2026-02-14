@@ -21,13 +21,14 @@ export interface ModelInfo {
   name: string;
   displayName: string;
   description: string;
-  category: 'gemini' | 'gpt' | 'claude' | 'kimi' | 'openrouter' | 'other';
+  category: 'gemini' | 'gpt' | 'claude' | 'kimi' | 'openrouter' | 'ollama' | 'other';
   isRecommended?: boolean;
   isNew?: boolean;
 }
 
 // Helper function to determine model category from model name
 const getModelCategory = (modelName: string): ModelInfo['category'] => {
+  if (modelName.includes('llama')) return 'ollama';
   if (modelName.includes('gemini')) return 'gemini';
   if (modelName.includes('gpt') || modelName.includes('openai')) return 'gpt';
   if (modelName.includes('claude') || modelName.includes('anthropic')) return 'claude';
@@ -39,12 +40,12 @@ const getModelCategory = (modelName: string): ModelInfo['category'] => {
 // Helper function to determine if a model should be marked as recommended
 const isRecommendedModel = (modelName: string): boolean => {
   const recommendedModels = [
+    'llama3.1:latest',
     'gemini-2.5-flash',
     'gemini-2.5-pro',
     'anthropic/claude-sonnet-4',
-    'anthropic/claude-3.5-sonnet',
-    'openai/gpt-4o',
-    'moonshotai/kimi-k2-instruct'
+    'openai/gpt-4.1',
+    'moonshotai/kimi-k2.5'
   ];
   return recommendedModels.includes(modelName);
 };
@@ -52,6 +53,7 @@ const isRecommendedModel = (modelName: string): boolean => {
 // Helper function to determine if a model should be marked as new
 const isNewModel = (modelName: string): boolean => {
   const newModels = [
+    'llama3.1:latest',
     'gemini-3-pro-preview',
     'gemini-3-flash-preview',
     'anthropic/claude-sonnet-4',
@@ -260,7 +262,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
           (config.id && config.id.startsWith('system-config-')) ||
           config.variationName.includes('System configuration:') ||
           // Also include configs that look like system configs based on naming patterns
-          (config.id && ['gemini-1-5-pro', 'gemini-2-5-pro', 'kimi-k2', 'claude-3-5-sonnet', 'gpt-4o'].includes(config.id))
+          (config.id && ['gemini-2-5-pro', 'kimi-k2', 'claude-3-5-sonnet', 'gpt-4o'].includes(config.id))
         );
 
         const models = systemConfigs.map(transformConfigurationToModel);

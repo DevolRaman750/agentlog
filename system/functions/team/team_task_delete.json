@@ -1,9 +1,10 @@
 {
-  "id": "func-team_task_delete-1754848301",
+  "id": "func-team_task_delete-1754910004",
   "name": "team_task_delete",
   "provider": "internal",
   "display_name": "Team Task: Delete",
-  "description": "Delete a specific task from the team's task memory by task ID. This permanently removes the task from the team's shared task list.",
+  "description": "Permanently delete a task from the team's task system. This removes the task and breaks any parent-child or dependency relationships. Use with caution as this action cannot be undone. Typically used for tasks created in error or duplicates.",
+  "function_group": "internal",
   "endpoint": {
     "path": "/internal/team/task/delete",
     "method": "POST"
@@ -13,28 +14,24 @@
     "properties": {
       "task_id": {
         "type": "string",
-        "description": "The unique ID of the task to delete"
-      },
-      "reason": {
-        "type": "string",
-        "description": "Optional reason for deleting the task (for logging/audit purposes)"
+        "description": "Unique identifier of the task to delete"
       }
     },
-    "required": ["task_id"]
+    "required": [
+      "task_id"
+    ]
   },
   "examples": [
     {
-      "name": "Delete completed task",
+      "name": "Delete a duplicate task",
       "parameters": {
-        "task_id": "task_abc123",
-        "reason": "Task completed successfully"
+        "task_id": "task_dup_999"
       }
     },
     {
-      "name": "Delete obsolete task",
+      "name": "Delete a task created in error",
       "parameters": {
-        "task_id": "task_def456",
-        "reason": "Requirements changed, task no longer needed"
+        "task_id": "task_err_001"
       }
     }
   ]

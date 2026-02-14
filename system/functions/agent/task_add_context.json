@@ -1,0 +1,62 @@
+{
+  "id": "func-task_add_context-1754900006",
+  "name": "task_add_context",
+  "provider": "internal",
+  "function_group": "internal",
+  "display_name": "Task: Add Context",
+  "description": "Add a typed context source to an existing task. Context sources provide the task with relevant external data from integrations like GitHub, Slack, Jira, or custom sources. Each context source has a type and structured data payload. Multiple context sources can be attached to a single task.",
+  "endpoint": {
+    "path": "/internal/task/add-context",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "task_id": {
+        "type": "string",
+        "description": "Unique identifier of the task to add context to"
+      },
+      "context_type": {
+        "type": "string",
+        "enum": ["github", "slack", "jira", "custom"],
+        "description": "Type of context source being added"
+      },
+      "context_data": {
+        "type": "object",
+        "description": "Typed context data specific to the context_type. For 'github': repository, issue_number, pr_number, etc. For 'slack': channel, thread_ts, etc. For 'jira': project_key, issue_key, etc. For 'custom': any structured data."
+      }
+    },
+    "required": [
+      "task_id",
+      "context_type",
+      "context_data"
+    ]
+  },
+  "examples": [
+    {
+      "name": "Add GitHub context to a task",
+      "parameters": {
+        "task_id": "task-abc-123",
+        "context_type": "github",
+        "context_data": {
+          "repository": "acme/backend-api",
+          "issue_number": 342,
+          "labels": ["bug", "performance"],
+          "branch": "fix/search-latency"
+        }
+      }
+    },
+    {
+      "name": "Add Slack conversation context",
+      "parameters": {
+        "task_id": "task-abc-123",
+        "context_type": "slack",
+        "context_data": {
+          "channel": "#incident-response",
+          "thread_ts": "1707234567.123456",
+          "summary": "Team discussion about search latency spike with initial triage notes"
+        }
+      }
+    }
+  ]
+}

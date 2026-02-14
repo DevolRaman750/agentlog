@@ -18,6 +18,7 @@ export type TabParamList = {
   Agents: { prefilledAgent?: any } | undefined;
   Marketplace: undefined;
   More: undefined;
+  Tasks: { teamId?: string; agentId?: string; teamName?: string; agentName?: string } | undefined;
   TemplateTokenManager: { templateId: string; templateName: string };
   TeamDetail: { teamId: string; teamName?: string };
 };
@@ -868,4 +869,6 @@ export interface TeamMemoryResponse {
   results?: MemorySearchResult[];
   metadata: MemoryMetadata;
   error?: string;
-} 
+}
+
+export * from './tasks';

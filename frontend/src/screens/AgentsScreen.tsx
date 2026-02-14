@@ -21,6 +21,8 @@ import AgentDetailView from '../components/AgentDetailView';
 import EditAgentForm from '../components/EditAgentForm';
 import AgentBusinessCard from '../components/AgentBusinessCard';
 import TeamCard from '../components/TeamCard';
+import CompactTeamRow from '../components/CompactTeamRow';
+import CompactAgentRow from '../components/CompactAgentRow';
 import AssignTeamModal from '../components/AssignTeamModal';
 import CreateTeamForm from '../components/CreateTeamForm';
 import { TeamMemoryViewer } from '../components/TeamMemoryViewer';
@@ -60,6 +62,8 @@ const AgentsScreen: React.FC = () => {
   const [prefilledAgentData, setPrefilledAgentData] = useState<any>(null);
   const [showSuccessTooltip, setShowSuccessTooltip] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<'compact' | 'cards'>('compact');
 
   // Show loading screen while auth is loading
   if (authLoading) {
@@ -149,6 +153,15 @@ const AgentsScreen: React.FC = () => {
 
           setTeamGroups(grouped);
           setUnassignedAgents(unassigned);
+
+          // Auto-expand teams with <= 2 agents
+          const autoExpand = new Set<string>();
+          grouped.forEach(g => {
+            if (g.agents.length <= 2) autoExpand.add(g.team.id);
+          });
+          if (unassigned.length > 0) autoExpand.add('__unassigned__');
+          setExpandedTeams(autoExpand);
+
           console.log('✅ Grouped data:', { teams: grouped.length, unassigned: unassigned.length });
         } else {
           // If teams failed to load, treat all agents as unassigned
@@ -510,6 +523,118 @@ const AgentsScreen: React.FC = () => {
     navigation.navigate('TeamDetail', { teamId, teamName });
   };
 
+  const handleNavigateToTeamTasks = (team: Team) => {
+    navigation.navigate('Tasks', { teamId: team.id, teamName: team.name });
+  };
+
+  const handleNavigateToAgentTasks = (agentId: string, agentName: string) => {
+    navigation.navigate('Tasks', { agentId, agentName });
+  };
+
+  const toggleTeamExpand = (teamId: string) => {
+    setExpandedTeams(prev => {
+      const next = new Set(prev);
+      if (next.has(teamId)) next.delete(teamId);
+      else next.add(teamId);
+      return next;
+    });
+  };
+
+  // Build flat list for compact view
+  type CompactListItem =
+    | { type: 'team'; team: Team; agents: Agent[] }
+    | { type: 'agent'; agent: Agent; indented: boolean }
+    | { type: 'unassigned-header' };
+
+  const buildCompactList = (): CompactListItem[] => {
+    const items: CompactListItem[] = [];
+    teamGroups.forEach(group => {
+      items.push({ type: 'team', team: group.team, agents: group.agents });
+      if (expandedTeams.has(group.team.id)) {
+        group.agents.forEach(agent => {
+          items.push({ type: 'agent', agent, indented: true });
+        });
+      }
+    });
+    if (unassignedAgents.length > 0) {
+      items.push({ type: 'unassigned-header' });
+      if (expandedTeams.has('__unassigned__')) {
+        unassignedAgents.forEach(agent => {
+          items.push({ type: 'agent', agent, indented: false });
+        });
+      }
+    }
+    return items;
+  };
+
+  const renderCompactItem = ({ item }: { item: CompactListItem }) => {
+    if (item.type === 'team') {
+      return (
+        <CompactTeamRow
+          team={item.team}
+          agents={item.agents}
+          isExpanded={expandedTeams.has(item.team.id)}
+          onToggleExpand={() => toggleTeamExpand(item.team.id)}
+          onTasksPress={handleNavigateToTeamTasks}
+          onMemoryPress={handleTeamMemoryPress}
+          onNavigateToTeam={handleNavigateToTeam}
+        />
+      );
+    }
+    if (item.type === 'unassigned-header') {
+      return (
+        <TouchableOpacity
+          style={styles.compactUnassignedHeader}
+          onPress={() => toggleTeamExpand('__unassigned__')}
+          activeOpacity={0.7}
+        >
+          <View style={styles.compactUnassignedLeft}>
+            <Ionicons
+              name={expandedTeams.has('__unassigned__') ? 'chevron-down' : 'chevron-forward'}
+              size={16}
+              color={colors.textSecondary}
+            />
+            <Text style={styles.compactUnassignedTitle}>Unassigned</Text>
+            <View style={styles.compactUnassignedBadge}>
+              <Text style={styles.compactUnassignedBadgeText}>{unassignedAgents.length}</Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={styles.compactCreateTeamBtn}
+            onPress={(e) => { e.stopPropagation(); setShowCreateTeamModal(true); }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="add" size={14} color={colors.statusSuccess} />
+            <Text style={styles.compactCreateTeamText}>Team</Text>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      );
+    }
+    // type === 'agent'
+    return (
+      <CompactAgentRow
+        agent={item.agent}
+        indented={item.indented}
+        onPress={() => {
+          setSelectedAgent(item.agent);
+          setShowDetailModal(true);
+        }}
+        onExecuteNow={() => handleExecuteAgentNow(item.agent)}
+        onEdit={() => {
+          setSelectedAgent(item.agent);
+          setShowEditModal(true);
+        }}
+        onViewMemory={() => handleAgentMemoryPress(item.agent)}
+      />
+    );
+  };
+
+  const getCompactItemKey = (item: CompactListItem): string => {
+    if (item.type === 'team') return `team-${item.team.id}`;
+    if (item.type === 'unassigned-header') return 'unassigned-header';
+    return `agent-${item.agent.id}`;
+  };
+
   const renderTeamSection = ({ item: teamGroup }: { item: TeamWithAgents }) => (
     <View key={teamGroup.team.id} style={styles.teamSection}>
       <TeamCard
@@ -518,6 +643,7 @@ const AgentsScreen: React.FC = () => {
         onTeamUpdate={loadAgents}
         onMemoryPress={handleTeamMemoryPress}
         onNavigateToTeam={handleNavigateToTeam}
+        onTasksPress={handleNavigateToTeamTasks}
       />
       <View style={styles.teamAgentsContainer}>
         {teamGroup.agents.map(agent => (
@@ -688,12 +814,27 @@ const AgentsScreen: React.FC = () => {
     <ScreenContainer>
       <View style={[styles.header, isCompact && styles.headerCompact]}>
         <Text style={[styles.title, isCompact && styles.titleCompact]}>My Agents</Text>
-        <TouchableOpacity
-          style={[styles.headerButton, isCompact && styles.headerButtonCompact]}
-          onPress={() => setShowCreateModal(true)}
-        >
-          <Ionicons name="add" size={isCompact ? 20 : 24} color={colors.statusSuccess} />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          {agents.length > 0 && (
+            <TouchableOpacity
+              style={styles.viewModeToggle}
+              onPress={() => setViewMode(prev => prev === 'compact' ? 'cards' : 'compact')}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons
+                name={viewMode === 'compact' ? 'grid-outline' : 'list-outline'}
+                size={20}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={[styles.headerButton, isCompact && styles.headerButtonCompact]}
+            onPress={() => setShowCreateModal(true)}
+          >
+            <Ionicons name="add" size={isCompact ? 20 : 24} color={colors.statusSuccess} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Show empty state if no agents */}
@@ -705,6 +846,17 @@ const AgentsScreen: React.FC = () => {
         >
           {renderEmptyState()}
         </ScrollView>
+      ) : viewMode === 'compact' ? (
+        <FlatList
+          data={buildCompactList()}
+          renderItem={renderCompactItem}
+          keyExtractor={getCompactItemKey}
+          contentContainerStyle={styles.compactListContent}
+          refreshControl={
+            <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+          }
+          showsVerticalScrollIndicator={false}
+        />
       ) : (
         <FlatList
           data={[
@@ -780,6 +932,11 @@ const AgentsScreen: React.FC = () => {
               setShowDetailModal(false);
               setSelectedAgent(null);
               handleNavigateToExecution(executionId);
+            }}
+            onViewAllTasks={(agentId, agentName) => {
+              setShowDetailModal(false);
+              setSelectedAgent(null);
+              handleNavigateToAgentTasks(agentId, agentName);
             }}
           />
         )}
@@ -1076,6 +1233,72 @@ const createStyles = (colors: ThemeColors) => ({
   },
   unassignedAgentCard: {
     marginBottom: 12,
+  },
+  // Compact view styles
+  headerActions: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+  },
+  viewModeToggle: {
+    padding: 8,
+  },
+  compactListContent: {
+    paddingBottom: 100,
+  },
+  compactUnassignedHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    height: 56,
+    paddingHorizontal: 16,
+    backgroundColor: colors.bgSurface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderSubtle,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderSubtle,
+    marginTop: 8,
+  },
+  compactUnassignedLeft: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 10,
+  },
+  compactUnassignedTitle: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: colors.textSecondary,
+  },
+  compactUnassignedBadge: {
+    backgroundColor: colors.bgCard,
+    borderRadius: 10,
+    paddingHorizontal: 7,
+    paddingVertical: 1,
+    minWidth: 22,
+    alignItems: 'center' as const,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+  },
+  compactUnassignedBadgeText: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: colors.textSecondary,
+  },
+  compactCreateTeamBtn: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.40)',
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+  },
+  compactCreateTeamText: {
+    fontSize: 12,
+    color: colors.statusSuccess,
+    fontWeight: '600' as const,
   },
 });
 

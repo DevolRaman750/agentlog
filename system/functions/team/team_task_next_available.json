@@ -1,0 +1,23 @@
+{
+  "id": "func-team_task_next_available-1754910015",
+  "name": "team_task_next_available",
+  "provider": "internal",
+  "display_name": "Team Task: Next Available",
+  "description": "Find the next task that is available for execution. Returns the highest-priority non-completed, non-failed task with all dependencies satisfied and no blockers. Compiled tasks are preferred, then defining, then others. Use this when an agent is ready to pick up new work and wants the system to recommend the most important actionable task. Team context is automatically inferred from the agent's team membership.",
+  "function_group": "internal",
+  "endpoint": {
+    "path": "/internal/team/task/next_available",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "examples": [
+    {
+      "name": "Get the next available task for execution",
+      "parameters": {}
+    }
+  ]
+}

@@ -53,16 +53,12 @@ func (p *KimiProvider) GetSupportedModels() []string {
 	return []string{
 		// Anthropic Claude models
 		"anthropic/claude-sonnet-4",
-		"anthropic/claude-3.5-sonnet",
-		"anthropic/claude-3.7-sonnet",
-		"anthropic/claude-3-haiku",
 		// OpenAI models
 		"openai/gpt-4o",
-		"openai/gpt-4o-mini",
 		"openai/gpt-4.1",
 		// Kimi models
 		"moonshotai/kimi-k2",
-		"moonshotai/kimi-k2-instruct",
+		"moonshotai/kimi-k2.5",
 		// Meta Llama models (free tier)
 		"meta-llama/llama-3.1-8b-instruct:free",
 		"meta-llama/llama-3.1-70b-instruct:free",
@@ -161,11 +157,42 @@ func (p *KimiProvider) buildMessages(request *ModelRequest, systemPrompt string)
 
 	// Add conversation history if available
 	for _, msg := range request.ConversationHistory {
-		message := map[string]interface{}{
-			"role":    msg.Role,
-			"content": msg.Content,
+		if msg.Role == "assistant" && len(msg.ToolCalls) > 0 {
+			// Assistant message with tool calls — emit in OpenAI format
+			toolCalls := make([]map[string]interface{}, len(msg.ToolCalls))
+			for i, tc := range msg.ToolCalls {
+				argsJSON, _ := json.Marshal(tc.Function.Args)
+				toolCalls[i] = map[string]interface{}{
+					"id":   tc.ID,
+					"type": "function",
+					"function": map[string]interface{}{
+						"name":      tc.Function.Name,
+						"arguments": string(argsJSON),
+					},
+				}
+			}
+			message := map[string]interface{}{
+				"role":       "assistant",
+				"tool_calls": toolCalls,
+			}
+			if msg.Content != "" {
+				message["content"] = msg.Content
+			}
+			messages = append(messages, message)
+		} else if msg.Role == "tool" && msg.ToolCallID != "" {
+			// Tool response message — emit with tool_call_id
+			messages = append(messages, map[string]interface{}{
+				"role":         "tool",
+				"tool_call_id": msg.ToolCallID,
+				"content":      msg.Content,
+			})
+		} else {
+			message := map[string]interface{}{
+				"role":    msg.Role,
+				"content": msg.Content,
+			}
+			messages = append(messages, message)
 		}
-		messages = append(messages, message)
 	}
 
 	// Build user message with context
@@ -331,7 +358,11 @@ func (p *KimiProvider) parseKimiResponse(response map[string]interface{}, durati
 				}
 			}
 
+			// Extract tool_call_id
+		toolCallID, _ := tc["id"].(string)
+
 			functionCalls = append(functionCalls, FunctionCall{
+				ID:   toolCallID,
 				Name: name,
 				Args: args,
 			})

@@ -1,0 +1,63 @@
+{
+  "id": "func-team_task_add_context-1754910006",
+  "name": "team_task_add_context",
+  "provider": "internal",
+  "display_name": "Team Task: Add Context",
+  "description": "Add a new context source to an existing task. Context sources provide external references and background information from integrations like GitHub, Slack, Jira, or custom data. Use this to enrich a task with additional information discovered during planning or execution.",
+  "function_group": "internal",
+  "endpoint": {
+    "path": "/internal/team/task/add_context",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "task_id": {
+        "type": "string",
+        "description": "Unique identifier of the task to add context to"
+      },
+      "context_type": {
+        "type": "string",
+        "enum": ["github", "slack", "jira", "custom"],
+        "description": "Type of context source being added"
+      },
+      "context_data": {
+        "type": "object",
+        "description": "Source-specific data payload containing references, content, or configuration"
+      }
+    },
+    "required": [
+      "task_id",
+      "context_type",
+      "context_data"
+    ]
+  },
+  "examples": [
+    {
+      "name": "Add GitHub issue context to a task",
+      "parameters": {
+        "task_id": "task_abc123",
+        "context_type": "github",
+        "context_data": {
+          "repository": "org/backend-api",
+          "issue_number": 203,
+          "title": "Login fails with expired refresh token",
+          "labels": ["bug", "auth"]
+        }
+      }
+    },
+    {
+      "name": "Add Slack conversation context to a task",
+      "parameters": {
+        "task_id": "task_abc123",
+        "context_type": "slack",
+        "context_data": {
+          "channel_id": "C0123ABCD",
+          "channel_name": "engineering",
+          "thread_ts": "1704153600.000200",
+          "summary": "Team discussion about auth flow requirements"
+        }
+      }
+    }
+  ]
+}

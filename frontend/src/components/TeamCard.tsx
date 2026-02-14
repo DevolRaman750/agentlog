@@ -21,6 +21,7 @@ interface TeamCardProps {
   onTeamPress?: (team: Team) => void;
   onMemoryPress?: (team: Team) => void;
   onNavigateToTeam?: (teamId: string, teamName: string) => void;
+  onTasksPress?: (team: Team) => void;
 }
 
 const createStyles = (colors: ThemeColors) => ({
@@ -88,6 +89,10 @@ const createStyles = (colors: ThemeColors) => ({
   memoryButton: {
     borderColor: 'rgba(251, 191, 36, 0.40)',
     backgroundColor: 'rgba(251, 191, 36, 0.15)',
+  },
+  tasksButton: {
+    borderColor: 'rgba(59, 130, 246, 0.40)',
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
   },
   contextButton: {
     borderColor: 'rgba(139, 92, 246, 0.40)',
@@ -184,7 +189,8 @@ const TeamCard: React.FC<TeamCardProps> = ({
   onTeamUpdate,
   onTeamPress,
   onMemoryPress,
-  onNavigateToTeam
+  onNavigateToTeam,
+  onTasksPress,
 }) => {
   // Early return if team is not provided
   if (!team) {
@@ -342,6 +348,17 @@ const TeamCard: React.FC<TeamCardProps> = ({
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Ionicons name="eye" size={16} color={colors.statusSuccess} />
+            </TouchableOpacity>
+          )}
+
+          {/* Tasks Button */}
+          {onTasksPress && (
+            <TouchableOpacity
+              style={[styles.controlButton, styles.tasksButton]}
+              onPress={() => onTasksPress(team)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="clipboard-outline" size={16} color={colors.accent} />
             </TouchableOpacity>
           )}
 

@@ -1,0 +1,38 @@
+{
+  "id": "func-task_get_blockers-1754900014",
+  "name": "task_get_blockers",
+  "provider": "internal",
+  "function_group": "internal",
+  "display_name": "Task: Get Blockers",
+  "description": "Get the list of incomplete dependency tasks that are currently blocking a task from progressing. Returns only dependencies that have not yet reached the 'completed' state. Use this to understand what must be finished before a task can move to 'in_progress'.",
+  "endpoint": {
+    "path": "/internal/task/get-blockers",
+    "method": "GET"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "task_id": {
+        "type": "string",
+        "description": "Unique identifier of the task to check for blockers"
+      }
+    },
+    "required": [
+      "task_id"
+    ]
+  },
+  "examples": [
+    {
+      "name": "Check what is blocking a task",
+      "parameters": {
+        "task_id": "task-deploy-staging"
+      }
+    },
+    {
+      "name": "Check blockers before starting work",
+      "parameters": {
+        "task_id": "task-integration-test"
+      }
+    }
+  ]
+}

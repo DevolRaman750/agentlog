@@ -1,0 +1,72 @@
+{
+  "id": "func-task_update_context-1754900007",
+  "name": "task_update_context",
+  "provider": "internal",
+  "function_group": "internal",
+  "display_name": "Task: Update Context",
+  "description": "Update an existing context source on a task by its index. Replaces the context entry at the specified position with the new type and data. Use task_get to inspect the current context_sources array and determine the correct index before updating.",
+  "endpoint": {
+    "path": "/internal/task/update-context",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "task_id": {
+        "type": "string",
+        "description": "Unique identifier of the task containing the context to update"
+      },
+      "context_index": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Zero-based index of the context source to update in the task's context_sources array"
+      },
+      "context_type": {
+        "type": "string",
+        "enum": ["github", "slack", "jira", "custom"],
+        "description": "Updated type of the context source"
+      },
+      "context_data": {
+        "type": "object",
+        "description": "Updated typed context data for the source"
+      }
+    },
+    "required": [
+      "task_id",
+      "context_index",
+      "context_type",
+      "context_data"
+    ]
+  },
+  "examples": [
+    {
+      "name": "Update GitHub context with PR information",
+      "parameters": {
+        "task_id": "task-abc-123",
+        "context_index": 0,
+        "context_type": "github",
+        "context_data": {
+          "repository": "acme/backend-api",
+          "issue_number": 342,
+          "pr_number": 187,
+          "labels": ["bug", "performance", "in-review"],
+          "branch": "fix/search-latency"
+        }
+      }
+    },
+    {
+      "name": "Update custom context with new findings",
+      "parameters": {
+        "task_id": "task-def-456",
+        "context_index": 1,
+        "context_type": "custom",
+        "context_data": {
+          "source": "profiling_tool",
+          "findings": "N+1 query detected in SearchHandler.execute()",
+          "query_count": 847,
+          "expected_query_count": 3
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "id": "func-task_get-1754900002",
+  "name": "task_get",
+  "provider": "internal",
+  "function_group": "internal",
+  "display_name": "Task: Get",
+  "description": "Retrieve the full details of a structured task by its ID. Returns the task's current state, context sources, dependencies, results, and all metadata. Use this to inspect a task's status and data before making decisions or transitions.",
+  "endpoint": {
+    "path": "/internal/task/get",
+    "method": "GET"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "task_id": {
+        "type": "string",
+        "description": "Unique identifier of the task to retrieve"
+      }
+    },
+    "required": [
+      "task_id"
+    ]
+  },
+  "examples": [
+    {
+      "name": "Get a task by ID",
+      "parameters": {
+        "task_id": "task-abc-123"
+      }
+    },
+    {
+      "name": "Get a subtask to check its state",
+      "parameters": {
+        "task_id": "task-sub-456"
+      }
+    }
+  ]
+}

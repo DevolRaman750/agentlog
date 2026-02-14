@@ -18,6 +18,7 @@ import (
 	"gogent/internal/db"
 	"gogent/internal/gogent"
 	"gogent/internal/heartbeat"
+	"gogent/internal/tasks"
 	"gogent/internal/teams"
 	"gogent/internal/templates"
 	"gogent/internal/types"
@@ -38,6 +39,7 @@ type Server struct {
 	templateIntegration *templates.TemplateIntegration
 	agentsHandler       *agents.Handler
 	teamsHandler        *teams.Handler
+	tasksHandler        *tasks.Handler
 	apiKeysService      *apikeys.Service
 	apiKeysHandler      *apikeys.Handler
 	heartbeatExecutor   *heartbeat.Executor
@@ -113,6 +115,12 @@ func NewServer() (*Server, error) {
 		return nil, fmt.Errorf("failed to create gogent client: %w", err)
 	}
 
+	// Run database migrations automatically on startup
+	if err := client.RunMigrations(); err != nil {
+		log.Printf("⚠️ Failed to run migrations: %v", err)
+		// Continue anyway - some migrations may already be applied
+	}
+
 	// Sync system specifications from JSON files to database
 	if err := client.SyncSystemSpecs(context.Background()); err != nil {
 		log.Printf("⚠️ Failed to sync system specs: %v", err)
@@ -135,6 +143,9 @@ func NewServer() (*Server, error) {
 	// Create teams handler
 	teamsHandler := teams.NewTeamsHandler(client.GetDB())
 
+	// Create tasks handler (structured task system)
+	tasksHandler := tasks.NewHandler(client.GetDB())
+
 	// Create API key service and handler
 	apiKeysService, err := apikeys.NewService(client.GetDB())
 	if err != nil {
@@ -155,6 +166,7 @@ func NewServer() (*Server, error) {
 		templateIntegration: templateIntegration,
 		agentsHandler:       agentsHandler,
 		teamsHandler:        teamsHandler,
+		tasksHandler:        tasksHandler,
 		apiKeysService:      apiKeysService,
 		apiKeysHandler:      apiKeysHandler,
 		heartbeatExecutor:   heartbeatExecutor,
@@ -2054,6 +2066,11 @@ func runServer() {
 	// Protected team management endpoints
 	mux.Handle("/api/teams", authMiddleware(http.HandlerFunc(server.teamsHandler.HandleTeams)))
 	mux.Handle("/api/teams/", authMiddleware(http.HandlerFunc(server.teamsHandler.HandleTeamByID)))
+
+	// Protected structured task system endpoints
+	mux.Handle("/api/tasks/next-available", authMiddleware(http.HandlerFunc(server.tasksHandler.HandleNextAvailable)))
+	mux.Handle("/api/tasks", authMiddleware(http.HandlerFunc(server.tasksHandler.HandleTasks)))
+	mux.Handle("/api/tasks/", authMiddleware(http.HandlerFunc(server.tasksHandler.HandleTaskByID)))
 
 	// Protected API key management endpoints
 	apiKeyMux := http.NewServeMux()

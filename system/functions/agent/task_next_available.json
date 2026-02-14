@@ -1,0 +1,37 @@
+{
+  "id": "func-task_next_available-1754900015",
+  "name": "task_next_available",
+  "provider": "internal",
+  "function_group": "internal",
+  "display_name": "Task: Next Available",
+  "description": "Get the next workable task based on priority, dependency resolution, and optional filters. Returns the highest-priority task that has all dependencies satisfied and is ready to transition to 'in_progress'. Use this for automated task picking and work queue management.",
+  "endpoint": {
+    "path": "/internal/task/next-available",
+    "method": "GET"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "team_id": {
+        "type": "string",
+        "description": "Optional team ID to scope the search to tasks within a specific team"
+      },
+      "agent_id": {
+        "type": "string",
+        "description": "Optional agent ID to prefer tasks assigned to a specific agent or to scope unassigned tasks"
+      }
+    }
+  },
+  "examples": [
+    {
+      "name": "Get next available task for any agent",
+      "parameters": {}
+    },
+    {
+      "name": "Get next available task for a specific agent",
+      "parameters": {
+        "agent_id": "agent-backend-dev-01"
+      }
+    }
+  ]
+}

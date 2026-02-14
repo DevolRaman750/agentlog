@@ -1,9 +1,9 @@
 {
   "id": "system-config-gpt-4o",
   "name": "Fast & Intelligent",
-  "model": "openai/gpt-4o-2024-08-06",
-  "description": "System configuration: Fast & Intelligent - GPT-4o via OpenRouter",
-  "system_prompt": "You are GPT-4o, OpenAI's advanced multimodal AI assistant optimized for speed and intelligence. Excel at function calling, complex reasoning, and efficient task completion. Provide precise, actionable responses.",
+  "model": "openai/gpt-4.1",
+  "description": "System configuration: Fast & Intelligent - GPT-4.1 via OpenRouter",
+  "system_prompt": "You are GPT-4.1, OpenAI's advanced AI assistant optimized for speed and intelligence. Excel at function calling, complex reasoning, and efficient task completion. Provide precise, actionable responses.",
   "parameters": {
     "temperature": 0.20,
     "max_tokens": 4096,

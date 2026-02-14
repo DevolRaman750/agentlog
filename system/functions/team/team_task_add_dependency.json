@@ -1,0 +1,45 @@
+{
+  "id": "func-team_task_add_dependency-1754910012",
+  "name": "team_task_add_dependency",
+  "provider": "internal",
+  "display_name": "Team Task: Add Dependency",
+  "description": "Add a dependency relationship between two tasks, indicating that one task must be completed before another can begin. The specified task will depend on the completion of the depends_on_id task. Circular dependencies are detected and rejected. Use this to enforce execution ordering in the team's task workflow.",
+  "function_group": "internal",
+  "endpoint": {
+    "path": "/internal/team/task/add_dependency",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "task_id": {
+        "type": "string",
+        "description": "Unique identifier of the task that will be blocked until the dependency is completed"
+      },
+      "depends_on_id": {
+        "type": "string",
+        "description": "Unique identifier of the task that must be completed first"
+      }
+    },
+    "required": [
+      "task_id",
+      "depends_on_id"
+    ]
+  },
+  "examples": [
+    {
+      "name": "Make integration tests depend on unit tests",
+      "parameters": {
+        "task_id": "task_integration_tests",
+        "depends_on_id": "task_unit_tests"
+      }
+    },
+    {
+      "name": "Make deployment depend on code review",
+      "parameters": {
+        "task_id": "task_deploy_staging",
+        "depends_on_id": "task_code_review"
+      }
+    }
+  ]
+}

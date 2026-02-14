@@ -1,0 +1,45 @@
+{
+  "id": "func-task_remove_dependency-1754900013",
+  "name": "task_remove_dependency",
+  "provider": "internal",
+  "function_group": "internal",
+  "display_name": "Task: Remove Dependency",
+  "description": "Remove an ordering dependency between two tasks. After removal, the task specified by task_id will no longer be blocked by the task specified by depends_on_id. Use this when a dependency is no longer relevant or was added in error.",
+  "endpoint": {
+    "path": "/internal/task/remove-dependency",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "task_id": {
+        "type": "string",
+        "description": "Unique identifier of the dependent task"
+      },
+      "depends_on_id": {
+        "type": "string",
+        "description": "Unique identifier of the dependency task to remove"
+      }
+    },
+    "required": [
+      "task_id",
+      "depends_on_id"
+    ]
+  },
+  "examples": [
+    {
+      "name": "Remove a no-longer-needed dependency",
+      "parameters": {
+        "task_id": "task-deploy-staging",
+        "depends_on_id": "task-run-test-suite"
+      }
+    },
+    {
+      "name": "Unblock a task by removing dependency",
+      "parameters": {
+        "task_id": "task-write-docs",
+        "depends_on_id": "task-api-finalized"
+      }
+    }
+  ]
+}

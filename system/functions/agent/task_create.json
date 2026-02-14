@@ -1,0 +1,112 @@
+{
+  "id": "func-task_create-1754900001",
+  "name": "task_create",
+  "provider": "internal",
+  "function_group": "internal",
+  "display_name": "Task: Create",
+  "description": "Create a new structured task. Tasks support hierarchical decomposition via parent_task_id, typed context sources for gathering relevant data, dependency ordering, and priority-based scheduling. The task starts in the 'defining' state and must be transitioned through its lifecycle.",
+  "endpoint": {
+    "path": "/internal/task/create",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "title": {
+        "type": "string",
+        "description": "Brief, descriptive title for the task"
+      },
+      "description": {
+        "type": "string",
+        "description": "Detailed description of what needs to be accomplished"
+      },
+      "parent_task_id": {
+        "type": "string",
+        "description": "ID of the parent task if this is a subtask, enabling hierarchical task decomposition"
+      },
+      "priority": {
+        "type": "string",
+        "enum": ["low", "medium", "high", "urgent"],
+        "default": "medium",
+        "description": "Task priority level for scheduling and ordering"
+      },
+      "context_sources": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Context source type (e.g., 'github', 'slack', 'jira', 'custom')"
+            },
+            "data": {
+              "type": "object",
+              "description": "Typed context data specific to the source type"
+            }
+          },
+          "required": ["type", "data"]
+        },
+        "description": "Array of typed context sources to attach to the task at creation time"
+      },
+      "dependencies": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of task IDs that must be completed before this task can start"
+      },
+      "estimated_duration": {
+        "type": "string",
+        "description": "Estimated time to complete (e.g., '30 minutes', '2 hours', '1 day')"
+      },
+      "deadline": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Optional deadline for task completion in ISO 8601 format"
+      },
+      "metadata": {
+        "type": "object",
+        "description": "Additional task-specific data or context as key-value pairs"
+      }
+    },
+    "required": [
+      "title"
+    ]
+  },
+  "examples": [
+    {
+      "name": "Create a simple task",
+      "parameters": {
+        "title": "Investigate API latency spike",
+        "description": "Investigate the root cause of the 3x latency increase on the /api/search endpoint observed since last deployment",
+        "priority": "high",
+        "estimated_duration": "2 hours",
+        "context_sources": [
+          {
+            "type": "github",
+            "data": {
+              "repository": "acme/backend-api",
+              "issue_number": 342
+            }
+          }
+        ],
+        "metadata": {
+          "team": "platform",
+          "triggered_by": "monitoring_alert"
+        }
+      }
+    },
+    {
+      "name": "Create a subtask with dependencies",
+      "parameters": {
+        "title": "Write unit tests for auth module refactor",
+        "description": "Create comprehensive unit tests covering the new OAuth2 flow, token refresh logic, and error handling paths",
+        "parent_task_id": "task-abc-123",
+        "priority": "medium",
+        "dependencies": ["task-def-456"],
+        "estimated_duration": "3 hours",
+        "deadline": "2024-02-15T17:00:00Z"
+      }
+    }
+  ]
+}

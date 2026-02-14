@@ -61,6 +61,7 @@ func TestSmokeAPI(t *testing.T) {
 		// Test that our ResponsePart structure works as expected
 		responsePart := ResponsePart{
 			FunctionCall: struct {
+				ID   string                 `json:"id,omitempty"`
 				Name string                 `json:"name"`
 				Args map[string]interface{} `json:"args"`
 			}{
@@ -145,10 +146,12 @@ func TestExecutionFlow(t *testing.T) {
 		// Test the completion detection logic we added
 		functionCalls := []ResponsePart{
 			{FunctionCall: struct {
+				ID   string                 `json:"id,omitempty"`
 				Name string                 `json:"name"`
 				Args map[string]interface{} `json:"args"`
 			}{Name: "slack_find_channel", Args: nil}},
 			{FunctionCall: struct {
+				ID   string                 `json:"id,omitempty"`
 				Name string                 `json:"name"`
 				Args map[string]interface{} `json:"args"`
 			}{Name: "slack_read_messages", Args: nil}},
@@ -182,22 +185,27 @@ func TestExecutionFlow(t *testing.T) {
 			// Create 5 calls with 4 being the same function (should trigger detection)
 			functionCalls := []ResponsePart{
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "slack_read_messages", Args: map[string]interface{}{"channel": "C123"}}},
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "slack_read_messages", Args: map[string]interface{}{"channel": "C123"}}},
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "slack_read_messages", Args: map[string]interface{}{"channel": "C123"}}},
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "slack_read_messages", Args: map[string]interface{}{"channel": "C123"}}},
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "github_get_issues", Args: nil}},
@@ -213,26 +221,32 @@ func TestExecutionFlow(t *testing.T) {
 			// Create 6 calls with alternating pattern (should trigger detection at depth 5+)
 			functionCalls := []ResponsePart{
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "team_task_list", Args: nil}},
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "slack_find_channel", Args: nil}},
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "team_task_list", Args: nil}},
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "slack_find_channel", Args: nil}},
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "team_task_list", Args: nil}},
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "slack_find_channel", Args: nil}},
@@ -250,6 +264,7 @@ func TestExecutionFlow(t *testing.T) {
 			for i := 0; i < 15; i++ {
 				functionCalls[i] = ResponsePart{
 					FunctionCall: struct {
+						ID   string                 `json:"id,omitempty"`
 						Name string                 `json:"name"`
 						Args map[string]interface{} `json:"args"`
 					}{Name: "test_function", Args: nil},
@@ -265,10 +280,12 @@ func TestExecutionFlow(t *testing.T) {
 		t.Run("No_Loop_Detection_For_Normal_Usage", func(t *testing.T) {
 			functionCalls := []ResponsePart{
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "slack_read_messages", Args: nil}},
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "github_get_issues", Args: nil}},

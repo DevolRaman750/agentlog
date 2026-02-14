@@ -49,6 +49,15 @@ export const linking: LinkingOptions<TabParamList> = {
         path: '/agents',
         exact: true,
       },
+      Tasks: {
+        path: '/tasks',
+        parse: {
+          teamId: (teamId: string) => teamId,
+          agentId: (agentId: string) => agentId,
+          teamName: (teamName: string) => decodeURIComponent(teamName),
+          agentName: (agentName: string) => decodeURIComponent(agentName),
+        },
+      },
       Marketplace: {
         path: '/marketplace',
         exact: true,
@@ -122,6 +131,7 @@ export const getInitialRouteName = (isAuthenticated: boolean, isLoading: boolean
       '/documentation/api-keys': 'Documentation',
       '/account': 'Account',
       '/agents': 'Agents',
+      '/tasks': 'Tasks',
       '/marketplace': 'Marketplace',
     };
 
@@ -172,6 +182,7 @@ export const getInitialRouteName = (isAuthenticated: boolean, isLoading: boolean
       '/documentation/api-keys': 'Documentation',
       '/account': 'Account',
       '/agents': 'Agents',
+      '/tasks': 'Tasks',
       '/marketplace': 'Marketplace',
     };
 

@@ -1,0 +1,77 @@
+{
+  "id": "func-task_update-1754900003",
+  "name": "task_update",
+  "provider": "internal",
+  "function_group": "internal",
+  "display_name": "Task: Update",
+  "description": "Update one or more fields on an existing structured task. Only the fields provided will be modified; all other fields remain unchanged. Use this for editing task metadata, reassigning agents, or adjusting priority and deadlines without changing the task's lifecycle state.",
+  "endpoint": {
+    "path": "/internal/task/update",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "task_id": {
+        "type": "string",
+        "description": "Unique identifier of the task to update"
+      },
+      "title": {
+        "type": "string",
+        "description": "Updated task title"
+      },
+      "description": {
+        "type": "string",
+        "description": "Updated task description"
+      },
+      "priority": {
+        "type": "string",
+        "enum": ["low", "medium", "high", "urgent"],
+        "description": "Updated priority level"
+      },
+      "agent_id": {
+        "type": "string",
+        "description": "ID of the agent assigned to this task"
+      },
+      "estimated_duration": {
+        "type": "string",
+        "description": "Updated estimated time to complete (e.g., '30 minutes', '2 hours')"
+      },
+      "deadline": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Updated deadline in ISO 8601 format"
+      },
+      "metadata": {
+        "type": "object",
+        "description": "Updated metadata object (merged with existing metadata)"
+      }
+    },
+    "required": [
+      "task_id"
+    ]
+  },
+  "examples": [
+    {
+      "name": "Escalate task priority and reassign",
+      "parameters": {
+        "task_id": "task-abc-123",
+        "priority": "urgent",
+        "agent_id": "agent-senior-dev-01",
+        "metadata": {
+          "escalated_by": "team_lead",
+          "escalation_reason": "Production impact"
+        }
+      }
+    },
+    {
+      "name": "Update task description and deadline",
+      "parameters": {
+        "task_id": "task-def-456",
+        "description": "Updated scope: Also include integration tests for the new webhook handler",
+        "deadline": "2024-02-20T17:00:00Z",
+        "estimated_duration": "4 hours"
+      }
+    }
+  ]
+}

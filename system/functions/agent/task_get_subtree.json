@@ -1,0 +1,38 @@
+{
+  "id": "func-task_get_subtree-1754900011",
+  "name": "task_get_subtree",
+  "provider": "internal",
+  "function_group": "internal",
+  "display_name": "Task: Get Subtree",
+  "description": "Get the full subtree of a task, including all descendants at every level of nesting. Returns a hierarchical tree structure rooted at the specified task. Use this for a complete view of a task's decomposition, progress tracking across all subtasks, and dependency analysis.",
+  "endpoint": {
+    "path": "/internal/task/get-subtree",
+    "method": "GET"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "task_id": {
+        "type": "string",
+        "description": "Unique identifier of the root task whose full subtree to retrieve"
+      }
+    },
+    "required": [
+      "task_id"
+    ]
+  },
+  "examples": [
+    {
+      "name": "Get full subtree for a project task",
+      "parameters": {
+        "task_id": "task-project-001"
+      }
+    },
+    {
+      "name": "Get subtree to check overall progress",
+      "parameters": {
+        "task_id": "task-epic-refactor-auth"
+      }
+    }
+  ]
+}

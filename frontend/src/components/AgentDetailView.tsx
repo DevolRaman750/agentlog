@@ -14,9 +14,11 @@ import { useTheme, useThemedStyles } from '../theme';
 import { goGentAPI } from '../api/client';
 import { AlertAPI } from './CustomAlert';
 import AgentAvatar from './AgentAvatar';
-import { Agent, ExecutionRun, LifecycleStatus } from '../types';
+import { Agent, ExecutionRun, LifecycleStatus, Task } from '../types';
 import { AgentMemoryViewer } from './AgentMemoryViewer';
 import AgentApiKeyManager from './AgentApiKeyManager';
+import TaskCard from './TaskCard';
+import TaskDetailView from './TaskDetailView';
 
 interface AgentDetailViewProps {
   agent: Agent;
@@ -26,6 +28,7 @@ interface AgentDetailViewProps {
   onRefresh?: () => void;
   onNavigateToTemplate?: (templateId: string) => void;
   onNavigateToExecution?: (executionId: string) => void;
+  onViewAllTasks?: (agentId: string, agentName: string) => void;
 }
 
 const AgentDetailView: React.FC<AgentDetailViewProps> = ({
@@ -35,7 +38,8 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({
   onDelete,
   onRefresh,
   onNavigateToTemplate,
-  onNavigateToExecution
+  onNavigateToExecution,
+  onViewAllTasks,
 }) => {
   const { colors } = useTheme();
   const [executions, setExecutions] = useState<ExecutionRun[]>([]);
@@ -51,6 +55,10 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({
   } | null>(null);
   const [showMemoryViewer, setShowMemoryViewer] = useState(false);
   const [showApiKeyManager, setShowApiKeyManager] = useState(false);
+  const [agentTasks, setAgentTasks] = useState<Task[]>([]);
+  const [isLoadingTasks, setIsLoadingTasks] = useState(false);
+  const [selectedTaskForDetail, setSelectedTaskForDetail] = useState<Task | null>(null);
+  const [showTaskDetailModal, setShowTaskDetailModal] = useState(false);
 
   const styles = useThemedStyles((colors) => ({
     container: {
@@ -438,7 +446,25 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({
 
   useEffect(() => {
     loadExecutions();
+    loadAgentTasks();
   }, [agent.id]);
+
+  const loadAgentTasks = async () => {
+    try {
+      setIsLoadingTasks(true);
+      const response = await goGentAPI.getTasks({ agent_id: agent.id, limit: 10 });
+      if (response.success && response.data?.tasks) {
+        setAgentTasks(response.data.tasks);
+      } else {
+        setAgentTasks([]);
+      }
+    } catch (err) {
+      console.error('Error loading agent tasks:', err);
+      setAgentTasks([]);
+    } finally {
+      setIsLoadingTasks(false);
+    }
+  };
 
   const loadExecutions = async () => {
     try {
@@ -823,6 +849,56 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({
           </View>
         </View>
 
+        {/* Assigned Tasks */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Assigned Tasks</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              {onViewAllTasks && agentTasks.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => onViewAllTasks(agent.id, agent.firstName)}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Text style={{ fontSize: 13, color: colors.accent, fontWeight: '500' }}>View All</Text>
+                </TouchableOpacity>
+              )}
+              {agentTasks.length > 0 && (
+                <TouchableOpacity
+                  onPress={loadAgentTasks}
+                  style={styles.refreshButton}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="refresh" size={20} color={colors.accent} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+          {isLoadingTasks ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={colors.accent} />
+              <Text style={styles.loadingText}>Loading tasks...</Text>
+            </View>
+          ) : agentTasks.length === 0 ? (
+            <View style={styles.emptyExecutions}>
+              <Ionicons name="clipboard-outline" size={32} color={colors.textSecondary} />
+              <Text style={styles.emptyExecutionsText}>No tasks assigned</Text>
+            </View>
+          ) : (
+            agentTasks.map(task => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                onPress={(t) => {
+                  setSelectedTaskForDetail(t);
+                  setShowTaskDetailModal(true);
+                }}
+              />
+            ))
+          )}
+        </View>
+
         {/* Execution History */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -922,6 +998,26 @@ const AgentDetailView: React.FC<AgentDetailViewProps> = ({
         visible={showApiKeyManager}
         onClose={() => setShowApiKeyManager(false)}
       />
+
+      {/* Task Detail Modal */}
+      <Modal visible={showTaskDetailModal} animationType="slide" presentationStyle="pageSheet">
+        {selectedTaskForDetail && (
+          <TaskDetailView
+            task={selectedTaskForDetail}
+            onClose={() => { setShowTaskDetailModal(false); setSelectedTaskForDetail(null); }}
+            onEdit={() => {}}
+            onDelete={async () => {
+              const response = await goGentAPI.deleteTask(selectedTaskForDetail.id);
+              if (response.success) {
+                setShowTaskDetailModal(false);
+                setSelectedTaskForDetail(null);
+                loadAgentTasks();
+              }
+            }}
+            onRefresh={loadAgentTasks}
+          />
+        )}
+      </Modal>
     </View>
   );
 };

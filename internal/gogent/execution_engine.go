@@ -479,9 +479,11 @@ func (c *Client) callGeminiAPI(ctx context.Context, config *types.APIConfigurati
 		for i, fc := range providerResponse.FunctionCalls {
 			responseParts[i] = ResponsePart{
 				FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{
+					ID:   fc.ID,
 					Name: fc.Name,
 					Args: fc.Args,
 				},
@@ -580,6 +582,7 @@ func (c *Client) callGeminiRestAPI(ctx context.Context, config *types.APIConfigu
 				for i, fc := range fcArray {
 					responseParts[i] = ResponsePart{
 						FunctionCall: struct {
+							ID   string                 `json:"id,omitempty"`
 							Name string                 `json:"name"`
 							Args map[string]interface{} `json:"args"`
 						}{
@@ -735,8 +738,8 @@ func (c *Client) processIterativeFunctionCallsWithProvider(ctx context.Context, 
 		synthesisPrompt += "\n"
 	}
 
-	synthesisPrompt += "**TASK:** Analyze the function results above and provide a comprehensive response that addresses the user's request. Use the data you've gathered to complete the requested actions.\n\n"
-	synthesisPrompt += "**IMPORTANT: Respond in natural language. Summarize what you found and what actions you took to fulfill the user's request.**"
+	synthesisPrompt += "**TASK:** Continue your workflow to fulfill the user's request. Review the function results above. If you need to call additional functions to complete the task, do so now. Only provide a final natural language summary when all necessary actions are complete.\n\n"
+	synthesisPrompt += "**IMPORTANT: If more function calls are needed to complete the user's request, make them. Only respond in natural language once you have finished all required actions.**"
 
 	// Get effective API keys for the synthesis request
 	effectiveKeys := c.getEffectiveAPIKeys()
@@ -755,13 +758,17 @@ func (c *Client) processIterativeFunctionCallsWithProvider(ctx context.Context, 
 	decision := synthesisManager.DetermineSynthesisStrategy(synthesisConfig)
 	synthesisManager.LogDecision(decision, synthesisConfig)
 
+	// Build proper conversation history with tool_call flow so the model
+	// sees the assistant→tool_call→tool_response sequence (required by OpenAI-compatible APIs)
+	conversationHistory := buildToolCallConversationHistory(originalPrompt, functionCalls, functionResults)
+
 	// Create a new request for the synthesis
 	synthesisRequest := &providers.ModelRequest{
 		Prompt:              synthesisPrompt,
 		Context:             request.Context,
 		SystemPrompt:        config.SystemPrompt,
 		Tools:               decision.Tools, // Use intelligent tool decision
-		ConversationHistory: []providers.ConversationMessage{},
+		ConversationHistory: conversationHistory,
 		SessionAPIKeys:      effectiveKeys,
 	}
 
@@ -854,13 +861,16 @@ func (c *Client) processProviderSynthesisWithIteration(ctx context.Context, conf
 				newSynthesisPrompt += promptSuffix
 			}
 
+			// Build updated conversation history with all accumulated tool calls
+			updatedHistory := buildToolCallConversationHistory(originalPrompt, functionCalls, functionResults)
+
 			// Create new synthesis request
 			newSynthesisRequest := &providers.ModelRequest{
 				Prompt:              newSynthesisPrompt,
 				Context:             synthesisRequest.Context,
 				SystemPrompt:        synthesisRequest.SystemPrompt,
 				Tools:               config.Tools,
-				ConversationHistory: synthesisRequest.ConversationHistory,
+				ConversationHistory: updatedHistory,
 				SessionAPIKeys:      synthesisRequest.SessionAPIKeys,
 			}
 
@@ -879,15 +889,79 @@ func (c *Client) processProviderSynthesisWithIteration(ctx context.Context, conf
 	return c.createFallbackSummary(functionCalls, functionResults), nil
 }
 
+// buildToolCallConversationHistory builds proper OpenAI-style conversation history
+// with assistant tool_call messages and tool response messages so the model sees the
+// full assistant→tool_call→tool_response flow instead of a flat text summary.
+func buildToolCallConversationHistory(originalPrompt string, functionCalls []ResponsePart, functionResults []map[string]interface{}) []providers.ConversationMessage {
+	var history []providers.ConversationMessage
+
+	// Add original user message
+	history = append(history, providers.ConversationMessage{
+		Role:    "user",
+		Content: originalPrompt,
+	})
+
+	// Build assistant tool_call + tool response pairs
+	// Group consecutive function calls into a single assistant message (as the model may have requested multiple)
+	if len(functionCalls) > 0 && len(functionResults) > 0 {
+		var toolCalls []providers.ToolCall
+		var toolResults []providers.ConversationMessage
+
+		for i, fc := range functionCalls {
+			toolCallID := fc.FunctionCall.ID
+			if toolCallID == "" {
+				toolCallID = fmt.Sprintf("call_%d", i)
+			}
+
+			toolCalls = append(toolCalls, providers.ToolCall{
+				ID:   toolCallID,
+				Type: "function",
+				Function: providers.FunctionCall{
+					Name: fc.FunctionCall.Name,
+					Args: fc.FunctionCall.Args,
+				},
+			})
+
+			// Build the tool response content
+			resultContent := "{}"
+			if i < len(functionResults) {
+				resultJSON, err := json.Marshal(functionResults[i])
+				if err == nil {
+					resultContent = string(resultJSON)
+				}
+			}
+
+			toolResults = append(toolResults, providers.ConversationMessage{
+				Role:       "tool",
+				ToolCallID: toolCallID,
+				Content:    resultContent,
+			})
+		}
+
+		// Add the assistant message with all tool calls
+		history = append(history, providers.ConversationMessage{
+			Role:      "assistant",
+			ToolCalls: toolCalls,
+		})
+
+		// Add all tool response messages
+		history = append(history, toolResults...)
+	}
+
+	return history
+}
+
 // convertFunctionCallsToResponseParts converts provider function calls to internal format
 func convertFunctionCallsToResponseParts(functionCalls []providers.FunctionCall) []ResponsePart {
 	responseParts := make([]ResponsePart, len(functionCalls))
 	for i, fc := range functionCalls {
 		responseParts[i] = ResponsePart{
 			FunctionCall: struct {
+				ID   string                 `json:"id,omitempty"`
 				Name string                 `json:"name"`
 				Args map[string]interface{} `json:"args"`
 			}{
+				ID:   fc.ID,
 				Name: fc.Name,
 				Args: fc.Args,
 			},
@@ -1463,6 +1537,7 @@ func (c *Client) processIterativeFunctionCallsWithSynthesisRecursiveAccumulated(
 
 					additionalResponseParts[i] = ResponsePart{
 						FunctionCall: struct {
+							ID   string                 `json:"id,omitempty"`
 							Name string                 `json:"name"`
 							Args map[string]interface{} `json:"args"`
 						}{
@@ -2336,7 +2411,7 @@ func (c *Client) detectTaskCompletion(functionCalls []ResponsePart, _ []map[stri
 	}
 
 	// Let the LLM decide when it's done - no artificial task completion detection
-	// The agent should use agent_task_progress_read and team_task functions to determine completion
+	// The agent should use task_get and team_task functions to determine completion
 	log.Printf("🔍 Task completion check: depth=%d, functions=%d - letting LLM decide naturally", depth, len(functionCalls))
 	return false
 }

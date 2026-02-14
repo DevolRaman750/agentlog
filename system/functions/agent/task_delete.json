@@ -1,0 +1,38 @@
+{
+  "id": "func-task_delete-1754900004",
+  "name": "task_delete",
+  "provider": "internal",
+  "function_group": "internal",
+  "display_name": "Task: Delete",
+  "description": "Permanently delete a structured task and remove it from the task hierarchy. If the task has children, they will be orphaned (their parent_task_id will be cleared). Use with caution -- this operation cannot be undone. Prefer transitioning tasks to 'failed' state for audit trail preservation.",
+  "endpoint": {
+    "path": "/internal/task/delete",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "task_id": {
+        "type": "string",
+        "description": "Unique identifier of the task to delete"
+      }
+    },
+    "required": [
+      "task_id"
+    ]
+  },
+  "examples": [
+    {
+      "name": "Delete a cancelled task",
+      "parameters": {
+        "task_id": "task-abc-123"
+      }
+    },
+    {
+      "name": "Delete a duplicate task",
+      "parameters": {
+        "task_id": "task-dup-789"
+      }
+    }
+  ]
+}

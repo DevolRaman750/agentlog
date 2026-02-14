@@ -1,0 +1,45 @@
+{
+  "id": "func-team_task_remove_dependency-1754910013",
+  "name": "team_task_remove_dependency",
+  "provider": "internal",
+  "display_name": "Team Task: Remove Dependency",
+  "description": "Remove a dependency relationship between two tasks. After removal, the task will no longer be blocked by the specified dependency. Use this when a dependency is no longer relevant, has been bypassed, or was added in error.",
+  "function_group": "internal",
+  "endpoint": {
+    "path": "/internal/team/task/remove_dependency",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "task_id": {
+        "type": "string",
+        "description": "Unique identifier of the task to remove the dependency from"
+      },
+      "depends_on_id": {
+        "type": "string",
+        "description": "Unique identifier of the dependency task to remove"
+      }
+    },
+    "required": [
+      "task_id",
+      "depends_on_id"
+    ]
+  },
+  "examples": [
+    {
+      "name": "Remove a bypassed dependency",
+      "parameters": {
+        "task_id": "task_integration_tests",
+        "depends_on_id": "task_unit_tests"
+      }
+    },
+    {
+      "name": "Remove an erroneous dependency",
+      "parameters": {
+        "task_id": "task_deploy_staging",
+        "depends_on_id": "task_unrelated_task"
+      }
+    }
+  ]
+}

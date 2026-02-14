@@ -25,6 +25,7 @@ import (
 	githubIntegration "gogent/internal/gogent/integrations/github"
 	slackIntegration "gogent/internal/gogent/integrations/slack"
 	"gogent/internal/providers"
+	"gogent/internal/tasks"
 	"gogent/internal/teams"
 	"gogent/internal/types"
 
@@ -46,12 +47,11 @@ const (
 	ServiceOpenWeather = "openweather"
 	ServiceGitHub      = "github"
 	ServiceOpenRouter  = "openrouter"
+	ServiceOllama      = "ollama"
 	ServiceSlack       = "slack"
 	ServiceGoogleDrive = "googledrive"
 
 	// Function name constants
-	FunctionTeamTaskList              = "team_task_list"
-	FunctionTeamTaskStore             = "team_task_store"
 	FunctionTeamMemoryRead            = "team_memory_read"
 	FunctionTeamMemorySearch          = "team_memory_search"
 	FunctionAgentMemorySearch         = "agent_memory_search"
@@ -97,8 +97,6 @@ const (
 	FunctionGroupAPI           = "API"
 
 	// Function names
-	FunctionTeamTaskClaim          = "team_task_claim"
-	FunctionTeamTaskComplete       = "team_task_complete"
 	FunctionTeamMemoryWrite        = "team_memory_write"
 	FunctionTeamMemoryClear        = "team_memory_clear"
 	FunctionAgentMemoryRead        = "agent_memory_read"
@@ -285,6 +283,7 @@ func (c *Client) deepCopySlice(original []interface{}) []interface{} {
 type ResponsePart struct {
 	Text         string `json:"text,omitempty"`
 	FunctionCall struct {
+		ID   string                 `json:"id,omitempty"`
 		Name string                 `json:"name"`
 		Args map[string]interface{} `json:"args"`
 	} `json:"functionCall,omitempty"`
@@ -499,6 +498,9 @@ func (c *Client) LoadDatabaseAPIKeys(ctx context.Context, userID string) error {
 		case ServiceOpenRouter:
 			sessionKeys.OpenRouterAPIKey = decryptedKey
 			log.Printf("🔑 Loaded OpenRouter API key from database")
+		case ServiceOllama:
+			sessionKeys.OllamaBaseURL = decryptedKey
+			log.Printf("🔑 Loaded Ollama base URL from database")
 		case ServiceSlack:
 			sessionKeys.SlackBotToken = decryptedKey
 			log.Printf("🔑 Loaded Slack Bot Token from database - Length: %d, Prefix: %s",
@@ -650,6 +652,10 @@ func (c *Client) LoadAgentAPIKeys(ctx context.Context, agentID string) error {
 		case ServiceOpenRouter:
 			sessionKeys.OpenRouterAPIKey = decryptedKey
 			log.Printf("🔑 [Agent %s] Loaded OpenRouter API key - Source: %s",
+				agentID, apiKey.KeyName)
+		case ServiceOllama:
+			sessionKeys.OllamaBaseURL = decryptedKey
+			log.Printf("🔑 [Agent %s] Loaded Ollama base URL - Source: %s",
 				agentID, apiKey.KeyName)
 		case ServiceSlack:
 			sessionKeys.SlackBotToken = decryptedKey
@@ -987,8 +993,8 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 
 		if agentID == "" {
 			// For team task functions, this is a critical error - they must have agent context
-			if strings.HasPrefix(functionName, "team_task_") {
-				return nil, fmt.Errorf("TEAM TASK ERROR: %s requires agent_id - either provide it in function arguments or run through agent execution context", functionName)
+			if strings.HasPrefix(functionName, "team_task_") || strings.HasPrefix(functionName, "task_") {
+				return nil, fmt.Errorf("TASK ERROR: %s requires agent_id - either provide it in function arguments or run through agent execution context", functionName)
 			}
 			// For other memory functions, fall back to mock responses
 			log.Printf("🔍 No agent ID found for %s - providing mock response for non-agent execution", functionName)
@@ -1007,6 +1013,7 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 	// Create handlers
 	agentsHandler := agents.NewHandler(c.db)
 	teamsHandler := teams.NewTeamsHandler(c.db)
+	tasksHandler := tasks.NewHandler(c.db)
 
 	// Check if this is a team memory or team task function
 	if strings.HasPrefix(functionName, "team_memory_") || strings.HasPrefix(functionName, "team_task_") {
@@ -1109,599 +1116,18 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 
 			log.Printf("✅ Team memory function %s completed successfully", functionName)
 			return result, nil
-		} else if strings.HasPrefix(functionName, "team_task_") || strings.HasPrefix(functionName, "agent_task_") {
-			// Handle team task functions
-			log.Printf("🔍 Entering team task function path for: %s", functionName)
-			// Convert args to TeamTaskRequest
-			taskRequest := &types.TeamTaskRequest{
-				TeamID:  teamID,
-				AgentID: agentID,
-			}
-			log.Printf("🔍 Created TeamTaskRequest with TeamID=%s, AgentID=%s", teamID, agentID)
-
-			// Map function arguments to task request fields
-			if taskTitle, ok := args["task_title"].(string); ok {
-				taskRequest.TaskTitle = taskTitle
-			}
-			if taskDescription, ok := args["task_description"].(string); ok {
-				taskRequest.TaskDescription = taskDescription
-			}
-			if priority, ok := args["priority"].(string); ok {
-				taskRequest.Priority = priority
-			}
-			if estimatedDuration, ok := args["estimated_duration"].(string); ok {
-				taskRequest.EstimatedDuration = estimatedDuration
-			}
-			if actualDuration, ok := args["actual_duration"].(string); ok {
-				taskRequest.ActualDuration = actualDuration
-			}
-			if requiredCaps, ok := args["required_capabilities"].([]interface{}); ok {
-				for _, cap := range requiredCaps {
-					if capStr, ok := cap.(string); ok {
-						taskRequest.RequiredCapabilities = append(taskRequest.RequiredCapabilities, capStr)
-					}
-				}
-			}
-			if dependencies, ok := args["dependencies"].([]interface{}); ok {
-				for _, dep := range dependencies {
-					if depStr, ok := dep.(string); ok {
-						taskRequest.Dependencies = append(taskRequest.Dependencies, depStr)
-					}
-				}
-			}
-			if deadline, ok := args["deadline"].(string); ok {
-				if parsedTime, err := time.Parse(time.RFC3339, deadline); err == nil {
-					taskRequest.Deadline = &parsedTime
-				}
-			}
-			if metadata, ok := args["metadata"].(map[string]interface{}); ok {
-				taskRequest.Metadata = metadata
-			}
-			if taskID, ok := args["task_id"].(string); ok {
-				taskRequest.TaskID = taskID
-			}
-			if completionStatus, ok := args["completion_status"].(string); ok {
-				taskRequest.CompletionStatus = completionStatus
-			}
-			if results, ok := args["results"].(map[string]interface{}); ok {
-				taskRequest.Results = results
-			}
-			if completionNotes, ok := args["completion_notes"].(string); ok {
-				taskRequest.CompletionNotes = completionNotes
-			}
-			if artifacts, ok := args["artifacts_created"].([]interface{}); ok {
-				for _, artifact := range artifacts {
-					if artifactMap, ok := artifact.(map[string]interface{}); ok {
-						var taskArtifact types.TaskArtifact
-						if artifactType, ok := artifactMap["type"].(string); ok {
-							taskArtifact.Type = artifactType
-						}
-						if identifier, ok := artifactMap["identifier"].(string); ok {
-							taskArtifact.Identifier = identifier
-						}
-						if url, ok := artifactMap["url"].(string); ok {
-							taskArtifact.URL = url
-						}
-						if description, ok := artifactMap["description"].(string); ok {
-							taskArtifact.Description = description
-						}
-						taskRequest.ArtifactsCreated = append(taskRequest.ArtifactsCreated, taskArtifact)
-					}
-				}
-			}
-			if followUpTasks, ok := args["follow_up_tasks"].([]interface{}); ok {
-				for _, followUp := range followUpTasks {
-					if followUpMap, ok := followUp.(map[string]interface{}); ok {
-						var taskFollowUp types.TaskFollowUp
-						if title, ok := followUpMap["title"].(string); ok {
-							taskFollowUp.Title = title
-						}
-						if description, ok := followUpMap["description"].(string); ok {
-							taskFollowUp.Description = description
-						}
-						if priority, ok := followUpMap["priority"].(string); ok {
-							switch priority {
-							case "low":
-								taskFollowUp.Priority = types.TaskPriorityLow
-							case "medium":
-								taskFollowUp.Priority = types.TaskPriorityMedium
-							case "high":
-								taskFollowUp.Priority = types.TaskPriorityHigh
-							case "urgent":
-								taskFollowUp.Priority = types.TaskPriorityUrgent
-							}
-						}
-						taskRequest.FollowUpTasks = append(taskRequest.FollowUpTasks, taskFollowUp)
-					}
-				}
-			}
-			// Add filtering and error reporting fields
-			if statusFilter, ok := args["status_filter"].([]interface{}); ok {
-				for _, status := range statusFilter {
-					if statusStr, ok := status.(string); ok {
-						taskRequest.StatusFilter = append(taskRequest.StatusFilter, statusStr)
-					}
-				}
-			}
-			if priorityFilter, ok := args["priority_filter"].([]interface{}); ok {
-				for _, priority := range priorityFilter {
-					if priorityStr, ok := priority.(string); ok {
-						taskRequest.PriorityFilter = append(taskRequest.PriorityFilter, priorityStr)
-					}
-				}
-			}
-			if assignedAgent, ok := args["assigned_agent_filter"].(string); ok {
-				taskRequest.AssignedAgentFilter = assignedAgent
-			}
-			if capabilityFilter, ok := args["capability_filter"].([]interface{}); ok {
-				for _, cap := range capabilityFilter {
-					if capStr, ok := cap.(string); ok {
-						taskRequest.CapabilityFilter = append(taskRequest.CapabilityFilter, capStr)
-					}
-				}
-			}
-			if createdAfter, ok := args["created_after"].(string); ok {
-				if parsedTime, err := time.Parse(time.RFC3339, createdAfter); err == nil {
-					taskRequest.CreatedAfter = &parsedTime
-				}
-			}
-			if deadlineBefore, ok := args["deadline_before"].(string); ok {
-				if parsedTime, err := time.Parse(time.RFC3339, deadlineBefore); err == nil {
-					taskRequest.DeadlineBefore = &parsedTime
-				}
-			}
-			if sortBy, ok := args["sort_by"].(string); ok {
-				taskRequest.SortBy = sortBy
-			}
-			if sortOrder, ok := args["sort_order"].(string); ok {
-				taskRequest.SortOrder = sortOrder
-			}
-			if limit, ok := args["limit"].(float64); ok {
-				taskRequest.Limit = int(limit)
-			}
-			if includeCompleted, ok := args["include_completed"].(bool); ok {
-				taskRequest.IncludeCompleted = includeCompleted
-			}
-			if estimatedStartTime, ok := args["estimated_start_time"].(string); ok {
-				if parsedTime, err := time.Parse(time.RFC3339, estimatedStartTime); err == nil {
-					taskRequest.EstimatedStartTime = &parsedTime
-				}
-			}
-			if errorType, ok := args["error_type"].(string); ok {
-				taskRequest.ErrorType = errorType
-			}
-			if errorMessage, ok := args["error_message"].(string); ok {
-				taskRequest.ErrorMessage = errorMessage
-			}
-			if errorCode, ok := args["error_code"].(string); ok {
-				taskRequest.ErrorCode = errorCode
-			}
-			if attemptedActions, ok := args["attempted_actions"].([]interface{}); ok {
-				for _, action := range attemptedActions {
-					if actionStr, ok := action.(string); ok {
-						taskRequest.AttemptedActions = append(taskRequest.AttemptedActions, actionStr)
-					}
-				}
-			}
-			if retryCount, ok := args["retry_count"].(float64); ok {
-				taskRequest.RetryCount = int(retryCount)
-			}
-			if isRetryable, ok := args["is_retryable"].(bool); ok {
-				taskRequest.IsRetryable = isRetryable
-			}
-			if suggestedRetryDelay, ok := args["suggested_retry_delay"].(string); ok {
-				taskRequest.SuggestedRetryDelay = suggestedRetryDelay
-			}
-			if workaroundSuggestions, ok := args["workaround_suggestions"].([]interface{}); ok {
-				for _, suggestion := range workaroundSuggestions {
-					if suggestionStr, ok := suggestion.(string); ok {
-						taskRequest.WorkaroundSuggestions = append(taskRequest.WorkaroundSuggestions, suggestionStr)
-					}
-				}
-			}
-			if requiresHuman, ok := args["requires_human_intervention"].(bool); ok {
-				taskRequest.RequiresHumanIntervention = requiresHuman
-			}
-			if contextData, ok := args["context_data"].(map[string]interface{}); ok {
-				taskRequest.ContextData = contextData
-			}
-			if filterCriteria, ok := args["filter_criteria"].(map[string]interface{}); ok {
-				criteria := &types.TaskFilterCriteria{}
-				if priority, ok := filterCriteria["priority"].([]interface{}); ok {
-					for _, p := range priority {
-						if pStr, ok := p.(string); ok {
-							criteria.Priority = append(criteria.Priority, pStr)
-						}
-					}
-				}
-				if capabilities, ok := filterCriteria["required_capabilities"].([]interface{}); ok {
-					for _, c := range capabilities {
-						if cStr, ok := c.(string); ok {
-							criteria.RequiredCapabilities = append(criteria.RequiredCapabilities, cStr)
-						}
-					}
-				}
-				if maxDuration, ok := filterCriteria["max_duration"].(string); ok {
-					criteria.MaxDuration = maxDuration
-				}
-				taskRequest.FilterCriteria = criteria
-			}
-			// Team task clear fields
-			if action, ok := args["action"].(string); ok {
-				taskRequest.Action = action
-			}
-			if olderThanDays, ok := args["older_than_days"].(float64); ok {
-				taskRequest.OlderThanDays = int(olderThanDays)
-			}
-			if duplicateCriteria, ok := args["duplicate_criteria"].(string); ok {
-				taskRequest.DuplicateCriteria = duplicateCriteria
-			}
-			if keepNewest, ok := args["keep_newest"].(bool); ok {
-				taskRequest.KeepNewest = keepNewest
-			}
-			if confirmation, ok := args["confirmation"].(bool); ok {
-				taskRequest.Confirmation = confirmation
-			}
-			if reason, ok := args["reason"].(string); ok {
-				taskRequest.Reason = reason
-			}
-
-			// Map agent task progress specific parameters
-			if progressData, ok := args["progress_data"].(map[string]interface{}); ok {
-				taskRequest.ProgressData = progressData
-			}
-			if checkpointReason, ok := args["checkpoint_reason"].(string); ok {
-				taskRequest.CheckpointReason = checkpointReason
-			}
-			if statusFilter, ok := args["status_filter"].([]interface{}); ok {
-				for _, status := range statusFilter {
-					if statusStr, ok := status.(string); ok {
-						taskRequest.StatusFilter = append(taskRequest.StatusFilter, statusStr)
-					}
-				}
-			}
-			if includeCompleted, ok := args["include_completed"].(bool); ok {
-				taskRequest.IncludeCompleted = includeCompleted
-			}
-			if olderThanHours, ok := args["older_than_hours"].(float64); ok {
-				taskRequest.OlderThanHours = int(olderThanHours)
-			}
-
-			var taskResponse *types.TeamTaskResponse
-			var err error
-
-			switch functionName {
-			case FunctionTeamTaskStore:
-				log.Printf("🔍 About to call StoreTeamTask with teamID=%s, agentID=%s, userID=%s", teamID, agentID, userID)
-				taskResponse, err = teamsHandler.StoreTeamTask(ctx, teamID, agentID, userID, taskRequest)
-				log.Printf("🔍 StoreTeamTask returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
-				// Auto-log progress on successful creation
-				if err == nil && taskResponse != nil && taskResponse.Success && taskResponse.Task != nil {
-					progressReq := &types.TeamTaskRequest{
-						TaskID: taskResponse.Task.ID,
-						ProgressData: map[string]interface{}{
-							"status":       "created",
-							"current_step": "task_created",
-						},
-						CheckpointReason: "auto_progress_after_create",
-					}
-					if _, perr := agentsHandler.UpdateAgentTaskProgress(ctx, agentID, userID, progressReq); perr != nil {
-						log.Printf("⚠️ Auto progress update after create failed: %v", perr)
-					}
-				}
-			case FunctionTeamTaskClaim:
-				// task_id is optional for claim - can auto-select if not provided
-				log.Printf("🔍 About to call ClaimTeamTask with teamID=%s, agentID=%s, userID=%s, taskID=%s", teamID, agentID, userID, taskRequest.TaskID)
-				taskResponse, err = teamsHandler.ClaimTeamTask(ctx, teamID, agentID, userID, taskRequest)
-				log.Printf("🔍 ClaimTeamTask returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
-				// Auto-log progress on successful claim
-				if err == nil && taskResponse != nil && taskResponse.Success && taskResponse.Task != nil {
-					// Build a minimal progress update indicating claim
-					progressReq := &types.TeamTaskRequest{
-						TaskID: taskResponse.Task.ID,
-						ProgressData: map[string]interface{}{
-							"status":       "claimed",
-							"current_step": "task_claimed",
-							"next_actions": []string{"analyze_requirements", "plan_execution"},
-						},
-						CheckpointReason: "auto_progress_after_claim",
-					}
-					if _, perr := agentsHandler.UpdateAgentTaskProgress(ctx, agentID, userID, progressReq); perr != nil {
-						log.Printf("⚠️ Auto progress update after claim failed: %v", perr)
-					}
-				}
-			case "team_task_complete":
-				// task_id is required for complete
-				if taskRequest.TaskID == "" {
-					return nil, fmt.Errorf("TEAM FUNCTION ERROR: %s requires task_id parameter to specify which task to complete", functionName)
-				}
-				log.Printf("🔍 About to call CompleteTeamTask with teamID=%s, agentID=%s, userID=%s, taskID=%s", teamID, agentID, userID, taskRequest.TaskID)
-				taskResponse, err = teamsHandler.CompleteTeamTask(ctx, teamID, agentID, userID, taskRequest)
-				log.Printf("🔍 CompleteTeamTask returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
-				// Auto-clear progress on successful completion
-				if err == nil && taskResponse != nil && taskResponse.Success {
-					clearReq := &types.TeamTaskRequest{TaskID: taskRequest.TaskID}
-					if _, cerr := agentsHandler.ClearAgentTaskProgress(ctx, agentID, userID, clearReq); cerr != nil {
-						log.Printf("⚠️ Auto progress clear after completion failed: %v", cerr)
-					}
-				}
-			case FunctionTeamTaskList:
-				taskResponse, err = teamsHandler.ListTeamTasks(ctx, teamID, agentID, userID, taskRequest)
-			case "team_task_error":
-				// task_id is required for error reporting
-				if taskRequest.TaskID == "" {
-					return nil, fmt.Errorf("TEAM FUNCTION ERROR: %s requires task_id parameter to specify which task encountered an error", functionName)
-				}
-				log.Printf("🔍 About to call ErrorTeamTask with teamID=%s, agentID=%s, userID=%s, taskID=%s", teamID, agentID, userID, taskRequest.TaskID)
-				taskResponse, err = teamsHandler.ErrorTeamTask(ctx, teamID, agentID, userID, taskRequest)
-				log.Printf("🔍 ErrorTeamTask returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
-				// Auto-clear progress on error to prevent stale state
-				if err == nil && taskResponse != nil && taskResponse.Success {
-					clearReq := &types.TeamTaskRequest{TaskID: taskRequest.TaskID}
-					if _, cerr := agentsHandler.ClearAgentTaskProgress(ctx, agentID, userID, clearReq); cerr != nil {
-						log.Printf("⚠️ Auto progress clear after error failed: %v", cerr)
-					}
-				}
-			case "team_task_clear":
-				taskResponse, err = teamsHandler.ClearTeamTasks(ctx, teamID, agentID, userID, taskRequest)
-			case "team_task_delete":
-				// task_id is required for delete
-				if taskRequest.TaskID == "" {
-					return nil, fmt.Errorf("TEAM FUNCTION ERROR: %s requires task_id parameter to specify which task to delete", functionName)
-				}
-				log.Printf("🔍 About to call DeleteTeamTask with teamID=%s, agentID=%s, userID=%s, taskID=%s", teamID, agentID, userID, taskRequest.TaskID)
-				taskResponse, err = teamsHandler.DeleteTeamTask(ctx, teamID, agentID, userID, taskRequest)
-				log.Printf("🔍 DeleteTeamTask returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
-				// Auto-log progress on successful delete
-				if err == nil && taskResponse != nil && taskResponse.Success {
-					progressReq := &types.TeamTaskRequest{
-						TaskID: taskRequest.TaskID,
-						ProgressData: map[string]interface{}{
-							"status":       "deleted",
-							"current_step": "task_deleted",
-						},
-						CheckpointReason: "auto_progress_after_delete",
-					}
-					if _, perr := agentsHandler.UpdateAgentTaskProgress(ctx, agentID, userID, progressReq); perr != nil {
-						log.Printf("⚠️ Auto progress update after delete failed: %v", perr)
-					}
-				}
-			case "team_task_update":
-				// task_id is required for update
-				if taskRequest.TaskID == "" {
-					return nil, fmt.Errorf("TEAM FUNCTION ERROR: %s requires task_id parameter to specify which task to update", functionName)
-				}
-				log.Printf("🔍 About to call UpdateTeamTask with teamID=%s, agentID=%s, userID=%s, taskID=%s", teamID, agentID, userID, taskRequest.TaskID)
-				taskResponse, err = teamsHandler.UpdateTeamTask(ctx, teamID, agentID, userID, taskRequest)
-				log.Printf("🔍 UpdateTeamTask returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
-				// Auto-log progress on successful update
-				if err == nil && taskResponse != nil && taskResponse.Success {
-					progressReq := &types.TeamTaskRequest{
-						TaskID: taskRequest.TaskID,
-						ProgressData: map[string]interface{}{
-							"status":       "updated",
-							"current_step": "task_updated",
-						},
-						CheckpointReason: "auto_progress_after_update",
-					}
-					if _, perr := agentsHandler.UpdateAgentTaskProgress(ctx, agentID, userID, progressReq); perr != nil {
-						log.Printf("⚠️ Auto progress update after update failed: %v", perr)
-					}
-				}
-			default:
-				return nil, fmt.Errorf("unsupported team task function: %s", functionName)
-			}
-
-			if err != nil {
-				return nil, fmt.Errorf("team task function %s failed: %w", functionName, err)
-			}
-
-			// Convert response to map[string]interface{}
-			result := map[string]interface{}{
-				"success": taskResponse.Success,
-			}
-
-			if taskResponse.Error != "" {
-				result["error"] = taskResponse.Error
-			}
-			if taskResponse.Task != nil {
-				result["task"] = taskResponse.Task
-			}
-			if taskResponse.Tasks != nil {
-				result["tasks"] = taskResponse.Tasks
-			}
-			if taskResponse.Data != nil {
-				result["data"] = taskResponse.Data
-			}
-			if taskResponse.Metadata != nil {
-				result["metadata"] = taskResponse.Metadata
-			}
-
-			log.Printf("✅ Team task function %s completed successfully", functionName)
-			return result, nil
+		} else if strings.HasPrefix(functionName, "team_task_") {
+			// Handle structured task system - team-scoped
+			log.Printf("🔍 Entering structured task function path for: %s", functionName)
+			return c.dispatchStructuredTaskFunction(ctx, tasksHandler, functionName, args, userID, agentID, teamID)
 		}
 		return nil, fmt.Errorf("unsupported team function: %s", functionName)
 	}
 
-	// Check if this is an agent task function
-	if strings.HasPrefix(functionName, "agent_task_") {
-		// Handle agent task functions - route to agent memory system
-		log.Printf("🔍 Entering agent task function path for: %s", functionName)
-
-		// Convert args to TeamTaskRequest (reusing the same structure)
-		taskRequest := &types.TeamTaskRequest{
-			AgentID: agentID,
-		}
-		log.Printf("🔍 Created TeamTaskRequest with AgentID=%s", agentID)
-
-		// Map function arguments to task request fields
-		if taskID, ok := args["task_id"].(string); ok {
-			taskRequest.TaskID = taskID
-		}
-		if progressData, ok := args["progress_data"].(map[string]interface{}); ok {
-			taskRequest.ProgressData = progressData
-		}
-		if checkpointReason, ok := args["checkpoint_reason"].(string); ok {
-			taskRequest.CheckpointReason = checkpointReason
-		}
-		if statusFilter, ok := args["status_filter"].([]interface{}); ok {
-			for _, status := range statusFilter {
-				if statusStr, ok := status.(string); ok {
-					taskRequest.StatusFilter = append(taskRequest.StatusFilter, statusStr)
-				}
-			}
-		}
-		if limit, ok := args["limit"].(float64); ok {
-			taskRequest.Limit = int(limit)
-		}
-		if includeCompleted, ok := args["include_completed"].(bool); ok {
-			taskRequest.IncludeCompleted = includeCompleted
-		}
-		if context, ok := args["context"].(string); ok {
-			taskRequest.TaskTitle = context // Reusing TaskTitle field for context
-		}
-		if taskTitle, ok := args["task_title"].(string); ok {
-			taskRequest.TaskTitle = taskTitle
-		}
-		if taskDescription, ok := args["task_description"].(string); ok {
-			taskRequest.TaskDescription = taskDescription
-		}
-		if metadata, ok := args["metadata"].(map[string]interface{}); ok {
-			taskRequest.Metadata = metadata
-		}
-
-		// Route to appropriate agent task function
-		var taskResponse *types.TeamTaskResponse
-		var err error
-
-		switch functionName {
-		case "agent_task_progress_update":
-			// task_id is required for progress update
-			if taskRequest.TaskID == "" {
-				return nil, fmt.Errorf("AGENT FUNCTION ERROR: %s requires task_id parameter to specify which task progress to update", functionName)
-			}
-			log.Printf("🔍 About to call UpdateAgentTaskProgress with agentID=%s, taskID=%s", agentID, taskRequest.TaskID)
-			taskResponse, err = agentsHandler.UpdateAgentTaskProgress(ctx, agentID, userID, taskRequest)
-			log.Printf("🔍 UpdateAgentTaskProgress returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
-		case "agent_task_progress_read":
-			log.Printf("🔍 About to call ReadAgentTaskProgress with agentID=%s", agentID)
-			taskResponse, err = agentsHandler.ReadAgentTaskProgress(ctx, agentID, userID, taskRequest)
-			log.Printf("🔍 ReadAgentTaskProgress returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
-		case "agent_task_progress_clear":
-			log.Printf("🔍 About to call ClearAgentTaskProgress with agentID=%s", agentID)
-			taskResponse, err = agentsHandler.ClearAgentTaskProgress(ctx, agentID, userID, taskRequest)
-			log.Printf("🔍 ClearAgentTaskProgress returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
-		case "agent_task_list":
-			log.Printf("🔍 About to call ListAgentTasks with agentID=%s", agentID)
-			taskResponse, err = agentsHandler.ListAgentTasks(ctx, agentID, userID, taskRequest)
-			log.Printf("🔍 ListAgentTasks returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
-		case "agent_task_store":
-			log.Printf("🔍 About to call StoreAgentTask with agentID=%s", agentID)
-			taskResponse, err = agentsHandler.StoreAgentTask(ctx, agentID, userID, taskRequest)
-			log.Printf("🔍 StoreAgentTask returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
-		case "agent_task_delete":
-			log.Printf("🔍 About to call DeleteAgentTask with agentID=%s", agentID)
-			taskResponse, err = agentsHandler.DeleteAgentTask(ctx, agentID, userID, taskRequest)
-			log.Printf("🔍 DeleteAgentTask returned: success=%v, err=%v", taskResponse != nil && taskResponse.Success, err)
-		case "agent_task_data_store":
-			log.Printf("🔍 About to call StoreAgentTaskData with agentID=%s", agentID)
-			// Create AgentTaskDataRequest for data storage
-			dataRequest := &types.AgentTaskDataRequest{
-				TaskID:      taskRequest.TaskID,
-				DataKey:     getStringArg(args, "data_key"),
-				DataContent: getStringArg(args, "data_content"),
-				DataType:    getStringArg(args, "data_type"),
-				CurrentStep: getStringArg(args, "current_step"),
-				FutureUse:   getStringArg(args, "future_use"),
-				Priority:    getStringArg(args, "priority"),
-				Metadata:    getMapArg(args, "metadata"),
-			}
-			dataResponse, err := agentsHandler.StoreAgentTaskData(ctx, agentID, userID, dataRequest)
-			if err != nil {
-				return nil, fmt.Errorf("agent task data function %s failed: %w", functionName, err)
-			}
-			return map[string]interface{}{
-				"success":  dataResponse.Success,
-				"data":     dataResponse.Data,
-				"metadata": dataResponse.Metadata,
-				"error":    dataResponse.Error,
-			}, nil
-		case "agent_task_data_retrieve":
-			log.Printf("🔍 About to call RetrieveAgentTaskData with agentID=%s", agentID)
-			// Create AgentTaskDataRequest for data retrieval
-			dataRequest := &types.AgentTaskDataRequest{
-				TaskID:          taskRequest.TaskID,
-				DataKey:         getStringArg(args, "data_key"),
-				DataType:        getStringArg(args, "data_type"),
-				Priority:        getStringArg(args, "priority"),
-				StepFilter:      getStringArg(args, "step_filter"),
-				SearchQuery:     getStringArg(args, "search_query"),
-				Limit:           getIntArg(args, "limit"),
-				IncludeMetadata: getBoolArg(args, "include_metadata"),
-			}
-			dataResponse, err := agentsHandler.RetrieveAgentTaskData(ctx, agentID, userID, dataRequest)
-			if err != nil {
-				return nil, fmt.Errorf("agent task data function %s failed: %w", functionName, err)
-			}
-			return map[string]interface{}{
-				"success":  dataResponse.Success,
-				"data":     dataResponse.Data,
-				"metadata": dataResponse.Metadata,
-				"error":    dataResponse.Error,
-			}, nil
-		case "agent_task_data_clear":
-			log.Printf("🔍 About to call ClearAgentTaskData with agentID=%s", agentID)
-			// Create AgentTaskDataRequest for data clearing
-			dataRequest := &types.AgentTaskDataRequest{
-				TaskID:       taskRequest.TaskID,
-				DataKey:      getStringArg(args, "data_key"),
-				DataType:     getStringArg(args, "data_type"),
-				Priority:     getStringArg(args, "priority"),
-				StepFilter:   getStringArg(args, "step_filter"),
-				Confirmation: getBoolArg(args, "confirmation"),
-				Reason:       getStringArg(args, "reason"),
-			}
-			dataResponse, err := agentsHandler.ClearAgentTaskData(ctx, agentID, userID, dataRequest)
-			if err != nil {
-				return nil, fmt.Errorf("agent task data function %s failed: %w", functionName, err)
-			}
-			return map[string]interface{}{
-				"success":  dataResponse.Success,
-				"data":     dataResponse.Data,
-				"metadata": dataResponse.Metadata,
-				"error":    dataResponse.Error,
-			}, nil
-		default:
-			return nil, fmt.Errorf("unsupported agent task function: %s", functionName)
-		}
-
-		if err != nil {
-			return nil, fmt.Errorf("agent task function %s failed: %w", functionName, err)
-		}
-
-		// Convert response to map[string]interface{}
-		result := map[string]interface{}{
-			"success": taskResponse.Success,
-		}
-
-		if taskResponse.Error != "" {
-			result["error"] = taskResponse.Error
-		}
-		if taskResponse.Task != nil {
-			result["task"] = taskResponse.Task
-		}
-		if taskResponse.Tasks != nil {
-			result["tasks"] = taskResponse.Tasks
-		}
-		if taskResponse.Data != nil {
-			result["data"] = taskResponse.Data
-		}
-		if taskResponse.Metadata != nil {
-			result["metadata"] = taskResponse.Metadata
-		}
-
-		log.Printf("✅ Agent task function %s completed successfully", functionName)
-		return result, nil
+	// Check if this is a structured task function (agent-scoped)
+	if strings.HasPrefix(functionName, "task_") {
+		log.Printf("🔍 Entering structured task function path for: %s", functionName)
+		return c.dispatchStructuredTaskFunction(ctx, tasksHandler, functionName, args, userID, agentID, "")
 	}
 
 	// Convert args to AgentMemoryRequest for agent memory functions
@@ -1777,6 +1203,321 @@ func (c *Client) executeInternalFunction(ctx context.Context, funcDef *db.Functi
 
 	log.Printf("✅ Internal function %s completed successfully", functionName)
 	return result, nil
+}
+
+// dispatchStructuredTaskFunction routes structured task system (v2) function calls to the tasks handler
+func (c *Client) dispatchStructuredTaskFunction(ctx context.Context, tasksHandler *tasks.Handler, functionName string, args map[string]interface{}, userID, agentID, teamID string) (map[string]interface{}, error) {
+	log.Printf("🔍 Dispatching structured task function: %s (userID=%s, agentID=%s, teamID=%s)", functionName, userID, agentID, teamID)
+
+	// Strip prefix to get the action name
+	action := functionName
+	if strings.HasPrefix(functionName, "team_task_") {
+		action = strings.TrimPrefix(functionName, "team_task_")
+	} else if strings.HasPrefix(functionName, "task_") {
+		action = strings.TrimPrefix(functionName, "task_")
+	}
+
+	var taskResponse *types.TaskResponse
+	var err error
+
+	switch action {
+	case "create":
+		req := &types.TaskCreateRequest{
+			Title:             getStringArg(args, "title"),
+			Description:       getStringArg(args, "description"),
+			Priority:          getStringArg(args, "priority"),
+			EstimatedDuration: getStringArg(args, "estimated_duration"),
+		}
+		if parentID := getStringArg(args, "parent_task_id"); parentID != "" {
+			req.ParentTaskID = &parentID
+		}
+		if deadline := getStringArg(args, "deadline"); deadline != "" {
+			if t, terr := time.Parse(time.RFC3339, deadline); terr == nil {
+				req.Deadline = &t
+			}
+		}
+		if metadata := getMapArg(args, "metadata"); metadata != nil {
+			req.Metadata = metadata
+		}
+		if deps, ok := args["dependencies"].([]interface{}); ok {
+			for _, d := range deps {
+				if dStr, ok := d.(string); ok {
+					req.Dependencies = append(req.Dependencies, dStr)
+				}
+			}
+		}
+		if sources, ok := args["context_sources"].([]interface{}); ok {
+			for _, s := range sources {
+				if sMap, ok := s.(map[string]interface{}); ok {
+					cs := types.ContextSource{}
+					if t, ok := sMap["type"].(string); ok {
+						cs.Type = types.ContextSourceType(t)
+					}
+					if d, ok := sMap["data"]; ok {
+						if b, merr := json.Marshal(d); merr == nil {
+							cs.Data = b
+						}
+					}
+					req.ContextSources = append(req.ContextSources, cs)
+				}
+			}
+		}
+		taskResponse, err = tasksHandler.CreateTaskInternal(ctx, userID, agentID, teamID, req)
+
+	case "get":
+		taskID := getStringArg(args, "task_id")
+		if taskID == "" {
+			return nil, fmt.Errorf("task_id is required for %s", functionName)
+		}
+		taskResponse, err = tasksHandler.GetTaskInternal(ctx, userID, taskID)
+
+	case "update":
+		taskID := getStringArg(args, "task_id")
+		if taskID == "" {
+			return nil, fmt.Errorf("task_id is required for %s", functionName)
+		}
+		req := &types.TaskUpdateRequest{}
+		if title := getStringArg(args, "title"); title != "" {
+			req.Title = &title
+		}
+		if desc := getStringArg(args, "description"); desc != "" {
+			req.Description = &desc
+		}
+		if priority := getStringArg(args, "priority"); priority != "" {
+			req.Priority = &priority
+		}
+		if aid := getStringArg(args, "agent_id"); aid != "" {
+			req.AgentID = &aid
+		}
+		if dur := getStringArg(args, "estimated_duration"); dur != "" {
+			req.EstimatedDuration = &dur
+		}
+		if deadline := getStringArg(args, "deadline"); deadline != "" {
+			if t, terr := time.Parse(time.RFC3339, deadline); terr == nil {
+				req.Deadline = &t
+			}
+		}
+		if metadata := getMapArg(args, "metadata"); metadata != nil {
+			req.Metadata = metadata
+		}
+		taskResponse, err = tasksHandler.UpdateTaskInternal(ctx, userID, taskID, req)
+
+	case "delete":
+		taskID := getStringArg(args, "task_id")
+		if taskID == "" {
+			return nil, fmt.Errorf("task_id is required for %s", functionName)
+		}
+		taskResponse, err = tasksHandler.DeleteTaskInternal(ctx, userID, taskID)
+
+	case "transition":
+		taskID := getStringArg(args, "task_id")
+		if taskID == "" {
+			return nil, fmt.Errorf("task_id is required for %s", functionName)
+		}
+		req := &types.TaskTransitionRequest{
+			TaskID:          taskID,
+			TargetState:     types.TaskState(getStringArg(args, "target_state")),
+			FailureReason:   getStringArg(args, "failure_reason"),
+			CompletionNotes: getStringArg(args, "completion_notes"),
+			ActualDuration:  getStringArg(args, "actual_duration"),
+		}
+		if ft := getStringArg(args, "failure_type"); ft != "" {
+			failureType := types.TaskFailureType(ft)
+			req.FailureType = &failureType
+		}
+		if results := getMapArg(args, "results"); results != nil {
+			req.Results = results
+		}
+		if artifacts, ok := args["artifacts"].([]interface{}); ok {
+			for _, a := range artifacts {
+				if aMap, ok := a.(map[string]interface{}); ok {
+					artifact := types.TaskArtifact{
+						Type:        getStringFromMap(aMap, "type"),
+						Identifier:  getStringFromMap(aMap, "identifier"),
+						URL:         getStringFromMap(aMap, "url"),
+						Description: getStringFromMap(aMap, "description"),
+					}
+					req.Artifacts = append(req.Artifacts, artifact)
+				}
+			}
+		}
+		taskResponse, err = tasksHandler.TransitionTaskInternal(ctx, userID, agentID, req)
+
+	case "add_context":
+		taskID := getStringArg(args, "task_id")
+		if taskID == "" {
+			return nil, fmt.Errorf("task_id is required for %s", functionName)
+		}
+		cs := types.ContextSource{
+			Type: types.ContextSourceType(getStringArg(args, "context_type")),
+		}
+		if d, ok := args["context_data"]; ok {
+			if b, merr := json.Marshal(d); merr == nil {
+				cs.Data = b
+			}
+		}
+		taskResponse, err = tasksHandler.AddContextInternal(ctx, userID, taskID, cs)
+
+	case "update_context":
+		taskID := getStringArg(args, "task_id")
+		if taskID == "" {
+			return nil, fmt.Errorf("task_id is required for %s", functionName)
+		}
+		idx := getIntArg(args, "context_index")
+		cs := types.ContextSource{
+			Type: types.ContextSourceType(getStringArg(args, "context_type")),
+		}
+		if d, ok := args["context_data"]; ok {
+			if b, merr := json.Marshal(d); merr == nil {
+				cs.Data = b
+			}
+		}
+		taskResponse, err = tasksHandler.UpdateContextInternal(ctx, userID, taskID, idx, cs)
+
+	case "remove_context":
+		taskID := getStringArg(args, "task_id")
+		if taskID == "" {
+			return nil, fmt.Errorf("task_id is required for %s", functionName)
+		}
+		idx := getIntArg(args, "context_index")
+		taskResponse, err = tasksHandler.RemoveContextInternal(ctx, userID, taskID, idx)
+
+	case "list":
+		req := &types.TaskListRequest{
+			AgentID: getStringArg(args, "agent_id"),
+			Limit:   getIntArg(args, "limit"),
+			Offset:  getIntArg(args, "offset"),
+		}
+		if parentID := getStringArg(args, "parent_task_id"); parentID != "" {
+			req.ParentTaskID = &parentID
+		}
+		if states, ok := args["states"].([]interface{}); ok {
+			for _, s := range states {
+				if sStr, ok := s.(string); ok {
+					req.States = append(req.States, sStr)
+				}
+			}
+		}
+		// Also handle states passed as a single string (comma-separated)
+		if statesStr, ok := args["states"].(string); ok && statesStr != "" {
+			for _, s := range strings.Split(statesStr, ",") {
+				s = strings.TrimSpace(s)
+				if s != "" {
+					req.States = append(req.States, s)
+				}
+			}
+		}
+		// Map old task states to v2 equivalents for backward compatibility
+		req.States = mapOldStatesToV2(req.States)
+		if priority, ok := args["priority"].([]interface{}); ok {
+			for _, p := range priority {
+				if pStr, ok := p.(string); ok {
+					req.Priority = append(req.Priority, pStr)
+				}
+			}
+		}
+		req.IncludeSubtree = getBoolArg(args, "include_subtree")
+		log.Printf("📋 task list query params: userID=%s, teamID=%s, states=%v, agentID=%s, priority=%v, limit=%d",
+			userID, teamID, req.States, req.AgentID, req.Priority, req.Limit)
+		taskResponse, err = tasksHandler.ListTasksInternal(ctx, userID, teamID, req)
+		if taskResponse != nil {
+			taskCount := 0
+			if taskResponse.Tasks != nil {
+				taskCount = len(taskResponse.Tasks)
+			}
+			log.Printf("📋 task list result: success=%v, count=%d, error=%s", taskResponse.Success, taskCount, taskResponse.Error)
+		}
+
+	case "get_children":
+		taskID := getStringArg(args, "task_id")
+		if taskID == "" {
+			return nil, fmt.Errorf("task_id is required for %s", functionName)
+		}
+		limit := getIntArg(args, "limit")
+		offset := getIntArg(args, "offset")
+		taskResponse, err = tasksHandler.GetChildrenInternal(ctx, userID, taskID, limit, offset)
+
+	case "get_subtree":
+		taskID := getStringArg(args, "task_id")
+		if taskID == "" {
+			return nil, fmt.Errorf("task_id is required for %s", functionName)
+		}
+		taskResponse, err = tasksHandler.GetSubtreeInternal(ctx, userID, taskID)
+
+	case "add_dependency":
+		taskID := getStringArg(args, "task_id")
+		dependsOnID := getStringArg(args, "depends_on_id")
+		if taskID == "" || dependsOnID == "" {
+			return nil, fmt.Errorf("task_id and depends_on_id are required for %s", functionName)
+		}
+		taskResponse, err = tasksHandler.AddDependencyInternal(ctx, userID, taskID, dependsOnID)
+
+	case "remove_dependency":
+		taskID := getStringArg(args, "task_id")
+		dependsOnID := getStringArg(args, "depends_on_id")
+		if taskID == "" || dependsOnID == "" {
+			return nil, fmt.Errorf("task_id and depends_on_id are required for %s", functionName)
+		}
+		taskResponse, err = tasksHandler.RemoveDependencyInternal(ctx, taskID, dependsOnID)
+
+	case "get_blockers":
+		taskID := getStringArg(args, "task_id")
+		if taskID == "" {
+			return nil, fmt.Errorf("task_id is required for %s", functionName)
+		}
+		taskResponse, err = tasksHandler.GetBlockersInternal(ctx, taskID)
+
+	case "next_available":
+		reqTeamID := teamID
+		if reqTeamID == "" {
+			reqTeamID = getStringArg(args, "team_id")
+		}
+		reqAgentID := getStringArg(args, "agent_id")
+		if reqAgentID == "" {
+			reqAgentID = agentID
+		}
+		log.Printf("📋 next_available query params: userID=%s, teamID=%s, agentID=%s", userID, reqTeamID, reqAgentID)
+		taskResponse, err = tasksHandler.GetNextAvailableInternal(ctx, userID, reqTeamID, reqAgentID)
+		if taskResponse != nil {
+			hasTask := taskResponse.Task != nil
+			log.Printf("📋 next_available result: success=%v, hasTask=%v, error=%s", taskResponse.Success, hasTask, taskResponse.Error)
+		}
+
+	default:
+		return nil, fmt.Errorf("unsupported structured task function: %s (action: %s)", functionName, action)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("structured task function %s failed: %w", functionName, err)
+	}
+
+	// Convert TaskResponse to map[string]interface{}
+	result := map[string]interface{}{
+		"success": taskResponse.Success,
+	}
+	if taskResponse.Error != "" {
+		result["error"] = taskResponse.Error
+	}
+	if taskResponse.Task != nil {
+		result["task"] = taskResponse.Task
+	}
+	if taskResponse.Tasks != nil {
+		result["tasks"] = taskResponse.Tasks
+	}
+	if taskResponse.Metadata != nil {
+		result["metadata"] = taskResponse.Metadata
+	}
+
+	log.Printf("✅ Structured task function %s completed successfully", functionName)
+	return result, nil
+}
+
+// getStringFromMap extracts a string value from a map
+func getStringFromMap(m map[string]interface{}, key string) string {
+	if v, ok := m[key].(string); ok {
+		return v
+	}
+	return ""
 }
 
 // createMockMemoryResponse creates mock responses for memory functions when no agent context is available
@@ -1893,56 +1634,6 @@ func (c *Client) createMockMemoryResponse(functionName string, args map[string]i
 				"version":     "1.0",
 			},
 			"message": "Team memory function called in non-agent execution - no data to clear",
-		}
-	case "team_task_store":
-		return map[string]interface{}{
-			"success":       true,
-			"function_name": functionName,
-			"data": map[string]interface{}{
-				"message": "Task creation mocked - no real agent context available",
-				"task_id": "mock_task_" + fmt.Sprintf("%d", time.Now().UnixNano()),
-			},
-			"message": "Team task store called in non-agent execution - task not actually stored",
-		}
-	case FunctionTeamTaskList:
-		// Show clear indication that this is mock data to help with debugging
-		teamID, _ := args["team_id"].(string)
-		agentID, _ := args["agent_id"].(string)
-		if teamID == "" {
-			teamID = "MOCK_TEAM_ID"
-		}
-		if agentID == "" {
-			agentID = "MOCK_AGENT_ID"
-		}
-		return map[string]interface{}{
-			"success":       true,
-			"function_name": functionName,
-			"tasks":         []interface{}{},
-			"data": map[string]interface{}{
-				"total_count":    0,
-				"team_id":        teamID,
-				"agent_id":       agentID,
-				"mock_execution": true,
-			},
-			"message": "Team task list called in non-agent execution - no real tasks available",
-		}
-	case "team_task_claim":
-		return map[string]interface{}{
-			"success":       true,
-			"function_name": functionName,
-			"data": map[string]interface{}{
-				"message": "Task claim mocked - no real agent context available",
-			},
-			"message": "Team task claim called in non-agent execution - no task actually claimed",
-		}
-	case "team_task_complete":
-		return map[string]interface{}{
-			"success":       true,
-			"function_name": functionName,
-			"data": map[string]interface{}{
-				"message": "Task completion mocked - no real agent context available",
-			},
-			"message": "Team task complete called in non-agent execution - no task actually completed",
 		}
 	default:
 		return map[string]interface{}{
@@ -4174,4 +3865,31 @@ func getMapArg(args map[string]interface{}, key string) map[string]interface{} {
 		return val
 	}
 	return nil
+}
+
+// mapOldStatesToV2 maps old task system states to v2 equivalents for backward compatibility.
+// LLMs may use old terminology (pending, claimed, error) which need to be translated
+// to the v2 state machine (defining, compiling, compiled, in_progress, completed, failed).
+func mapOldStatesToV2(states []string) []string {
+	if len(states) == 0 {
+		return states
+	}
+	stateMap := map[string]string{
+		"pending": "defining",
+		"claimed": "in_progress",
+		"error":   "failed",
+	}
+	seen := make(map[string]bool)
+	var mapped []string
+	for _, s := range states {
+		if newState, ok := stateMap[s]; ok {
+			log.Printf("🔄 Mapping old task state '%s' → '%s'", s, newState)
+			s = newState
+		}
+		if !seen[s] {
+			seen[s] = true
+			mapped = append(mapped, s)
+		}
+	}
+	return mapped
 }
