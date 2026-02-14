@@ -77,7 +77,7 @@
     {
       "name": "Transition task to completed with results",
       "parameters": {
-        "task_id": "task_v2_abc123",
+        "task_id": "task_abc123",
         "target_state": "completed",
         "results": {
           "files_modified": 5,
@@ -99,10 +99,10 @@
     {
       "name": "Transition task to failed with diagnostics",
       "parameters": {
-        "task_id": "task_v2_def456",
+        "task_id": "task_def456",
         "target_state": "failed",
         "failure_type": "dependency_error",
-        "failure_reason": "Required API endpoint from task_v2_ghi789 is not yet deployed. Cannot proceed with integration testing."
+        "failure_reason": "Required API endpoint from task_ghi789 is not yet deployed. Cannot proceed with integration testing."
       }
     }
   ]

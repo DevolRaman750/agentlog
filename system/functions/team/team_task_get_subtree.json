@@ -25,13 +25,13 @@
     {
       "name": "Get full subtree of a project task",
       "parameters": {
-        "task_id": "task_v2_project_001"
+        "task_id": "task_project_001"
       }
     },
     {
       "name": "Get subtree to check overall progress",
       "parameters": {
-        "task_id": "task_v2_abc123"
+        "task_id": "task_abc123"
       }
     }
   ]

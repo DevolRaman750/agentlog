@@ -25,13 +25,13 @@
     {
       "name": "Get a task by ID",
       "parameters": {
-        "task_id": "task_v2_abc123"
+        "task_id": "task_abc123"
       }
     },
     {
       "name": "Get a subtask by ID",
       "parameters": {
-        "task_id": "task_v2_sub_789"
+        "task_id": "task_sub_789"
       }
     }
   ]

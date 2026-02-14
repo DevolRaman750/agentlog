@@ -38,14 +38,14 @@
     {
       "name": "Get children of a top-level task",
       "parameters": {
-        "task_id": "task_v2_abc123",
+        "task_id": "task_abc123",
         "limit": 20
       }
     },
     {
       "name": "Paginate through child tasks",
       "parameters": {
-        "task_id": "task_v2_abc123",
+        "task_id": "task_abc123",
         "limit": 10,
         "offset": 10
       }

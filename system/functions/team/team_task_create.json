@@ -109,9 +109,9 @@
       "parameters": {
         "title": "Write unit tests for token refresh logic",
         "description": "Create comprehensive unit tests covering token expiry, refresh token rotation, and error handling",
-        "parent_task_id": "task_v2_abc123",
+        "parent_task_id": "task_abc123",
         "priority": "medium",
-        "dependencies": ["task_v2_def456"],
+        "dependencies": ["task_def456"],
         "estimated_duration": "1 hour"
       }
     }

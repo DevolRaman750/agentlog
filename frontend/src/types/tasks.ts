@@ -1,4 +1,4 @@
-// Task v2 Types - matches internal/types/task.go
+// Task Types - matches internal/types/task.go
 
 export type TaskState = 'defining' | 'compiling' | 'compiled' | 'in_progress' | 'completed' | 'failed';
 

@@ -25,13 +25,13 @@
     {
       "name": "Check what is blocking a task",
       "parameters": {
-        "task_id": "task_v2_deploy_staging"
+        "task_id": "task_deploy_staging"
       }
     },
     {
       "name": "Diagnose why a compiled task cannot start",
       "parameters": {
-        "task_id": "task_v2_integration_tests"
+        "task_id": "task_integration_tests"
       }
     }
   ]

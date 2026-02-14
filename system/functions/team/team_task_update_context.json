@@ -42,7 +42,7 @@
     {
       "name": "Update a GitHub context with new issue state",
       "parameters": {
-        "task_id": "task_v2_abc123",
+        "task_id": "task_abc123",
         "context_index": 0,
         "context_type": "github",
         "context_data": {
@@ -57,7 +57,7 @@
     {
       "name": "Update a Slack context with additional thread replies",
       "parameters": {
-        "task_id": "task_v2_abc123",
+        "task_id": "task_abc123",
         "context_index": 1,
         "context_type": "slack",
         "context_data": {

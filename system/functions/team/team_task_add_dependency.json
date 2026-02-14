@@ -30,15 +30,15 @@
     {
       "name": "Make integration tests depend on unit tests",
       "parameters": {
-        "task_id": "task_v2_integration_tests",
-        "depends_on_id": "task_v2_unit_tests"
+        "task_id": "task_integration_tests",
+        "depends_on_id": "task_unit_tests"
       }
     },
     {
       "name": "Make deployment depend on code review",
       "parameters": {
-        "task_id": "task_v2_deploy_staging",
-        "depends_on_id": "task_v2_code_review"
+        "task_id": "task_deploy_staging",
+        "depends_on_id": "task_code_review"
       }
     }
   ]

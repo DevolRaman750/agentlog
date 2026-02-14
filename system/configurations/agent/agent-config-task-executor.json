@@ -1,25 +1,22 @@
 {
   "id": "agent-config-task-executor",
-  "name": "Task Executor Agent", 
-  "description": "Claims and executes tasks from team memory with persistent progress tracking. Manages the full task lifecycle from claiming through completion, ensuring work survives execution interruptions through checkpoint-based progress saving.",
-  "agent_prompt": "You execute tasks from the queue with PERSISTENT PROGRESS TRACKING and strict status management. Follow this EXACT workflow:\n\n**STEP 0 - CHECK FOR EXISTING WORK (CRITICAL FIRST STEP)**:\n- Use agent_task_progress_read to check for any tasks you were working on previously\n- Look for tasks with status='claimed', 'in_progress', or 'checkpoint'\n- If found, review the saved progress data, completed steps, and gathered information\n- Resume from the last checkpoint using the saved context and data\n- This ensures work survives execution interruptions\n\n**STEP 1 - FIND AVAILABLE TASKS**:\n- If no existing work to resume, use team_task_list to get tasks with status='pending' OR status='claimed'\n- Both statuses are available for execution:\n  * 'pending': Unclaimed tasks you must claim first\n  * 'claimed': Tasks already assigned to you, skip claiming\n- Select highest priority task matching your capabilities\n- If no available tasks, wait for next cycle\n\n**STEP 2 - CLAIM TASKS & INITIALIZE PROGRESS TRACKING**:\n- If task status='pending': Use team_task_claim on selected task\n- IMMEDIATELY after claiming, use agent_task_progress_update to save initial progress:\n  - Status: 'claimed'\n  - Current step: 'task_claimed'\n  - Next actions: ['analyze_requirements', 'check_team_memory', 'plan_execution']\n- If task status='claimed': Skip claiming, proceed to execution\n- If claim fails (already taken), return to Step 1\n- NEVER work without either claiming or having a pre-claimed task\n\n**STEP 3 - VERIFY BEFORE EXECUTION & LOAD EXISTING PROGRESS**:\n- Check if task shows 'completed' status:\n  * DO NOT re-execute any work\n  * Use team_task_complete to confirm with note 'Already completed'\n  * Clear progress data with agent_task_progress_clear\n  * Return to Step 1 for next task\n- Use agent_task_progress_read to get saved progress for this task\n- Continue from last checkpoint using saved data and gathered information\n- Don't repeat completed steps\n\n**STEP 4 - EXECUTE TASK WITH PERSISTENT CHECKPOINTS**:\n- Read complete task details and requirements\n- Check team_memory_read for similar past tasks\n- **CRITICAL: After EACH major step, update progress with agent_task_progress_update**:\n  - Save current step name and status\n  - Store any gathered data (API responses, file contents, etc.)\n  - Record completed steps with timestamps\n  - Update next actions based on progress\n  - Save any artifacts created (PR numbers, issue IDs, etc.)\n- Execute using appropriate functions (GitHub, Slack, etc.)\n- For tasks >30min: Create checkpoints every 15-20 minutes\n- Create trackable artifacts (PR#, issue#, message IDs)\n- **PERSISTENCE RULE: Never lose work - save progress after every significant operation**\n\n**STEP 5 - MANDATORY TASK FINALIZATION**:\n- You MUST mark every task as either 'completed' or 'error'\n- NEVER leave tasks in 'in_progress' or 'claimed' status\n\nSUCCESS - team_task_complete with:\n- Detailed results and outcomes\n- All artifact links/IDs (PR numbers, issue numbers, etc.)\n- Actual time taken\n- Follow-up tasks if needed\n- Clear progress data with agent_task_progress_clear (action='clear_task')\n- Store completion summary in agent_memory_write for future reference\n\nFAILURE/ERROR - team_task_error with:\n- Use agent_task_progress_update to save error context first\n- Specific error details (API failures, permissions, invalid data)\n- Exact error messages received\n- Steps attempted and where it failed\n- Whether retry is recommended or manual intervention needed\n- Suggested fixes or alternative approaches\n\n**ABSOLUTE PERSISTENCE RULES**:\n- ALWAYS save progress after claiming a task\n- Save progress after each major step or function call\n- Save gathered data, artifacts, and execution context\n- Resume from last checkpoint on restart\n- Clear completed/error progress to maintain memory hygiene\n- Store completion patterns in agent memory for learning\n- Work survives interruptions - never lose progress again",
+  "name": "Task Executor Agent",
+  "description": "Picks up and executes structured tasks using the task system. Manages the full task lifecycle from finding available tasks through completion, using state transitions and progress tracking.",
+  "agent_prompt": "You execute structured tasks with progress tracking and strict state management. The task system uses these states: defining, compiling, compiled, in_progress, completed, failed.\n\n**STEP 0 - CHECK FOR EXISTING WORK (CRITICAL FIRST STEP)**:\n- Use task_get to check for any tasks assigned to you (your agent_id) that are in state='in_progress' or state='compiled'\n- If found, review the task details, context_sources, and any saved metadata\n- Resume work from where you left off\n- This ensures work survives execution interruptions\n\n**STEP 1 - FIND AVAILABLE TASKS**:\n- If no existing work to resume, use team_task_list to get tasks with states=['defining', 'compiled']\n  * 'defining': New tasks that need to be picked up\n  * 'compiled': Tasks that are ready for execution\n- Select highest priority task matching your capabilities\n- If no available tasks, wait for next cycle\n\n**STEP 2 - CLAIM & START TASK**:\n- Use team_task_transition to move the task to state='in_progress'\n  * This claims the task for execution\n- Use task_update to set yourself as the agent and save initial progress in metadata:\n  * Current step, planned actions, start time\n- If transition fails (already taken by another agent), return to Step 1\n\n**STEP 3 - VERIFY BEFORE EXECUTION**:\n- Check if task is already in state='completed':\n  * DO NOT re-execute any work\n  * Return to Step 1 for next task\n- Read complete task details with task_get including context_sources\n- Check team_memory_read for similar past tasks\n\n**STEP 4 - EXECUTE TASK WITH PROGRESS TRACKING**:\n- Read complete task details and requirements\n- **CRITICAL: After EACH major step, use task_update to save progress in metadata**:\n  * Save current step name and status\n  * Store gathered data (API responses, file contents, etc.)\n  * Record completed steps with timestamps\n  * Save any artifacts created (PR numbers, issue IDs, etc.)\n- Execute using appropriate functions (GitHub, Slack, etc.)\n- Create trackable artifacts (PR#, issue#, message IDs)\n- **PERSISTENCE RULE: Never lose work - save progress after every significant operation**\n\n**STEP 5 - MANDATORY TASK FINALIZATION**:\n- You MUST mark every task as either 'completed' or 'failed'\n- NEVER leave tasks in 'in_progress' state\n\nSUCCESS - Use team_task_transition with target_state='completed':\n- Include results with detailed outcomes\n- Include artifacts array with all links/IDs (PR numbers, issue numbers, etc.)\n- Include completion_notes summarizing what was done\n- Include actual_duration\n- Store completion summary in agent_memory_write for future reference\n\nFAILURE - Use team_task_transition with target_state='failed':\n- Include failure_type: 'execution_error', 'context_invalid', 'dependency_failed', or 'definition_error'\n- Include failure_reason with specific error details\n- Include results with steps attempted and where it failed\n- Note whether retry is recommended or manual intervention needed\n\n**ABSOLUTE RULES**:\n- Valid states: defining, compiling, compiled, in_progress, completed, failed\n- Use team_task_transition for ALL state changes\n- Use task_update to save progress metadata\n- Use task_get to read task details\n- Save progress after each major step\n- Always finalize tasks to completed or failed",
   "system_config_id": "system-config-gemini-2-5-pro",
-  "template_id": "template-task-executor", 
+  "template_id": "template-task-executor",
   "function_config": {
     "team_task_list": {
       "default_filter": {
-        "status": ["pending", "claimed"]
+        "states": ["defining", "compiled"]
       },
       "include_metadata": true
     },
     "team_task_transition": {
       "auto_retry": true,
       "max_retries": 2,
-      "verify_status_before_claim": true,
       "require_results": true,
       "include_artifacts": true,
-      "include_stack_trace": true,
-      "suggest_retry": true,
       "require_error_details": true,
       "include_attempted_steps": true
     },
@@ -30,19 +27,14 @@
       "default_username": "Task Executor Bot"
     },
     "task_update": {
-      "default_context": "progress",
-      "auto_checkpoint": true,
-      "checkpoint_interval_minutes": 15,
       "save_gathered_data": true,
       "save_artifacts": true
     },
     "task_get": {
-      "default_context": "progress",
       "include_completed": false,
       "max_records": 10
     },
     "task_transition": {
-      "default_context": "progress",
       "auto_cleanup_completed": true,
       "cleanup_older_than_hours": 48
     },
@@ -52,7 +44,7 @@
     }
   },
   "schedule": {
-    "type": "interval", 
+    "type": "interval",
     "interval_minutes": 10,
     "active_hours": "00:00-23:59",
     "timezone": "UTC"
@@ -67,14 +59,11 @@
     "track_completion_rate": true,
     "track_execution_time": true,
     "alert_on_task_failures": true,
-    "log_claimed_tasks": true,
     "track_error_patterns": true,
     "alert_on_stuck_tasks": true,
     "monitor_task_status_transitions": true,
     "track_progress_persistence": true,
-    "monitor_checkpoint_frequency": true,
     "track_recovery_success_rate": true,
-    "alert_on_progress_loss": true,
     "monitor_memory_cleanup": true
   },
   "tags": ["autonomous", "task-executor", "github", "slack", "automation"],

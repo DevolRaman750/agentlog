@@ -1917,7 +1917,7 @@ class GoGentAPI {
   }
 
   // =============================================================================
-  // TASK MANAGEMENT METHODS (v2 Structured Tasks)
+  // TASK MANAGEMENT METHODS (Structured Tasks)
   // =============================================================================
 
   async getTasks(params?: TaskListParams): Promise<ApiResponse<TaskResponse>> {

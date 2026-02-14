@@ -25,13 +25,13 @@
     {
       "name": "Delete a duplicate task",
       "parameters": {
-        "task_id": "task_v2_dup_999"
+        "task_id": "task_dup_999"
       }
     },
     {
       "name": "Delete a task created in error",
       "parameters": {
-        "task_id": "task_v2_err_001"
+        "task_id": "task_err_001"
       }
     }
   ]
