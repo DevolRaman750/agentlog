@@ -208,7 +208,7 @@ func (f *ProviderFactory) GetSupportedModels() map[string][]string {
 			"openai/gpt-4.1",
 			// Kimi models
 			"moonshotai/kimi-k2",
-			"moonshotai/kimi-k2-instruct",
+			"moonshotai/kimi-k2.5",
 			// Meta Llama models (free tier)
 			"meta-llama/llama-3.1-8b-instruct:free",
 			"meta-llama/llama-3.1-70b-instruct:free",

@@ -1398,6 +1398,17 @@ func (c *Client) dispatchStructuredTaskFunction(ctx context.Context, tasksHandle
 				}
 			}
 		}
+		// Also handle states passed as a single string (comma-separated)
+		if statesStr, ok := args["states"].(string); ok && statesStr != "" {
+			for _, s := range strings.Split(statesStr, ",") {
+				s = strings.TrimSpace(s)
+				if s != "" {
+					req.States = append(req.States, s)
+				}
+			}
+		}
+		// Map old task states to v2 equivalents for backward compatibility
+		req.States = mapOldStatesToV2(req.States)
 		if priority, ok := args["priority"].([]interface{}); ok {
 			for _, p := range priority {
 				if pStr, ok := p.(string); ok {
@@ -1406,7 +1417,16 @@ func (c *Client) dispatchStructuredTaskFunction(ctx context.Context, tasksHandle
 			}
 		}
 		req.IncludeSubtree = getBoolArg(args, "include_subtree")
+		log.Printf("📋 task list query params: userID=%s, teamID=%s, states=%v, agentID=%s, priority=%v, limit=%d",
+			userID, teamID, req.States, req.AgentID, req.Priority, req.Limit)
 		taskResponse, err = tasksHandler.ListTasksInternal(ctx, userID, teamID, req)
+		if taskResponse != nil {
+			taskCount := 0
+			if taskResponse.Tasks != nil {
+				taskCount = len(taskResponse.Tasks)
+			}
+			log.Printf("📋 task list result: success=%v, count=%d, error=%s", taskResponse.Success, taskCount, taskResponse.Error)
+		}
 
 	case "get_children":
 		taskID := getStringArg(args, "task_id")
@@ -1456,7 +1476,12 @@ func (c *Client) dispatchStructuredTaskFunction(ctx context.Context, tasksHandle
 		if reqAgentID == "" {
 			reqAgentID = agentID
 		}
+		log.Printf("📋 next_available query params: userID=%s, teamID=%s, agentID=%s", userID, reqTeamID, reqAgentID)
 		taskResponse, err = tasksHandler.GetNextAvailableInternal(ctx, userID, reqTeamID, reqAgentID)
+		if taskResponse != nil {
+			hasTask := taskResponse.Task != nil
+			log.Printf("📋 next_available result: success=%v, hasTask=%v, error=%s", taskResponse.Success, hasTask, taskResponse.Error)
+		}
 
 	default:
 		return nil, fmt.Errorf("unsupported structured task function: %s (action: %s)", functionName, action)
@@ -3840,4 +3865,31 @@ func getMapArg(args map[string]interface{}, key string) map[string]interface{} {
 		return val
 	}
 	return nil
+}
+
+// mapOldStatesToV2 maps old task system states to v2 equivalents for backward compatibility.
+// LLMs may use old terminology (pending, claimed, error) which need to be translated
+// to the v2 state machine (defining, compiling, compiled, in_progress, completed, failed).
+func mapOldStatesToV2(states []string) []string {
+	if len(states) == 0 {
+		return states
+	}
+	stateMap := map[string]string{
+		"pending": "defining",
+		"claimed": "in_progress",
+		"error":   "failed",
+	}
+	seen := make(map[string]bool)
+	var mapped []string
+	for _, s := range states {
+		if newState, ok := stateMap[s]; ok {
+			log.Printf("🔄 Mapping old task state '%s' → '%s'", s, newState)
+			s = newState
+		}
+		if !seen[s] {
+			seen[s] = true
+			mapped = append(mapped, s)
+		}
+	}
+	return mapped
 }

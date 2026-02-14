@@ -45,7 +45,7 @@ const isRecommendedModel = (modelName: string): boolean => {
     'gemini-2.5-pro',
     'anthropic/claude-sonnet-4',
     'openai/gpt-4.1',
-    'moonshotai/kimi-k2-instruct'
+    'moonshotai/kimi-k2.5'
   ];
   return recommendedModels.includes(modelName);
 };

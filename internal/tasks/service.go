@@ -70,7 +70,7 @@ func (s *Service) CreateTask(ctx context.Context, userID, agentID string, teamID
 		ID:                uuid.New().String(),
 		UserID:            userID,
 		TeamID:            teamID,
-		AgentID:           agentID,
+		AgentID:           "", // Leave unassigned — any team member can pick it up
 		CreatedBy:         agentID,
 		Title:             req.Title,
 		Description:       req.Description,

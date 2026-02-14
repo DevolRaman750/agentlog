@@ -22,8 +22,8 @@ func TestProviderFactory_ModelDetection(t *testing.T) {
 
 		// Kimi models
 		{"moonshotai/kimi-k2", "kimi"},
-		{"moonshotai/kimi-k2-instruct", "kimi"},
-		{"moonshotai/Kimi-K2-Instruct", "kimi"},
+		{"moonshotai/kimi-k2.5", "kimi"},
+		{"moonshotai/Kimi-K2.5", "kimi"},
 
 		// Unknown models should default to gemini for backwards compatibility
 		{"unknown-model", "gemini"},
@@ -48,7 +48,7 @@ func TestProviderFactory_IsModelSupported(t *testing.T) {
 		"gemini-2.5-flash",
 		"gemini-2.5-pro",
 		"moonshotai/kimi-k2",
-		"moonshotai/kimi-k2-instruct",
+		"moonshotai/kimi-k2.5",
 	}
 
 	unsupportedModels := []string{
@@ -92,7 +92,7 @@ func TestProviderFactory_ValidateModelConfig(t *testing.T) {
 		{
 			name: "valid_kimi_config",
 			config: &types.APIConfiguration{
-				ModelName: "moonshotai/kimi-k2-instruct",
+				ModelName: "moonshotai/kimi-k2.5",
 			},
 			shouldError: false,
 		},
@@ -196,7 +196,7 @@ func TestProviderFactory_CreateProvider(t *testing.T) {
 			OpenRouterAPIKey: "sk-or-test123456789012345678901234567890",
 		}
 
-		provider, err := factory.CreateProvider(ctx, "moonshotai/kimi-k2-instruct", sessionKeys)
+		provider, err := factory.CreateProvider(ctx, "moonshotai/kimi-k2.5", sessionKeys)
 		if err != nil {
 			t.Fatalf("Failed to create Kimi provider: %v", err)
 		}
@@ -222,7 +222,7 @@ func TestProviderFactory_CreateProvider(t *testing.T) {
 			t.Error("Expected error when creating Gemini provider without API key")
 		}
 
-		_, err = freshFactory.CreateProvider(ctx, "moonshotai/kimi-k2-instruct", sessionKeys)
+		_, err = freshFactory.CreateProvider(ctx, "moonshotai/kimi-k2.5", sessionKeys)
 		if err == nil {
 			t.Error("Expected error when creating Kimi provider without API key")
 		}

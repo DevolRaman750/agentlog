@@ -624,11 +624,12 @@ func (d *Database) GetBlockers(ctx context.Context, taskID string) ([]types.Task
 	return d.scanTasks(ctx, query, taskID)
 }
 
-// GetNextAvailable returns compiled tasks with no incomplete dependencies, ready to start
+// GetNextAvailable returns the next task available for execution, excluding completed and failed tasks.
+// Tasks are prioritized: compiled > defining > compiling > in_progress, then by priority level, then by creation time.
 func (d *Database) GetNextAvailable(ctx context.Context, userID, teamID, agentID string) (*types.Task, error) {
 	whereClauses := []string{
 		"t.user_id = ?",
-		"t.state = 'compiled'",
+		"t.state NOT IN ('completed', 'failed')",
 	}
 	args := []interface{}{userID}
 
@@ -636,10 +637,9 @@ func (d *Database) GetNextAvailable(ctx context.Context, userID, teamID, agentID
 		whereClauses = append(whereClauses, "t.team_id = ?")
 		args = append(args, teamID)
 	}
-	if agentID != "" {
-		whereClauses = append(whereClauses, "(t.agent_id = ? OR t.agent_id IS NULL)")
-		args = append(args, agentID)
-	}
+	// NOTE: We intentionally do NOT filter by agent_id here.
+	// Team tasks should be available for ANY team member to pick up.
+	// The team_id filter already scopes tasks to the correct team.
 
 	query := fmt.Sprintf(`SELECT
 		t.id, t.user_id, t.team_id, t.agent_id, t.created_by,
@@ -657,6 +657,7 @@ func (d *Database) GetNextAvailable(ctx context.Context, userID, teamID, agentID
 		WHERE td.task_id = t.id AND dep.state != 'completed'
 	)
 	ORDER BY
+		FIELD(t.state, 'compiled', 'defining', 'compiling', 'in_progress'),
 		FIELD(t.priority, 'urgent', 'high', 'medium', 'low'),
 		t.created_at ASC
 	LIMIT 1`, strings.Join(whereClauses, " AND "))
