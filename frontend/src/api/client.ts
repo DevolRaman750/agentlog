@@ -29,6 +29,12 @@ import {
   AgentMemoryResponse,
   TeamMemoryRequest,
   TeamMemoryResponse,
+  TaskResponse,
+  TaskCreateRequest,
+  TaskUpdateRequest,
+  TaskTransitionRequest,
+  TaskListParams,
+  ContextSource,
 } from '../types';
 
 // Team with agents creation types
@@ -1907,6 +1913,179 @@ class GoGentAPI {
     } catch (error) {
       console.error('Error clearing team memory:', error);
       throw error;
+    }
+  }
+
+  // =============================================================================
+  // TASK MANAGEMENT METHODS (v2 Structured Tasks)
+  // =============================================================================
+
+  async getTasks(params?: TaskListParams): Promise<ApiResponse<TaskResponse>> {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.states?.length) queryParams.append('states', params.states.join(','));
+      if (params?.priority?.length) queryParams.append('priority', params.priority.join(','));
+      if (params?.agent_id) queryParams.append('agent_id', params.agent_id);
+      if (params?.team_id) queryParams.append('team_id', params.team_id);
+      if (params?.parent_task_id) queryParams.append('parent_task_id', params.parent_task_id);
+      if (params?.limit) queryParams.append('limit', params.limit.toString());
+      if (params?.offset) queryParams.append('offset', params.offset.toString());
+
+      const url = `/api/tasks${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+      const response: AxiosResponse<TaskResponse> = await this.api.get(url);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.error || error.message || 'Failed to fetch tasks' };
+    }
+  }
+
+  async createTask(data: TaskCreateRequest, agentId?: string, teamId?: string): Promise<ApiResponse<TaskResponse>> {
+    try {
+      const queryParams = new URLSearchParams();
+      if (agentId) queryParams.append('agent_id', agentId);
+      if (teamId) queryParams.append('team_id', teamId);
+
+      const url = `/api/tasks${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+      const response: AxiosResponse<TaskResponse> = await this.api.post(url, data);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.error || error.message || 'Failed to create task' };
+    }
+  }
+
+  async getTask(taskId: string): Promise<ApiResponse<TaskResponse>> {
+    try {
+      const response: AxiosResponse<TaskResponse> = await this.api.get(`/api/tasks/${taskId}`);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.error || error.message || 'Failed to fetch task' };
+    }
+  }
+
+  async updateTask(taskId: string, data: TaskUpdateRequest): Promise<ApiResponse<TaskResponse>> {
+    try {
+      const response: AxiosResponse<TaskResponse> = await this.api.put(`/api/tasks/${taskId}`, data);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.error || error.message || 'Failed to update task' };
+    }
+  }
+
+  async deleteTask(taskId: string): Promise<ApiResponse<TaskResponse>> {
+    try {
+      const response: AxiosResponse<TaskResponse> = await this.api.delete(`/api/tasks/${taskId}`);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.error || error.message || 'Failed to delete task' };
+    }
+  }
+
+  async transitionTask(taskId: string, data: TaskTransitionRequest): Promise<ApiResponse<TaskResponse>> {
+    try {
+      const response: AxiosResponse<TaskResponse> = await this.api.post(`/api/tasks/${taskId}/transition`, data);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.error || error.message || 'Failed to transition task' };
+    }
+  }
+
+  async getTaskChildren(taskId: string, limit?: number, offset?: number): Promise<ApiResponse<TaskResponse>> {
+    try {
+      const queryParams = new URLSearchParams();
+      if (limit) queryParams.append('limit', limit.toString());
+      if (offset) queryParams.append('offset', offset.toString());
+
+      const url = `/api/tasks/${taskId}/children${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+      const response: AxiosResponse<TaskResponse> = await this.api.get(url);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.error || error.message || 'Failed to fetch task children' };
+    }
+  }
+
+  async getTaskSubtree(taskId: string): Promise<ApiResponse<TaskResponse>> {
+    try {
+      const response: AxiosResponse<TaskResponse> = await this.api.get(`/api/tasks/${taskId}/subtree`);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.error || error.message || 'Failed to fetch task subtree' };
+    }
+  }
+
+  async getTaskAncestors(taskId: string): Promise<ApiResponse<TaskResponse>> {
+    try {
+      const response: AxiosResponse<TaskResponse> = await this.api.get(`/api/tasks/${taskId}/ancestors`);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.error || error.message || 'Failed to fetch task ancestors' };
+    }
+  }
+
+  async addTaskContext(taskId: string, source: ContextSource): Promise<ApiResponse<TaskResponse>> {
+    try {
+      const response: AxiosResponse<TaskResponse> = await this.api.post(`/api/tasks/${taskId}/context`, source);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.error || error.message || 'Failed to add task context' };
+    }
+  }
+
+  async updateTaskContext(taskId: string, index: number, source: ContextSource): Promise<ApiResponse<TaskResponse>> {
+    try {
+      const response: AxiosResponse<TaskResponse> = await this.api.put(`/api/tasks/${taskId}/context/${index}`, source);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.error || error.message || 'Failed to update task context' };
+    }
+  }
+
+  async removeTaskContext(taskId: string, index: number): Promise<ApiResponse<TaskResponse>> {
+    try {
+      const response: AxiosResponse<TaskResponse> = await this.api.delete(`/api/tasks/${taskId}/context/${index}`);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.error || error.message || 'Failed to remove task context' };
+    }
+  }
+
+  async addTaskDependency(taskId: string, dependsOnId: string): Promise<ApiResponse<TaskResponse>> {
+    try {
+      const response: AxiosResponse<TaskResponse> = await this.api.post(`/api/tasks/${taskId}/dependencies`, { depends_on_id: dependsOnId });
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.error || error.message || 'Failed to add task dependency' };
+    }
+  }
+
+  async removeTaskDependency(taskId: string, dependsOnId: string): Promise<ApiResponse<TaskResponse>> {
+    try {
+      const response: AxiosResponse<TaskResponse> = await this.api.delete(`/api/tasks/${taskId}/dependencies/${dependsOnId}`);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.error || error.message || 'Failed to remove task dependency' };
+    }
+  }
+
+  async getTaskBlockers(taskId: string): Promise<ApiResponse<TaskResponse>> {
+    try {
+      const response: AxiosResponse<TaskResponse> = await this.api.get(`/api/tasks/${taskId}/blockers`);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.error || error.message || 'Failed to fetch task blockers' };
+    }
+  }
+
+  async getNextAvailableTask(teamId?: string, agentId?: string): Promise<ApiResponse<TaskResponse>> {
+    try {
+      const queryParams = new URLSearchParams();
+      if (teamId) queryParams.append('team_id', teamId);
+      if (agentId) queryParams.append('agent_id', agentId);
+
+      const url = `/api/tasks/next-available${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+      const response: AxiosResponse<TaskResponse> = await this.api.get(url);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.error || error.message || 'Failed to fetch next available task' };
     }
   }
 }

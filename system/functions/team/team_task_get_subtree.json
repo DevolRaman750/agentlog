@@ -1,0 +1,38 @@
+{
+  "id": "func-team_task_get_subtree-1754910011",
+  "name": "team_task_get_subtree",
+  "provider": "internal",
+  "display_name": "Team Task: Get Subtree",
+  "description": "Retrieve the full subtree of tasks rooted at a given task, including all descendants at every level. Returns a hierarchical view of the task tree with parent-child relationships preserved. Use this to get a complete picture of a complex work breakdown and the status of all nested subtasks.",
+  "function_group": "internal",
+  "endpoint": {
+    "path": "/internal/team/task/get_subtree",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "task_id": {
+        "type": "string",
+        "description": "Unique identifier of the root task whose full subtree to retrieve"
+      }
+    },
+    "required": [
+      "task_id"
+    ]
+  },
+  "examples": [
+    {
+      "name": "Get full subtree of a project task",
+      "parameters": {
+        "task_id": "task_v2_project_001"
+      }
+    },
+    {
+      "name": "Get subtree to check overall progress",
+      "parameters": {
+        "task_id": "task_v2_abc123"
+      }
+    }
+  ]
+}

@@ -610,6 +610,8 @@ build:
 
 # Run auto-demo (detects configuration)
 run:
+	@lsof -ti:8080 | xargs kill -9 2>/dev/null || true
+	@sleep 1
 	go run cmd/gogent/*.go
 
 # Run simple demo with mock responses

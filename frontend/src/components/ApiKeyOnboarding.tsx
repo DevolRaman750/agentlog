@@ -28,7 +28,7 @@ interface ApiKeyOnboardingProps {
 }
 
 export type OnboardingStep = 'welcome' | 'model-selection' | 'model-setup' | 'functions-setup' | 'completion';
-export type ModelProvider = 'gemini' | 'openrouter';
+export type ModelProvider = 'gemini' | 'openrouter' | 'ollama';
 
 interface SelectedModel {
   provider: ModelProvider;
@@ -659,7 +659,11 @@ export const ApiKeyOnboarding: React.FC<ApiKeyOnboardingProps> = ({
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
-  const [selectedModel, setSelectedModel] = useState<SelectedModel | null>(null);
+  const [selectedModel, setSelectedModel] = useState<SelectedModel | null>({
+    provider: 'ollama',
+    name: 'llama3.1:latest',
+    displayName: 'Self-Hosted Llama 3.1 (GPU)'
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [setupResults, setSetupResults] = useState<{
     modelKey: boolean;
@@ -683,10 +687,10 @@ export const ApiKeyOnboarding: React.FC<ApiKeyOnboardingProps> = ({
 
   const getConfiguredServices = () => {
     const modelServices = existingKeys.filter(key =>
-      ['gemini', 'openai', 'openrouter'].includes(key.serviceName)
+      ['gemini', 'openai', 'openrouter', 'ollama'].includes(key.serviceName)
     );
     const functionServices = existingKeys.filter(key =>
-      !['gemini', 'openai', 'openrouter', 'agent', 'team', 'internal'].includes(key.serviceName)
+      !['gemini', 'openai', 'openrouter', 'ollama', 'agent', 'team', 'internal'].includes(key.serviceName)
     );
 
     return {
@@ -708,12 +712,23 @@ export const ApiKeyOnboarding: React.FC<ApiKeyOnboardingProps> = ({
 
   const handleNext = () => {
     const currentIndex = getCurrentStepIndex();
+    // Skip model-setup step for Ollama (no API key needed)
+    if (currentStep === 'model-selection' && selectedModel?.provider === 'ollama') {
+      setSetupResults(prev => ({ ...prev, modelKey: true }));
+      setCurrentStep('functions-setup');
+      return;
+    }
     if (currentIndex < steps.length - 1) {
       setCurrentStep(steps[currentIndex + 1].id);
     }
   };
 
   const handleBack = () => {
+    // Skip model-setup step when going back from functions-setup with Ollama
+    if (currentStep === 'functions-setup' && selectedModel?.provider === 'ollama') {
+      setCurrentStep('model-selection');
+      return;
+    }
     const currentIndex = getCurrentStepIndex();
     if (currentIndex > 0) {
       setCurrentStep(steps[currentIndex - 1].id);
@@ -803,7 +818,7 @@ export const ApiKeyOnboarding: React.FC<ApiKeyOnboardingProps> = ({
           <View style={styles.requirementItem}>
             <Ionicons name="checkmark-circle" size={20} color={colors.statusSuccess} />
             <Text style={styles.requirementText}>
-              <Text style={styles.requirementBold}>AI Model API Key</Text> - Either Google Gemini or OpenRouter (required)
+              <Text style={styles.requirementBold}>AI Model</Text> - Use the free self-hosted GPU, or bring your own Gemini/OpenRouter key
             </Text>
           </View>
 
@@ -821,7 +836,7 @@ export const ApiKeyOnboarding: React.FC<ApiKeyOnboardingProps> = ({
             <Text style={styles.warningTitle}>Cost Awareness</Text>
           </View>
           <Text style={styles.warningText}>
-            You will incur costs through using these API keys as per the Gemini/OpenRouter platform pricing.
+            The self-hosted GPU model is free. If you choose Gemini or OpenRouter, you will incur costs as per their platform pricing.
             AgentLog will track and wrap all API usage so you can monitor your consumption and costs.
           </Text>
         </View>
@@ -860,12 +875,45 @@ export const ApiKeyOnboarding: React.FC<ApiKeyOnboardingProps> = ({
         <TouchableOpacity
           style={[
             styles.providerCard,
+            selectedModel?.provider === 'ollama' && styles.selectedProviderCard
+          ]}
+          onPress={() => setSelectedModel({
+            provider: 'ollama',
+            name: 'llama3.1:latest',
+            displayName: 'Self-Hosted Llama 3.1 (GPU)'
+          })}
+        >
+          <View style={styles.providerHeader}>
+            <View style={styles.providerTitleContainer}>
+              <Ionicons
+                name={selectedModel?.provider === 'ollama' ? 'radio-button-on' : 'radio-button-off'}
+                size={20}
+                color={selectedModel?.provider === 'ollama' ? colors.accent : colors.textTertiary}
+              />
+              <Text style={styles.providerTitle}>Self-Hosted GPU</Text>
+              <Text style={styles.recommendedBadge}>FREE - NO API KEY</Text>
+            </View>
+          </View>
+          <Text style={styles.providerDescription}>
+            Start immediately with our self-hosted AI model. No account or API key needed.
+          </Text>
+          <View style={styles.providerFeatures}>
+            <Text style={styles.featureText}>Free to use</Text>
+            <Text style={styles.featureText}>No API key required</Text>
+            <Text style={styles.featureText}>Self-hosted on GPU</Text>
+            <Text style={styles.featureText}>Function calling support</Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.providerCard,
             selectedModel?.provider === 'gemini' && styles.selectedProviderCard
           ]}
           onPress={() => setSelectedModel({
             provider: 'gemini',
             name: 'gemini-2.5-pro',
-            displayName: 'Google Gemini 1.5 Pro'
+            displayName: 'Google Gemini 2.5 Pro'
           })}
         >
           <View style={styles.providerHeader}>
@@ -876,7 +924,7 @@ export const ApiKeyOnboarding: React.FC<ApiKeyOnboardingProps> = ({
                 color={selectedModel?.provider === 'gemini' ? colors.accent : colors.textTertiary}
               />
               <Text style={styles.providerTitle}>Google Gemini</Text>
-              <Text style={styles.recommendedBadge}>RECOMMENDED</Text>
+              <Text style={styles.costEffectiveBadge}>ADVANCED</Text>
             </View>
           </View>
           <Text style={styles.providerDescription}>
@@ -897,8 +945,8 @@ export const ApiKeyOnboarding: React.FC<ApiKeyOnboardingProps> = ({
           ]}
           onPress={() => setSelectedModel({
             provider: 'openrouter',
-            name: 'anthropic/claude-3.5-sonnet',
-            displayName: 'Claude 3.5 Sonnet (via OpenRouter)'
+            name: 'anthropic/claude-sonnet-4',
+            displayName: 'Claude Sonnet 4 (via OpenRouter)'
           })}
         >
           <View style={styles.providerHeader}>
@@ -913,20 +961,20 @@ export const ApiKeyOnboarding: React.FC<ApiKeyOnboardingProps> = ({
             </View>
           </View>
           <Text style={styles.providerDescription}>
-            Access to multiple AI models including Claude 3.5 Sonnet, GPT-4o, and more through a single API.
+            Access to multiple AI models including Claude Sonnet 4, GPT-4.1, and more through a single API.
           </Text>
           <View style={styles.providerFeatures}>
             <Text style={styles.featureText}>Multiple model options</Text>
             <Text style={styles.featureText}>Excellent function calling</Text>
             <Text style={styles.featureText}>High-quality responses</Text>
-            <Text style={styles.featureText}>$3 per 1M input tokens (Claude 3.5 Sonnet)</Text>
+            <Text style={styles.featureText}>$3 per 1M input tokens (Claude Sonnet 4)</Text>
           </View>
         </TouchableOpacity>
 
         <View style={styles.comparisonNote}>
           <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
           <Text style={styles.comparisonText}>
-            Both options provide excellent AI capabilities. Choose based on your budget and specific needs.
+            The self-hosted GPU is free and requires no setup. Gemini and OpenRouter offer more advanced models but require an API key.
           </Text>
         </View>
       </View>
@@ -1261,7 +1309,7 @@ const FunctionsSetupStep: React.FC<FunctionsSetupStepProps> = ({
         if (response.success && response.data) {
           // Filter out AI model services and internal services, focus on function services
           const functionServices = response.data.filter(service =>
-            !['gemini', 'openai', 'openrouter', 'agent', 'team', 'internal'].includes(service.id)
+            !['gemini', 'openai', 'openrouter', 'ollama', 'agent', 'team', 'internal'].includes(service.id)
           );
           setAvailableServices(functionServices);
         }

@@ -1,7 +1,7 @@
 {
   "id": "system-config-kimi-k2",
   "name": "Tool Use & Coding",
-  "model": "moonshotai/kimi-k2",
+  "model": "moonshotai/kimi-k2-instruct",
   "description": "System configuration: Tool Use & Coding",
   "system_prompt": "You are an expert AI assistant specialized in tool use and coding tasks. Excel at function calling, code analysis, and complex agentic workflows. Provide precise, technical solutions.",
   "parameters": {

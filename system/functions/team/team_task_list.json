@@ -1,9 +1,10 @@
 {
-  "id": "func-team_task_list-1754848303",
+  "id": "func-team_task_list-1754910009",
   "name": "team_task_list",
   "provider": "internal",
   "display_name": "Team Task: List",
-  "description": "List and query tasks in the team's task memory. Use this to view available tasks, check task status, find tasks by criteria, or get an overview of team workload. Supports filtering by status, priority, assigned agent, and other criteria. Team context is automatically inferred from the agent's team membership.",
+  "description": "List and filter tasks in the team's structured task system. Supports filtering by parent task, lifecycle states, priority levels, and assigned agent. Use this to get an overview of team workload, find tasks in specific states, or navigate the task hierarchy. Team context is automatically inferred from the agent's team membership.",
+  "function_group": "internal",
   "endpoint": {
     "path": "/internal/team/task/list",
     "method": "POST"
@@ -11,54 +12,34 @@
   "parameters": {
     "type": "object",
     "properties": {
-      "status_filter": {
+      "parent_task_id": {
+        "type": "string",
+        "description": "Filter to only show direct children of this parent task. Omit to show top-level tasks."
+      },
+      "states": {
         "type": "array",
         "items": {
           "type": "string",
-          "enum": ["pending", "claimed", "in_progress", "completed", "failed", "blocked", "cancelled"]
+          "enum": ["defining", "compiling", "compiled", "in_progress", "completed", "failed"]
         },
-        "description": "Filter tasks by status. If not provided, shows all statuses."
+        "description": "Filter tasks by one or more lifecycle states"
       },
-      "priority_filter": {
+      "priority": {
         "type": "array",
         "items": {
           "type": "string",
           "enum": ["low", "medium", "high", "urgent"]
         },
-        "description": "Filter tasks by priority levels"
+        "description": "Filter tasks by one or more priority levels"
       },
-      "assigned_agent_filter": {
+      "agent_id": {
         "type": "string",
-        "description": "Filter tasks assigned to specific agent ID"
+        "description": "Filter tasks assigned to a specific agent"
       },
-      "capability_filter": {
-        "type": "array",
-        "items": {
-          "type": "string"
-        },
-        "description": "Filter tasks that require specific capabilities"
-      },
-      "created_after": {
-        "type": "string",
-        "format": "date-time",
-        "description": "Only show tasks created after this timestamp (ISO 8601 format)"
-      },
-      "deadline_before": {
-        "type": "string",
-        "format": "date-time",
-        "description": "Only show tasks with deadlines before this timestamp (ISO 8601 format)"
-      },
-      "sort_by": {
-        "type": "string",
-        "enum": ["created_date", "priority", "deadline", "estimated_duration"],
-        "default": "created_date",
-        "description": "Sort tasks by this field"
-      },
-      "sort_order": {
-        "type": "string",
-        "enum": ["asc", "desc"],
-        "default": "desc",
-        "description": "Sort order"
+      "include_subtree": {
+        "type": "boolean",
+        "default": false,
+        "description": "If true and parent_task_id is set, include all descendants recursively, not just direct children"
       },
       "limit": {
         "type": "integer",
@@ -67,53 +48,30 @@
         "default": 50,
         "description": "Maximum number of tasks to return"
       },
-      "include_completed": {
-        "type": "boolean",
-        "default": false,
-        "description": "Whether to include completed tasks in results"
+      "offset": {
+        "type": "integer",
+        "minimum": 0,
+        "default": 0,
+        "description": "Number of tasks to skip for pagination"
       }
     },
     "required": []
   },
   "examples": [
     {
-      "name": "List all pending tasks",
+      "name": "List all tasks ready for execution",
       "parameters": {
-        "status_filter": ["pending"],
-        "sort_by": "priority",
-        "sort_order": "desc"
+        "states": ["compiled"],
+        "priority": ["high", "urgent"],
+        "limit": 20
       }
     },
     {
-      "name": "List high priority tasks needing GitHub access",
+      "name": "List tasks assigned to an agent",
       "parameters": {
-        "priority_filter": ["high", "urgent"],
-        "capability_filter": ["github"],
-        "status_filter": ["pending", "claimed"]
-      }
-    },
-    {
-      "name": "List my assigned tasks",
-      "parameters": {
-        "assigned_agent_filter": "agent_456",
-        "status_filter": ["claimed", "in_progress"]
-      }
-    },
-    {
-      "name": "List tasks with approaching deadlines",
-      "parameters": {
-        "deadline_before": "2024-01-20T23:59:59Z",
-        "status_filter": ["pending", "claimed", "in_progress"],
-        "sort_by": "deadline",
-        "sort_order": "asc"
-      }
-    },
-    {
-      "name": "Get team workload overview",
-      "parameters": {
-        "include_completed": true,
-        "created_after": "2024-01-01T00:00:00Z",
-        "limit": 100
+        "agent_id": "agent_007",
+        "states": ["in_progress", "compiled"],
+        "limit": 10
       }
     }
   ]

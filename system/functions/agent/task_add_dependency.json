@@ -1,0 +1,45 @@
+{
+  "id": "func-task_add_dependency-1754900012",
+  "name": "task_add_dependency",
+  "provider": "internal",
+  "function_group": "internal",
+  "display_name": "Task: Add Dependency",
+  "description": "Add an ordering dependency between two tasks. The task specified by task_id will depend on the task specified by depends_on_id, meaning it cannot transition to 'in_progress' until the dependency is completed. Circular dependencies are detected and rejected server-side.",
+  "endpoint": {
+    "path": "/internal/task/add-dependency",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "task_id": {
+        "type": "string",
+        "description": "Unique identifier of the task that will depend on another task"
+      },
+      "depends_on_id": {
+        "type": "string",
+        "description": "Unique identifier of the task that must be completed first"
+      }
+    },
+    "required": [
+      "task_id",
+      "depends_on_id"
+    ]
+  },
+  "examples": [
+    {
+      "name": "Add dependency: tests must pass before deployment",
+      "parameters": {
+        "task_id": "task-deploy-staging",
+        "depends_on_id": "task-run-test-suite"
+      }
+    },
+    {
+      "name": "Add dependency: code review before merge",
+      "parameters": {
+        "task_id": "task-merge-pr-187",
+        "depends_on_id": "task-code-review-187"
+      }
+    }
+  ]
+}

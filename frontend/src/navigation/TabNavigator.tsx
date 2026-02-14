@@ -27,6 +27,7 @@ import DatabaseScreen from '../screens/DatabaseScreen';
 import AuthScreen from '../screens/AuthScreen';
 import ApiKeysScreen from '../screens/ApiKeysScreen';
 import AgentsScreen from '../screens/AgentsScreen';
+import TasksScreen from '../screens/TasksScreen';
 import AgentMarketplaceScreen from '../screens/AgentMarketplaceScreen';
 import TemplateTokenManagerScreen from '../screens/TemplateTokenManagerScreen';
 import DocumentationScreen from '../screens/DocumentationScreen';
@@ -368,6 +369,8 @@ const TabNavigator = () => {
             iconName = focused ? 'server' : 'server-outline';
           } else if (route.name === 'Agents') {
             iconName = focused ? 'construct' : 'construct-outline';
+          } else if (route.name === 'Tasks') {
+            iconName = focused ? 'clipboard' : 'clipboard-outline';
           } else if (route.name === 'Account') {
             iconName = focused ? 'person-circle' : 'person-circle-outline';
           }
@@ -389,6 +392,7 @@ const TabNavigator = () => {
       <Tab.Screen name="Database" component={withResponsiveLayout(DatabaseScreen)} />
       <Tab.Screen name="Documentation" component={withResponsiveLayout(DocumentationNavigator)} />
       <Tab.Screen name="Agents" component={withResponsiveLayout(AgentsScreen)} />
+      <Tab.Screen name="Tasks" component={withResponsiveLayout(TasksScreen)} />
       <Tab.Screen name="Marketplace" component={withResponsiveLayout(AgentMarketplaceScreen)} />
       <Tab.Screen name="Account" component={withResponsiveLayout(AuthScreen)} />
       <Tab.Screen

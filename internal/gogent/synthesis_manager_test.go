@@ -19,6 +19,7 @@ func TestSynthesisManager_DetectIdenticalFunctionLoop(t *testing.T) {
 			name: "No loop - insufficient calls",
 			functionCalls: []ResponsePart{
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "github_read_issues", Args: map[string]interface{}{"owner": "test", "repo": "repo"}}},
@@ -29,14 +30,17 @@ func TestSynthesisManager_DetectIdenticalFunctionLoop(t *testing.T) {
 			name: "Loop detected - same function, identical params, 3 times",
 			functionCalls: []ResponsePart{
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "github_read_issues", Args: map[string]interface{}{"owner": "test", "repo": "repo"}}},
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "github_read_issues", Args: map[string]interface{}{"owner": "test", "repo": "repo"}}},
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "github_read_issues", Args: map[string]interface{}{"owner": "test", "repo": "repo"}}},
@@ -47,14 +51,17 @@ func TestSynthesisManager_DetectIdenticalFunctionLoop(t *testing.T) {
 			name: "No loop - same function but pagination changed",
 			functionCalls: []ResponsePart{
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "github_read_issues", Args: map[string]interface{}{"owner": "test", "repo": "repo", "limit": 10}}},
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "github_read_issues", Args: map[string]interface{}{"owner": "test", "repo": "repo", "limit": 20}}},
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "github_read_issues", Args: map[string]interface{}{"owner": "test", "repo": "repo", "limit": 30}}},
@@ -65,14 +72,17 @@ func TestSynthesisManager_DetectIdenticalFunctionLoop(t *testing.T) {
 			name: "No loop - different functions",
 			functionCalls: []ResponsePart{
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "github_read_issues", Args: map[string]interface{}{"owner": "test", "repo": "repo"}}},
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "github_read_code", Args: map[string]interface{}{"owner": "test", "repo": "repo"}}},
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "github_read_commits", Args: map[string]interface{}{"owner": "test", "repo": "repo"}}},
@@ -83,14 +93,17 @@ func TestSynthesisManager_DetectIdenticalFunctionLoop(t *testing.T) {
 			name: "No loop - same function but very different params",
 			functionCalls: []ResponsePart{
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "github_read_issues", Args: map[string]interface{}{"owner": "owner1", "repo": "repo1", "state": "open"}}},
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "github_read_issues", Args: map[string]interface{}{"owner": "owner2", "repo": "repo2", "state": "closed"}}},
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "github_read_issues", Args: map[string]interface{}{"owner": "owner3", "repo": "repo3", "state": "all"}}},
@@ -101,18 +114,22 @@ func TestSynthesisManager_DetectIdenticalFunctionLoop(t *testing.T) {
 			name: "Loop detected - alternating team_task_list and slack_find_channel",
 			functionCalls: []ResponsePart{
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "team_task_list", Args: map[string]interface{}{}}},
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "slack_find_channel", Args: map[string]interface{}{"channel_name": "test"}}},
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "team_task_list", Args: map[string]interface{}{}}},
 				{FunctionCall: struct {
+					ID   string                 `json:"id,omitempty"`
 					Name string                 `json:"name"`
 					Args map[string]interface{} `json:"args"`
 				}{Name: "slack_find_channel", Args: map[string]interface{}{"channel_name": "test"}}},

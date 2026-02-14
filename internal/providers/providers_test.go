@@ -15,10 +15,10 @@ func TestProviderFactory_ModelDetection(t *testing.T) {
 		modelName    string
 		expectedType string
 	}{
-		// Gemini models
-		{"gemini-1.5-flash", "gemini"},
-		{"gemini-1.5-pro", "gemini"},
-		{"gemini-1.0-pro", "gemini"},
+		// Gemini models (current supported)
+		{"gemini-2.5-flash", "gemini"},
+		{"gemini-2.5-pro", "gemini"},
+		{"gemini-2.0-flash", "gemini"},
 
 		// Kimi models
 		{"moonshotai/kimi-k2", "kimi"},
@@ -45,8 +45,8 @@ func TestProviderFactory_IsModelSupported(t *testing.T) {
 	factory := NewProviderFactory()
 
 	supportedModels := []string{
-		"gemini-1.5-flash",
-		"gemini-1.5-pro",
+		"gemini-2.5-flash",
+		"gemini-2.5-pro",
 		"moonshotai/kimi-k2",
 		"moonshotai/kimi-k2-instruct",
 	}
@@ -85,7 +85,7 @@ func TestProviderFactory_ValidateModelConfig(t *testing.T) {
 		{
 			name: "valid_gemini_config",
 			config: &types.APIConfiguration{
-				ModelName: "gemini-1.5-flash",
+				ModelName: "gemini-2.5-flash",
 			},
 			shouldError: false,
 		},
@@ -178,7 +178,7 @@ func TestProviderFactory_CreateProvider(t *testing.T) {
 			GeminiAPIKey: "AIzaSyTest123456789012345678901234567890",
 		}
 
-		provider, err := factory.CreateProvider(ctx, "gemini-1.5-flash", sessionKeys)
+		provider, err := factory.CreateProvider(ctx, "gemini-2.5-flash", sessionKeys)
 		if err != nil {
 			t.Fatalf("Failed to create Gemini provider: %v", err)
 		}
@@ -217,7 +217,7 @@ func TestProviderFactory_CreateProvider(t *testing.T) {
 			// No API keys provided
 		}
 
-		_, err := freshFactory.CreateProvider(ctx, "gemini-1.5-flash", sessionKeys)
+		_, err := freshFactory.CreateProvider(ctx, "gemini-2.5-flash", sessionKeys)
 		if err == nil {
 			t.Error("Expected error when creating Gemini provider without API key")
 		}

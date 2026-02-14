@@ -737,7 +737,7 @@ const NewConfigurationFormModal: React.FC<{
   
   const [formData, setFormData] = useState({
     variationName: editingConfig?.variationName || '',
-    modelName: editingConfig?.modelName || 'gemini-1-5-pro', // Default to Gemini Pro
+    modelName: editingConfig?.modelName || 'llama3.1:latest', // Default to free self-hosted model
     systemPrompt: editingConfig?.systemPrompt || '',
     temperature: editingConfig?.temperature || 0.5,
     maxTokens: editingConfig?.maxTokens || 500,

@@ -1,0 +1,109 @@
+{
+  "id": "func-team_task_transition-1754910005",
+  "name": "team_task_transition",
+  "provider": "internal",
+  "display_name": "Team Task: Transition State",
+  "description": "Transition a task to a new lifecycle state. Tasks follow a structured workflow: defining -> compiling -> compiled -> in_progress -> completed/failed. Use this to advance a task through its lifecycle, mark it complete with results, or record a failure with diagnostics. Invalid transitions will be rejected.",
+  "function_group": "internal",
+  "endpoint": {
+    "path": "/internal/team/task/transition",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "task_id": {
+        "type": "string",
+        "description": "Unique identifier of the task to transition"
+      },
+      "target_state": {
+        "type": "string",
+        "enum": ["defining", "compiling", "compiled", "in_progress", "completed", "failed"],
+        "description": "The target lifecycle state to transition the task to"
+      },
+      "failure_type": {
+        "type": "string",
+        "description": "Category of failure when transitioning to 'failed' state (e.g., 'timeout', 'dependency_error', 'execution_error', 'validation_error')"
+      },
+      "failure_reason": {
+        "type": "string",
+        "description": "Detailed explanation of why the task failed, used when transitioning to 'failed' state"
+      },
+      "results": {
+        "type": "object",
+        "description": "Results or outputs produced by the task, used when transitioning to 'completed' state"
+      },
+      "completion_notes": {
+        "type": "string",
+        "description": "Summary notes about what was accomplished, used when transitioning to 'completed' state"
+      },
+      "artifacts": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Type of artifact (e.g., 'pull_request', 'document', 'analysis', 'report')"
+            },
+            "identifier": {
+              "type": "string",
+              "description": "Identifier for the artifact (e.g., PR number, file path)"
+            },
+            "url": {
+              "type": "string",
+              "description": "URL to access the artifact if applicable"
+            },
+            "description": {
+              "type": "string",
+              "description": "Brief description of the artifact"
+            }
+          },
+          "required": ["type", "identifier"]
+        },
+        "description": "List of artifacts produced during task execution, used when completing"
+      },
+      "actual_duration": {
+        "type": "string",
+        "description": "Actual time spent on the task (e.g., '45 minutes', '2.5 hours')"
+      }
+    },
+    "required": [
+      "task_id",
+      "target_state"
+    ]
+  },
+  "examples": [
+    {
+      "name": "Transition task to completed with results",
+      "parameters": {
+        "task_id": "task_v2_abc123",
+        "target_state": "completed",
+        "results": {
+          "files_modified": 5,
+          "tests_passing": true,
+          "coverage": "92%"
+        },
+        "completion_notes": "Implemented OAuth flow with full test coverage. All integration tests pass.",
+        "artifacts": [
+          {
+            "type": "pull_request",
+            "identifier": "PR #87",
+            "url": "https://github.com/org/repo/pull/87",
+            "description": "OAuth 2.0 implementation pull request"
+          }
+        ],
+        "actual_duration": "3.5 hours"
+      }
+    },
+    {
+      "name": "Transition task to failed with diagnostics",
+      "parameters": {
+        "task_id": "task_v2_def456",
+        "target_state": "failed",
+        "failure_type": "dependency_error",
+        "failure_reason": "Required API endpoint from task_v2_ghi789 is not yet deployed. Cannot proceed with integration testing."
+      }
+    }
+  ]
+}

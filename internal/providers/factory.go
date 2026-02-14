@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"sync"
 
@@ -13,6 +14,7 @@ import (
 const (
 	ProviderTypeGemini = "gemini"
 	ProviderTypeKimi   = "kimi"
+	ProviderTypeOllama = "ollama"
 	EmptyResponse      = "EMPTY"
 	OpenRouterBaseURL  = "https://openrouter.ai/api/v1"
 	// Constants for key length validation
@@ -62,6 +64,9 @@ func (f *ProviderFactory) CreateProvider(ctx context.Context, modelName string, 
 
 	case ProviderTypeKimi:
 		provider, err = f.createKimiProvider(sessionKeys)
+
+	case ProviderTypeOllama:
+		provider, err = f.createOllamaProvider(sessionKeys)
 
 	default:
 		return nil, fmt.Errorf("unsupported provider type: %s for model %s", providerType, modelName)
@@ -137,8 +142,30 @@ func (f *ProviderFactory) createKimiProvider(sessionKeys *types.SessionAPIKeys) 
 	return NewKimiProvider(apiKey, baseURL)
 }
 
+// createOllamaProvider creates an Ollama provider instance
+func (f *ProviderFactory) createOllamaProvider(sessionKeys *types.SessionAPIKeys) (ModelProvider, error) {
+	baseURL := ""
+	if sessionKeys != nil && sessionKeys.OllamaBaseURL != "" {
+		baseURL = sessionKeys.OllamaBaseURL
+	}
+	if baseURL == "" {
+		baseURL = os.Getenv("OLLAMA_BASE_URL")
+	}
+	if baseURL == "" {
+		baseURL = "http://167.99.185.154:11434" // Default DigitalOcean GPU
+	}
+
+	log.Printf("Creating Ollama provider with baseURL: %s", baseURL)
+	return NewOllamaProvider(baseURL)
+}
+
 // getProviderTypeFromModel determines the provider type from model name
 func (f *ProviderFactory) getProviderTypeFromModel(modelName string) string {
+	// Ollama models (self-hosted)
+	if strings.HasPrefix(modelName, "llama3.") {
+		return ProviderTypeOllama
+	}
+
 	// Gemini models (direct Google API)
 	if strings.HasPrefix(modelName, "gemini") {
 		return ProviderTypeGemini
@@ -176,12 +203,8 @@ func (f *ProviderFactory) GetSupportedModels() map[string][]string {
 		ProviderTypeKimi: {
 			// Anthropic Claude models
 			"anthropic/claude-sonnet-4",
-			"anthropic/claude-3.5-sonnet",
-			"anthropic/claude-3.7-sonnet",
-			"anthropic/claude-3-haiku",
 			// OpenAI models
 			"openai/gpt-4o",
-			"openai/gpt-4o-mini",
 			"openai/gpt-4.1",
 			// Kimi models
 			"moonshotai/kimi-k2",
@@ -189,6 +212,10 @@ func (f *ProviderFactory) GetSupportedModels() map[string][]string {
 			// Meta Llama models (free tier)
 			"meta-llama/llama-3.1-8b-instruct:free",
 			"meta-llama/llama-3.1-70b-instruct:free",
+		},
+		ProviderTypeOllama: {
+			"llama3.1:latest",
+			"llama3.2:latest",
 		},
 	}
 }
@@ -206,6 +233,11 @@ func (f *ProviderFactory) ValidateModelConfig(config *types.APIConfiguration) er
 	case ProviderTypeKimi:
 		// Create a temporary provider for validation
 		tempProvider := &KimiProvider{}
+		return tempProvider.ValidateConfig(config)
+
+	case ProviderTypeOllama:
+		// Create a temporary provider for validation
+		tempProvider := &OllamaProvider{}
 		return tempProvider.ValidateConfig(config)
 
 	default:

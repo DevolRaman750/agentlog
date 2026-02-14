@@ -11,6 +11,7 @@ import AuthScreen from '../screens/AuthScreen';
 import TemplateTokenManagerScreen from '../screens/TemplateTokenManagerScreen';
 import ApiKeysScreen from '../screens/ApiKeysScreen';
 import AgentsScreen from '../screens/AgentsScreen';
+import TasksScreen from '../screens/TasksScreen';
 import { ResponsiveNavigation } from '../components/ResponsiveNavigation';
 import { useAuth } from '../context/AuthContext';
 import { useResponsive } from '../context/ResponsiveContext'; // Use existing responsive context
@@ -93,6 +94,7 @@ const StableApiKeysScreen = createStableScreenWithNavigation(ApiKeysScreen);
 const StableHistoryScreen = createStableScreenWithNavigation(HistoryScreen);
 const StableDatabaseScreen = createStableScreenWithNavigation(DatabaseScreen);
 const StableAgentsScreen = createStableScreenWithNavigation(AgentsScreen);
+const StableTasksScreen = createStableScreenWithNavigation(TasksScreen);
 const StableAuthScreen = createStableScreenWithNavigation(AuthScreen);
 const StableTemplateTokenManagerScreen = createStableScreenWithNavigation(TemplateTokenManagerScreen);
 
@@ -127,6 +129,7 @@ const ResponsiveTabNavigator = () => {
         '/history': 'History',
         '/database': 'Database',
         '/agents': 'Agents',
+        '/tasks': 'Tasks',
         '/account': 'Account',
         '/more': 'More',
       };
@@ -174,6 +177,10 @@ const ResponsiveTabNavigator = () => {
         <Stack.Screen
           name="Agents"
           component={StableAgentsScreen}
+        />
+        <Stack.Screen
+          name="Tasks"
+          component={StableTasksScreen}
         />
         <Stack.Screen
           name="Account"

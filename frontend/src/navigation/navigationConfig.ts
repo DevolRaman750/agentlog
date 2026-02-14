@@ -12,6 +12,7 @@ import AuthScreen from '../screens/AuthScreen';
 import ApiKeysScreen from '../screens/ApiKeysScreen';
 import AgentsScreen from '../screens/AgentsScreen';
 import AgentMarketplaceScreen from '../screens/AgentMarketplaceScreen';
+import TasksScreen from '../screens/TasksScreen';
 import DocumentationScreen from '../screens/DocumentationScreen';
 
 export interface NavigationItem {
@@ -58,10 +59,18 @@ export const navigationItems: NavigationItem[] = [
       }
     ]
   },
-  { 
-    name: 'Configure', 
-    title: 'Configure', 
-    icon: 'settings-outline', 
+  {
+    name: 'Tasks',
+    title: 'Tasks',
+    icon: 'clipboard-outline',
+    iconFocused: 'clipboard',
+    component: TasksScreen,
+    urlPath: '/tasks'
+  },
+  {
+    name: 'Configure',
+    title: 'Configure',
+    icon: 'settings-outline',
     iconFocused: 'settings',
     component: ConfigureScreen,
     urlPath: '/model',
@@ -176,13 +185,14 @@ export const getVisibleNavigationItems = (isAuthenticated: boolean): NavigationI
  */
 export const pathToRouteMap: Record<string, string> = {
   '/experiment': 'Execute',
-  '/model': 'Configure', 
+  '/model': 'Configure',
   '/functions': 'Functions',
   '/templates': 'Execution Templates',
   '/api-keys': 'API Keys',
   '/history': 'History',
   '/database': 'Database',
   '/agents': 'Agents',
+  '/tasks': 'Tasks',
   '/marketplace': 'Marketplace',
   '/account': 'Account',
 };
@@ -199,6 +209,7 @@ export const routeToPathMap: Record<string, string> = {
   'History': '/history',
   'Database': '/database',
   'Agents': '/agents',
+  'Tasks': '/tasks',
   'Marketplace': '/marketplace',
   'Account': '/account',
   'TeamDetail': '/team',

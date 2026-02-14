@@ -22,9 +22,12 @@ import AgentBusinessCard from '../components/AgentBusinessCard';
 import TeamCard from '../components/TeamCard';
 import { TeamMemoryViewer } from '../components/TeamMemoryViewer';
 import { AgentMemoryViewer } from '../components/AgentMemoryViewer';
-import { Agent, Team, LifecycleStatus } from '../types';
+import { Agent, Team, LifecycleStatus, Task } from '../types';
 import { useResponsive } from '../context/ResponsiveContext';
 import ScreenContainer from '../components/ScreenContainer';
+import TaskCard from '../components/TaskCard';
+import TaskDetailView from '../components/TaskDetailView';
+import TaskForm from '../components/TaskForm';
 
 interface RouteParams {
   teamId: string;
@@ -48,6 +51,11 @@ const TeamDetailScreen: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showTeamMemoryModal, setShowTeamMemoryModal] = useState(false);
   const [showAgentMemoryModal, setShowAgentMemoryModal] = useState(false);
+  const [teamTasks, setTeamTasks] = useState<Task[]>([]);
+  const [isLoadingTasks, setIsLoadingTasks] = useState(false);
+  const [selectedTaskForDetail, setSelectedTaskForDetail] = useState<Task | null>(null);
+  const [showTaskDetailModal, setShowTaskDetailModal] = useState(false);
+  const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
 
   const styles = useTeamDetailStyles();
 
@@ -105,11 +113,31 @@ const TeamDetailScreen: React.FC = () => {
         console.error('❌ Failed to load agents:', agentsResponse.error);
         setAgents([]);
       }
+
+      // Load team tasks
+      loadTeamTasks();
     } catch (error) {
       console.error('💥 Error loading team data:', error);
       AlertAPI.alert('Error', 'Failed to load team data: ' + (error as Error).message);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadTeamTasks = async () => {
+    try {
+      setIsLoadingTasks(true);
+      const response = await goGentAPI.getTasks({ team_id: params.teamId, limit: 20 });
+      if (response.success && response.data?.tasks) {
+        setTeamTasks(response.data.tasks);
+      } else {
+        setTeamTasks([]);
+      }
+    } catch (err) {
+      console.error('Error loading team tasks:', err);
+      setTeamTasks([]);
+    } finally {
+      setIsLoadingTasks(false);
     }
   };
 
@@ -399,6 +427,41 @@ const TeamDetailScreen: React.FC = () => {
         />
       </View>
 
+      {/* Team Tasks Section */}
+      <View style={styles.teamTasksSection}>
+        <View style={styles.teamTasksHeader}>
+          <Text style={styles.teamTasksTitle}>Team Tasks</Text>
+          <TouchableOpacity
+            style={styles.teamTasksCreateButton}
+            onPress={() => setShowCreateTaskModal(true)}
+          >
+            <Ionicons name="add" size={18} color={styles.backButtonText.color} />
+            <Text style={styles.backButtonText}>Create</Text>
+          </TouchableOpacity>
+        </View>
+        {isLoadingTasks ? (
+          <View style={styles.taskLoadingContainer}>
+            <Text style={styles.messageText}>Loading tasks...</Text>
+          </View>
+        ) : teamTasks.length === 0 ? (
+          <View style={styles.taskEmptyContainer}>
+            <Ionicons name="clipboard-outline" size={32} color={styles.messageText.color} />
+            <Text style={styles.messageText}>No team tasks yet</Text>
+          </View>
+        ) : (
+          teamTasks.slice(0, 5).map(task => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              onPress={(t) => {
+                setSelectedTaskForDetail(t);
+                setShowTaskDetailModal(true);
+              }}
+            />
+          ))
+        )}
+      </View>
+
       {/* Agents List */}
       {agents.length === 0 ? (
         <ScrollView 
@@ -492,6 +555,38 @@ const TeamDetailScreen: React.FC = () => {
           />
         )}
       </Modal>
+
+      {/* Task Detail Modal */}
+      <Modal visible={showTaskDetailModal} animationType="slide" presentationStyle="pageSheet">
+        {selectedTaskForDetail && (
+          <TaskDetailView
+            task={selectedTaskForDetail}
+            onClose={() => { setShowTaskDetailModal(false); setSelectedTaskForDetail(null); }}
+            onEdit={() => {}}
+            onDelete={async () => {
+              const response = await goGentAPI.deleteTask(selectedTaskForDetail.id);
+              if (response.success) {
+                setShowTaskDetailModal(false);
+                setSelectedTaskForDetail(null);
+                loadTeamTasks();
+              }
+            }}
+            onRefresh={loadTeamTasks}
+          />
+        )}
+      </Modal>
+
+      {/* Create Task Modal */}
+      <Modal visible={showCreateTaskModal} animationType="slide" presentationStyle="pageSheet">
+        <TaskForm
+          teamId={params.teamId}
+          onSuccess={(task) => {
+            setShowCreateTaskModal(false);
+            loadTeamTasks();
+          }}
+          onCancel={() => setShowCreateTaskModal(false)}
+        />
+      </Modal>
     </ScreenContainer>
   );
 };
@@ -552,6 +647,40 @@ const useTeamDetailStyles = () => useThemedStyles((colors) => ({
   teamInfoSection: {
     padding: 16,
     backgroundColor: colors.bgApp,
+  },
+  teamTasksSection: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    backgroundColor: colors.bgApp,
+  },
+  teamTasksHeader: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    marginBottom: 12,
+  },
+  teamTasksTitle: {
+    fontSize: 18,
+    fontWeight: '600' as const,
+    color: colors.textPrimary,
+  },
+  teamTasksCreateButton: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: colors.bgSurface,
+    gap: 4,
+  },
+  taskLoadingContainer: {
+    padding: 20,
+    alignItems: 'center' as const,
+  },
+  taskEmptyContainer: {
+    alignItems: 'center' as const,
+    paddingVertical: 24,
+    gap: 8,
   },
   listContainer: {
     padding: 16,

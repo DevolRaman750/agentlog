@@ -1,0 +1,46 @@
+{
+  "id": "func-team_task_remove_context-1754910008",
+  "name": "team_task_remove_context",
+  "provider": "internal",
+  "display_name": "Team Task: Remove Context",
+  "description": "Remove a context source from a task by its index in the context_sources array. Use this to clean up outdated, irrelevant, or incorrect context references. Remaining context entries will be re-indexed after removal.",
+  "function_group": "internal",
+  "endpoint": {
+    "path": "/internal/team/task/remove_context",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "task_id": {
+        "type": "string",
+        "description": "Unique identifier of the task whose context to remove"
+      },
+      "context_index": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Zero-based index of the context source to remove from the task's context_sources array"
+      }
+    },
+    "required": [
+      "task_id",
+      "context_index"
+    ]
+  },
+  "examples": [
+    {
+      "name": "Remove an outdated Slack context",
+      "parameters": {
+        "task_id": "task_v2_abc123",
+        "context_index": 1
+      }
+    },
+    {
+      "name": "Remove the first context source from a task",
+      "parameters": {
+        "task_id": "task_v2_def456",
+        "context_index": 0
+      }
+    }
+  ]
+}

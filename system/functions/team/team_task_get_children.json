@@ -1,0 +1,54 @@
+{
+  "id": "func-team_task_get_children-1754910010",
+  "name": "team_task_get_children",
+  "provider": "internal",
+  "display_name": "Team Task: Get Children",
+  "description": "Retrieve the direct child tasks of a given parent task. Use this to inspect the immediate subtasks of a work item without fetching the entire subtree. Useful for reviewing task breakdowns and checking progress on decomposed work.",
+  "function_group": "internal",
+  "endpoint": {
+    "path": "/internal/team/task/get_children",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "task_id": {
+        "type": "string",
+        "description": "Unique identifier of the parent task whose children to retrieve"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 50,
+        "description": "Maximum number of child tasks to return"
+      },
+      "offset": {
+        "type": "integer",
+        "minimum": 0,
+        "default": 0,
+        "description": "Number of child tasks to skip for pagination"
+      }
+    },
+    "required": [
+      "task_id"
+    ]
+  },
+  "examples": [
+    {
+      "name": "Get children of a top-level task",
+      "parameters": {
+        "task_id": "task_v2_abc123",
+        "limit": 20
+      }
+    },
+    {
+      "name": "Paginate through child tasks",
+      "parameters": {
+        "task_id": "task_v2_abc123",
+        "limit": 10,
+        "offset": 10
+      }
+    }
+  ]
+}

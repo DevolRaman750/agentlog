@@ -1,0 +1,53 @@
+{
+  "id": "func-task_get_children-1754900010",
+  "name": "task_get_children",
+  "provider": "internal",
+  "function_group": "internal",
+  "display_name": "Task: Get Children",
+  "description": "Get the immediate child tasks of a parent task. Returns only direct children (one level deep), not the full subtree. Use this to inspect the decomposition of a task into its sub-components. Results are paginated via limit and offset.",
+  "endpoint": {
+    "path": "/internal/task/get-children",
+    "method": "GET"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "task_id": {
+        "type": "string",
+        "description": "Unique identifier of the parent task whose children to retrieve"
+      },
+      "limit": {
+        "type": "integer",
+        "default": 50,
+        "minimum": 1,
+        "maximum": 500,
+        "description": "Maximum number of child tasks to return"
+      },
+      "offset": {
+        "type": "integer",
+        "default": 0,
+        "minimum": 0,
+        "description": "Number of child tasks to skip for pagination"
+      }
+    },
+    "required": [
+      "task_id"
+    ]
+  },
+  "examples": [
+    {
+      "name": "Get children of a parent task",
+      "parameters": {
+        "task_id": "task-abc-123"
+      }
+    },
+    {
+      "name": "Get paginated children",
+      "parameters": {
+        "task_id": "task-root-001",
+        "limit": 10,
+        "offset": 20
+      }
+    }
+  ]
+}

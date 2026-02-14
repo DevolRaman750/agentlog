@@ -1,0 +1,77 @@
+{
+  "id": "func-task_list-1754900009",
+  "name": "task_list",
+  "provider": "internal",
+  "function_group": "internal",
+  "display_name": "Task: List",
+  "description": "List and filter structured tasks with flexible query options. Supports filtering by parent task, lifecycle states, priority levels, and assigned agent. Use include_subtree to recursively fetch all descendants of a parent task. Results are paginated via limit and offset.",
+  "endpoint": {
+    "path": "/internal/task/list",
+    "method": "GET"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "parent_task_id": {
+        "type": "string",
+        "description": "Filter to only return direct children of this parent task ID. Use null or omit for root-level tasks."
+      },
+      "states": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": ["defining", "compiling", "compiled", "in_progress", "completed", "failed"]
+        },
+        "description": "Filter tasks by one or more lifecycle states"
+      },
+      "priority": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "urgent"]
+        },
+        "description": "Filter tasks by one or more priority levels"
+      },
+      "agent_id": {
+        "type": "string",
+        "description": "Filter tasks assigned to a specific agent"
+      },
+      "include_subtree": {
+        "type": "boolean",
+        "default": false,
+        "description": "When true and parent_task_id is set, recursively include all descendants, not just direct children"
+      },
+      "limit": {
+        "type": "integer",
+        "default": 50,
+        "minimum": 1,
+        "maximum": 500,
+        "description": "Maximum number of tasks to return"
+      },
+      "offset": {
+        "type": "integer",
+        "default": 0,
+        "minimum": 0,
+        "description": "Number of tasks to skip for pagination"
+      }
+    }
+  },
+  "examples": [
+    {
+      "name": "List all in-progress high-priority tasks",
+      "parameters": {
+        "states": ["in_progress"],
+        "priority": ["high", "urgent"],
+        "limit": 20
+      }
+    },
+    {
+      "name": "List subtasks of a parent task",
+      "parameters": {
+        "parent_task_id": "task-abc-123",
+        "include_subtree": true,
+        "limit": 100
+      }
+    }
+  ]
+}

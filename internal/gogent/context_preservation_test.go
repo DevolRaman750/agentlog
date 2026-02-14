@@ -179,14 +179,17 @@ func TestContextPreservation(t *testing.T) {
 	// Simulate a typical Slack bot workflow
 	functionCalls := []ResponsePart{
 		{FunctionCall: struct {
+			ID   string                 `json:"id,omitempty"`
 			Name string                 `json:"name"`
 			Args map[string]interface{} `json:"args"`
 		}{Name: "slack_find_channel", Args: map[string]interface{}{"channel_name": "ai-intern"}}},
 		{FunctionCall: struct {
+			ID   string                 `json:"id,omitempty"`
 			Name string                 `json:"name"`
 			Args map[string]interface{} `json:"args"`
 		}{Name: "slack_read_messages", Args: map[string]interface{}{"channel": "C099KTQE1L5", "limit": 5}}},
 		{FunctionCall: struct {
+			ID   string                 `json:"id,omitempty"`
 			Name string                 `json:"name"`
 			Args map[string]interface{} `json:"args"`
 		}{Name: "github_read_issues", Args: map[string]interface{}{"owner": "imran31415", "repo": "agentlog"}}},

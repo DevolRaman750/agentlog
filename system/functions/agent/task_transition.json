@@ -1,0 +1,110 @@
+{
+  "id": "func-task_transition-1754900005",
+  "name": "task_transition",
+  "provider": "internal",
+  "function_group": "internal",
+  "display_name": "Task: Transition",
+  "description": "Move a task from its current lifecycle state to a new target state. Valid states are: defining, compiling, compiled, in_progress, completed, and failed. State transitions are validated server-side. When completing a task, include results and artifacts. When failing a task, include the failure type and reason for diagnostics.",
+  "endpoint": {
+    "path": "/internal/task/transition",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "task_id": {
+        "type": "string",
+        "description": "Unique identifier of the task to transition"
+      },
+      "target_state": {
+        "type": "string",
+        "enum": ["defining", "compiling", "compiled", "in_progress", "completed", "failed"],
+        "description": "The lifecycle state to transition the task to"
+      },
+      "failure_type": {
+        "type": "string",
+        "enum": ["context_invalid", "definition_error", "execution_error", "dependency_failed"],
+        "description": "Type of failure when transitioning to 'failed' state"
+      },
+      "failure_reason": {
+        "type": "string",
+        "description": "Human-readable explanation of why the task failed"
+      },
+      "results": {
+        "type": "object",
+        "description": "Task results data when transitioning to 'completed' state"
+      },
+      "completion_notes": {
+        "type": "string",
+        "description": "Summary notes about the completed work"
+      },
+      "artifacts": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Artifact type (e.g., 'pull_request', 'report', 'file', 'url')"
+            },
+            "identifier": {
+              "type": "string",
+              "description": "Unique identifier for the artifact (e.g., PR number, file path)"
+            },
+            "url": {
+              "type": "string",
+              "description": "URL to access the artifact"
+            },
+            "description": {
+              "type": "string",
+              "description": "Brief description of the artifact"
+            }
+          },
+          "required": ["type", "identifier"]
+        },
+        "description": "Array of artifacts produced during task execution"
+      },
+      "actual_duration": {
+        "type": "string",
+        "description": "Actual time spent on the task (e.g., '1 hour 30 minutes')"
+      }
+    },
+    "required": [
+      "task_id",
+      "target_state"
+    ]
+  },
+  "examples": [
+    {
+      "name": "Complete a task with results and artifacts",
+      "parameters": {
+        "task_id": "task-abc-123",
+        "target_state": "completed",
+        "results": {
+          "summary": "Identified root cause as N+1 query in search handler",
+          "fix_applied": true,
+          "latency_improvement": "73% reduction"
+        },
+        "completion_notes": "Root cause was an N+1 query introduced in commit a1b2c3d. Fixed by adding eager loading. Latency dropped from 850ms to 230ms.",
+        "artifacts": [
+          {
+            "type": "pull_request",
+            "identifier": "PR #187",
+            "url": "https://github.com/acme/backend-api/pull/187",
+            "description": "Fix N+1 query in search endpoint"
+          }
+        ],
+        "actual_duration": "1 hour 45 minutes"
+      }
+    },
+    {
+      "name": "Fail a task due to dependency failure",
+      "parameters": {
+        "task_id": "task-def-456",
+        "target_state": "failed",
+        "failure_type": "dependency_failed",
+        "failure_reason": "Upstream task task-ghi-789 failed: test environment unavailable. Cannot proceed with integration testing."
+      }
+    }
+  ]
+}

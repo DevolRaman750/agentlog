@@ -1,0 +1,38 @@
+{
+  "id": "func-team_task_get-1754910002",
+  "name": "team_task_get",
+  "provider": "internal",
+  "display_name": "Team Task: Get",
+  "description": "Retrieve the full details of a specific task by its ID. Returns the task's current state, context sources, dependencies, assignment info, and all metadata. Use this to inspect a task before working on it, check its progress, or review its context.",
+  "function_group": "internal",
+  "endpoint": {
+    "path": "/internal/team/task/get",
+    "method": "POST"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "task_id": {
+        "type": "string",
+        "description": "Unique identifier of the task to retrieve"
+      }
+    },
+    "required": [
+      "task_id"
+    ]
+  },
+  "examples": [
+    {
+      "name": "Get a task by ID",
+      "parameters": {
+        "task_id": "task_v2_abc123"
+      }
+    },
+    {
+      "name": "Get a subtask by ID",
+      "parameters": {
+        "task_id": "task_v2_sub_789"
+      }
+    }
+  ]
+}
