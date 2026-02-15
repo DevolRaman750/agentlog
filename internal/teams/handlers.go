@@ -187,7 +187,7 @@ func (h *Handler) createTeamWithAgents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer func() {
-		if err := tx.Rollback(); err != nil {
+		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
 			log.Printf("Failed to rollback transaction: %v", err)
 		}
 	}()
@@ -777,7 +777,7 @@ func (h *Handler) updateTeamContextForAllAgents(teamID, userID string, sharedCon
 		return fmt.Errorf("failed to start transaction: %w", err)
 	}
 	defer func() {
-		if err := tx.Rollback(); err != nil {
+		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
 			log.Printf("Failed to rollback transaction: %v", err)
 		}
 	}()

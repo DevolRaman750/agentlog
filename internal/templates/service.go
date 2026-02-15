@@ -60,7 +60,7 @@ func (ts *TemplateService) CreateTemplate(template *types.ExecutionTemplate, par
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer func() {
-		if err := tx.Rollback(); err != nil {
+		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
 			log.Printf("Failed to rollback transaction: %v", err)
 		}
 	}()
@@ -420,7 +420,7 @@ func (ts *TemplateService) UpdateTemplate(_ string, template *types.ExecutionTem
 		return nil, nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer func() {
-		if err := tx.Rollback(); err != nil {
+		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
 			log.Printf("Failed to rollback transaction: %v", err)
 		}
 	}()

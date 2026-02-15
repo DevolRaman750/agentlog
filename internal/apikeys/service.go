@@ -593,7 +593,7 @@ func (s *Service) UpdateAPIKey(ctx context.Context, userID, keyID string, req *t
 		return nil, fmt.Errorf("failed to start transaction: %w", err)
 	}
 	defer func() {
-		if err := tx.Rollback(); err != nil {
+		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
 			log.Printf("Failed to rollback transaction: %v", err)
 		}
 	}()
@@ -709,7 +709,7 @@ func (s *Service) DeleteAPIKey(ctx context.Context, userID, keyID string) error 
 		return fmt.Errorf("failed to start transaction: %w", err)
 	}
 	defer func() {
-		if err := tx.Rollback(); err != nil {
+		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
 			log.Printf("Failed to rollback transaction: %v", err)
 		}
 	}()
