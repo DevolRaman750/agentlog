@@ -86,11 +86,6 @@ const ExecuteScreen: React.FC = () => {
   const currentExecution = state.currentExecution;
   const { state: formState, updateField } = useFormState();
 
-  // Screen dimensions for responsive design
-  const { width: screenWidth } = Dimensions.get('window');
-  const isSmallScreen = screenWidth < 375; // iPhone SE and smaller
-  const isMobileScreen = screenWidth < 768; // Mobile vs tablet/desktop
-
   // Execution modes configuration
   const EXECUTION_MODES: ExecutionModeInfo[] = [
     {
@@ -2138,7 +2133,6 @@ const createStyles = (colors: ThemeColors) => ({
   },
   executeContainerExpanded: {
     flex: 1,
-    minHeight: 800,
   },
   executingContainer: {
     backgroundColor: colors.bgCard,

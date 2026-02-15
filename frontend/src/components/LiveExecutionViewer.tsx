@@ -17,6 +17,7 @@ import ExecutionFlowGraph from './ExecutionFlowGraph';
 import ExecutionLogsCard from './ExecutionLogsCard';
 import { useTheme, useThemedStyles } from '../theme';
 import type { ThemeColors } from '../theme';
+import { useResponsive } from '../context/ResponsiveContext';
 
 const createStyles = (colors: ThemeColors) => ({
   container: {
@@ -32,7 +33,6 @@ const createStyles = (colors: ThemeColors) => ({
     elevation: 4,
     overflow: 'hidden' as const,
     flex: 1,
-    minHeight: 800,
     maxHeight: '100%' as const,
   },
   progressHeader: {
@@ -165,7 +165,6 @@ const createStyles = (colors: ThemeColors) => ({
   },
   content: {
     flex: 1,
-    minHeight: 700,
   },
   logsContainer: {
     flex: 1,
@@ -204,7 +203,7 @@ const createStyles = (colors: ThemeColors) => ({
     flex: 1,
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
-    minHeight: 400,
+    minHeight: 200,
   },
   emptyState: {
     alignItems: 'center' as const,
@@ -286,6 +285,21 @@ const createStyles = (colors: ThemeColors) => ({
     flex: 1,
     borderRightWidth: 1,
     borderRightColor: colors.borderLight,
+  },
+  bothContainerMobile: {
+    flexDirection: 'column' as const,
+  },
+  bothSectionMobile: {
+    borderRightWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  progressHeaderCollapsed: {
+    padding: 8,
+  },
+  viewModeSelectorCompact: {
+    padding: 6,
+    gap: 4,
   },
   // Simulated flow styles
   simulatedFlowContainer: {
@@ -565,7 +579,10 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
 }) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { isSidebarLayout } = useResponsive();
+  const isMobileView = !isSidebarLayout;
   const [viewMode, setViewMode] = useState<ViewMode>('logs');
+  const [progressCollapsed, setProgressCollapsed] = useState(false);
   const [logs, setLogs] = useState<ExecutionLog[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -892,7 +909,7 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
   };
 
   const renderViewModeSelector = () => (
-    <View style={styles.viewModeSelector}>
+    <View style={[styles.viewModeSelector, isMobileView && styles.viewModeSelectorCompact]}>
       <TouchableOpacity
         style={[styles.viewModeButton, viewMode === 'logs' && styles.activeViewModeButton]}
         onPress={() => setViewMode('logs')}
@@ -1014,8 +1031,35 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
   const renderProgressHeader = () => {
     const isTemporaryId = executionId.startsWith('exec-');
 
+    // On mobile, show a compact collapsible header
+    if (isMobileView && progressCollapsed) {
+      return (
+        <TouchableOpacity
+          style={[styles.progressHeader, styles.progressHeaderCollapsed]}
+          onPress={() => setProgressCollapsed(false)}
+        >
+          <View style={styles.progressInfo}>
+            <Ionicons name="rocket" size={16} color={colors.accent} />
+            <Text style={[styles.progressSubtitle, { marginLeft: 8 }]}>
+              {Math.round(progressPercentage)}% • Step {progress}/{maxProgress}
+            </Text>
+          </View>
+          <View style={styles.headerControls}>
+            <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+              <Ionicons name="stop-circle" size={14} color={colors.statusError} />
+            </TouchableOpacity>
+            <Ionicons name="chevron-down" size={16} color={colors.textSecondary} />
+          </View>
+        </TouchableOpacity>
+      );
+    }
+
     return (
-      <View style={styles.progressHeader}>
+      <TouchableOpacity
+        activeOpacity={isMobileView ? 0.7 : 1}
+        onPress={() => isMobileView && setProgressCollapsed(true)}
+        style={styles.progressHeader}
+      >
         <View style={styles.progressInfo}>
           <View style={styles.progressIconContainer}>
             <Ionicons name="rocket" size={24} color={colors.accent} />
@@ -1056,8 +1100,11 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
             <Ionicons name="stop-circle" size={16} color={colors.statusError} />
             <Text style={styles.cancelButtonText}>Stop</Text>
           </TouchableOpacity>
+          {isMobileView && (
+            <Ionicons name="chevron-up" size={16} color={colors.textSecondary} />
+          )}
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -1249,8 +1296,8 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
         {viewMode === 'logs' && renderLogs()}
         {viewMode === 'flow' && renderFlow()}
         {viewMode === 'both' && (
-          <View style={styles.bothContainer}>
-            <View style={styles.bothSection}>
+          <View style={[styles.bothContainer, isMobileView && styles.bothContainerMobile]}>
+            <View style={[styles.bothSection, isMobileView && styles.bothSectionMobile]}>
               {renderLogs()}
             </View>
             <View style={styles.bothSection}>
