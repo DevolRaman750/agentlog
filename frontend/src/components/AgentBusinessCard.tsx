@@ -574,13 +574,13 @@ const createStyles = (colors: ThemeColors) => ({
     borderColor: colors.borderLight,
   },
   actionButtonMobile: {
-    width: 28,
-    height: 28,
+    width: 32,
+    height: 32,
     borderRadius: 6,
   },
   actionButtonCompact: {
-    width: 26,
-    height: 26,
+    width: 28,
+    height: 28,
     borderRadius: 6,
   },
   deleteAction: {

@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Modal,
   ScrollView,
-  Dimensions,
   Platform,
   KeyboardAvoidingView,
   StatusBar,
@@ -17,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { webInputStyles } from '../styles/containers';
 import { useTheme, useThemedStyles } from '../theme';
 import type { ThemeColors } from '../theme';
+import { useResponsive } from '../context/ResponsiveContext';
 
 export interface EnhancedTextEditorProps {
   value: string;
@@ -54,10 +54,6 @@ interface ToolbarAction {
   action: (textInputRef: React.RefObject<TextInput>, value: string, onChangeText: (text: string) => void) => void;
   shortcut?: string;
 }
-
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-const isTablet = screenWidth >= 768;
-const isMobile = screenWidth < 768;
 
 const createStyles = (colors: ThemeColors) => ({
   container: {
@@ -348,6 +344,10 @@ const EnhancedTextEditor: React.FC<EnhancedTextEditorProps> = ({
   onFocus,
   onBlur,
 }) => {
+  // Responsive layout
+  const { isSidebarLayout } = useResponsive();
+  const isMobile = !isSidebarLayout;
+
   // State management
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
