@@ -7,7 +7,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography } from '../theme';
 
 interface SuccessTooltipProps {
   visible: boolean;
@@ -37,15 +37,15 @@ const SuccessTooltip: React.FC<SuccessTooltipProps> = ({
       right: 0,
       zIndex: 9999,
       alignItems: 'center' as const,
-      paddingHorizontal: 20,
+      paddingHorizontal: spacing.lg,
     },
     tooltip: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       backgroundColor: colors.statusSuccess,
-      borderRadius: 12,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
+      borderRadius: radius.lg,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
       maxWidth: screenWidth - 40,
       minWidth: 200,
       shadowColor: colors.shadowColor,
@@ -58,12 +58,11 @@ const SuccessTooltip: React.FC<SuccessTooltipProps> = ({
       elevation: 8,
     },
     iconContainer: {
-      marginRight: 12,
+      marginRight: spacing.md,
     },
     message: {
+      ...typography.title,
       color: colors.textInverse,
-      fontSize: 16,
-      fontWeight: '600' as const,
       flex: 1,
       textAlign: 'left' as const,
     },

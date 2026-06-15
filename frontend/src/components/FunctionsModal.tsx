@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { FunctionDefinition } from '../types';
 import { useResponsive } from '../context/ResponsiveContext';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 import { ThemeColors } from '../theme';
 
 interface FunctionsModalProps {
@@ -50,16 +50,16 @@ const FunctionsModal: React.FC<FunctionsModalProps> = ({
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       justifyContent: 'space-between' as const,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
       backgroundColor: colors.bgCard,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
     },
     headerButton: {
-      padding: 8,
+      padding: spacing.sm,
       minWidth: 60,
-      minHeight: 44,
+      minHeight: touchTarget.min,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
     },
@@ -67,45 +67,41 @@ const FunctionsModal: React.FC<FunctionsModalProps> = ({
       alignItems: 'flex-end' as const,
     },
     doneButtonText: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.accent,
     },
     title: {
-      fontSize: 18,
-      fontWeight: '600' as const,
+      ...typography.h2,
       color: colors.textPrimary,
     },
     subtitle: {
       backgroundColor: colors.bgCard,
-      paddingHorizontal: 16,
-      paddingBottom: 16,
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.lg,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
     },
     subtitleText: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
-      lineHeight: 20,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     selectionInfo: {
       flexDirection: 'row' as const,
       justifyContent: 'flex-end' as const,
     },
     selectionCount: {
-      fontSize: 14,
-      fontWeight: '600' as const,
+      ...typography.bodyStrong,
       color: colors.statusSuccess,
       backgroundColor: `${colors.statusSuccess}15`,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 12,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: radius.lg,
     },
     controls: {
       backgroundColor: colors.bgCard,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
     },
@@ -113,110 +109,107 @@ const FunctionsModal: React.FC<FunctionsModalProps> = ({
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       backgroundColor: colors.bgSurface,
-      borderRadius: 8,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      marginBottom: 12,
-      gap: 8,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      marginBottom: spacing.md,
+      gap: spacing.sm,
     },
     searchInput: {
       flex: 1,
-      fontSize: 16,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.textPrimary,
     },
     bulkActions: {
       flexDirection: 'row' as const,
-      gap: 12,
+      gap: spacing.md,
     },
     bulkButton: {
-      paddingHorizontal: 16,
-      paddingVertical: 8,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
       backgroundColor: colors.bgSurface,
-      borderRadius: 6,
+      borderRadius: radius.sm,
       borderWidth: 1,
       borderColor: colors.borderLight,
     },
     bulkButtonText: {
-      fontSize: 14,
-      fontWeight: '500' as const,
+      ...typography.label,
       color: colors.accent,
     },
     loadingContainer: {
       flex: 1,
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
-      padding: 20,
+      padding: spacing.lg,
     },
     loadingText: {
-      marginTop: 12,
-      fontSize: 16,
+      marginTop: spacing.md,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.textSecondary,
     },
     scrollContent: {
       flex: 1,
     },
     scrollContentContainer: {
-      padding: 16,
+      padding: spacing.lg,
     },
     emptyState: {
       alignItems: 'center' as const,
-      paddingVertical: 60,
-      paddingHorizontal: 20,
+      paddingVertical: spacing.xxl,
+      paddingHorizontal: spacing.lg,
     },
     emptyStateTitle: {
-      fontSize: 18,
-      fontWeight: '600' as const,
+      ...typography.h2,
       color: colors.textSecondary,
-      marginTop: 16,
-      marginBottom: 8,
+      marginTop: spacing.lg,
+      marginBottom: spacing.sm,
       textAlign: 'center' as const,
     },
     emptyStateText: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textTertiary,
       textAlign: 'center' as const,
-      lineHeight: 20,
     },
     functionGroupContainer: {
-      marginBottom: 24,
+      marginBottom: spacing.xl,
     },
     groupHeader: {
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      marginBottom: 12,
-      paddingBottom: 8,
+      marginBottom: spacing.md,
+      paddingBottom: spacing.sm,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderSubtle,
     },
     functionGroupTitle: {
-      fontSize: 18,
-      fontWeight: '600' as const,
+      ...typography.h2,
       color: colors.textPrimary,
     },
     selectAllButton: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 16,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.xl,
       backgroundColor: colors.bgSurface,
-      gap: 6,
+      gap: spacing.sm,
     },
     selectAllText: {
-      fontSize: 14,
+      ...typography.label,
       color: colors.textSecondary,
-      fontWeight: '500' as const,
     },
     selectAllTextActive: {
       color: colors.accent,
     },
     functionCard: {
       backgroundColor: colors.bgCard,
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 8,
-      borderWidth: 2,
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      marginBottom: spacing.sm,
+      borderWidth: 1,
       borderColor: colors.borderLight,
     },
     functionCardSelected: {
@@ -227,28 +220,27 @@ const FunctionsModal: React.FC<FunctionsModalProps> = ({
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'flex-start' as const,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     functionInfo: {
       flex: 1,
-      marginRight: 12,
+      marginRight: spacing.md,
     },
     functionName: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     functionNameSelected: {
       color: colors.statusSuccess,
     },
     functionCategory: {
-      fontSize: 12,
+      ...typography.caption,
       color: colors.textSecondary,
       backgroundColor: colors.bgSurface,
-      paddingHorizontal: 6,
+      paddingHorizontal: spacing.sm,
       paddingVertical: 2,
-      borderRadius: 4,
+      borderRadius: radius.sm,
       alignSelf: 'flex-start' as const,
     },
     functionCategorySelected: {
@@ -258,7 +250,7 @@ const FunctionsModal: React.FC<FunctionsModalProps> = ({
     checkbox: {
       width: 20,
       height: 20,
-      borderRadius: 10,
+      borderRadius: radius.lg,
       borderWidth: 2,
       borderColor: colors.borderLight,
       backgroundColor: colors.bgCard,
@@ -270,25 +262,25 @@ const FunctionsModal: React.FC<FunctionsModalProps> = ({
       borderColor: colors.statusSuccess,
     },
     functionDescription: {
-      fontSize: 13,
+      ...typography.label,
+      fontWeight: '400' as const,
       color: colors.textSecondary,
-      lineHeight: 18,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     functionDescriptionSelected: {
       color: colors.statusSuccess,
     },
     functionMeta: {
       flexDirection: 'row' as const,
-      gap: 16,
+      gap: spacing.lg,
     },
     functionMetaItem: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 4,
+      gap: spacing.xs,
     },
     functionMetaText: {
-      fontSize: 12,
+      ...typography.caption,
       color: colors.textSecondary,
     },
   }));
@@ -389,7 +381,7 @@ const FunctionsModal: React.FC<FunctionsModalProps> = ({
 
           <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
             {isSelected && (
-              <Ionicons name="checkmark" size={14} color="white" />
+              <Ionicons name="checkmark" size={14} color={colors.textInverse} />
             )}
           </View>
         </View>
@@ -502,7 +494,10 @@ const FunctionsModal: React.FC<FunctionsModalProps> = ({
               placeholderTextColor={colors.textTertiary}
             />
             {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <TouchableOpacity
+                onPress={() => setSearchQuery('')}
+                hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+              >
                 <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
               </TouchableOpacity>
             )}

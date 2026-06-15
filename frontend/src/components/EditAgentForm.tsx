@@ -17,6 +17,7 @@ import { AlertAPI } from './CustomAlert';
 import AgentAvatar from './AgentAvatar';
 import { Agent, AgentFormData, AgentFormErrors, LifecycleStatus, ExecutionTemplate } from '../types';
 import { useTheme, useThemedStyles } from '../theme';
+import { spacing, radius, typography } from '../theme';
 import { useContainerStyles } from '../styles/useContainerStyles';
 
 interface EditAgentFormProps {
@@ -41,7 +42,7 @@ const Tooltip: React.FC<TooltipProps> = ({ title, content, visible, onClose, the
         <View style={themedStyles.tooltipHeader}>
           <Ionicons name="information-circle" size={24} color={colors.accent} />
           <Text style={themedStyles.tooltipTitle}>{title}</Text>
-          <TouchableOpacity onPress={onClose}>
+          <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="close" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
@@ -67,17 +68,18 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
       backgroundColor: colors.bgApp,
     },
     loadingText: {
-      marginTop: 16,
-      fontSize: 16,
+      marginTop: spacing.lg,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.textSecondary,
     },
     header: {
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      paddingHorizontal: 20,
-      paddingTop: Platform.OS === 'ios' ? 60 : 20,
-      paddingBottom: 20,
+      paddingHorizontal: spacing.lg,
+      paddingTop: Platform.OS === 'ios' ? 60 : spacing.lg,
+      paddingBottom: spacing.lg,
       backgroundColor: colors.bgCard,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
@@ -85,102 +87,102 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
     headerLeft: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 12,
+      gap: spacing.md,
     },
     title: {
-      fontSize: 24,
-      fontWeight: 'bold' as const,
+      ...typography.display,
       color: colors.textPrimary,
     },
     closeButton: {
-      padding: 8,
+      padding: spacing.sm,
     },
     content: {
       flex: 1,
-      padding: 20,
+      padding: spacing.lg,
     },
     overviewSection: {
-      marginBottom: 24,
+      marginBottom: spacing.xl,
     },
     overviewHeader: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 8,
+      gap: spacing.sm,
       backgroundColor: colors.bgCard,
-      padding: 16,
-      borderRadius: 12,
+      padding: spacing.md,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
     },
     overviewTitle: {
       flex: 1,
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.accent,
     },
     characterPreview: {
       backgroundColor: colors.bgSurface,
-      borderRadius: 16,
-      padding: 20,
-      marginBottom: 24,
+      borderRadius: radius.xl,
+      padding: spacing.md,
+      marginBottom: spacing.xl,
       borderWidth: 1,
       borderColor: colors.borderLight,
     },
     previewHeader: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      marginBottom: 16,
-      gap: 8,
+      marginBottom: spacing.lg,
+      gap: spacing.sm,
     },
     previewTitle: {
-      fontSize: 18,
-      fontWeight: '600' as const,
+      ...typography.h2,
       color: colors.textPrimary,
     },
     previewContent: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 20,
+      gap: spacing.lg,
     },
     previewText: {
       flex: 1,
     },
     previewName: {
-      fontSize: 20,
-      fontWeight: 'bold' as const,
+      ...typography.h1,
       color: colors.textPrimary,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     previewRole: {
-      fontSize: 16,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.textSecondary,
       fontStyle: 'italic' as const,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     previewChanges: {
-      fontSize: 14,
-      color: colors.accent,
+      ...typography.bodyStrong,
       fontWeight: '500' as const,
+      color: colors.accent,
     },
     section: {
-      marginBottom: 24,
+      marginBottom: spacing.xl,
       backgroundColor: colors.bgCard,
-      borderRadius: 12,
-      padding: 20,
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
     },
     sectionHeader: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 8,
-      marginBottom: 16,
+      gap: spacing.sm,
+      marginBottom: spacing.lg,
     },
     sectionTitle: {
       flex: 1,
-      fontSize: 18,
-      fontWeight: '600' as const,
+      ...typography.h2,
       color: colors.textPrimary,
     },
     inputRow: {
       flexDirection: 'row' as const,
-      gap: 16,
+      gap: spacing.lg,
     },
     inputColumn: {
       flex: 1,
@@ -188,14 +190,14 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
     labelRow: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 4,
-      marginBottom: 8,
+      gap: spacing.xs,
+      marginBottom: spacing.sm,
     },
     label: {
-      fontSize: 16,
+      ...typography.title,
       fontWeight: '500' as const,
       color: colors.textPrimary,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     inputError: {
       borderColor: colors.statusError,
@@ -203,56 +205,55 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
     },
     errorText: {
       color: colors.statusError,
-      fontSize: 14,
-      marginTop: 4,
+      ...typography.body,
+      marginTop: spacing.xs,
     },
     selectorButton: {
       backgroundColor: colors.bgSurface,
-      borderRadius: 12,
-      padding: 16,
+      borderRadius: radius.lg,
+      padding: spacing.md,
       borderWidth: 1,
       borderColor: colors.borderLight,
     },
     selectorContent: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 12,
+      gap: spacing.md,
     },
     selectorMain: {
       flex: 1,
     },
     selectorLabel: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     selectorValue: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     selectorPlaceholder: {
-      fontSize: 16,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.textTertiary,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     selectorDescription: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
-      lineHeight: 18,
     },
     statusIndicator: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 8,
-      marginBottom: 4,
+      gap: spacing.sm,
+      marginBottom: spacing.xs,
     },
     footer: {
       flexDirection: 'row' as const,
-      gap: 12,
-      paddingHorizontal: 20,
-      paddingVertical: 16,
+      gap: spacing.md,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
       backgroundColor: colors.bgCard,
       borderTopWidth: 1,
       borderTopColor: colors.borderLight,
@@ -260,32 +261,30 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
     cancelButton: {
       flex: 1,
       backgroundColor: colors.bgSurface,
-      paddingVertical: 14,
-      borderRadius: 8,
+      paddingVertical: spacing.md,
+      borderRadius: radius.md,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
     },
     cancelButtonText: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textSecondary,
     },
     saveButton: {
       flex: 1,
       backgroundColor: colors.accent,
-      paddingVertical: 14,
-      borderRadius: 8,
+      paddingVertical: spacing.md,
+      borderRadius: radius.md,
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      gap: 8,
+      gap: spacing.sm,
     },
     saveButtonDisabled: {
       backgroundColor: colors.borderMedium,
     },
     saveButtonText: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textInverse,
     },
     modalContainer: {
@@ -296,26 +295,25 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      paddingHorizontal: 20,
-      paddingTop: Platform.OS === 'ios' ? 60 : 20,
-      paddingBottom: 20,
+      paddingHorizontal: spacing.lg,
+      paddingTop: Platform.OS === 'ios' ? 60 : spacing.lg,
+      paddingBottom: spacing.lg,
       backgroundColor: colors.bgCard,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
     },
     modalTitle: {
-      fontSize: 20,
-      fontWeight: 'bold' as const,
+      ...typography.h1,
       color: colors.textPrimary,
     },
     modalList: {
-      padding: 20,
-      gap: 12,
+      padding: spacing.lg,
+      gap: spacing.md,
     },
     templateCard: {
       backgroundColor: colors.bgCard,
-      borderRadius: 12,
-      padding: 16,
+      borderRadius: radius.lg,
+      padding: spacing.md,
       borderWidth: 1,
       borderColor: colors.borderLight,
     },
@@ -326,34 +324,32 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
     templateCardHeader: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 8,
-      marginBottom: 8,
+      gap: spacing.sm,
+      marginBottom: spacing.sm,
     },
     templateCardName: {
       flex: 1,
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
     },
     templateBadge: {
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 12,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: radius.lg,
     },
     templateBadgeText: {
-      fontSize: 12,
+      ...typography.caption,
       fontWeight: '600' as const,
       color: colors.textInverse,
     },
     templateCardDescription: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
-      lineHeight: 18,
     },
     statusCard: {
       backgroundColor: colors.bgCard,
-      borderRadius: 12,
-      padding: 16,
+      borderRadius: radius.lg,
+      padding: spacing.md,
       borderWidth: 1,
       borderColor: colors.borderLight,
     },
@@ -364,77 +360,72 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
     statusCardContent: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 16,
+      gap: spacing.lg,
     },
     statusCardText: {
       flex: 1,
     },
     statusCardName: {
-      fontSize: 18,
-      fontWeight: '600' as const,
-      marginBottom: 4,
+      ...typography.h2,
+      marginBottom: spacing.xs,
     },
     statusCardDescription: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
-      lineHeight: 18,
     },
     tooltipOverlay: {
       flex: 1,
       backgroundColor: 'rgba(0,0,0,0.5)',
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
-      padding: 20,
+      padding: spacing.lg,
     },
     tooltipContainer: {
       backgroundColor: colors.bgCard,
-      borderRadius: 12,
-      padding: 20,
+      borderRadius: radius.lg,
+      padding: spacing.md,
       maxWidth: '90%' as const,
     },
     tooltipHeader: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 8,
-      marginBottom: 12,
+      gap: spacing.sm,
+      marginBottom: spacing.md,
     },
     tooltipTitle: {
       flex: 1,
-      fontSize: 18,
-      fontWeight: '600' as const,
+      ...typography.h2,
       color: colors.textPrimary,
     },
     tooltipContent: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
-      lineHeight: 20,
     },
     fieldHelpContainer: {
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'flex-start' as const,
-      marginTop: 6,
+      marginTop: spacing.sm,
     },
     fieldHelp: {
-      fontSize: 13,
+      ...typography.caption,
       color: colors.textSecondary,
-      marginTop: 6,
-      lineHeight: 18,
+      marginTop: spacing.sm,
       flex: 1,
     },
     manageTemplatesLink: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      marginLeft: 8,
-      padding: 4,
-      borderRadius: 6,
+      marginLeft: spacing.sm,
+      padding: spacing.xs,
+      borderRadius: radius.sm,
       backgroundColor: colors.bgApp,
     },
     linkText: {
-      fontSize: 12,
-      color: colors.accent,
+      ...typography.caption,
       fontWeight: '500' as const,
-      marginLeft: 4,
+      color: colors.accent,
+      marginLeft: spacing.xs,
     },
   }));
 
@@ -602,7 +593,7 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
           <Ionicons name="pencil" size={28} color={colors.accent} />
           <Text style={styles.title}>Edit Agent</Text>
         </View>
-        <TouchableOpacity onPress={onCancel} style={styles.closeButton}>
+        <TouchableOpacity onPress={onCancel} style={styles.closeButton} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Ionicons name="close" size={24} color={colors.textSecondary} />
         </TouchableOpacity>
       </View>
@@ -691,7 +682,7 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
           <View style={styles.sectionHeader}>
             <Ionicons name="document-text" size={20} color={colors.accent} />
             <Text style={styles.sectionTitle}>Archetype Template</Text>
-            <TouchableOpacity onPress={() => setShowTemplateTooltip(true)}>
+            <TouchableOpacity onPress={() => setShowTemplateTooltip(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="help-circle-outline" size={18} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
@@ -741,7 +732,7 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
             <View style={styles.inputColumn}>
               <View style={styles.labelRow}>
                 <Text style={styles.label}>Heartbeat (min) *</Text>
-                <TouchableOpacity onPress={() => setShowHeartbeatTooltip(true)}>
+                <TouchableOpacity onPress={() => setShowHeartbeatTooltip(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                   <Ionicons name="help-circle-outline" size={16} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
@@ -759,7 +750,7 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
             <View style={styles.inputColumn}>
               <View style={styles.labelRow}>
                 <Text style={styles.label}>Max Tokens/Day *</Text>
-                <TouchableOpacity onPress={() => setShowTokensTooltip(true)}>
+                <TouchableOpacity onPress={() => setShowTokensTooltip(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                   <Ionicons name="help-circle-outline" size={16} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
@@ -781,7 +772,7 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
           <View style={styles.sectionHeader}>
             <Ionicons name="pulse" size={20} color={colors.accent} />
             <Text style={styles.sectionTitle}>Lifecycle Status</Text>
-            <TouchableOpacity onPress={() => setShowStatusTooltip(true)}>
+            <TouchableOpacity onPress={() => setShowStatusTooltip(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="help-circle-outline" size={18} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
@@ -839,7 +830,7 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Select Archetype Template</Text>
-            <TouchableOpacity onPress={() => setShowTemplateModal(false)}>
+            <TouchableOpacity onPress={() => setShowTemplateModal(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="close" size={24} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
@@ -887,7 +878,7 @@ const EditAgentForm: React.FC<EditAgentFormProps> = ({ agent, onSuccess, onCance
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Select Status</Text>
-            <TouchableOpacity onPress={() => setShowStatusModal(false)}>
+            <TouchableOpacity onPress={() => setShowStatusModal(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="close" size={24} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>

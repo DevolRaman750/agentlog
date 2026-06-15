@@ -12,7 +12,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 import { goGentAPI } from '../api/client';
 import { AlertAPI } from './CustomAlert';
 import { useToast } from '../context/ToastContext';
@@ -67,28 +67,28 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      paddingHorizontal: 20,
-      paddingVertical: 16,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.lg,
       backgroundColor: colors.bgCard,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
     },
     closeButton: {
-      padding: 8,
+      padding: spacing.sm,
     },
     title: {
-      fontSize: 20,
-      fontWeight: '700' as const,
+      ...typography.h1,
       color: colors.textPrimary,
     },
     addButton: {
-      padding: 8,
+      padding: spacing.sm,
     },
     subtitle: {
-      fontSize: 16,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.textSecondary,
       textAlign: 'center' as const,
-      paddingVertical: 16,
+      paddingVertical: spacing.lg,
     },
     content: {
       flex: 1,
@@ -97,108 +97,105 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
       flex: 1,
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
-      gap: 16,
+      gap: spacing.lg,
     },
     loadingText: {
-      fontSize: 16,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.textSecondary,
     },
     emptyContainer: {
       flex: 1,
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
-      paddingHorizontal: 40,
-      gap: 16,
+      paddingHorizontal: spacing.xxl,
+      gap: spacing.lg,
     },
     emptyTitle: {
-      fontSize: 20,
+      ...typography.h1,
       fontWeight: '600' as const,
       color: colors.textPrimary,
     },
     emptyText: {
-      fontSize: 16,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.textSecondary,
       textAlign: 'center' as const,
-      lineHeight: 22,
     },
     listContainer: {
-      padding: 16,
+      padding: spacing.lg,
     },
     apiKeyCard: {
       backgroundColor: colors.bgCard,
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 12,
-      shadowColor: colors.shadowColor,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.05,
-      shadowRadius: 2,
-      elevation: 1,
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      marginBottom: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
     },
     apiKeyHeader: {
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'flex-start' as const,
-      marginBottom: 12,
+      marginBottom: spacing.md,
     },
     apiKeyInfo: {
       flex: 1,
     },
     apiKeyName: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     apiKeyService: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
     },
     apiKeyActions: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 12,
+      gap: spacing.md,
     },
     statusBadge: {
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 12,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: radius.lg,
     },
     statusText: {
-      fontSize: 12,
+      ...typography.caption,
       fontWeight: '600' as const,
       color: colors.textInverse,
     },
     removeButton: {
-      padding: 4,
+      padding: spacing.xs,
     },
     apiKeySettings: {
-      gap: 8,
+      gap: spacing.sm,
     },
     settingRow: {
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      paddingVertical: 4,
+      paddingVertical: spacing.xs,
     },
     settingLabel: {
-      fontSize: 14,
+      ...typography.body,
       fontWeight: '500' as const,
       color: colors.textPrimary,
     },
     defaultBadge: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 6,
-      paddingVertical: 4,
+      gap: spacing.sm,
+      paddingVertical: spacing.xs,
     },
     defaultText: {
-      fontSize: 14,
+      ...typography.body,
       fontWeight: '500' as const,
       color: colors.statusWarning,
     },
     priorityText: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
     },
     // Add Modal Styles
@@ -210,24 +207,23 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      paddingHorizontal: 20,
-      paddingVertical: 16,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.lg,
       backgroundColor: colors.bgCard,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
     },
     cancelButton: {
-      fontSize: 17,
+      ...typography.title,
       color: colors.textSecondary,
       fontWeight: '500' as const,
     },
     addModalTitle: {
-      fontSize: 20,
-      fontWeight: '700' as const,
+      ...typography.h1,
       color: colors.textPrimary,
     },
     saveButton: {
-      fontSize: 17,
+      ...typography.title,
       color: colors.accent,
       fontWeight: '700' as const,
     },
@@ -236,31 +232,33 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
     },
     addModalContent: {
       flex: 1,
-      padding: 16,
+      padding: spacing.lg,
     },
     field: {
       backgroundColor: colors.bgCard,
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 16,
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      marginBottom: spacing.lg,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
     },
     fieldLabel: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     fieldDescription: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
-      marginTop: 4,
+      marginTop: spacing.xs,
     },
     input: {
       borderWidth: 1,
       borderColor: colors.borderLight,
-      borderRadius: 8,
-      padding: 12,
-      fontSize: 16,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      ...typography.title,
+      fontWeight: '400' as const,
       backgroundColor: colors.bgCard,
     },
     switchRow: {
@@ -270,17 +268,17 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
     },
     switchInfo: {
       flex: 1,
-      marginRight: 16,
+      marginRight: spacing.lg,
     },
     pickerContainer: {
-      gap: 8,
+      gap: spacing.sm,
     },
     pickerOption: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       justifyContent: 'space-between' as const,
-      padding: 12,
-      borderRadius: 8,
+      padding: spacing.md,
+      borderRadius: radius.md,
       borderWidth: 1,
       borderColor: colors.borderLight,
       backgroundColor: colors.bgCard,
@@ -293,7 +291,7 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
       flex: 1,
     },
     pickerOptionText: {
-      fontSize: 16,
+      ...typography.title,
       fontWeight: '500' as const,
       color: colors.textPrimary,
       marginBottom: 2,
@@ -302,35 +300,36 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
       color: colors.accent,
     },
     pickerOptionSubtext: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
     },
     noKeysContainer: {
       alignItems: 'center' as const,
-      paddingVertical: 20,
-      paddingHorizontal: 16,
+      paddingVertical: spacing.lg,
+      paddingHorizontal: spacing.md,
       backgroundColor: colors.bgSurface,
-      borderRadius: 8,
-      marginTop: 8,
+      borderRadius: radius.md,
+      marginTop: spacing.sm,
     },
     noKeysText: {
-      fontSize: 16,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.textSecondary,
-      marginBottom: 12,
+      marginBottom: spacing.md,
       textAlign: 'center' as const,
     },
     createKeyButton: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       backgroundColor: colors.accent,
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-      borderRadius: 8,
-      gap: 6,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.md,
+      gap: spacing.sm,
     },
     createKeyButtonText: {
       color: colors.textInverse,
-      fontSize: 14,
+      ...typography.body,
       fontWeight: '600' as const,
     },
   }));
@@ -553,13 +552,18 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+          <TouchableOpacity
+            onPress={onClose}
+            style={styles.closeButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name="close" size={24} color={colors.accent} />
           </TouchableOpacity>
           <Text style={styles.title}>API Keys</Text>
           <TouchableOpacity
             onPress={handleAddButtonPress}
             style={styles.addButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons name="add" size={24} color={colors.accent} />
           </TouchableOpacity>
@@ -611,11 +615,18 @@ const AgentApiKeyManager: React.FC<AgentApiKeyManagerProps> = ({
         <Modal visible={showAddModal} animationType="slide" presentationStyle="pageSheet">
           <View style={styles.addModalContainer}>
             <View style={styles.addModalHeader}>
-              <TouchableOpacity onPress={() => setShowAddModal(false)}>
+              <TouchableOpacity
+                onPress={() => setShowAddModal(false)}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
                 <Text style={styles.cancelButton}>Cancel</Text>
               </TouchableOpacity>
               <Text style={styles.addModalTitle}>Use Existing API Key</Text>
-              <TouchableOpacity onPress={handleAddApiKey} disabled={isSubmitting || !selectedApiKey}>
+              <TouchableOpacity
+                onPress={handleAddApiKey}
+                disabled={isSubmitting || !selectedApiKey}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
                 {isSubmitting ? (
                   <ActivityIndicator size="small" color={colors.accent} />
                 ) : (

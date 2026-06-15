@@ -8,7 +8,7 @@ import {
   Alert as RNAlert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useThemedStyles } from '../theme';
+import { useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 import { ThemeColors } from '../theme';
 
 export interface AlertButton {
@@ -45,13 +45,15 @@ export const CustomAlert: React.FC = () => {
       backgroundColor: 'rgba(0, 0, 0, 0.5)',
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
-      padding: 20,
+      padding: spacing.lg,
     },
     alertContainer: {
       backgroundColor: colors.bgCard,
-      borderRadius: 12,
+      borderRadius: radius.lg,
       minWidth: 280,
       maxWidth: 400,
+      width: '100%' as const,
+      maxHeight: '90%' as const,
       shadowColor: colors.shadowColor,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.25,
@@ -59,25 +61,23 @@ export const CustomAlert: React.FC = () => {
       elevation: 10,
     },
     alertHeader: {
-      paddingTop: 20,
-      paddingHorizontal: 20,
-      paddingBottom: 10,
+      paddingTop: spacing.lg,
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.sm,
     },
     alertTitle: {
-      fontSize: 17,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
       textAlign: 'center' as const,
     },
     alertBody: {
-      paddingHorizontal: 20,
-      paddingBottom: 20,
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.lg,
     },
     alertMessage: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textPrimary,
       textAlign: 'center' as const,
-      lineHeight: 20,
     },
     alertFooter: {
       flexDirection: 'row' as const,
@@ -86,7 +86,8 @@ export const CustomAlert: React.FC = () => {
     },
     button: {
       flex: 1,
-      paddingVertical: 12,
+      minHeight: touchTarget.min,
+      paddingVertical: spacing.md,
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
       borderRightWidth: 1,
@@ -102,7 +103,7 @@ export const CustomAlert: React.FC = () => {
       backgroundColor: colors.bgCard,
     },
     buttonText: {
-      fontSize: 16,
+      ...typography.title,
       fontWeight: '500' as const,
     },
     defaultButtonText: {

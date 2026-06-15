@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { AlertAPI } from './CustomAlert';
 import { goGentAPI } from '../api/client';
 import { generateRerunName } from '../utils/executionNaming';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 
 export interface ExecutionLogsCardProps {
   executionResult: ExecutionResult;
@@ -45,27 +45,21 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
       backgroundColor: colors.bgCard,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
-      shadowColor: colors.shadowColor,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.05,
-      shadowRadius: 2,
-      elevation: 2,
     },
     title: {
-      fontSize: 18,
-      fontWeight: '600' as const,
+      ...typography.h2,
       color: colors.textPrimary,
       flex: 1,
-      marginRight: 16,
+      marginRight: spacing.lg,
     },
     closeButton: {
-      padding: 8,
-      borderRadius: 8,
+      padding: spacing.sm,
+      borderRadius: radius.md,
       backgroundColor: colors.bgApp,
     },
     headerLeft: {
@@ -74,40 +68,39 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
     headerActions: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 12,
+      gap: spacing.md,
     },
     copyAllButton: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       backgroundColor: colors.bgHover,
-      borderRadius: 8,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      gap: 6,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      gap: spacing.sm,
     },
     copyAllText: {
-      fontSize: 14,
+      ...typography.bodyStrong,
       color: colors.accent,
-      fontWeight: '600' as const,
     },
     copyLogButton: {
-      padding: 4,
-      borderRadius: 4,
+      padding: spacing.xs,
+      borderRadius: radius.sm,
       backgroundColor: colors.bgHover,
-      marginRight: 8,
+      marginRight: spacing.sm,
     },
     statsContainer: {
       flexDirection: 'row' as const,
       flexWrap: 'wrap' as const,
-      gap: 8,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
+      gap: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
       backgroundColor: colors.bgCard,
     },
     statPill: {
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 16,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.xl,
       borderWidth: 1,
       borderColor: colors.borderLight,
       backgroundColor: colors.bgSurface,
@@ -117,7 +110,7 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
       borderColor: colors.accent,
     },
     statText: {
-      fontSize: 12,
+      ...typography.caption,
       fontWeight: '500' as const,
       color: colors.textSecondary,
     },
@@ -127,38 +120,33 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
     },
     filtersContainer: {
       backgroundColor: colors.bgCard,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
     },
     filterSection: {
-      marginBottom: 12,
+      marginBottom: spacing.md,
     },
     filterSectionTitle: {
-      fontSize: 13,
+      ...typography.label,
       fontWeight: '600' as const,
       color: colors.textPrimary,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
       textTransform: 'uppercase' as const,
       letterSpacing: 0.5,
     },
     listContainer: {
-      paddingHorizontal: 16,
-      paddingTop: 8,
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.sm,
       paddingBottom: 80,
     },
     logItem: {
       backgroundColor: colors.bgCard,
-      borderRadius: 8,
-      padding: 12,
-      marginBottom: 8,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      marginBottom: spacing.sm,
       borderLeftWidth: 3,
-      shadowColor: colors.shadowColor,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.04,
-      shadowRadius: 2,
-      elevation: 1,
     },
     logHeader: {
       flexDirection: 'row' as const,
@@ -167,7 +155,7 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
     logIconContainer: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      marginRight: 12,
+      marginRight: spacing.md,
       minWidth: 40,
     },
     logIndicator: {
@@ -187,12 +175,12 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'flex-start' as const,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     logCategory: {
-      fontSize: 11,
-      color: colors.textSecondary,
+      ...typography.micro,
       fontWeight: '600' as const,
+      color: colors.textSecondary,
       textTransform: 'uppercase' as const,
       letterSpacing: 0.5,
     },
@@ -200,47 +188,47 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
       alignItems: 'flex-end' as const,
     },
     logMessage: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textPrimary,
-      lineHeight: 20,
-      fontWeight: '400' as const,
     },
     logTimestamp: {
-      fontSize: 10,
+      ...typography.micro,
+      fontWeight: '400' as const,
       color: colors.textSecondary,
       fontFamily: 'monospace',
       marginBottom: 2,
     },
     logLevel: {
-      fontSize: 10,
+      ...typography.micro,
       fontWeight: '700' as const,
       textTransform: 'uppercase' as const,
       letterSpacing: 0.3,
     },
     expandIcon: {
-      marginLeft: 8,
+      marginLeft: spacing.sm,
       paddingTop: 2,
     },
     logDetails: {
-      marginTop: 12,
-      paddingTop: 12,
+      marginTop: spacing.md,
+      paddingTop: spacing.md,
       borderTopWidth: 1,
       borderTopColor: colors.bgApp,
     },
     detailsTitle: {
-      fontSize: 12,
+      ...typography.caption,
       fontWeight: '600' as const,
       color: colors.textPrimary,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     detailsScrollContainer: {
       maxHeight: 120,
       backgroundColor: colors.bgSurface,
-      borderRadius: 6,
-      padding: 8,
+      borderRadius: radius.sm,
+      padding: spacing.sm,
     },
     detailsContent: {
-      fontSize: 11,
+      ...typography.micro,
+      fontWeight: '400' as const,
       color: colors.textPrimary,
       fontFamily: 'monospace',
       lineHeight: 16,
@@ -251,15 +239,10 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
       left: 0,
       right: 0,
       backgroundColor: colors.bgCard,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
       borderTopWidth: 1,
       borderTopColor: colors.borderLight,
-      shadowColor: colors.shadowColor,
-      shadowOffset: { width: 0, height: -1 },
-      shadowOpacity: 0.05,
-      shadowRadius: 2,
-      elevation: 3,
     },
     footerSpacer: {
       height: 20,
@@ -268,38 +251,29 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       backgroundColor: colors.accent,
-      paddingVertical: 12,
-      paddingHorizontal: 20,
-      borderRadius: 8,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+      borderRadius: radius.md,
       justifyContent: 'center' as const,
-      shadowColor: colors.accent,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.2,
-      shadowRadius: 4,
-      elevation: 3,
     },
     reExecuteButtonText: {
+      ...typography.title,
       color: colors.textInverse,
-      fontSize: 15,
-      fontWeight: '600' as const,
-      marginLeft: 8,
+      marginLeft: spacing.sm,
     },
     configurationSection: {
-      marginBottom: 16,
+      marginBottom: spacing.lg,
       backgroundColor: colors.bgCard,
-      borderRadius: 12,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
       overflow: 'hidden' as const,
-      shadowColor: colors.shadowColor,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.05,
-      shadowRadius: 2,
-      elevation: 1,
     },
     configurationHeader: {
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      padding: 16,
+      padding: spacing.lg,
       backgroundColor: colors.bgSurface,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
@@ -310,7 +284,7 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
       flex: 1,
     },
     configIconContainer: {
-      marginRight: 12,
+      marginRight: spacing.md,
       width: 24,
       alignItems: 'center' as const,
     },
@@ -318,40 +292,38 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
       flex: 1,
     },
     configTitle: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
       marginBottom: 2,
     },
     configSubtitle: {
-      fontSize: 12,
+      ...typography.caption,
       color: colors.textSecondary,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     configLogCount: {
-      fontSize: 11,
+      ...typography.micro,
       color: colors.textSecondary,
-      fontWeight: '500' as const,
     },
     configHeaderRight: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 12,
+      gap: spacing.md,
     },
     copyConfigButton: {
-      padding: 8,
-      borderRadius: 6,
+      padding: spacing.sm,
+      borderRadius: radius.sm,
       backgroundColor: colors.bgHover,
     },
     configurationLogs: {
-      paddingHorizontal: 12,
-      paddingBottom: 8,
+      paddingHorizontal: spacing.md,
+      paddingBottom: spacing.sm,
     },
     filtersHeader: {
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      padding: 16,
+      padding: spacing.lg,
       backgroundColor: colors.bgSurface,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
@@ -360,40 +332,39 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
       flex: 1,
     },
     filtersHeaderTitle: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     filtersHeaderStats: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 8,
+      gap: spacing.sm,
     },
     filtersHeaderSubtitle: {
-      fontSize: 12,
-      color: colors.textSecondary,
+      ...typography.caption,
       fontWeight: '500' as const,
+      color: colors.textSecondary,
     },
     activeFiltersCompact: {
       flexDirection: 'row' as const,
       flexWrap: 'wrap' as const,
-      gap: 6,
+      gap: spacing.sm,
     },
     activeFilterChip: {
       backgroundColor: colors.borderLight,
-      borderRadius: 12,
-      paddingHorizontal: 10,
-      paddingVertical: 4,
+      borderRadius: radius.lg,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
     },
     activeFilterChipText: {
-      fontSize: 11,
-      color: colors.textPrimary,
+      ...typography.micro,
       fontWeight: '600' as const,
+      color: colors.textPrimary,
     },
     filtersExpandedContent: {
-      paddingHorizontal: 16,
-      paddingBottom: 12,
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.md,
       backgroundColor: colors.bgSurface,
     },
     clearFiltersButton: {
@@ -401,15 +372,14 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
       backgroundColor: `${colors.statusError}15`,
-      borderRadius: 8,
-      paddingVertical: 10,
-      marginTop: 12,
+      borderRadius: radius.md,
+      paddingVertical: spacing.sm,
+      marginTop: spacing.md,
     },
     clearFiltersText: {
+      ...typography.bodyStrong,
       color: colors.statusError,
-      fontSize: 14,
-      fontWeight: '600' as const,
-      marginLeft: 8,
+      marginLeft: spacing.sm,
     },
   }));
 
@@ -782,6 +752,7 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
               <View style={styles.logMetaCompact}>
                 <TouchableOpacity
                   style={styles.copyLogButton}
+                  hitSlop={{ top: 11, bottom: 11, left: 11, right: 11 }}
                   onPress={() => {
                     const logText = `[${formatTimestamp(log.timestamp)}] ${log.logLevel} - ${log.logCategory}\n${log.message}${log.details ? `\nDetails: ${typeof log.details === 'string' ? log.details : JSON.stringify(log.details, null, 2)}` : ''}`;
                     copyToClipboard(logText, 'Log entry');
@@ -866,6 +837,7 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
         <View style={styles.configHeaderRight}>
           <TouchableOpacity
             style={styles.copyConfigButton}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             onPress={(e) => {
               e.stopPropagation();
               const configLogsText = configLogs.map(log => {
@@ -920,7 +892,7 @@ const ExecutionLogsCard: React.FC<ExecutionLogsCardProps> = ({
               <Ionicons name="copy" size={20} color={colors.accent} />
               <Text style={styles.copyAllText}>Copy All</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton} hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}>
               <Ionicons name="close" size={24} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>

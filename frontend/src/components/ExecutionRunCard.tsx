@@ -7,7 +7,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { ExecutionRunCardProps } from '../types';
 import { AlertAPI } from './CustomAlert';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 
 const ExecutionRunCard: React.FC<ExecutionRunCardProps> = ({
   executionRun,
@@ -21,88 +21,85 @@ const ExecutionRunCard: React.FC<ExecutionRunCardProps> = ({
   const styles = useThemedStyles((colors) => ({
     container: {
       backgroundColor: colors.bgCard,
-      borderRadius: 12,
-      padding: 16,
-      marginTop: 12,
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      marginTop: spacing.md,
       borderWidth: 1,
       borderColor: colors.borderLight,
     },
     header: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     iconContainer: {
       width: 40,
       height: 40,
-      borderRadius: 20,
+      borderRadius: radius.pill,
       backgroundColor: colors.bgHover,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      marginRight: 12,
+      marginRight: spacing.md,
     },
     titleContainer: {
       flex: 1,
     },
     executionName: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
-      marginBottom: 2,
+      marginBottom: spacing.xs,
     },
     metadataRow: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
     },
     timeText: {
-      fontSize: 12,
+      ...typography.caption,
       color: colors.textSecondary,
     },
     separator: {
-      fontSize: 12,
+      ...typography.caption,
       color: colors.textTertiary,
-      marginHorizontal: 6,
+      marginHorizontal: spacing.xs,
     },
     deleteButton: {
-      padding: 8,
-      borderRadius: 6,
+      padding: spacing.sm,
+      borderRadius: radius.sm,
       backgroundColor: `${colors.statusError}10`,
     },
     descriptionContainer: {
-      marginBottom: 8,
+      marginBottom: spacing.sm,
       paddingLeft: 52, // Align with title (icon width + margin)
     },
     descriptionText: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
-      lineHeight: 18,
     },
     footer: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       justifyContent: 'space-between' as const,
-      paddingTop: 8,
+      paddingTop: spacing.sm,
       borderTopWidth: 0.5,
       borderTopColor: colors.borderLight,
     },
     viewDetailsText: {
-      fontSize: 14,
+      ...typography.bodyStrong,
       color: colors.accent,
-      fontWeight: '500' as const,
     },
     actionsContainer: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 8,
+      gap: spacing.sm,
     },
     createTemplateButton: {
-      padding: 8,
-      borderRadius: 6,
+      padding: spacing.sm,
+      borderRadius: radius.sm,
       backgroundColor: `${colors.statusSuccess}10`,
     },
     reExecuteButton: {
-      padding: 8,
-      borderRadius: 6,
+      padding: spacing.sm,
+      borderRadius: radius.sm,
       backgroundColor: colors.accentSoft,
     },
   }));

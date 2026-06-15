@@ -14,7 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { webInputStyles } from '../styles/containers';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography } from '../theme';
 import type { ThemeColors } from '../theme';
 
 interface TextEditorProps {
@@ -40,47 +40,38 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const createStyles = (colors: ThemeColors) => ({
   container: {
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   labelContainer: {
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
     alignItems: 'center' as const,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   label: {
-    fontSize: 16,
-    fontWeight: '600' as const,
+    ...typography.title,
     flex: 1,
   },
   expandButton: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
     backgroundColor: colors.bgHover,
-    borderRadius: 6,
-    gap: 4,
+    borderRadius: radius.sm,
+    gap: spacing.xs,
   },
   expandButtonText: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.accent,
     fontWeight: '500' as const,
   },
   editorContainer: {
     borderWidth: 1.5,
-    borderRadius: 12,
+    borderRadius: radius.lg,
     overflow: 'hidden' as const,
-    shadowColor: colors.shadowColor,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
   },
   focusedContainer: {
-    shadowOpacity: 0.15,
-    shadowRadius: 5,
-    elevation: 4,
   },
   editorContent: {
     flexDirection: 'row' as const,
@@ -88,8 +79,8 @@ const createStyles = (colors: ThemeColors) => ({
   },
   lineNumberContainer: {
     minWidth: 40,
-    paddingHorizontal: 8,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.md,
     borderRightWidth: 1,
     borderRightColor: colors.borderLight,
   },
@@ -104,19 +95,19 @@ const createStyles = (colors: ThemeColors) => ({
   },
   textInput: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     fontSize: 16,
     lineHeight: 22,
     fontFamily: Platform.OS === 'ios' ? 'SF Mono' : 'monospace',
     ...webInputStyles,
   },
   statsContainer: {
-    marginTop: 8,
+    marginTop: spacing.sm,
     alignItems: 'flex-end' as const,
   },
   statsText: {
-    fontSize: 12,
+    ...typography.caption,
     fontWeight: '500' as const,
   },
 
@@ -133,19 +124,19 @@ const createStyles = (colors: ThemeColors) => ({
   fullscreenHeader: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    paddingHorizontal: 16,
-    paddingVertical: Platform.OS === 'ios' ? 16 : 12,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: Platform.OS === 'ios' ? spacing.lg : spacing.md,
     borderBottomWidth: 1,
     minHeight: Platform.OS === 'ios' ? 64 : 60,
     ...Platform.select({
       ios: {
-        paddingTop: 20, // Extra padding for iOS to account for potential status bar issues
+        paddingTop: spacing.lg, // Extra padding for iOS to account for potential status bar issues
       },
       android: {
-        paddingTop: 12,
+        paddingTop: spacing.md,
       },
       web: {
-        paddingTop: 12,
+        paddingTop: spacing.md,
       },
     }),
   },
@@ -156,17 +147,16 @@ const createStyles = (colors: ThemeColors) => ({
   headerButton: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    gap: 4,
+    gap: spacing.xs,
   },
   headerButtonText: {
-    fontSize: 16,
+    ...typography.title,
     color: colors.accent,
     fontWeight: '500' as const,
   },
   headerTitle: {
+    ...typography.h2,
     flex: 2,
-    fontSize: 18,
-    fontWeight: '600' as const,
     textAlign: 'center' as const,
   },
   headerRight: {
@@ -183,8 +173,8 @@ const createStyles = (colors: ThemeColors) => ({
   },
   fullscreenLineNumbers: {
     width: 60,
-    paddingHorizontal: 8,
-    paddingVertical: 16,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.lg,
     borderRightWidth: 1,
     borderRightColor: colors.borderLight,
   },
@@ -196,13 +186,14 @@ const createStyles = (colors: ThemeColors) => ({
   },
   fullscreenTextInput: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
     fontSize: 16,
     lineHeight: 22,
     fontFamily: Platform.OS === 'ios' ? 'SF Mono' : 'monospace',
     ...webInputStyles,
   },
+
 });
 
 const TextEditor: React.FC<TextEditorProps> = ({

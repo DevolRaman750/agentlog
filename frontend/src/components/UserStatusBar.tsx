@@ -12,7 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { SessionManager } from './SessionManager';
 import { AlertAPI } from './CustomAlert';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 
 export const UserStatusBar: React.FC = () => {
   const { user, isAuthenticated, logout, createTemporaryUser } = useAuth();
@@ -28,52 +28,48 @@ export const UserStatusBar: React.FC = () => {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       justifyContent: 'space-between' as const,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      paddingTop: Platform.OS === 'ios' ? 32 : 8,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      paddingTop: Platform.OS === 'ios' ? 32 : spacing.sm,
       minHeight: Platform.OS === 'ios' ? 60 : 48,
-      shadowColor: colors.shadowColor,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.08,
-      shadowRadius: 2,
-      elevation: 2,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
     },
     leftSection: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       flex: 1,
-      gap: 8,
+      gap: spacing.sm,
       minWidth: 0,
-      paddingRight: 8,
+      paddingRight: spacing.sm,
     },
     textContainer: {
       flex: 1,
       minWidth: 0,
     },
     title: {
-      fontSize: 13,
+      ...typography.label,
       fontWeight: '700' as const,
       letterSpacing: 0.3,
     },
     subtitle: {
-      fontSize: 11,
-      fontWeight: '500' as const,
+      ...typography.micro,
       marginTop: 1,
     },
     warningBadge: {
       backgroundColor: 'rgba(255, 255, 255, 0.2)',
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      borderRadius: 8,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.none,
+      borderRadius: radius.md,
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.25)',
       flexShrink: 0,
-      marginRight: 4,
+      marginRight: spacing.xs,
     },
     warningBadgeCompact: {
-      paddingHorizontal: 4,
+      paddingHorizontal: spacing.xs,
       paddingVertical: 1,
-      borderRadius: 6,
+      borderRadius: radius.sm,
     },
     warningText: {
       fontSize: 8,
@@ -87,17 +83,19 @@ export const UserStatusBar: React.FC = () => {
     },
     rightSection: {
       flexDirection: 'row' as const,
-      gap: 6,
+      gap: spacing.sm,
       flexShrink: 0,
     },
     actionButton: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      paddingHorizontal: 10,
-      paddingVertical: 5,
-      borderRadius: 12,
-      gap: 3,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: radius.lg,
+      gap: spacing.xs,
       minWidth: 60,
+      minHeight: touchTarget.min,
+      justifyContent: 'center' as const,
     },
     logoutButton: {
       backgroundColor: 'rgba(255, 255, 255, 0.15)',
@@ -105,7 +103,7 @@ export const UserStatusBar: React.FC = () => {
       borderColor: 'rgba(255, 255, 255, 0.25)',
     },
     logoutButtonText: {
-      fontSize: 10,
+      ...typography.micro,
       fontWeight: '600' as const,
       color: colors.textInverse,
     },
@@ -113,7 +111,7 @@ export const UserStatusBar: React.FC = () => {
       backgroundColor: 'rgba(255, 255, 255, 0.9)',
     },
     sessionButtonText: {
-      fontSize: 10,
+      ...typography.micro,
       fontWeight: '600' as const,
       color: colors.textPrimary,
     },

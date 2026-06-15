@@ -9,7 +9,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 import { useContainerStyles } from '../styles/useContainerStyles';
 
 interface JsonEditorProps {
@@ -37,21 +37,19 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
   const { containerStyles, shadowPresets } = useContainerStyles();
   const styles = useThemedStyles((colors) => ({
     container: {
-      marginBottom: 20,
+      marginBottom: spacing.lg,
     },
     labelContainer: {
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     label: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     helpText: {
-      fontSize: 13,
+      ...typography.label,
       color: colors.textSecondary,
-      lineHeight: 18,
     },
     editorContainer: {
       ...containerStyles.inputContainer,
@@ -64,7 +62,7 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      padding: 12,
+      padding: spacing.md,
       backgroundColor: colors.bgSurface,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
@@ -75,31 +73,32 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
     toolbarRight: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 8,
+      gap: spacing.sm,
     },
     statusIndicator: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 6,
+      gap: spacing.sm,
     },
     statusText: {
-      fontSize: 12,
+      ...typography.caption,
       fontWeight: '500' as const,
     },
     toolbarButton: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 4,
-      paddingHorizontal: 8,
-      paddingVertical: 6,
-      borderRadius: 8,
+      gap: spacing.xs,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.md,
       backgroundColor: 'transparent',
+      minHeight: touchTarget.min,
     },
     toolbarButtonActive: {
       backgroundColor: colors.accent,
     },
     toolbarButtonText: {
-      fontSize: 12,
+      ...typography.caption,
       fontWeight: '500' as const,
       color: colors.accent,
     },
@@ -121,26 +120,25 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
     textInput: {
       flex: 1,
       paddingLeft: 50,
-      paddingRight: 16,
-      paddingTop: 16,
-      paddingBottom: 16,
-      fontSize: 14,
+      paddingRight: spacing.md,
+      paddingTop: spacing.md,
+      paddingBottom: spacing.md,
+      ...typography.body,
       fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
       color: colors.textPrimary,
-      lineHeight: 20,
     },
     lineNumbers: {
       position: 'absolute' as const,
       left: 0,
-      top: 16,
-      paddingLeft: 12,
-      paddingRight: 8,
+      top: spacing.md,
+      paddingLeft: spacing.md,
+      paddingRight: spacing.sm,
       backgroundColor: colors.bgSurface,
       borderRightWidth: 1,
       borderRightColor: colors.borderLight,
     },
     lineNumber: {
-      fontSize: 12,
+      ...typography.caption,
       fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
       color: colors.textSecondary,
       lineHeight: 20,
@@ -150,14 +148,14 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
     errorContainer: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 8,
-      padding: 12,
+      gap: spacing.sm,
+      padding: spacing.md,
       backgroundColor: `${colors.statusError}15`,
       borderTopWidth: 1,
       borderTopColor: `${colors.statusError}30`,
     },
     errorText: {
-      fontSize: 12,
+      ...typography.caption,
       color: colors.statusError,
       flex: 1,
     },

@@ -8,7 +8,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import EnhancedTextEditor from './EnhancedTextEditor';
 import ScreenContainer from './ScreenContainer';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography } from '../theme';
 
 /**
  * Demo component showcasing the EnhancedTextEditor capabilities
@@ -65,45 +65,44 @@ For more information, visit [our website](https://example.com).`
 
   const styles = useThemedStyles((colors) => ({
     container: {
-      padding: 16,
-      paddingBottom: 40,
+      padding: spacing.lg,
+      paddingBottom: spacing.xxl,
     },
     header: {
-      marginBottom: 24,
+      marginBottom: spacing.xl,
     },
     title: {
-      fontSize: 28,
-      fontWeight: 'bold' as const,
+      ...typography.display,
       color: colors.textPrimary,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     subtitle: {
-      fontSize: 16,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.textSecondary,
-      lineHeight: 22,
     },
     settingsPanel: {
       backgroundColor: colors.bgCard,
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 24,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+      marginBottom: spacing.xl,
       borderWidth: 1,
       borderColor: colors.borderSubtle,
     },
     settingsTitle: {
-      fontSize: 18,
-      fontWeight: '600' as const,
+      ...typography.h2,
       color: colors.textPrimary,
-      marginBottom: 16,
+      marginBottom: spacing.lg,
     },
     settingRow: {
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      marginBottom: 12,
+      marginBottom: spacing.md,
     },
     settingLabel: {
-      fontSize: 16,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.textPrimary,
       flex: 1,
     },
@@ -111,87 +110,83 @@ For more information, visit [our website](https://example.com).`
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       backgroundColor: colors.bgSurface,
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 8,
-      gap: 6,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.md,
+      gap: spacing.sm,
     },
     themeToggleText: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textPrimary,
       fontWeight: '500' as const,
     },
     demoSection: {
-      marginBottom: 32,
+      marginBottom: spacing.xxl,
     },
     sectionHeader: {
-      marginBottom: 16,
+      marginBottom: spacing.lg,
     },
     sectionTitle: {
-      fontSize: 20,
+      ...typography.h1,
       fontWeight: '600' as const,
       color: colors.textPrimary,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     sectionDescription: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
-      lineHeight: 20,
     },
     sectionContent: {
       // Content will be styled by the text editor component
     },
     featuresSection: {
-      marginTop: 32,
-      marginBottom: 32,
+      marginTop: spacing.xxl,
+      marginBottom: spacing.xxl,
     },
     featuresTitle: {
-      fontSize: 20,
+      ...typography.h1,
       fontWeight: '600' as const,
       color: colors.textPrimary,
-      marginBottom: 16,
+      marginBottom: spacing.lg,
     },
     featuresList: {
-      gap: 12,
+      gap: spacing.md,
     },
     featureItem: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 12,
+      gap: spacing.md,
     },
     featureText: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textPrimary,
       flex: 1,
     },
     tipsSection: {
       backgroundColor: colors.bgSurface,
-      borderRadius: 12,
-      padding: 16,
-      marginTop: 16,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+      marginTop: spacing.lg,
     },
     tipsTitle: {
-      fontSize: 18,
-      fontWeight: '600' as const,
+      ...typography.h2,
       color: colors.textPrimary,
-      marginBottom: 16,
+      marginBottom: spacing.lg,
     },
     tipsList: {
-      gap: 16,
+      gap: spacing.lg,
     },
     tipItem: {
       // Individual tip styling
     },
     tipTitle: {
-      fontSize: 14,
-      fontWeight: '600' as const,
+      ...typography.bodyStrong,
       color: colors.textPrimary,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     tipText: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
-      lineHeight: 20,
     },
   }));
 

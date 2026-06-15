@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { FunctionDefinition } from '../types';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 
 interface FunctionSelectorProps {
   visible: boolean;
@@ -27,18 +27,18 @@ export const FunctionSelector: React.FC<FunctionSelectorProps> = ({
   const styles = useThemedStyles((colors) => ({
     modalOverlay: {
       flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      backgroundColor: colors.bgOverlay,
       justifyContent: 'flex-end' as const,
     },
     modalContainer: {
       backgroundColor: colors.bgCard,
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
+      borderTopLeftRadius: radius.xl,
+      borderTopRightRadius: radius.xl,
       maxHeight: '85%' as const,
       paddingBottom: 0,
     },
     modalHeader: {
-      padding: 20,
+      padding: spacing.lg,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
     },
@@ -46,17 +46,16 @@ export const FunctionSelector: React.FC<FunctionSelectorProps> = ({
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     modalTitle: {
-      fontSize: 20,
-      fontWeight: 'bold' as const,
+      ...typography.h1,
       color: colors.textPrimary,
     },
     closeButton: {
-      padding: 8,
-      minWidth: 44,
-      minHeight: 44,
+      padding: spacing.sm,
+      minWidth: touchTarget.min,
+      minHeight: touchTarget.min,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
     },
@@ -64,56 +63,54 @@ export const FunctionSelector: React.FC<FunctionSelectorProps> = ({
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      marginTop: 8,
+      marginTop: spacing.sm,
     },
     modalSubtitle: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
       flex: 1,
-      marginRight: 12,
+      marginRight: spacing.md,
     },
     selectedCount: {
-      fontSize: 14,
-      fontWeight: '600' as const,
+      ...typography.bodyStrong,
       color: colors.accent,
       backgroundColor: colors.bgHover,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 12,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: radius.lg,
     },
     modalContent: {
       flex: 1,
-      paddingHorizontal: 20,
+      paddingHorizontal: spacing.lg,
     },
     functionGroupContainer: {
-      marginBottom: 24,
+      marginBottom: spacing.xl,
     },
     groupHeader: {
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      marginBottom: 12,
-      paddingBottom: 8,
+      marginBottom: spacing.md,
+      paddingBottom: spacing.sm,
       borderBottomWidth: 1,
       borderBottomColor: colors.bgSurface,
     },
     functionGroupTitle: {
-      fontSize: 18,
-      fontWeight: '600' as const,
+      ...typography.h2,
       color: colors.textPrimary,
     },
     selectAllButton: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 16,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.xl,
       backgroundColor: colors.bgSurface,
     },
     selectAllText: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
-      marginLeft: 6,
+      marginLeft: spacing.sm,
       fontWeight: '500' as const,
     },
     selectAllTextActive: {
@@ -121,9 +118,9 @@ export const FunctionSelector: React.FC<FunctionSelectorProps> = ({
     },
     functionCard: {
       backgroundColor: colors.bgSurface,
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 8,
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      marginBottom: spacing.sm,
       borderWidth: 1,
       borderColor: 'transparent',
     },
@@ -138,52 +135,49 @@ export const FunctionSelector: React.FC<FunctionSelectorProps> = ({
     },
     functionInfo: {
       flex: 1,
-      marginRight: 12,
+      marginRight: spacing.md,
     },
     functionDisplayName: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     functionDescription: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
-      lineHeight: 18,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     functionMeta: {
-      marginTop: 4,
+      marginTop: spacing.xs,
     },
     metaItem: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
     },
     metaValue: {
-      fontSize: 12,
+      ...typography.caption,
       color: colors.statusWarning,
-      marginLeft: 4,
+      marginLeft: spacing.xs,
       fontWeight: '500' as const,
     },
     checkboxContainer: {
       marginTop: 2,
     },
     modalFooter: {
-      padding: 20,
+      padding: spacing.lg,
       borderTopWidth: 1,
       borderTopColor: colors.borderLight,
       backgroundColor: colors.bgCard,
     },
     doneButton: {
       backgroundColor: colors.accent,
-      borderRadius: 12,
-      padding: 16,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
       alignItems: 'center' as const,
     },
     doneButtonText: {
+      ...typography.title,
       color: colors.textInverse,
-      fontSize: 16,
-      fontWeight: '600' as const,
     },
   }));
 
@@ -266,6 +260,7 @@ export const FunctionSelector: React.FC<FunctionSelectorProps> = ({
                     <Text style={styles.functionGroupTitle}>{group.title}</Text>
                     <TouchableOpacity
                       style={styles.selectAllButton}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       onPress={() => toggleGroupSelection(group.data)}
                     >
                       <Ionicons

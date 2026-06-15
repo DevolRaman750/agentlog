@@ -17,6 +17,7 @@ import { AlertAPI } from './CustomAlert';
 import AgentAvatar from './AgentAvatar';
 import { AgentFormData, AgentFormErrors, LifecycleStatus, ExecutionTemplate } from '../types';
 import { useTheme, useThemedStyles } from '../theme';
+import { spacing, radius, typography } from '../theme';
 import { useContainerStyles } from '../styles/useContainerStyles';
 
 interface CreateAgentFormProps {
@@ -61,7 +62,7 @@ const Tooltip: React.FC<TooltipProps> = ({ title, content, icon, visible, onClos
         <View style={themedStyles.tooltipHeader}>
           <Ionicons name={icon as any} size={24} color={colors.accent} />
           <Text style={themedStyles.tooltipTitle}>{title}</Text>
-          <TouchableOpacity onPress={onClose} style={themedStyles.tooltipClose}>
+          <TouchableOpacity onPress={onClose} style={themedStyles.tooltipClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="close" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
@@ -83,17 +84,17 @@ const useCreateAgentStyles = (colors: ReturnType<typeof useTheme>['colors']) => 
     backgroundColor: colors.bgApp,
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: colors.textSecondary,
+    marginTop: spacing.md,
+    ...typography.title,
     fontWeight: '500' as const,
+    color: colors.textSecondary,
   },
   header: {
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
     alignItems: 'center' as const,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     backgroundColor: colors.bgCard,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderSubtle,
@@ -103,43 +104,40 @@ const useCreateAgentStyles = (colors: ReturnType<typeof useTheme>['colors']) => 
     alignItems: 'center' as const,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '600' as const,
+    ...typography.h1,
     color: colors.textPrimary,
-    marginLeft: 12,
-    marginRight: 8,
+    marginLeft: spacing.md,
+    marginRight: spacing.sm,
   },
   infoButton: {
-    padding: 4,
+    padding: spacing.xs,
   },
   closeButton: {
-    padding: 8,
-    borderRadius: 8,
+    padding: spacing.sm,
+    borderRadius: radius.md,
     backgroundColor: colors.bgApp,
   },
   introCard: {
-    margin: 16,
-    marginBottom: 8,
+    margin: spacing.lg,
+    marginBottom: spacing.sm,
   },
   introHeader: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   introTitle: {
-    fontSize: 16,
-    fontWeight: '600' as const,
+    ...typography.title,
     color: colors.textPrimary,
-    marginLeft: 8,
+    marginLeft: spacing.sm,
   },
   introText: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textSecondary,
-    lineHeight: 20,
   },
   marketplaceCard: {
-    margin: 16,
-    marginBottom: 8,
+    margin: spacing.lg,
+    marginBottom: spacing.sm,
     backgroundColor: colors.accentSoft,
     borderWidth: 1,
     borderColor: colors.accent,
@@ -147,139 +145,132 @@ const useCreateAgentStyles = (colors: ReturnType<typeof useTheme>['colors']) => 
   marketplaceHeader: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    marginBottom: 12,
-    gap: 8,
+    marginBottom: spacing.md,
+    gap: spacing.sm,
   },
   marketplaceTitle: {
-    fontSize: 16,
-    fontWeight: '600' as const,
+    ...typography.title,
     color: colors.accent,
     flex: 1,
   },
   experienceBadge: {
     backgroundColor: colors.accent,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.md,
   },
   experienceText: {
-    fontSize: 12,
-    color: colors.textInverse,
+    ...typography.caption,
     fontWeight: '600' as const,
+    color: colors.textInverse,
   },
   marketplaceRole: {
-    fontSize: 18,
-    fontWeight: 'bold' as const,
+    ...typography.h2,
     color: colors.textPrimary,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   marketplaceDescription: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textSecondary,
-    lineHeight: 20,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   apiSection: {
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   apiSectionTitle: {
-    fontSize: 14,
-    fontWeight: '600' as const,
+    ...typography.bodyStrong,
     color: colors.textPrimary,
-    marginBottom: 6,
+    marginBottom: spacing.sm,
   },
   apiKeysContainer: {
     flexDirection: 'row' as const,
     flexWrap: 'wrap' as const,
-    gap: 6,
+    gap: spacing.sm,
   },
   apiKeyChip: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     backgroundColor: colors.accentSoft,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.lg,
+    gap: spacing.xs,
   },
   apiKeyText: {
-    fontSize: 12,
-    color: colors.accent,
+    ...typography.caption,
     fontWeight: '500' as const,
+    color: colors.accent,
   },
   modelSection: {
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   modelSectionTitle: {
-    fontSize: 14,
-    fontWeight: '600' as const,
+    ...typography.bodyStrong,
     color: colors.textPrimary,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   modelText: {
-    fontSize: 14,
-    color: colors.textSecondary,
+    ...typography.body,
     fontWeight: '500' as const,
+    color: colors.textSecondary,
   },
   characterPreview: {
     backgroundColor: colors.bgSurface,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
+    borderRadius: radius.xl,
+    padding: spacing.md,
+    marginBottom: spacing.xl,
     borderWidth: 1,
     borderColor: colors.borderLight,
   },
   previewHeader: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    marginBottom: 16,
-    gap: 8,
+    marginBottom: spacing.lg,
+    gap: spacing.sm,
   },
   previewTitle: {
-    fontSize: 18,
-    fontWeight: '600' as const,
+    ...typography.h2,
     color: colors.textPrimary,
   },
   previewContent: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    gap: 20,
+    gap: spacing.lg,
   },
   previewText: {
     flex: 1,
   },
   previewName: {
-    fontSize: 20,
-    fontWeight: 'bold' as const,
+    ...typography.display,
     color: colors.textPrimary,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   previewRole: {
-    fontSize: 16,
+    ...typography.title,
+    fontWeight: '400' as const,
     color: colors.textSecondary,
     fontStyle: 'italic' as const,
   },
   formContainer: {
-    margin: 16,
-    marginTop: 8,
+    margin: spacing.lg,
+    marginTop: spacing.sm,
   },
   section: {
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
   sectionHeader: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600' as const,
+    ...typography.h2,
     color: colors.textPrimary,
-    marginLeft: 8,
+    marginLeft: spacing.sm,
     flex: 1,
   },
   inputGroup: {
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   inputRow: {
     flexDirection: 'row' as const,
@@ -288,48 +279,48 @@ const useCreateAgentStyles = (colors: ReturnType<typeof useTheme>['colors']) => 
   labelRow: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   label: {
-    fontSize: 16,
+    ...typography.title,
     fontWeight: '500' as const,
     color: colors.textPrimary,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
     flex: 1,
   },
   fieldHelp: {
-    fontSize: 13,
+    ...typography.label,
+    fontWeight: '400' as const,
     color: colors.textSecondary,
-    marginTop: 6,
-    lineHeight: 18,
+    marginTop: spacing.sm,
   },
   fieldHelpContainer: {
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
     alignItems: 'flex-start' as const,
-    marginTop: 6,
+    marginTop: spacing.sm,
   },
   manageTemplatesLink: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    marginLeft: 8,
-    padding: 4,
-    borderRadius: 6,
+    marginLeft: spacing.sm,
+    padding: spacing.xs,
+    borderRadius: radius.sm,
     backgroundColor: colors.bgApp,
   },
   linkText: {
-    fontSize: 12,
-    color: colors.accent,
+    ...typography.caption,
     fontWeight: '500' as const,
-    marginLeft: 4,
+    color: colors.accent,
+    marginLeft: spacing.xs,
   },
   selector: {
     backgroundColor: colors.bgCard,
-    borderRadius: 8,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.borderLight,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     minHeight: 60,
   },
   selectorContent: {
@@ -341,72 +332,69 @@ const useCreateAgentStyles = (colors: ReturnType<typeof useTheme>['colors']) => 
     flex: 1,
   },
   selectedTitle: {
-    fontSize: 16,
-    fontWeight: '600' as const,
+    ...typography.title,
     color: colors.textPrimary,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   selectedDescription: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textSecondary,
-    lineHeight: 18,
   },
   placeholderText: {
-    fontSize: 16,
+    ...typography.title,
+    fontWeight: '400' as const,
     color: colors.textSecondary,
   },
   statusRow: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   inputError: {
     borderColor: colors.statusError,
     backgroundColor: `${colors.statusError}08`,
   },
   errorText: {
-    fontSize: 14,
-    color: colors.statusError,
-    marginTop: 4,
+    ...typography.body,
     fontWeight: '500' as const,
+    color: colors.statusError,
+    marginTop: spacing.xs,
   },
   statusIndicator: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    marginTop: 8,
-    padding: 12,
-    borderRadius: 8,
+    marginTop: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radius.md,
   },
   statusHelpText: {
-    fontSize: 13,
-    fontWeight: '500' as const,
-    marginLeft: 8,
+    ...typography.label,
+    marginLeft: spacing.sm,
     flex: 1,
   },
   buttonContainer: {
     flexDirection: 'row' as const,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    gap: 12,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
+    gap: spacing.md,
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: spacing.md,
+    borderRadius: radius.lg,
     backgroundColor: colors.bgApp,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
   cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600' as const,
+    ...typography.title,
     color: colors.textSecondary,
   },
   createButton: {
     flex: 2,
     flexDirection: 'row' as const,
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: spacing.md,
+    borderRadius: radius.lg,
     backgroundColor: colors.accent,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
@@ -415,10 +403,9 @@ const useCreateAgentStyles = (colors: ReturnType<typeof useTheme>['colors']) => 
     backgroundColor: colors.textSecondary,
   },
   createButtonText: {
-    fontSize: 16,
-    fontWeight: '600' as const,
+    ...typography.title,
     color: colors.textInverse,
-    marginLeft: 6,
+    marginLeft: spacing.sm,
   },
 
   // Modal Styles
@@ -430,31 +417,30 @@ const useCreateAgentStyles = (colors: ReturnType<typeof useTheme>['colors']) => 
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
     alignItems: 'center' as const,
-    paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     backgroundColor: colors.bgCard,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: '600' as const,
+    ...typography.h1,
     color: colors.textPrimary,
   },
   modalCloseButton: {
-    padding: 4,
+    padding: spacing.xs,
   },
 
   // Template Selector
   templateList: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
   },
   templateCard: {
     backgroundColor: colors.bgCard,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.borderLight,
     position: 'relative' as const,
@@ -467,22 +453,20 @@ const useCreateAgentStyles = (colors: ReturnType<typeof useTheme>['colors']) => 
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
     alignItems: 'flex-start' as const,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   templateCardTitle: {
-    fontSize: 16,
-    fontWeight: '600' as const,
+    ...typography.title,
     color: colors.textPrimary,
     flex: 1,
-    marginRight: 8,
+    marginRight: spacing.sm,
   },
   templateCardTitleSelected: {
     color: colors.textInverse,
   },
   templateCardDescription: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textSecondary,
-    lineHeight: 18,
   },
   templateCardDescriptionSelected: {
     color: colors.textInverse,
@@ -490,32 +474,32 @@ const useCreateAgentStyles = (colors: ReturnType<typeof useTheme>['colors']) => 
   },
   systemBadge: {
     backgroundColor: colors.statusSuccess,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.sm,
   },
   customBadge: {
     backgroundColor: colors.accent,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.sm,
   },
   badgeText: {
-    fontSize: 12,
+    ...typography.caption,
     fontWeight: '600' as const,
     color: colors.textInverse,
   },
 
   // Status Selector
   statusList: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
   },
   statusCard: {
     backgroundColor: colors.bgCard,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.borderLight,
     position: 'relative' as const,
@@ -527,23 +511,21 @@ const useCreateAgentStyles = (colors: ReturnType<typeof useTheme>['colors']) => 
   statusCardHeader: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   statusCardTitle: {
-    fontSize: 16,
-    fontWeight: '600' as const,
+    ...typography.title,
     color: colors.textPrimary,
-    marginLeft: 12,
+    marginLeft: spacing.md,
     flex: 1,
   },
   statusCardTitleSelected: {
     color: colors.textInverse,
   },
   statusCardDescription: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textSecondary,
-    lineHeight: 18,
-    marginLeft: 36,
+    marginLeft: spacing.xxl,
   },
   statusCardDescriptionSelected: {
     color: colors.textInverse,
@@ -551,14 +533,14 @@ const useCreateAgentStyles = (colors: ReturnType<typeof useTheme>['colors']) => 
   },
   recommendedBadge: {
     backgroundColor: colors.statusWarning,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.sm,
   },
   selectedIndicator: {
     position: 'absolute' as const,
-    top: 12,
-    right: 12,
+    top: spacing.md,
+    right: spacing.md,
   },
 
   // Tooltip Styles
@@ -567,33 +549,31 @@ const useCreateAgentStyles = (colors: ReturnType<typeof useTheme>['colors']) => 
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.lg,
   },
   tooltipContainer: {
     backgroundColor: colors.bgCard,
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: radius.xl,
+    padding: spacing.md,
     maxWidth: '90%' as const,
   },
   tooltipHeader: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   tooltipTitle: {
-    fontSize: 18,
-    fontWeight: '600' as const,
+    ...typography.h2,
     color: colors.textPrimary,
-    marginLeft: 8,
+    marginLeft: spacing.sm,
     flex: 1,
   },
   tooltipClose: {
-    padding: 4,
+    padding: spacing.xs,
   },
   tooltipContent: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textSecondary,
-    lineHeight: 20,
   },
 }));
 
@@ -791,6 +771,7 @@ const CreateAgentForm: React.FC<CreateAgentFormProps> = ({ onSuccess, onCancel, 
           <TouchableOpacity
             onPress={() => setShowTooltip('agent')}
             style={styles.infoButton}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons name="help-circle-outline" size={20} color={colors.accent} />
           </TouchableOpacity>
@@ -942,6 +923,7 @@ const CreateAgentForm: React.FC<CreateAgentFormProps> = ({ onSuccess, onCancel, 
             <TouchableOpacity
               onPress={() => setShowTooltip('template')}
               style={styles.infoButton}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Ionicons name="help-circle-outline" size={16} color={colors.accent} />
             </TouchableOpacity>
@@ -1000,6 +982,7 @@ const CreateAgentForm: React.FC<CreateAgentFormProps> = ({ onSuccess, onCancel, 
                 <TouchableOpacity
                   onPress={() => setShowTooltip('tokens')}
                   style={styles.infoButton}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                   <Ionicons name="help-circle-outline" size={14} color={colors.accent} />
                 </TouchableOpacity>
@@ -1027,6 +1010,7 @@ const CreateAgentForm: React.FC<CreateAgentFormProps> = ({ onSuccess, onCancel, 
                 <TouchableOpacity
                   onPress={() => setShowTooltip('heartbeat')}
                   style={styles.infoButton}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                   <Ionicons name="help-circle-outline" size={14} color={colors.accent} />
                 </TouchableOpacity>
@@ -1058,6 +1042,7 @@ const CreateAgentForm: React.FC<CreateAgentFormProps> = ({ onSuccess, onCancel, 
             <TouchableOpacity
               onPress={() => setShowTooltip('status')}
               style={styles.infoButton}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Ionicons name="help-circle-outline" size={16} color={colors.accent} />
             </TouchableOpacity>
@@ -1131,6 +1116,7 @@ const CreateAgentForm: React.FC<CreateAgentFormProps> = ({ onSuccess, onCancel, 
             <TouchableOpacity
               onPress={() => setShowTemplateSelector(false)}
               style={styles.modalCloseButton}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Ionicons name="close" size={24} color={colors.textSecondary} />
             </TouchableOpacity>
@@ -1199,6 +1185,7 @@ const CreateAgentForm: React.FC<CreateAgentFormProps> = ({ onSuccess, onCancel, 
             <TouchableOpacity
               onPress={() => setShowStatusSelector(false)}
               style={styles.modalCloseButton}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Ionicons name="close" size={24} color={colors.textSecondary} />
             </TouchableOpacity>

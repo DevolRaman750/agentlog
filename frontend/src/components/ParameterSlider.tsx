@@ -10,7 +10,7 @@ import {
   Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -51,56 +51,58 @@ const ParameterSlider: React.FC<ParameterSliderProps> = ({
   const { colors } = useTheme();
   const styles = useThemedStyles((colors) => ({
     container: {
-      marginBottom: 24,
+      marginBottom: spacing.xl,
     },
     header: {
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      marginBottom: 12,
+      marginBottom: spacing.md,
     },
     label: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
     },
     helpButton: {
-      padding: 4,
+      padding: spacing.xs,
+      minWidth: touchTarget.min,
+      minHeight: touchTarget.min,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
     },
     valueContainer: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      marginBottom: 16,
-      gap: 12,
+      marginBottom: spacing.lg,
+      gap: spacing.md,
     },
     valueText: {
-      fontSize: 24,
-      fontWeight: '700' as const,
+      ...typography.display,
       color: colors.textPrimary,
     },
     valueIndicator: {
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 12,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: radius.lg,
     },
     valueIndicatorText: {
-      fontSize: 12,
+      ...typography.caption,
       fontWeight: '600' as const,
       color: colors.textInverse,
     },
     sliderContainer: {
-      marginBottom: 20,
+      marginBottom: spacing.lg,
     },
     sliderTrack: {
       height: 6,
       backgroundColor: colors.borderLight,
-      borderRadius: 3,
+      borderRadius: radius.sm,
       position: 'relative' as const,
     },
     sliderFill: {
       height: 6,
       backgroundColor: colors.accent,
-      borderRadius: 3,
+      borderRadius: radius.sm,
       position: 'absolute' as const,
     },
     sliderKnob: {
@@ -122,43 +124,45 @@ const ParameterSlider: React.FC<ParameterSliderProps> = ({
       width: 12,
       height: 12,
       backgroundColor: colors.accent,
-      borderRadius: 6,
+      borderRadius: radius.sm,
     },
     sliderLabels: {
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
-      marginTop: 8,
+      marginTop: spacing.sm,
     },
     sliderLabel: {
-      fontSize: 12,
+      ...typography.caption,
       color: colors.textSecondary,
     },
     presetsContainer: {
-      marginBottom: 12,
+      marginBottom: spacing.md,
     },
     presetsLabel: {
-      fontSize: 14,
+      ...typography.body,
       fontWeight: '500' as const,
       color: colors.textPrimary,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     presetsList: {
       flexDirection: 'row' as const,
     },
     presetButton: {
       backgroundColor: colors.bgApp,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderRadius: 8,
-      marginRight: 8,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.md,
+      marginRight: spacing.sm,
       alignItems: 'center' as const,
       minWidth: 60,
+      minHeight: touchTarget.min,
+      justifyContent: 'center' as const,
     },
     presetButtonActive: {
       backgroundColor: colors.accent,
     },
     presetButtonText: {
-      fontSize: 12,
+      ...typography.caption,
       fontWeight: '500' as const,
       color: colors.textPrimary,
     },
@@ -166,9 +170,10 @@ const ParameterSlider: React.FC<ParameterSliderProps> = ({
       color: colors.textInverse,
     },
     presetValue: {
-      fontSize: 10,
+      ...typography.micro,
+      fontWeight: '400' as const,
       color: colors.textSecondary,
-      marginTop: 2,
+      marginTop: spacing.none,
     },
     presetValueActive: {
       color: colors.textInverse,
@@ -181,7 +186,7 @@ const ParameterSlider: React.FC<ParameterSliderProps> = ({
     },
     helpModal: {
       backgroundColor: colors.bgCard,
-      borderRadius: 16,
+      borderRadius: radius.xl,
       width: screenWidth * 0.9,
       maxHeight: '80%' as const,
       overflow: 'hidden' as const,
@@ -190,69 +195,66 @@ const ParameterSlider: React.FC<ParameterSliderProps> = ({
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      padding: 20,
+      padding: spacing.lg,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
     },
     helpTitle: {
-      fontSize: 20,
+      ...typography.h1,
       fontWeight: '600' as const,
       color: colors.textPrimary,
     },
     helpContent: {
-      padding: 20,
+      padding: spacing.lg,
     },
     helpDescription: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textPrimary,
-      lineHeight: 20,
-      marginBottom: 20,
+      marginBottom: spacing.lg,
     },
     helpSection: {
-      marginBottom: 20,
+      marginBottom: spacing.lg,
     },
     helpSectionTitle: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
-      marginBottom: 12,
+      marginBottom: spacing.md,
     },
     helpRow: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     helpDot: {
       width: 8,
       height: 8,
-      borderRadius: 4,
-      marginRight: 12,
+      borderRadius: radius.sm,
+      marginRight: spacing.md,
     },
     helpRowText: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textPrimary,
       flex: 1,
     },
     recommendationCard: {
       backgroundColor: colors.bgSurface,
-      padding: 12,
-      borderRadius: 8,
-      marginBottom: 8,
+      padding: spacing.md,
+      borderRadius: radius.md,
+      marginBottom: spacing.sm,
     },
     recommendationTask: {
-      fontSize: 14,
-      fontWeight: '600' as const,
+      ...typography.bodyStrong,
       color: colors.textPrimary,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     recommendationRange: {
-      fontSize: 12,
+      ...typography.caption,
       fontWeight: '500' as const,
       color: colors.accent,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     recommendationDescription: {
-      fontSize: 12,
+      ...typography.caption,
       color: colors.textSecondary,
       lineHeight: 16,
     },

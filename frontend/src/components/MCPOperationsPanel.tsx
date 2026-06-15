@@ -13,7 +13,7 @@ import { Picker } from '@react-native-picker/picker';
 import TextEditor from './TextEditor';
 
 import { FunctionDefinition } from '../types';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 
 interface MCPOperationsPanelProps {
   onExecuteOperation: (operationData: MCPOperationData) => void;
@@ -104,80 +104,75 @@ export const MCPOperationsPanel: React.FC<MCPOperationsPanelProps> = ({
     container: {
       flex: 1,
       backgroundColor: colors.bgSurface,
-      paddingHorizontal: 16,
+      paddingHorizontal: spacing.lg,
     },
     header: {
-      paddingVertical: 20,
+      paddingVertical: spacing.lg,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
-      marginBottom: 20,
+      marginBottom: spacing.lg,
     },
     titleRow: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     title: {
-      fontSize: 24,
+      ...typography.h1,
       fontWeight: '600' as const,
       color: colors.textPrimary,
-      marginLeft: 12,
+      marginLeft: spacing.md,
     },
     subtitle: {
-      fontSize: 16,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.textSecondary,
-      lineHeight: 22,
     },
     section: {
       backgroundColor: colors.bgCard,
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 16,
-      shadowColor: colors.shadowColor,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
-      elevation: 3,
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      marginBottom: spacing.lg,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
     },
     sectionHeader: {
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      marginBottom: 16,
+      marginBottom: spacing.lg,
     },
     sectionTitle: {
-      fontSize: 18,
-      fontWeight: '600' as const,
+      ...typography.h2,
       color: colors.textPrimary,
     },
     exampleButton: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      paddingHorizontal: 12,
-      paddingVertical: 6,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
       backgroundColor: colors.bgHover,
-      borderRadius: 8,
+      borderRadius: radius.md,
       borderWidth: 1,
       borderColor: colors.accent,
     },
     exampleButtonText: {
+      ...typography.label,
       color: colors.accent,
-      fontSize: 14,
-      fontWeight: '500' as const,
-      marginLeft: 4,
+      marginLeft: spacing.xs,
     },
     operationGrid: {
       flexDirection: 'row' as const,
       flexWrap: 'wrap' as const,
-      marginHorizontal: -6,
+      marginHorizontal: -spacing.xs,
     },
     operationCard: {
       flex: 1,
       minWidth: '45%' as any,
-      margin: 6,
-      padding: 16,
+      margin: spacing.xs,
+      padding: spacing.md,
       backgroundColor: colors.bgSurface,
-      borderRadius: 12,
+      borderRadius: radius.lg,
       borderWidth: 2,
       borderColor: colors.borderLight,
       alignItems: 'center' as const,
@@ -187,9 +182,8 @@ export const MCPOperationsPanel: React.FC<MCPOperationsPanelProps> = ({
       borderColor: colors.accent,
     },
     operationLabel: {
-      marginTop: 8,
-      fontSize: 14,
-      fontWeight: '600' as const,
+      ...typography.bodyStrong,
+      marginTop: spacing.sm,
       color: colors.textPrimary,
       textAlign: 'center' as const,
     },
@@ -199,49 +193,48 @@ export const MCPOperationsPanel: React.FC<MCPOperationsPanelProps> = ({
     operationInfo: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      marginTop: 12,
-      padding: 12,
+      marginTop: spacing.md,
+      padding: spacing.md,
       backgroundColor: colors.bgSurface,
-      borderRadius: 8,
+      borderRadius: radius.md,
     },
     operationDescription: {
-      marginLeft: 8,
-      fontSize: 14,
+      ...typography.body,
+      marginLeft: spacing.sm,
       color: colors.textSecondary,
       flex: 1,
     },
     repositoryInput: {
       borderWidth: 1,
       borderColor: colors.borderLight,
-      borderRadius: 8,
+      borderRadius: radius.md,
     },
     quickRepos: {
-      marginTop: 12,
+      marginTop: spacing.md,
     },
     quickReposLabel: {
-      fontSize: 14,
-      fontWeight: '600' as const,
+      ...typography.bodyStrong,
       color: colors.textPrimary,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     quickRepoButton: {
-      paddingHorizontal: 12,
-      paddingVertical: 6,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
       backgroundColor: colors.bgHover,
-      borderRadius: 8,
-      marginRight: 8,
+      borderRadius: radius.md,
+      marginRight: spacing.sm,
       borderWidth: 1,
       borderColor: colors.accent,
     },
     quickRepoText: {
+      ...typography.caption,
       color: colors.accent,
-      fontSize: 12,
       fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     },
     parametersEditor: {
       borderWidth: 1,
       borderColor: colors.borderLight,
-      borderRadius: 8,
+      borderRadius: radius.md,
     },
     parametersEditorError: {
       borderColor: colors.statusError,
@@ -249,105 +242,100 @@ export const MCPOperationsPanel: React.FC<MCPOperationsPanelProps> = ({
     errorContainer: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      marginTop: 8,
-      paddingHorizontal: 8,
+      marginTop: spacing.sm,
+      paddingHorizontal: spacing.sm,
     },
     errorText: {
+      ...typography.body,
       color: colors.statusError,
-      fontSize: 14,
-      marginLeft: 6,
+      marginLeft: spacing.sm,
       flex: 1,
     },
     guidelinesContainer: {
-      marginTop: 12,
-      padding: 12,
+      marginTop: spacing.md,
+      padding: spacing.md,
       backgroundColor: colors.bgSurface,
-      borderRadius: 8,
+      borderRadius: radius.md,
     },
     guidelinesTitle: {
-      fontSize: 14,
-      fontWeight: '600' as const,
+      ...typography.bodyStrong,
       color: colors.textPrimary,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     guidelinesText: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
       fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     },
     executeSection: {
-      paddingVertical: 20,
+      paddingVertical: spacing.lg,
     },
     executeButton: {
       backgroundColor: colors.accent,
-      borderRadius: 12,
-      paddingVertical: 16,
-      paddingHorizontal: 24,
+      borderRadius: radius.lg,
+      paddingVertical: spacing.lg,
+      paddingHorizontal: spacing.xl,
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      shadowColor: colors.accent,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 4,
     },
     executeButtonDisabled: {
       backgroundColor: colors.textTertiary,
-      shadowOpacity: 0,
     },
     executeButtonText: {
+      ...typography.title,
       color: colors.textInverse,
-      fontSize: 16,
-      fontWeight: '600' as const,
-      marginLeft: 8,
+      marginLeft: spacing.sm,
     },
     warningContainer: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      marginTop: 12,
-      paddingHorizontal: 8,
+      marginTop: spacing.md,
+      paddingHorizontal: spacing.sm,
     },
     warningText: {
+      ...typography.body,
       color: colors.statusWarning,
-      fontSize: 14,
-      marginLeft: 6,
+      marginLeft: spacing.sm,
       flex: 1,
     },
     alertOverlay: {
       flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.5)',
+      backgroundColor: colors.bgOverlay,
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
     },
     alertContainer: {
       backgroundColor: colors.bgCard,
-      borderRadius: 12,
-      padding: 20,
-      marginHorizontal: 20,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+      marginHorizontal: spacing.lg,
       maxWidth: 300,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 3,
     },
     alertTitle: {
-      fontSize: 18,
-      fontWeight: '600' as const,
+      ...typography.h2,
       color: colors.textPrimary,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     alertMessage: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
-      marginBottom: 20,
+      marginBottom: spacing.lg,
     },
     alertButton: {
       backgroundColor: colors.accent,
-      borderRadius: 8,
-      paddingVertical: 12,
+      borderRadius: radius.md,
+      paddingVertical: spacing.md,
       alignItems: 'center' as const,
     },
     alertButtonText: {
+      ...typography.title,
       color: colors.textInverse,
-      fontSize: 16,
-      fontWeight: '600' as const,
     },
   }));
 
@@ -523,7 +511,7 @@ export const MCPOperationsPanel: React.FC<MCPOperationsPanelProps> = ({
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Operation Type</Text>
-          <TouchableOpacity style={styles.exampleButton} onPress={loadExample}>
+          <TouchableOpacity style={styles.exampleButton} onPress={loadExample} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="bulb-outline" size={16} color={colors.accent} />
             <Text style={styles.exampleButtonText}>Example</Text>
           </TouchableOpacity>
@@ -588,6 +576,7 @@ export const MCPOperationsPanel: React.FC<MCPOperationsPanelProps> = ({
                 key={repo}
                 style={styles.quickRepoButton}
                 onPress={() => handleRepositoryChange(repo)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Text style={styles.quickRepoText}>{repo}</Text>
               </TouchableOpacity>

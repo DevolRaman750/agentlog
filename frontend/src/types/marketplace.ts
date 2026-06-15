@@ -58,7 +58,7 @@ export interface MarketplaceTeam {
   id: string;
   name: string;
   description: string;
-  category: 'Development Support' | 'DevOps' | 'Customer Support' | 'Analytics' | 'Research';
+  category: 'Development Support' | 'DevOps' | 'Customer Support' | 'Analytics' | 'Research' | 'Task Automation';
   teamSize: number;
   estimatedCost: string; // e.g., "$300-450/month equivalent"
   avatar: {

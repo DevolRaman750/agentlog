@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ExecutionTemplate } from '../types/templates';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 
 interface TemplateCardProps {
   template: ExecutionTemplate;
@@ -31,25 +31,22 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
   const styles = useThemedStyles((colors) => ({
     templateCard: {
       backgroundColor: colors.bgCard,
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 12,
-      shadowColor: colors.shadowColor,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 2,
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      marginBottom: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
     },
     systemTemplateCard: {
       backgroundColor: colors.bgHover,
       borderWidth: 1,
-      borderColor: colors.accent,
+      borderColor: colors.borderSubtle,
     },
     templateHeader: {
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'flex-start' as const,
-      marginBottom: 12,
+      marginBottom: spacing.md,
     },
     templateInfo: {
       flex: 1,
@@ -57,73 +54,69 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
     templateNameRow: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      marginBottom: 4,
-      gap: 8,
+      marginBottom: spacing.xs,
+      gap: spacing.sm,
     },
     templateName: {
-      fontSize: 18,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
     },
     systemBadge: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       backgroundColor: colors.accentSoft,
-      borderRadius: 4,
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      gap: 2,
+      borderRadius: radius.sm,
+      paddingHorizontal: spacing.xs,
+      paddingVertical: spacing.none,
+      gap: spacing.none,
     },
     systemBadgeText: {
-      fontSize: 10,
-      fontWeight: '600' as const,
+      ...typography.micro,
       color: colors.accent,
     },
     templateDescription: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
-      lineHeight: 20,
     },
     templateActions: {
       flexDirection: 'row' as const,
-      gap: 8,
+      gap: spacing.sm,
     },
     actionButton: {
-      padding: 8,
-      borderRadius: 6,
+      padding: spacing.sm,
+      borderRadius: radius.sm,
       backgroundColor: colors.bgApp,
     },
     templateMeta: {
       flexDirection: 'row' as const,
       flexWrap: 'wrap' as const,
-      gap: 12,
-      marginBottom: 8,
+      gap: spacing.md,
+      marginBottom: spacing.sm,
     },
     metaItem: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 4,
+      gap: spacing.xs,
     },
     metaText: {
-      fontSize: 12,
+      ...typography.caption,
       color: colors.textSecondary,
     },
     tagsContainer: {
       flexDirection: 'row' as const,
       flexWrap: 'wrap' as const,
-      gap: 6,
-      marginTop: 8,
+      gap: spacing.xs,
+      marginTop: spacing.sm,
     },
     tag: {
       backgroundColor: colors.accentSoft,
-      borderRadius: 12,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
+      borderRadius: radius.lg,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
     },
     tagText: {
-      fontSize: 10,
+      ...typography.micro,
       color: colors.accent,
-      fontWeight: '500' as const,
     },
   }));
 
@@ -153,6 +146,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
           <TouchableOpacity
             style={styles.actionButton}
             onPress={() => onExecute(template)}
+            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
           >
             <Ionicons name="play-outline" size={20} color={colors.statusSuccess} />
           </TouchableOpacity>
@@ -161,6 +155,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
           <TouchableOpacity
             style={styles.actionButton}
             onPress={() => onPress(template)}
+            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
           >
             <Ionicons name="eye-outline" size={20} color={colors.accent} />
           </TouchableOpacity>
@@ -170,6 +165,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
             <TouchableOpacity
               style={styles.actionButton}
               onPress={() => onCopy(template)}
+              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
             >
               <Ionicons name="copy-outline" size={20} color={colors.statusWarning} />
             </TouchableOpacity>
@@ -181,18 +177,21 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
               <TouchableOpacity
                 style={styles.actionButton}
                 onPress={() => onTokenManager(template)}
+                hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
               >
                 <Ionicons name="key-outline" size={20} color={colors.statusSuccess} />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.actionButton}
                 onPress={() => onEdit(template)}
+                hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
               >
                 <Ionicons name="create-outline" size={20} color={colors.accent} />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.actionButton}
                 onPress={() => onDelete(template.id)}
+                hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
               >
                 <Ionicons name="trash-outline" size={20} color={colors.statusError} />
               </TouchableOpacity>

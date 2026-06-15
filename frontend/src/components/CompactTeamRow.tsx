@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Team, Agent } from '../types';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 import type { ThemeColors } from '../theme';
 
 interface CompactTeamRowProps {
@@ -89,7 +89,7 @@ const createStyles = (colors: ThemeColors) => ({
     alignItems: 'center' as const,
     justifyContent: 'space-between' as const,
     height: 56,
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     backgroundColor: colors.bgCard,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderSubtle,
@@ -98,46 +98,46 @@ const createStyles = (colors: ThemeColors) => ({
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     flex: 1,
-    gap: 10,
+    gap: spacing.sm,
   },
   teamName: {
+    ...typography.title,
     fontSize: 15,
-    fontWeight: '600' as const,
     color: colors.textPrimary,
     flexShrink: 1,
   },
   badge: {
     backgroundColor: colors.accentSoft,
-    borderRadius: 10,
-    paddingHorizontal: 7,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 1,
     minWidth: 22,
     alignItems: 'center' as const,
   },
   badgeText: {
-    fontSize: 11,
+    ...typography.micro,
     fontWeight: '600' as const,
     color: colors.accent,
   },
   statusDots: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    gap: 4,
+    gap: spacing.xs,
   },
   statusDot: {
     width: 7,
     height: 7,
-    borderRadius: 4,
+    borderRadius: radius.pill,
   },
   rightSection: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    gap: 4,
+    gap: spacing.xs,
   },
   actionButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    minWidth: touchTarget.min,
+    minHeight: touchTarget.min,
+    borderRadius: radius.pill,
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
   },

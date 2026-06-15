@@ -16,7 +16,7 @@ import ExecutionLogsCard from './ExecutionLogsCard';
 import ExecutionFlowGraph from './ExecutionFlowGraph';
 import ExecutionComparisonChart from './ExecutionComparisonChart';
 import { AlertAPI } from './CustomAlert';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 
 interface ExecutionResultsViewerProps {
   executionResult: ExecutionResult;
@@ -64,230 +64,201 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      padding: 20,
+      padding: spacing.lg,
       backgroundColor: colors.bgCard,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
-      shadowColor: colors.shadowColor,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.1,
-      shadowRadius: 3,
-      elevation: 3,
     },
     modalTitle: {
-      fontSize: 20,
-      fontWeight: '700' as const,
+      ...typography.h1,
       color: colors.textPrimary,
       flex: 1,
       textAlign: 'center' as const,
     },
     modalCancelButton: {
-      fontSize: 17,
-      color: colors.accent,
+      ...typography.title,
       fontWeight: '500' as const,
+      color: colors.accent,
     },
     headerSpacer: {
       width: 50,
     },
     content: {
       flex: 1,
-      padding: 16,
+      padding: spacing.lg,
     },
     summarySection: {
-      marginBottom: 24,
+      marginBottom: spacing.xl,
     },
     sectionTitle: {
-      fontSize: 20,
-      fontWeight: '700' as const,
+      ...typography.h1,
       color: colors.textPrimary,
-      marginBottom: 16,
+      marginBottom: spacing.lg,
     },
     summaryGrid: {
       flexDirection: 'row' as const,
       flexWrap: 'wrap' as const,
-      gap: 12,
+      gap: spacing.md,
     },
     summaryCard: {
       backgroundColor: colors.bgCard,
-      borderRadius: 12,
-      padding: 16,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
       alignItems: 'center' as const,
       minWidth: 80,
       flex: 1,
-      shadowColor: colors.shadowColor,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.05,
-      shadowRadius: 2,
-      elevation: 1,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
     },
     summaryValue: {
-      fontSize: 24,
-      fontWeight: '700' as const,
+      ...typography.display,
       color: colors.accent,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     summaryLabel: {
-      fontSize: 12,
+      ...typography.caption,
+      fontWeight: '500' as const,
       color: colors.textSecondary,
       textAlign: 'center' as const,
-      fontWeight: '500' as const,
     },
     promptSection: {
-      marginBottom: 24,
+      marginBottom: spacing.xl,
     },
     promptCard: {
       backgroundColor: colors.bgCard,
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 12,
-      shadowColor: colors.shadowColor,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.05,
-      shadowRadius: 2,
-      elevation: 1,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+      marginBottom: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
     },
     promptHeader: {
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     promptLabel: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
     },
     promptText: {
-      fontSize: 15,
+      ...typography.body,
       color: colors.textPrimary,
-      lineHeight: 22,
     },
     copyButton: {
-      padding: 8,
-      borderRadius: 6,
+      padding: spacing.sm,
+      borderRadius: radius.sm,
       backgroundColor: colors.bgHover,
     },
     comparisonSection: {
-      marginBottom: 24,
+      marginBottom: spacing.xl,
     },
     comparisonHeader: {
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      marginBottom: 16,
+      marginBottom: spacing.lg,
     },
     detailedComparisonButton: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       backgroundColor: colors.accent,
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-      borderRadius: 20,
-      gap: 8,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.xl,
+      gap: spacing.sm,
     },
     detailedComparisonButtonText: {
+      ...typography.bodyStrong,
       color: colors.textInverse,
-      fontSize: 14,
-      fontWeight: '600' as const,
     },
     comparisonCard: {
       backgroundColor: colors.bgCard,
-      borderRadius: 12,
-      padding: 16,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
       borderWidth: 2,
       borderColor: colors.statusWarning,
-      shadowColor: colors.statusWarning,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
     },
     bestConfigHeader: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      marginBottom: 12,
+      marginBottom: spacing.md,
     },
     bestConfigTitle: {
-      fontSize: 18,
+      ...typography.h2,
       fontWeight: '700' as const,
       color: colors.statusWarning,
-      marginLeft: 8,
+      marginLeft: spacing.sm,
     },
     bestConfigDetails: {
-      gap: 8,
+      gap: spacing.sm,
     },
     bestConfigId: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
       fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     },
     analysisNotesContainer: {
       backgroundColor: `${colors.statusWarning}10`,
-      borderRadius: 8,
-      padding: 12,
+      borderRadius: radius.md,
+      padding: spacing.md,
       borderLeftWidth: 3,
       borderLeftColor: colors.statusWarning,
     },
     analysisNotesLabel: {
-      fontSize: 14,
-      fontWeight: '600' as const,
+      ...typography.bodyStrong,
       color: colors.statusWarning,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     analysisNotes: {
-      fontSize: 15,
+      ...typography.body,
       color: colors.textPrimary,
-      lineHeight: 22,
     },
     noComparisonCard: {
       backgroundColor: colors.bgCard,
-      borderRadius: 12,
-      padding: 16,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
       alignItems: 'center' as const,
-      shadowColor: colors.shadowColor,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.05,
-      shadowRadius: 2,
-      elevation: 1,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
     },
     noComparisonText: {
-      fontSize: 16,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.textSecondary,
       fontStyle: 'italic' as const,
     },
     noComparisonHeader: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      marginBottom: 8,
-      gap: 12,
+      marginBottom: spacing.sm,
+      gap: spacing.md,
     },
     noComparisonTitle: {
-      fontSize: 18,
-      fontWeight: '600' as const,
+      ...typography.h2,
       color: colors.textPrimary,
     },
     quickMetricsPreview: {
-      marginTop: 16,
-      paddingTop: 16,
+      marginTop: spacing.lg,
+      paddingTop: spacing.lg,
       borderTopWidth: 1,
       borderTopColor: colors.borderLight,
     },
     quickMetricsTitle: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
-      marginBottom: 12,
+      marginBottom: spacing.md,
     },
     quickMetricsGrid: {
       flexDirection: 'row' as const,
       flexWrap: 'wrap' as const,
-      gap: 8,
+      gap: spacing.sm,
     },
     quickMetricCard: {
       backgroundColor: colors.bgSurface,
-      borderRadius: 8,
-      padding: 12,
+      borderRadius: radius.md,
+      padding: spacing.md,
       flex: 1,
       minWidth: 150,
       borderWidth: 1,
@@ -298,23 +269,22 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
       borderColor: colors.statusSuccess,
     },
     quickMetricName: {
-      fontSize: 14,
-      fontWeight: '600' as const,
+      ...typography.bodyStrong,
       color: colors.textPrimary,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     bestQuickMetricText: {
       color: colors.statusSuccess,
     },
     quickMetricStats: {
-      gap: 4,
+      gap: spacing.xs,
     },
     quickMetricStat: {
-      fontSize: 12,
+      ...typography.caption,
       color: colors.textSecondary,
     },
     quickMetricScore: {
-      fontSize: 14,
+      ...typography.bodyStrong,
       fontWeight: 'bold' as const,
       color: colors.accent,
     },
@@ -322,43 +292,34 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
       color: colors.statusSuccess,
     },
     modalCloseButton: {
-      padding: 8,
+      padding: spacing.sm,
     },
     resultsSection: {
-      marginBottom: 24,
+      marginBottom: spacing.xl,
     },
     resultCard: {
       backgroundColor: colors.bgCard,
-      borderRadius: 12,
-      marginBottom: 12,
-      shadowColor: colors.shadowColor,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.05,
-      shadowRadius: 2,
-      elevation: 1,
+      borderRadius: radius.lg,
+      marginBottom: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
       overflow: 'hidden' as const,
     },
     bestResultCard: {
       borderWidth: 2,
       borderColor: colors.statusWarning,
-      shadowColor: colors.statusWarning,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
     },
     resultHeader: {
-      padding: 16,
+      padding: spacing.lg,
     },
     resultTitleRow: {
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     resultConfigName: {
-      fontSize: 18,
-      fontWeight: '600' as const,
+      ...typography.h2,
       color: colors.textPrimary,
       flex: 1,
     },
@@ -369,43 +330,43 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       backgroundColor: colors.statusWarning,
-      borderRadius: 6,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      gap: 4,
+      borderRadius: radius.sm,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      gap: spacing.xs,
     },
     bestBadgeText: {
-      fontSize: 10,
+      ...typography.micro,
       fontWeight: '700' as const,
       color: colors.statusWarning,
     },
     resultMeta: {
       flexDirection: 'row' as const,
       flexWrap: 'wrap' as const,
-      gap: 16,
-      marginBottom: 8,
+      gap: spacing.lg,
+      marginBottom: spacing.sm,
     },
     metaRow: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 4,
+      gap: spacing.xs,
     },
     metaText: {
-      fontSize: 14,
-      color: colors.textSecondary,
+      ...typography.body,
       fontWeight: '500' as const,
+      color: colors.textSecondary,
     },
     resultDetails: {
-      paddingHorizontal: 16,
-      paddingBottom: 16,
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.lg,
       borderTopWidth: 1,
       borderTopColor: colors.bgApp,
     },
     responseContainer: {
       backgroundColor: colors.bgSurface,
-      borderRadius: 8,
-      padding: 12,
-      marginBottom: 12,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      marginBottom: spacing.md,
       borderLeftWidth: 3,
       borderLeftColor: colors.statusSuccess,
     },
@@ -413,124 +374,113 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     responseLabel: {
-      fontSize: 14,
-      fontWeight: '600' as const,
+      ...typography.bodyStrong,
       color: colors.textPrimary,
     },
     responseText: {
-      fontSize: 15,
-      lineHeight: 22,
+      ...typography.body,
       color: colors.textPrimary,
     },
     errorContainer: {
       backgroundColor: `${colors.statusError}15`,
-      borderRadius: 8,
-      padding: 12,
-      marginBottom: 12,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      marginBottom: spacing.md,
       borderLeftWidth: 3,
       borderLeftColor: colors.statusError,
     },
     errorLabel: {
-      fontSize: 14,
-      fontWeight: '600' as const,
+      ...typography.bodyStrong,
       color: colors.statusError,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     errorText: {
-      fontSize: 15,
-      lineHeight: 22,
+      ...typography.body,
       color: colors.statusError,
     },
     usageContainer: {
       backgroundColor: colors.bgHover,
-      borderRadius: 8,
-      padding: 12,
-      marginBottom: 12,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      marginBottom: spacing.md,
     },
     usageLabel: {
-      fontSize: 14,
-      fontWeight: '600' as const,
+      ...typography.bodyStrong,
       color: colors.accent,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     usageText: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.accent,
       fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     },
     functionsContainer: {
       backgroundColor: `${colors.statusWarning}15`,
-      borderRadius: 8,
-      padding: 12,
+      borderRadius: radius.md,
+      padding: spacing.md,
     },
     functionsLabel: {
-      fontSize: 14,
-      fontWeight: '600' as const,
+      ...typography.bodyStrong,
       color: colors.statusWarning,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     functionCall: {
       backgroundColor: colors.bgCard,
-      borderRadius: 6,
-      padding: 8,
-      marginBottom: 6,
+      borderRadius: radius.sm,
+      padding: spacing.sm,
+      marginBottom: spacing.sm,
       borderLeftWidth: 2,
       borderLeftColor: colors.statusWarning,
     },
     functionName: {
-      fontSize: 13,
+      ...typography.label,
       fontWeight: '600' as const,
       color: colors.statusWarning,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
       fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     },
     functionResult: {
-      fontSize: 13,
+      ...typography.label,
+      fontWeight: '400' as const,
       color: colors.textPrimary,
       fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     },
     actionButtons: {
       flexDirection: 'row' as const,
-      gap: 12,
-      marginTop: 16,
+      gap: spacing.md,
+      marginTop: spacing.lg,
     },
     actionButton: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       backgroundColor: colors.bgCard,
-      borderRadius: 12,
-      padding: 16,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
       flex: 1,
       justifyContent: 'center' as const,
       borderWidth: 1,
       borderColor: colors.borderLight,
-      shadowColor: colors.shadowColor,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.05,
-      shadowRadius: 2,
-      elevation: 1,
     },
     reExecuteButton: {
       backgroundColor: colors.accent,
       borderColor: colors.accent,
     },
     actionButtonText: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.accent,
-      marginLeft: 8,
+      marginLeft: spacing.sm,
     },
     reExecuteButtonText: {
       color: colors.textInverse,
     },
     configActionButtons: {
       flexDirection: 'row' as const,
-      gap: 8,
-      marginTop: 16,
-      paddingTop: 12,
+      gap: spacing.sm,
+      marginTop: spacing.lg,
+      paddingTop: spacing.md,
       borderTopWidth: 1,
       borderTopColor: colors.bgApp,
     },
@@ -538,18 +488,17 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       backgroundColor: colors.bgSurface,
-      borderRadius: 8,
-      padding: 12,
+      borderRadius: radius.md,
+      padding: spacing.md,
       flex: 1,
       justifyContent: 'center' as const,
       borderWidth: 1,
       borderColor: colors.borderLight,
     },
     configActionButtonText: {
-      fontSize: 14,
-      fontWeight: '600' as const,
+      ...typography.bodyStrong,
       color: colors.accent,
-      marginLeft: 6,
+      marginLeft: spacing.sm,
     },
   }));
 
@@ -680,6 +629,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
               <Text style={styles.promptLabel}>Base Prompt</Text>
               <TouchableOpacity
                 style={styles.copyButton}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                 onPress={() => copyToClipboard(basePrompt, 'Base prompt')}
               >
                 <Ionicons name="copy" size={16} color={colors.accent} />
@@ -695,6 +645,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
               <Text style={styles.promptLabel}>Context</Text>
               <TouchableOpacity
                 style={styles.copyButton}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                 onPress={() => copyToClipboard(context, 'Context')}
               >
                 <Ionicons name="copy" size={16} color={colors.accent} />
@@ -745,6 +696,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
                   </Text>
                   <TouchableOpacity
                     style={styles.copyButton}
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                     onPress={() => copyToClipboard(executionResult.comparison!.analysisNotes!, 'Analysis notes')}
                   >
                     <Ionicons name="copy" size={16} color={colors.accent} />
@@ -880,6 +832,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
                         <Text style={styles.responseLabel}>AI Response:</Text>
                         <TouchableOpacity
                           style={styles.copyButton}
+                          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                           onPress={() => copyToClipboard(result.response.responseText!, 'AI response')}
                         >
                           <Ionicons name="copy" size={16} color={colors.accent} />
@@ -1028,6 +981,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
                 <Text style={styles.modalTitle}>Detailed Configuration Comparison</Text>
                 <TouchableOpacity
                   style={styles.modalCloseButton}
+                  hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
                   onPress={() => setShowDetailedComparison(false)}
                 >
                   <Ionicons name="close" size={24} color={colors.textSecondary} />
@@ -1092,6 +1046,7 @@ const ExecutionResultsViewer: React.FC<ExecutionResultsViewerProps> = ({
                 <Text style={styles.modalTitle}>Detailed Configuration Comparison</Text>
                 <TouchableOpacity
                   style={styles.modalCloseButton}
+                  hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
                   onPress={() => setShowDetailedComparison(false)}
                 >
                   <Ionicons name="close" size={24} color={colors.textSecondary} />

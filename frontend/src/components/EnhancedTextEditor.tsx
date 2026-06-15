@@ -14,7 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { webInputStyles } from '../styles/containers';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 import type { ThemeColors } from '../theme';
 import { useResponsive } from '../context/ResponsiveContext';
 
@@ -57,17 +57,16 @@ interface ToolbarAction {
 
 const createStyles = (colors: ThemeColors) => ({
   container: {
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   labelContainer: {
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
     alignItems: 'center' as const,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   label: {
-    fontSize: 16,
-    fontWeight: '600' as const,
+    ...typography.title,
     flex: 1,
   },
   requiredIndicator: {
@@ -77,54 +76,25 @@ const createStyles = (colors: ThemeColors) => ({
   expandButton: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
     backgroundColor: colors.bgHover,
-    borderRadius: 6,
-    gap: 4,
+    borderRadius: radius.sm,
+    gap: spacing.xs,
   },
   expandButtonText: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.accent,
     fontWeight: '500' as const,
   },
   editorContainer: {
     borderWidth: 1.5,
-    borderRadius: 12,
+    borderRadius: radius.lg,
     overflow: 'hidden' as const,
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.shadowColor,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
   },
   focusedContainer: {
-    ...Platform.select({
-      ios: {
-        shadowOpacity: 0.15,
-        shadowRadius: 5,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
   },
   errorContainer: {
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.statusError,
-        shadowOpacity: 0.15,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
   },
   editorContent: {
     flexDirection: 'row' as const,
@@ -132,8 +102,8 @@ const createStyles = (colors: ThemeColors) => ({
   },
   lineNumberContainer: {
     minWidth: 40,
-    paddingHorizontal: 8,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.md,
     borderRightWidth: 1,
     borderRightColor: colors.borderLight,
   },
@@ -148,26 +118,26 @@ const createStyles = (colors: ThemeColors) => ({
   },
   textInput: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     fontSize: 16,
     lineHeight: 22,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
     ...webInputStyles,
   },
   statsContainer: {
-    marginTop: 8,
+    marginTop: spacing.sm,
     alignItems: 'flex-end' as const,
   },
   statsText: {
-    fontSize: 12,
+    ...typography.caption,
     fontWeight: '500' as const,
   },
   helperContainer: {
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   helperText: {
-    fontSize: 12,
+    ...typography.caption,
     lineHeight: 16,
   },
 
@@ -181,8 +151,8 @@ const createStyles = (colors: ThemeColors) => ({
   fullscreenHeader: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
     minHeight: 60,
@@ -194,17 +164,17 @@ const createStyles = (colors: ThemeColors) => ({
   headerButton: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    gap: 4,
+    gap: spacing.xs,
+    minHeight: touchTarget.min,
   },
   headerButtonText: {
-    fontSize: 16,
+    ...typography.title,
     color: colors.accent,
     fontWeight: '500' as const,
   },
   headerTitle: {
+    ...typography.h2,
     flex: 2,
-    fontSize: 18,
-    fontWeight: '600' as const,
     textAlign: 'center' as const,
   },
   headerRight: {
@@ -220,8 +190,8 @@ const createStyles = (colors: ThemeColors) => ({
   },
   fullscreenLineNumbers: {
     width: 60,
-    paddingHorizontal: 8,
-    paddingVertical: 16,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.lg,
     borderRightWidth: 1,
     borderRightColor: colors.borderLight,
   },
@@ -233,8 +203,8 @@ const createStyles = (colors: ThemeColors) => ({
   },
   fullscreenTextInput: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
     fontSize: 16,
     lineHeight: 22,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Roboto',
@@ -244,74 +214,67 @@ const createStyles = (colors: ThemeColors) => ({
   // Toolbar styles
   toolbar: {
     borderTopWidth: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.shadowColor,
-        shadowOffset: { width: 0, height: -1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
   },
   toolbarContent: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    gap: 12,
-    paddingHorizontal: 4,
+    gap: spacing.md,
+    paddingHorizontal: spacing.xs,
   },
   toolbarButton: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     backgroundColor: colors.bgSurface,
-    borderRadius: 8,
-    gap: 4,
+    borderRadius: radius.md,
+    gap: spacing.xs,
     minWidth: 70,
+    minHeight: touchTarget.min,
+    justifyContent: 'center' as const,
     borderWidth: 1,
     borderColor: colors.borderLight,
   },
   mobileToolbarButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    minWidth: 40,
-    borderRadius: 6,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    minWidth: touchTarget.min,
+    borderRadius: radius.sm,
   },
   toolbarButtonText: {
-    fontSize: 12,
+    ...typography.caption,
     color: colors.accent,
     fontWeight: '500' as const,
   },
   secondaryToolbarContent: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    gap: 8,
-    paddingHorizontal: 4,
-    marginTop: 8,
+    gap: spacing.sm,
+    paddingHorizontal: spacing.xs,
+    marginTop: spacing.sm,
   },
   secondaryToolbarButton: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
     backgroundColor: colors.bgApp,
-    borderRadius: 6,
-    gap: 3,
+    borderRadius: radius.sm,
+    gap: spacing.xs,
     minWidth: 55,
+    minHeight: touchTarget.min,
+    justifyContent: 'center' as const,
   },
   mobileSecondaryToolbarButton: {
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    minWidth: 32,
-    borderRadius: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    minWidth: touchTarget.min,
+    borderRadius: radius.sm,
   },
   secondaryToolbarButtonText: {
-    fontSize: 11,
+    ...typography.micro,
     color: colors.textSecondary,
     fontWeight: '400' as const,
   },

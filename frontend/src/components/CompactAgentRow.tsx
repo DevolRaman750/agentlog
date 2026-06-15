@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Agent, LifecycleStatus } from '../types';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 import type { ThemeColors } from '../theme';
 
 interface CompactAgentRowProps {
@@ -113,52 +113,54 @@ const createStyles = (colors: ThemeColors) => ({
     alignItems: 'center' as const,
     justifyContent: 'space-between' as const,
     height: 48,
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     backgroundColor: colors.bgCard,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderSubtle,
   },
   indented: {
-    paddingLeft: 40,
+    paddingLeft: spacing.xxxl,
   },
   leftSection: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     flex: 1,
-    gap: 10,
+    gap: spacing.sm,
   },
   statusDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: radius.pill,
   },
   nameSection: {
     flex: 1,
   },
   agentName: {
-    fontSize: 14,
+    ...typography.body,
     fontWeight: '500' as const,
     color: colors.textPrimary,
   },
   templateName: {
-    fontSize: 11,
+    ...typography.micro,
+    fontWeight: '400' as const,
     color: colors.textTertiary,
     marginTop: 1,
   },
   rightSection: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    gap: 4,
+    gap: spacing.xs,
   },
   timeText: {
-    fontSize: 11,
+    ...typography.micro,
+    fontWeight: '400' as const,
     color: colors.textTertiary,
-    marginRight: 4,
+    marginRight: spacing.xs,
   },
   actionButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    minWidth: touchTarget.min,
+    minHeight: touchTarget.min,
+    borderRadius: radius.pill,
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
   },

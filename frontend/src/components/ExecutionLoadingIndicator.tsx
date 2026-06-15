@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 
 interface ExecutionLoadingIndicatorProps {
   progress: number; // 0-100
@@ -35,7 +35,7 @@ const ExecutionLoadingIndicator: React.FC<ExecutionLoadingIndicatorProps> = ({
     container: {
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      paddingVertical: 20,
+      paddingVertical: spacing.lg,
     },
     outerRing: {
       position: 'absolute' as const,
@@ -71,25 +71,24 @@ const ExecutionLoadingIndicator: React.FC<ExecutionLoadingIndicatorProps> = ({
     },
     messageContainer: {
       alignItems: 'center' as const,
-      marginTop: 16,
+      marginTop: spacing.lg,
     },
     message: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       textAlign: 'center' as const,
     },
     subMessage: {
-      fontSize: 14,
+      ...typography.body,
       fontWeight: '500' as const,
-      marginTop: 4,
+      marginTop: spacing.xs,
       textAlign: 'center' as const,
     },
     dotsContainer: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      marginTop: 12,
-      gap: 4,
+      marginTop: spacing.md,
+      gap: spacing.xs,
     },
     dot: {
       width: 6,
@@ -100,18 +99,18 @@ const ExecutionLoadingIndicator: React.FC<ExecutionLoadingIndicatorProps> = ({
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      marginTop: 20,
-      paddingVertical: 10,
-      paddingHorizontal: 16,
+      minHeight: touchTarget.min,
+      marginTop: spacing.lg,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.lg,
       backgroundColor: `${colors.statusError}10`,
-      borderRadius: 8,
+      borderRadius: radius.md,
       borderWidth: 1,
       borderColor: `${colors.statusError}20`,
-      gap: 8,
+      gap: spacing.sm,
     },
     cancelButtonText: {
-      fontSize: 14,
-      fontWeight: '600' as const,
+      ...typography.bodyStrong,
       color: colors.statusError,
     },
   }));

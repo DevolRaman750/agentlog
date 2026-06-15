@@ -14,7 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { AlertAPI } from './CustomAlert';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 import { ThemeColors } from '../theme';
 
 interface SessionManagerProps {
@@ -52,103 +52,103 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      paddingHorizontal: 20,
-      paddingTop: Platform.OS === 'ios' ? 60 : 20,
-      paddingBottom: 20,
+      paddingHorizontal: spacing.lg,
+      paddingTop: Platform.OS === 'ios' ? 60 : spacing.lg,
+      paddingBottom: spacing.lg,
       backgroundColor: colors.bgCard,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
     },
     title: {
-      fontSize: 20,
+      ...typography.h1,
       fontWeight: '600' as const,
       color: colors.textPrimary,
     },
     closeButton: {
-      padding: 10,
-      borderRadius: 22,
+      padding: spacing.sm,
+      borderRadius: radius.pill,
       backgroundColor: colors.bgSurface,
-      minWidth: 44,
-      minHeight: 44,
+      minWidth: touchTarget.min,
+      minHeight: touchTarget.min,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
     },
     content: {
       flex: 1,
-      paddingHorizontal: 20,
+      paddingHorizontal: spacing.lg,
     },
     section: {
       backgroundColor: colors.bgCard,
-      borderRadius: 12,
-      padding: 16,
-      marginTop: 16,
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      marginTop: spacing.lg,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
     },
     sectionTitle: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
-      marginBottom: 12,
+      marginBottom: spacing.md,
     },
     userStatusContainer: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 12,
+      gap: spacing.md,
     },
     userStatusText: {
       flex: 1,
     },
     userStatusTitle: {
-      fontSize: 14,
-      fontWeight: '500' as const,
+      ...typography.label,
       color: colors.textPrimary,
     },
     userStatusSubtitle: {
-      fontSize: 12,
+      ...typography.caption,
       color: colors.textSecondary,
       marginTop: 2,
     },
     sessionGrid: {
       flexDirection: 'row' as const,
       flexWrap: 'wrap' as const,
-      gap: 12,
+      gap: spacing.md,
     },
     sessionItem: {
       flex: 1,
       minWidth: '45%' as unknown as number,
       alignItems: 'center' as const,
-      padding: 12,
+      padding: spacing.md,
       backgroundColor: colors.bgSurface,
-      borderRadius: 8,
+      borderRadius: radius.md,
     },
     sessionValue: {
-      fontSize: 24,
-      fontWeight: '700' as const,
+      ...typography.display,
       color: colors.accent,
     },
     sessionLabel: {
-      fontSize: 11,
+      ...typography.micro,
+      fontWeight: '400' as const,
       color: colors.textSecondary,
       textAlign: 'center' as const,
-      marginTop: 4,
+      marginTop: spacing.xs,
     },
     lastActivity: {
-      marginTop: 12,
-      padding: 8,
+      marginTop: spacing.md,
+      padding: spacing.sm,
       backgroundColor: colors.bgSurface,
-      borderRadius: 6,
+      borderRadius: radius.sm,
     },
     lastActivityText: {
-      fontSize: 12,
+      ...typography.caption,
       color: colors.textSecondary,
       textAlign: 'center' as const,
     },
     actionButton: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      padding: 16,
-      borderRadius: 8,
-      marginBottom: 12,
-      gap: 12,
+      padding: spacing.md,
+      borderRadius: radius.md,
+      marginBottom: spacing.md,
+      gap: spacing.md,
     },
     loginButton: {
       backgroundColor: colors.accentSoft,
@@ -156,7 +156,7 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
       borderColor: colors.accent,
     },
     loginButtonText: {
-      fontSize: 14,
+      ...typography.body,
       fontWeight: '500' as const,
       color: colors.accent,
     },
@@ -166,7 +166,7 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
       borderColor: colors.statusWarning,
     },
     logoutButtonText: {
-      fontSize: 14,
+      ...typography.body,
       fontWeight: '500' as const,
       color: colors.statusWarning,
     },
@@ -176,7 +176,7 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
       borderColor: colors.accent,
     },
     exportButtonText: {
-      fontSize: 14,
+      ...typography.body,
       fontWeight: '500' as const,
       color: colors.accent,
     },
@@ -186,7 +186,7 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
       borderColor: colors.statusError,
     },
     clearButtonText: {
-      fontSize: 14,
+      ...typography.body,
       fontWeight: '500' as const,
       color: colors.statusError,
     },
@@ -196,29 +196,29 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
       borderColor: colors.statusError,
     },
     cleanupButtonText: {
-      fontSize: 14,
+      ...typography.body,
       fontWeight: '500' as const,
       color: colors.statusError,
     },
     loadingContainer: {
       alignItems: 'center' as const,
-      padding: 20,
+      padding: spacing.lg,
     },
     loadingText: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
-      marginTop: 8,
+      marginTop: spacing.sm,
     },
     exportModalOverlay: {
       flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      backgroundColor: colors.bgOverlay,
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
-      padding: 20,
+      padding: spacing.lg,
     },
     exportModalContent: {
       backgroundColor: colors.bgCard,
-      borderRadius: 12,
+      borderRadius: radius.lg,
       width: '100%' as const,
       maxHeight: '80%' as const,
     },
@@ -226,33 +226,31 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      padding: 16,
+      padding: spacing.md,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
     },
     exportModalTitle: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
     },
     exportModalClose: {
-      padding: 4,
+      padding: spacing.xs,
     },
     exportDataContainer: {
       maxHeight: 300,
-      padding: 16,
+      padding: spacing.md,
     },
     exportDataText: {
-      fontSize: 12,
+      ...typography.caption,
       fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
       color: colors.textPrimary,
-      lineHeight: 16,
     },
     exportModalNote: {
-      fontSize: 12,
+      ...typography.caption,
       color: colors.textSecondary,
       textAlign: 'center' as const,
-      padding: 16,
+      padding: spacing.md,
       borderTopWidth: 1,
       borderTopColor: colors.borderLight,
     },
@@ -620,7 +618,7 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
                 onPress={handleLogout}
                 disabled={isLoading}
               >
-                <Ionicons name="log-out-outline" size={20} color="#FF9500" />
+                <Ionicons name="log-out-outline" size={20} color={colors.statusWarning} />
                 <Text style={styles.logoutButtonText}>Logout (Keep Data)</Text>
               </TouchableOpacity>
             )}
@@ -681,6 +679,7 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
                 <TouchableOpacity
                   onPress={() => setShowExportData(null)}
                   style={styles.exportModalClose}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 >
                   <Ionicons name="close" size={20} color={colors.textSecondary} />
                 </TouchableOpacity>

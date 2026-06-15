@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Agent, LifecycleStatus } from '../types';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, radius } from '../theme';
 import type { ThemeColors } from '../theme';
 
 interface AgentAvatarProps {
@@ -41,7 +41,7 @@ const AgentAvatar: React.FC<AgentAvatarProps> = ({
     return {
       primary: `hsl(${hue1}, 70%, 60%)`,
       secondary: `hsl(${hue2}, 70%, 70%)`,
-      text: '#fff'
+      text: colors.textInverse
     };
   };
 
@@ -175,11 +175,6 @@ const createStyles = (colors: ThemeColors) => ({
     position: 'relative' as const,
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
-    elevation: 3,
-    shadowColor: colors.shadowColor,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
   },
   gradientOverlay: {
     position: 'absolute' as const,
@@ -200,17 +195,12 @@ const createStyles = (colors: ThemeColors) => ({
     alignItems: 'center' as const,
     borderWidth: 2,
     borderColor: colors.bgCard,
-    elevation: 4,
-    shadowColor: colors.shadowColor,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.3,
-    shadowRadius: 2,
   },
   statusInner: {
     width: '50%' as const,
     height: '50%' as const,
     backgroundColor: 'rgba(255,255,255,0.8)',
-    borderRadius: 10,
+    borderRadius: radius.lg,
   },
   animated: {
     // Animation will be handled by Animated API in usage

@@ -16,7 +16,7 @@ import { useToast } from '../context/ToastContext';
 import { AlertAPI } from './CustomAlert';
 import { goGentAPI } from '../api/client';
 import { UserApiKey, CreateApiKeyRequest, UpdateApiKeyRequest } from '../types';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 
 interface ServiceInfo {
   name: string;
@@ -149,64 +149,59 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      padding: 20,
+      padding: spacing.lg,
       backgroundColor: colors.bgCard,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
     },
     cancelButton: {
-      fontSize: 17,
+      ...typography.title,
       color: colors.textSecondary,
       fontWeight: '500' as const,
     },
     title: {
-      fontSize: 20,
-      fontWeight: '700' as const,
+      ...typography.h1,
       color: colors.textPrimary,
     },
     saveButton: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      paddingHorizontal: 12,
-      paddingVertical: 6,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      minHeight: touchTarget.min,
+      justifyContent: 'center' as const,
     },
     saveButtonDisabled: {
       opacity: 0.5,
     },
     saveButtonText: {
-      fontSize: 17,
+      ...typography.title,
       color: colors.accent,
       fontWeight: '700' as const,
     },
     tabContainer: {
       flexDirection: 'row' as const,
       backgroundColor: colors.bgApp,
-      marginHorizontal: 16,
-      borderRadius: 8,
+      marginHorizontal: spacing.lg,
+      borderRadius: radius.md,
       padding: 2,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     tab: {
       flex: 1,
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      paddingVertical: 12,
-      paddingHorizontal: 16,
-      borderRadius: 6,
-      gap: 6,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+      borderRadius: radius.sm,
+      gap: spacing.sm,
     },
     activeTab: {
       backgroundColor: colors.bgCard,
-      shadowColor: colors.shadowColor,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.1,
-      shadowRadius: 2,
-      elevation: 2,
     },
     tabText: {
-      fontSize: 14,
-      fontWeight: '500' as const,
+      ...typography.label,
       color: colors.textSecondary,
     },
     activeTabText: {
@@ -217,53 +212,49 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
       flex: 1,
     },
     tabContent: {
-      padding: 16,
-      paddingBottom: 40,
+      padding: spacing.lg,
+      paddingBottom: spacing.xxl,
     },
     section: {
       backgroundColor: colors.bgCard,
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 16,
-      shadowColor: colors.shadowColor,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.05,
-      shadowRadius: 2,
-      elevation: 1,
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      marginBottom: spacing.lg,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
     },
     sectionTitle: {
-      fontSize: 18,
+      ...typography.h2,
       fontWeight: '700' as const,
       color: colors.textPrimary,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     sectionDescription: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
-      lineHeight: 18,
-      marginBottom: 16,
+      marginBottom: spacing.lg,
     },
     field: {
-      marginBottom: 20,
+      marginBottom: spacing.lg,
     },
     label: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     labelRow: {
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     input: {
       borderWidth: 1,
       borderColor: colors.borderLight,
-      borderRadius: 8,
-      padding: 12,
-      fontSize: 16,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      ...typography.title,
+      fontWeight: '400' as const,
       backgroundColor: colors.bgCard,
       color: colors.textPrimary,
     },
@@ -273,84 +264,81 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
     },
     keyInput: {
       fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-      fontSize: 14,
+      ...typography.body,
     },
     helpText: {
-      fontSize: 12,
+      ...typography.caption,
       color: colors.textSecondary,
-      marginTop: 4,
-      lineHeight: 16,
+      marginTop: spacing.xs,
     },
     testButton: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       backgroundColor: colors.bgHover,
-      borderRadius: 6,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      gap: 4,
+      borderRadius: radius.sm,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      gap: spacing.xs,
     },
     testButtonDisabled: {
       opacity: 0.5,
     },
     testButtonText: {
-      fontSize: 12,
+      ...typography.caption,
       fontWeight: '600' as const,
       color: colors.accent,
     },
     serviceGrid: {
       flexDirection: 'row' as const,
       flexWrap: 'wrap' as const,
-      gap: 12,
+      gap: spacing.md,
     },
     serviceCard: {
       flex: 1,
       minWidth: '45%' as any,
       backgroundColor: colors.bgSurface,
-      borderRadius: 12,
-      padding: 16,
-      borderWidth: 2,
-      borderColor: colors.borderLight,
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
     },
     serviceCardSelected: {
       borderColor: colors.accent,
       backgroundColor: colors.bgHover,
     },
     serviceCardTitle: {
-      fontSize: 14,
-      fontWeight: '600' as const,
+      ...typography.bodyStrong,
       color: colors.textPrimary,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     serviceCardTitleSelected: {
       color: colors.accent,
     },
     serviceCardDescription: {
-      fontSize: 12,
+      ...typography.caption,
       color: colors.textSecondary,
-      lineHeight: 16,
     },
     accessLevelGrid: {
       flexDirection: 'row' as const,
       flexWrap: 'wrap' as const,
-      gap: 8,
+      gap: spacing.sm,
     },
     accessLevelCard: {
       flex: 1,
       minWidth: '45%' as any,
       backgroundColor: colors.bgSurface,
-      borderRadius: 8,
-      padding: 12,
+      borderRadius: radius.md,
+      padding: spacing.md,
       alignItems: 'center' as const,
       borderWidth: 1,
-      borderColor: colors.borderLight,
+      borderColor: colors.borderSubtle,
     },
     accessLevelCardSelected: {
       borderColor: colors.accent,
       backgroundColor: colors.bgHover,
     },
     accessLevelText: {
-      fontSize: 12,
+      ...typography.caption,
       fontWeight: '600' as const,
       color: colors.textPrimary,
     },
@@ -360,24 +348,24 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
     environmentGrid: {
       flexDirection: 'row' as const,
       flexWrap: 'wrap' as const,
-      gap: 8,
+      gap: spacing.sm,
     },
     environmentCard: {
       flex: 1,
       minWidth: '45%' as any,
       backgroundColor: colors.bgSurface,
-      borderRadius: 8,
-      padding: 12,
+      borderRadius: radius.md,
+      padding: spacing.md,
       alignItems: 'center' as const,
       borderWidth: 1,
-      borderColor: colors.borderLight,
+      borderColor: colors.borderSubtle,
     },
     environmentCardSelected: {
       borderColor: colors.statusSuccess,
       backgroundColor: `${colors.statusSuccess}15`,
     },
     environmentText: {
-      fontSize: 12,
+      ...typography.caption,
       fontWeight: '600' as const,
       color: colors.textPrimary,
     },
@@ -388,34 +376,32 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      marginBottom: 16,
+      marginBottom: spacing.lg,
     },
     switchInfo: {
       flex: 1,
-      marginRight: 16,
+      marginRight: spacing.lg,
     },
     switchLabel: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
       marginBottom: 2,
     },
     switchDescription: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
-      lineHeight: 18,
     },
     scopesList: {
-      gap: 8,
+      gap: spacing.sm,
     },
     scopeItem: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 8,
-      paddingVertical: 4,
+      gap: spacing.sm,
+      paddingVertical: spacing.xs,
     },
     scopeText: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textPrimary,
     },
   }));
@@ -666,7 +652,10 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={handleClose}>
+          <TouchableOpacity
+            onPress={handleClose}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
             <Text style={styles.cancelButton}>Cancel</Text>
           </TouchableOpacity>
           <Text style={styles.title}>

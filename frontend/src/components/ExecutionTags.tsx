@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useResponsive } from '../context/ResponsiveContext';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 
 interface TagProps {
   label: string;
@@ -42,27 +42,28 @@ const ExecutionTag: React.FC<TagProps> = ({
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      paddingVertical: 12,
-      paddingHorizontal: 16,
-      borderRadius: 8,
+      minHeight: touchTarget.min,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+      borderRadius: radius.md,
       borderWidth: 1,
       borderColor: `${colors.accent}33`,
-      gap: 6,
+      gap: spacing.sm,
     },
     tagCompact: {
-      paddingVertical: 10,
-      paddingHorizontal: 12,
-      borderRadius: 6,
-      gap: 4,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+      borderRadius: radius.sm,
+      gap: spacing.xs,
     },
     tagText: {
-      fontSize: 14,
-      fontWeight: '600' as const,
+      ...typography.bodyStrong,
       flex: 1,
       textAlign: 'center' as const,
     },
     tagTextCompact: {
-      fontSize: 12,
+      ...typography.caption,
+      fontWeight: '600' as const,
     },
   }));
 
@@ -106,38 +107,38 @@ const ExecutionTags: React.FC<ExecutionTagsProps> = ({
   const styles = useThemedStyles((colors) => ({
     container: {
       backgroundColor: colors.bgCard,
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 20,
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      marginBottom: spacing.lg,
       borderWidth: 1,
       borderColor: colors.borderLight,
     },
     containerCompact: {
-      padding: 12,
-      marginBottom: 16,
+      padding: spacing.md,
+      marginBottom: spacing.lg,
     },
     tagsHeader: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      marginBottom: 12,
+      marginBottom: spacing.md,
     },
     headerText: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
-      marginLeft: 8,
+      marginLeft: spacing.sm,
     },
     headerTextCompact: {
-      fontSize: 14,
-      marginLeft: 6,
+      ...typography.body,
+      fontWeight: '600' as const,
+      marginLeft: spacing.sm,
     },
     tagsRow: {
       flexDirection: 'row' as const,
-      gap: 12,
+      gap: spacing.md,
     },
     tagsRowCompact: {
       flexDirection: 'column' as const,
-      gap: 8,
+      gap: spacing.sm,
     },
   }));
 

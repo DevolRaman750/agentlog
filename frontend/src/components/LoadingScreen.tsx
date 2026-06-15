@@ -5,7 +5,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, typography } from '../theme';
 
 interface LoadingScreenProps {
   message?: string;
@@ -24,13 +24,14 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
       flex: 1,
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
-      paddingHorizontal: 20,
+      paddingHorizontal: spacing.lg,
     },
     message: {
-      marginTop: 16,
-      fontSize: 16,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.textSecondary,
       textAlign: 'center' as const,
+      marginTop: spacing.lg,
     },
   }));
 

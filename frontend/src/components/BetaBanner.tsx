@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Platform } from 'react-native';
-import { useThemedStyles } from '../theme';
+import { useThemedStyles, spacing, typography } from '../theme';
 import { ThemeColors } from '../theme';
 
 export const BetaBanner: React.FC = () => {
@@ -10,22 +10,22 @@ export const BetaBanner: React.FC = () => {
       backgroundColor: `${colors.statusWarning}15`,
       borderBottomWidth: 1,
       borderColor: `${colors.statusWarning}30`,
-      paddingVertical: 8,
-      paddingHorizontal: 12,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
     },
     text: {
-      color: colors.statusWarning,
-      fontSize: 13,
+      ...typography.label,
       fontWeight: '600' as const,
+      color: colors.statusWarning,
       textAlign: 'center' as const,
     },
   }));
 
   return (
     <View style={styles.banner}>
-      <Text style={styles.text} accessibilityRole={Platform.OS === 'web' ? 'banner' : undefined}>
+      <Text style={styles.text} accessibilityRole={Platform.OS === 'web' ? ('banner' as any) : undefined}>
         Agentlog is in beta — breaking changes or data resets may occur. Feel free to test.
       </Text>
     </View>

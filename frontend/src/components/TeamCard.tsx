@@ -12,6 +12,7 @@ import { goGentAPI } from '../api/client';
 import { AlertAPI } from './CustomAlert';
 import EditTeamContextModal from './EditTeamContextModal';
 import { useTheme, useThemedStyles } from '../theme';
+import { spacing, radius, typography, touchTarget } from '../theme';
 import type { ThemeColors } from '../theme';
 
 interface TeamCardProps {
@@ -27,19 +28,19 @@ interface TeamCardProps {
 const createStyles = (colors: ThemeColors) => ({
   container: {
     backgroundColor: colors.bgCard,
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.borderLight,
-    borderLeftWidth: 4,
+    borderLeftWidth: spacing.xs,
     borderLeftColor: colors.statusSuccess,
   },
   header: {
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
     alignItems: 'flex-start' as const,
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   teamInfo: {
     flexDirection: 'row' as const,
@@ -49,37 +50,35 @@ const createStyles = (colors: ThemeColors) => ({
   teamIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: radius.pill,
     backgroundColor: colors.accentSoft,
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
   },
   teamDetails: {
-    marginLeft: 12,
+    marginLeft: spacing.md,
     flex: 1,
   },
   teamName: {
-    fontSize: 18,
-    fontWeight: '600' as const,
+    ...typography.title,
     color: colors.textPrimary,
   },
   teamDescription: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textSecondary,
-    marginTop: 4,
-    lineHeight: 18,
+    marginTop: spacing.xs,
   },
   controls: {
     flexDirection: 'row' as const,
-    marginLeft: 12,
+    marginLeft: spacing.md,
   },
   controlButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: radius.xl,
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
-    marginLeft: 8,
+    marginLeft: spacing.sm,
     borderWidth: 1,
   },
   viewTeamButton: {
@@ -108,42 +107,39 @@ const createStyles = (colors: ThemeColors) => ({
   },
   agentStats: {
     flexDirection: 'row' as const,
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   statItem: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    marginRight: 20,
+    marginRight: spacing.lg,
   },
   statusDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    marginRight: 6,
+    marginRight: spacing.xs,
   },
   statText: {
-    fontSize: 14,
+    ...typography.bodyStrong,
     color: colors.textPrimary,
-    fontWeight: '500' as const,
   },
   tokenSection: {
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   tokenHeader: {
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
     alignItems: 'center' as const,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   tokenLabel: {
-    fontSize: 14,
+    ...typography.label,
     color: colors.textTertiary,
-    fontWeight: '500' as const,
   },
   tokenValue: {
-    fontSize: 14,
+    ...typography.bodyStrong,
     color: colors.textPrimary,
-    fontWeight: '600' as const,
   },
   progressBarContainer: {
     flexDirection: 'row' as const,
@@ -153,18 +149,17 @@ const createStyles = (colors: ThemeColors) => ({
     flex: 1,
     height: 6,
     backgroundColor: colors.accentSoft,
-    borderRadius: 3,
-    marginRight: 8,
+    borderRadius: radius.sm,
+    marginRight: spacing.sm,
   },
   progressBarFill: {
     height: '100%' as const,
-    borderRadius: 3,
+    borderRadius: radius.sm,
     minWidth: 2,
   },
   progressText: {
-    fontSize: 12,
+    ...typography.micro,
     color: colors.textSecondary,
-    fontWeight: '600' as const,
     minWidth: 35,
   },
   summary: {
@@ -177,9 +172,9 @@ const createStyles = (colors: ThemeColors) => ({
     flex: 1,
   },
   summaryText: {
-    fontSize: 12,
+    ...typography.caption,
     color: colors.textTertiary,
-    marginLeft: 4,
+    marginLeft: spacing.xs,
   },
 });
 
@@ -385,6 +380,7 @@ const TeamCard: React.FC<TeamCardProps> = ({
             style={[styles.controlButton, styles.pauseButton]}
             onPress={handlePauseAll}
             disabled={isLoading || activeAgents.length === 0}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             {isLoading ? (
               <ActivityIndicator size="small" color={colors.accentSecondary} />
@@ -397,6 +393,7 @@ const TeamCard: React.FC<TeamCardProps> = ({
             style={[styles.controlButton, styles.resumeButton]}
             onPress={handleResumeAll}
             disabled={isLoading || (pausedAgents.length === 0 && standbyAgents.length === 0)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             {isLoading ? (
               <ActivityIndicator size="small" color={colors.statusSuccess} />

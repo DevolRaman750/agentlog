@@ -3,9 +3,9 @@ import { View, Text, TouchableOpacity, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AgentAvatar from './AgentAvatar';
 import { Agent, LifecycleStatus } from '../types';
-import { shadowPresets } from '../styles/containers';
 import { useResponsive } from '../context/ResponsiveContext';
 import { useTheme, useThemedStyles } from '../theme';
+import { spacing, radius, typography, touchTarget } from '../theme';
 import type { ThemeColors } from '../theme';
 
 interface AgentBusinessCardProps {
@@ -472,10 +472,9 @@ const AgentBusinessCard: React.FC<AgentBusinessCardProps> = ({
 const createStyles = (colors: ThemeColors) => ({
   card: {
     backgroundColor: colors.bgCard,
-    borderRadius: 8,
-    padding: 20,
-    marginBottom: 16,
-    ...shadowPresets.medium,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
     borderWidth: 1,
     borderColor: colors.borderLight,
     overflow: 'hidden' as const,
@@ -485,36 +484,34 @@ const createStyles = (colors: ThemeColors) => ({
     flexDirection: 'row' as const,
     flexWrap: 'wrap' as const,
     alignItems: 'flex-start' as const,
-    marginBottom: 16,
-    gap: 8,
+    marginBottom: spacing.md,
+    gap: spacing.sm,
   },
   cardHeaderCompact: {
     alignItems: 'center' as const,
-    marginBottom: 12,
-    gap: 6,
+    marginBottom: spacing.sm,
+    gap: spacing.xs,
   },
   headerInfo: {
     flex: 1,
-    marginLeft: 12,
-    marginRight: 8,
+    marginLeft: spacing.sm,
+    marginRight: spacing.sm,
     minWidth: 80,
   },
   headerInfoCompact: {
-    marginLeft: 8,
-    marginRight: 4,
+    marginLeft: spacing.sm,
+    marginRight: spacing.xs,
     flex: 1,
     minWidth: 60,
   },
   agentName: {
-    fontSize: 18,
-    fontWeight: 'bold' as const,
+    ...typography.h2,
     color: colors.textPrimary,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   agentNameCompact: {
-    fontSize: 16,
-    lineHeight: 20,
-    marginBottom: 2,
+    ...typography.title,
+    marginBottom: spacing.xs,
   },
   statusContainer: {
     flexDirection: 'row' as const,
@@ -523,14 +520,14 @@ const createStyles = (colors: ThemeColors) => ({
   statusBadge: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.lg,
+    gap: spacing.xs,
   },
   statusText: {
     color: 'white',
-    fontSize: 12,
+    ...typography.caption,
     fontWeight: '600' as const,
   },
   memoryIndicator: {
@@ -638,13 +635,12 @@ const createStyles = (colors: ThemeColors) => ({
     flex: 1,
   },
   templateLabel: {
-    fontSize: 12,
+    ...typography.caption,
     color: colors.textTertiary,
-    marginBottom: 2,
+    marginBottom: spacing.xs,
   },
   templateName: {
-    fontSize: 14,
-    fontWeight: '600' as const,
+    ...typography.bodyStrong,
     color: colors.textPrimary,
   },
   statsSection: {
@@ -657,17 +653,17 @@ const createStyles = (colors: ThemeColors) => ({
   statItem: {
     flex: 1,
     alignItems: 'center' as const,
-    paddingVertical: 8,
+    paddingVertical: spacing.sm,
   },
   statValue: {
-    fontSize: 16,
+    ...typography.title,
     fontWeight: 'bold' as const,
     color: colors.textPrimary,
-    marginTop: 4,
-    marginBottom: 2,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
   },
   statLabel: {
-    fontSize: 11,
+    ...typography.micro,
     color: colors.textTertiary,
     textAlign: 'center' as const,
   },
@@ -686,7 +682,7 @@ const createStyles = (colors: ThemeColors) => ({
     borderRadius: 2,
   },
   progressText: {
-    fontSize: 12,
+    ...typography.caption,
     color: colors.textTertiary,
     textAlign: 'center' as const,
   },
@@ -726,7 +722,7 @@ const createStyles = (colors: ThemeColors) => ({
     gap: 4,
   },
   secondaryActionText: {
-    fontSize: 12,
+    ...typography.caption,
     fontWeight: '500' as const,
     color: colors.textSecondary,
   },

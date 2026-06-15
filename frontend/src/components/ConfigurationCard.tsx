@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useTheme, useThemedStyles } from '../theme';
 import { ThemeColors } from '../theme';
+import { spacing, radius, typography, touchTarget } from '../theme';
 
 const ConfigurationCard: React.FC<ConfigurationCardProps> = ({
   configuration,
@@ -26,8 +27,8 @@ const ConfigurationCard: React.FC<ConfigurationCardProps> = ({
   const styles = useThemedStyles((colors: ThemeColors) => ({
     container: {
       backgroundColor: colors.bgCard,
-      borderRadius: 8,
-      marginBottom: 12,
+      borderRadius: radius.md,
+      marginBottom: spacing.sm,
       borderWidth: 1,
       borderColor: colors.borderLight,
       overflow: 'hidden' as const,
@@ -39,70 +40,66 @@ const ConfigurationCard: React.FC<ConfigurationCardProps> = ({
     },
     systemBadge: {
       backgroundColor: colors.accentSoft,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 4,
+      gap: spacing.xs,
       borderBottomWidth: 1,
       borderBottomColor: colors.accent,
     },
     systemBadgeText: {
-      fontSize: 10,
-      fontWeight: '700' as const,
+      ...typography.micro,
       color: colors.accent,
       letterSpacing: 0.5,
     },
     header: {
       flexDirection: 'row' as const,
-      padding: 16,
+      padding: spacing.md,
       alignItems: 'flex-start' as const,
     },
     titleContainer: {
       flex: 1,
     },
     variationName: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
-      marginBottom: 6,
+      marginBottom: spacing.xs,
     },
     metadataRow: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 8,
+      gap: spacing.sm,
     },
     temperatureBadge: {
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-      borderRadius: 12,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: radius.lg,
     },
     temperatureBadgeText: {
-      fontSize: 11,
-      fontWeight: '600' as const,
+      ...typography.micro,
       color: colors.textInverse,
     },
     ownershipBadge: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       backgroundColor: colors.bgApp,
-      paddingHorizontal: 6,
+      paddingHorizontal: spacing.xs,
       paddingVertical: 2,
-      borderRadius: 8,
+      borderRadius: radius.md,
       gap: 2,
     },
     ownershipText: {
-      fontSize: 9,
+      ...typography.micro,
       color: colors.textSecondary,
-      fontWeight: '500' as const,
     },
     actions: {
       flexDirection: 'row' as const,
-      gap: 8,
+      gap: spacing.sm,
     },
     actionButton: {
-      padding: 8,
-      borderRadius: 6,
+      padding: spacing.sm,
+      borderRadius: radius.sm,
       backgroundColor: colors.bgApp,
     },
     actionButtonDisabled: {
@@ -111,51 +108,47 @@ const ConfigurationCard: React.FC<ConfigurationCardProps> = ({
     modelRow: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      paddingHorizontal: 16,
-      paddingBottom: 12,
-      gap: 6,
+      paddingHorizontal: spacing.md,
+      paddingBottom: spacing.sm,
+      gap: spacing.xs,
     },
     modelText: {
-      fontSize: 13,
+      ...typography.label,
       color: colors.textSecondary,
-      fontWeight: '500' as const,
     },
     separator: {
-      fontSize: 13,
+      ...typography.label,
       color: colors.textTertiary,
     },
     configId: {
-      fontSize: 11,
+      ...typography.micro,
       color: colors.textSecondary,
       fontFamily: 'monospace',
     },
     promptContainer: {
-      paddingHorizontal: 16,
-      paddingBottom: 16,
+      paddingHorizontal: spacing.md,
+      paddingBottom: spacing.md,
     },
     promptLabel: {
-      fontSize: 12,
-      fontWeight: '600' as const,
+      ...typography.caption,
       color: colors.textSecondary,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     promptText: {
-      fontSize: 13,
+      ...typography.body,
       color: colors.textPrimary,
-      lineHeight: 18,
     },
     systemInfo: {
       backgroundColor: colors.accentSoft,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
       borderTopWidth: 1,
       borderTopColor: `${colors.accent}40`,
     },
     systemInfoText: {
-      fontSize: 11,
+      ...typography.micro,
       color: colors.accent,
       textAlign: 'center' as const,
-      lineHeight: 14,
     },
   }));
 

@@ -11,7 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import EnhancedTextEditor from './EnhancedTextEditor';
 import { useResponsive } from '../context/ResponsiveContext';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 
 interface OtherOptionsModalProps {
   visible: boolean;
@@ -48,16 +48,16 @@ const OtherOptionsModal: React.FC<OtherOptionsModalProps> = ({
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       justifyContent: 'space-between' as const,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
       backgroundColor: colors.bgCard,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
     },
     headerButton: {
-      padding: 8,
+      padding: spacing.sm,
       minWidth: 60,
-      minHeight: 44,
+      minHeight: touchTarget.min,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
     },
@@ -65,45 +65,41 @@ const OtherOptionsModal: React.FC<OtherOptionsModalProps> = ({
       alignItems: 'flex-end' as const,
     },
     doneButtonText: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.accent,
     },
     title: {
-      fontSize: 18,
-      fontWeight: '600' as const,
+      ...typography.h2,
       color: colors.textPrimary,
     },
     subtitle: {
       backgroundColor: colors.bgCard,
-      paddingHorizontal: 16,
-      paddingBottom: 16,
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.lg,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
     },
     subtitleText: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
-      lineHeight: 20,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     selectionInfo: {
       flexDirection: 'row' as const,
       justifyContent: 'flex-end' as const,
     },
     selectionCount: {
-      fontSize: 14,
-      fontWeight: '600' as const,
+      ...typography.bodyStrong,
       color: colors.statusWarning,
       backgroundColor: `${colors.statusWarning}15`,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 12,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: radius.lg,
     },
     controls: {
       backgroundColor: colors.bgCard,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
       flexDirection: 'row' as const,
@@ -112,30 +108,29 @@ const OtherOptionsModal: React.FC<OtherOptionsModalProps> = ({
     clearButton: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      paddingHorizontal: 16,
-      paddingVertical: 8,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
       backgroundColor: `${colors.statusError}15`,
-      borderRadius: 6,
+      borderRadius: radius.sm,
       borderWidth: 1,
       borderColor: `${colors.statusError}40`,
-      gap: 6,
+      gap: spacing.sm,
     },
     clearButtonText: {
-      fontSize: 14,
-      fontWeight: '500' as const,
+      ...typography.label,
       color: colors.statusError,
     },
     scrollContent: {
       flex: 1,
     },
     scrollContentContainer: {
-      padding: 16,
+      padding: spacing.lg,
     },
     fieldContainer: {
       backgroundColor: colors.bgCard,
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 16,
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      marginBottom: spacing.lg,
       borderWidth: 1,
       borderColor: colors.borderLight,
     },
@@ -143,77 +138,74 @@ const OtherOptionsModal: React.FC<OtherOptionsModalProps> = ({
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     fieldLabelContainer: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 8,
+      gap: spacing.sm,
     },
     fieldLabel: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
     },
     fieldDescription: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
-      lineHeight: 20,
-      marginBottom: 12,
+      marginBottom: spacing.md,
     },
     textInput: {
       borderWidth: 1,
       borderColor: colors.borderLight,
-      borderRadius: 8,
-      padding: 12,
-      fontSize: 16,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.textPrimary,
       backgroundColor: colors.bgSurface,
     },
     characterCount: {
-      fontSize: 12,
+      ...typography.caption,
       color: colors.textTertiary,
       textAlign: 'right' as const,
-      marginTop: 4,
+      marginTop: spacing.xs,
     },
     tipsContainer: {
       backgroundColor: `${colors.statusWarning}15`,
-      borderRadius: 12,
-      padding: 16,
-      marginTop: 8,
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      marginTop: spacing.sm,
       borderWidth: 1,
       borderColor: `${colors.statusWarning}40`,
     },
     tipsHeader: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      marginBottom: 12,
-      gap: 8,
+      marginBottom: spacing.md,
+      gap: spacing.sm,
     },
     tipsTitle: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.statusWarning,
     },
     tipsList: {
-      gap: 8,
+      gap: spacing.sm,
     },
     tipItem: {
       flexDirection: 'row' as const,
       alignItems: 'flex-start' as const,
-      gap: 8,
+      gap: spacing.sm,
     },
     tipBullet: {
-      fontSize: 16,
+      ...typography.title,
       color: colors.statusWarning,
       fontWeight: 'bold' as const,
       marginTop: 2,
     },
     tipText: {
       flex: 1,
-      fontSize: 14,
+      ...typography.body,
       color: colors.statusWarning,
-      lineHeight: 20,
     },
   }));
 
@@ -288,7 +280,10 @@ const OtherOptionsModal: React.FC<OtherOptionsModalProps> = ({
               </View>
 
               {executionName?.trim() && (
-                <TouchableOpacity onPress={() => onExecutionNameChange('')}>
+                <TouchableOpacity
+                  onPress={() => onExecutionNameChange('')}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                >
                   <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
                 </TouchableOpacity>
               )}
@@ -321,7 +316,10 @@ const OtherOptionsModal: React.FC<OtherOptionsModalProps> = ({
               </View>
 
               {description?.trim() && (
-                <TouchableOpacity onPress={() => onDescriptionChange('')}>
+                <TouchableOpacity
+                  onPress={() => onDescriptionChange('')}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                >
                   <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
                 </TouchableOpacity>
               )}
@@ -353,7 +351,10 @@ const OtherOptionsModal: React.FC<OtherOptionsModalProps> = ({
               </View>
 
               {context?.trim() && (
-                <TouchableOpacity onPress={() => onContextChange('')}>
+                <TouchableOpacity
+                  onPress={() => onContextChange('')}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                >
                   <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
                 </TouchableOpacity>
               )}

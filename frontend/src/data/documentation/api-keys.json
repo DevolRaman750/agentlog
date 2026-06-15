@@ -1,0 +1,142 @@
+{
+  "id": "api-keys",
+  "title": "API Keys",
+  "description": "Manage authentication for external AI providers and service integrations",
+  "icon": "key-outline",
+  "color": "#FFCC00",
+  "sections": [
+    {
+      "type": "hero",
+      "title": "API Keys",
+      "subtitle": "Securely connect AgentLog to AI providers and external services",
+      "description": "API keys let your agents call AI model providers and integrate with third-party services. Every key is encrypted with AES-256-GCM before it is stored, so secrets are never persisted in plaintext.",
+      "highlights": [
+        "🔐 AES-256-GCM encryption at rest",
+        "🤖 AI providers: Gemini, OpenAI, OpenRouter",
+        "🔌 Integrations: Slack, Discord, GitHub, OpenWeather, Neo4j, Google Drive",
+        "🔑 Per-agent key overrides"
+      ]
+    },
+    {
+      "type": "overview",
+      "title": "What are API Keys used for?",
+      "content": "API keys authenticate AgentLog with the external systems your agents rely on:\n\n• **AI Providers**: Power model execution (Gemini, OpenAI, OpenRouter)\n• **Integrations**: Let functions talk to services like Slack, GitHub, and Google Drive\n• **Per-agent overrides**: Assign specific keys to individual agents when needed\n• **Encrypted storage**: All keys are encrypted with AES-256-GCM before being saved"
+    },
+    {
+      "type": "setup_guide",
+      "title": "Adding an API Key",
+      "sections": [
+        {
+          "title": "1. Open API Keys",
+          "steps": [
+            {
+              "task": "Go to the API Keys screen",
+              "description": "Open the API Keys section from the navigation menu",
+              "action": {
+                "type": "navigate",
+                "path": "ApiKeys",
+                "label": "Open API Keys"
+              }
+            },
+            {
+              "task": "Choose a provider or service",
+              "description": "Pick the AI provider (Gemini, OpenAI, OpenRouter) or integration you want to connect"
+            }
+          ]
+        },
+        {
+          "title": "2. Enter and save the key",
+          "steps": [
+            {
+              "task": "Paste your API key",
+              "description": "Copy the secret from the provider's dashboard and paste it into the key field"
+            },
+            {
+              "task": "Validate and save",
+              "description": "AgentLog validates the key, encrypts it with AES-256-GCM, and stores it securely"
+            },
+            {
+              "task": "Assign to agents (optional)",
+              "description": "Override the key for specific agents if they should use a different account"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "tips",
+      "title": "Best Practices",
+      "tips": [
+        "🔐 **Use scoped keys**: Grant each key the minimum permissions it needs",
+        "♻️ **Rotate regularly**: Replace keys periodically and after any suspected exposure",
+        "🧪 **Validate first**: Confirm a key works before assigning it to production agents",
+        "🚫 **Never share secrets**: Keys are write-only in the UI and cannot be retrieved after saving",
+        "📊 **Monitor usage**: Watch provider dashboards for unexpected activity or quota spikes"
+      ]
+    },
+    {
+      "type": "troubleshooting",
+      "title": "Common Issues",
+      "problems": [
+        {
+          "issue": "Key validation fails when saving",
+          "solutions": [
+            "Confirm the key was copied in full with no leading or trailing spaces",
+            "Verify the key matches the selected provider or service",
+            "Check that the key is active and not expired in the provider's dashboard",
+            "Ensure the associated account has billing or quota enabled"
+          ]
+        },
+        {
+          "issue": "Agent execution fails with an auth error",
+          "solutions": [
+            "Verify the provider key is set and valid on the API Keys screen",
+            "Check whether the agent has a per-agent key override pointing at a different account",
+            "Confirm the key has permission for the model or scope the agent requests"
+          ]
+        },
+        {
+          "issue": "Integration function returns unauthorized",
+          "solutions": [
+            "Re-add the integration key (Slack, GitHub, etc.) and re-validate it",
+            "Confirm the token's scopes cover the operation the function performs",
+            "Regenerate the token in the third-party service and update it in AgentLog"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "next-steps",
+      "type": "cta",
+      "title": "Ready to connect your services?",
+      "subtitle": "Add a key and start running agents",
+      "actions": [
+        {
+          "title": "Manage API Keys",
+          "description": "Add or update your provider and integration keys",
+          "icon": "key-outline",
+          "color": "#FFCC00",
+          "link": "ApiKeys",
+          "type": "navigate",
+          "primary": true
+        },
+        {
+          "title": "Configure a Model",
+          "description": "Set up a model configuration that uses your key",
+          "icon": "options-outline",
+          "color": "#007AFF",
+          "link": "Configure",
+          "type": "navigate"
+        },
+        {
+          "title": "Learn About Functions",
+          "description": "See which integrations need keys",
+          "icon": "code-slash-outline",
+          "color": "#5856D6",
+          "link": "Functions",
+          "type": "navigate"
+        }
+      ]
+    }
+  ]
+}
