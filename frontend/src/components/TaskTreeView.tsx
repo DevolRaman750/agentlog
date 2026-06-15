@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useThemedStyles } from '../theme';
+import { useThemedStyles, spacing, radius, typography } from '../theme';
 import { goGentAPI } from '../api/client';
 import { Task, TaskState } from '../types';
 import { getTaskStateColor, getTaskStateIcon, getPriorityColor } from './TaskCard';
@@ -64,7 +64,11 @@ const TaskTreeNode: React.FC<{
         activeOpacity={0.7}
       >
         {hasChildren ? (
-          <TouchableOpacity onPress={() => onToggle(node.task.id)} style={styles.chevron}>
+          <TouchableOpacity
+            onPress={() => onToggle(node.task.id)}
+            style={styles.chevron}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
             <Ionicons
               name={node.expanded ? 'chevron-down' : 'chevron-forward'}
               size={16}
@@ -190,19 +194,19 @@ const createStyles = (colors: ThemeColors) => ({
     flex: 1,
   },
   centered: {
-    padding: 20,
+    padding: spacing.lg,
     alignItems: 'center' as const,
   },
   errorText: {
-    color: '#EF4444',
-    fontSize: 14,
+    ...typography.body,
+    color: colors.statusError,
   },
   treeNode: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    paddingVertical: 8,
-    paddingRight: 12,
-    gap: 8,
+    paddingVertical: spacing.sm,
+    paddingRight: spacing.md,
+    gap: spacing.sm,
   },
   chevron: {
     width: 20,
@@ -216,27 +220,28 @@ const createStyles = (colors: ThemeColors) => ({
   priorityDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: radius.pill,
   },
   nodeTitle: {
+    ...typography.body,
     flex: 1,
-    fontSize: 14,
     color: colors.textPrimary,
     fontWeight: '500' as const,
   },
   nodeTitleCompact: {
-    fontSize: 13,
+    ...typography.label,
+    fontWeight: '500' as const,
   },
   childBadge: {
     backgroundColor: colors.bgSurface,
-    paddingHorizontal: 6,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 2,
-    borderRadius: 8,
+    borderRadius: radius.md,
   },
   childBadgeText: {
-    fontSize: 11,
-    color: colors.textSecondary,
+    ...typography.micro,
     fontWeight: '500' as const,
+    color: colors.textSecondary,
   },
 });
 

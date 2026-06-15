@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, ScrollView, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 
 interface AuthTooltipProps {
   title: string;
@@ -39,8 +39,12 @@ export const AuthTooltip: React.FC<AuthTooltipProps> = ({
       flex: 1,
     },
     helpButton: {
-      marginLeft: 8,
-      padding: 4,
+      marginLeft: spacing.sm,
+      padding: spacing.xs,
+      minWidth: touchTarget.min,
+      minHeight: touchTarget.min,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
     },
     modalContainer: {
       flex: 1,
@@ -50,50 +54,55 @@ export const AuthTooltip: React.FC<AuthTooltipProps> = ({
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      paddingHorizontal: 20,
-      paddingVertical: 16,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
     },
     modalTitle: {
-      fontSize: 18,
-      fontWeight: '600' as const,
+      ...typography.h2,
       color: colors.textPrimary,
       flex: 1,
     },
     closeButton: {
-      padding: 4,
+      padding: spacing.xs,
+      minWidth: touchTarget.min,
+      minHeight: touchTarget.min,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
     },
     modalContent: {
       flex: 1,
-      paddingHorizontal: 20,
+      paddingHorizontal: spacing.lg,
     },
     section: {
-      marginVertical: 16,
+      marginVertical: spacing.md,
     },
     sectionTitle: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
-      marginBottom: 12,
+      marginBottom: spacing.md,
     },
     description: {
+      ...typography.body,
       fontSize: 15,
       lineHeight: 22,
       color: colors.textPrimary,
     },
     listItem: {
       flexDirection: 'row' as const,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
       alignItems: 'flex-start' as const,
     },
     bulletPoint: {
+      ...typography.body,
       fontSize: 15,
       color: colors.accent,
-      marginRight: 8,
+      marginRight: spacing.sm,
       marginTop: 1,
     },
     listText: {
+      ...typography.body,
       fontSize: 15,
       lineHeight: 22,
       color: colors.textPrimary,
@@ -101,25 +110,26 @@ export const AuthTooltip: React.FC<AuthTooltipProps> = ({
     },
     stepItem: {
       flexDirection: 'row' as const,
-      marginBottom: 16,
+      marginBottom: spacing.md,
       alignItems: 'flex-start' as const,
     },
     stepNumber: {
       width: 24,
       height: 24,
-      borderRadius: 12,
+      borderRadius: radius.lg,
       backgroundColor: colors.accent,
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
-      marginRight: 12,
-      marginTop: 2,
+      marginRight: spacing.md,
+      marginTop: spacing.none,
     },
     stepNumberText: {
-      fontSize: 12,
+      ...typography.caption,
       fontWeight: '600' as const,
       color: colors.textInverse,
     },
     stepText: {
+      ...typography.body,
       fontSize: 15,
       lineHeight: 22,
       color: colors.textPrimary,
@@ -127,30 +137,30 @@ export const AuthTooltip: React.FC<AuthTooltipProps> = ({
     },
     warningItem: {
       flexDirection: 'row' as const,
-      marginBottom: 12,
+      marginBottom: spacing.md,
       alignItems: 'flex-start' as const,
       backgroundColor: `${colors.statusWarning}15`,
-      padding: 12,
-      borderRadius: 8,
+      padding: spacing.md,
+      borderRadius: radius.md,
       borderLeftWidth: 3,
       borderLeftColor: colors.statusWarning,
     },
     warningText: {
-      fontSize: 14,
-      lineHeight: 20,
+      ...typography.body,
       color: colors.statusWarning,
-      marginLeft: 8,
+      marginLeft: spacing.sm,
       flex: 1,
     },
     linkItem: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       justifyContent: 'space-between' as const,
-      paddingVertical: 12,
-      paddingHorizontal: 16,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.md,
       backgroundColor: colors.bgApp,
-      borderRadius: 8,
-      marginBottom: 8,
+      borderRadius: radius.md,
+      marginBottom: spacing.sm,
+      minHeight: touchTarget.min,
     },
     linkContent: {
       flexDirection: 'row' as const,
@@ -158,18 +168,19 @@ export const AuthTooltip: React.FC<AuthTooltipProps> = ({
       flex: 1,
     },
     linkTextContainer: {
-      marginLeft: 12,
+      marginLeft: spacing.md,
       flex: 1,
     },
     linkText: {
+      ...typography.body,
       fontSize: 15,
       fontWeight: '500' as const,
       color: colors.accent,
     },
     linkDescription: {
-      fontSize: 13,
+      ...typography.label,
       color: colors.textSecondary,
-      marginTop: 2,
+      marginTop: spacing.none,
     },
   }));
 

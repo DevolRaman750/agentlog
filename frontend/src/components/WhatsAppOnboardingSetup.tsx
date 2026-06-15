@@ -16,6 +16,7 @@ import { useToast } from '../context/ToastContext';
 import { goGentAPI } from '../api/client';
 import { CreateApiKeyRequest } from '../types';
 import { useTheme, useThemedStyles } from '../theme';
+import { spacing, radius, typography, touchTarget } from '../theme';
 
 interface WhatsAppOnboardingSetupProps {
   onComplete: (success: boolean) => void;
@@ -47,15 +48,14 @@ export const WhatsAppOnboardingSetup: React.FC<WhatsAppOnboardingSetupProps> = (
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
       backgroundColor: colors.bgCard,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
     },
     modalTitle: {
-      fontSize: 18,
-      fontWeight: '600' as const,
+      ...typography.h2,
       color: colors.textPrimary,
     },
     headerSpacer: {
@@ -63,110 +63,111 @@ export const WhatsAppOnboardingSetup: React.FC<WhatsAppOnboardingSetupProps> = (
     },
     container: {
       flex: 1,
-      padding: 16,
+      padding: spacing.md,
     },
     header: {
       alignItems: 'center' as const,
-      marginBottom: 24,
+      marginBottom: spacing.xl,
     },
     iconContainer: {
       width: 80,
       height: 80,
-      borderRadius: 40,
+      borderRadius: radius.pill,
       backgroundColor: '#25D36620',
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
-      marginBottom: 16,
+      marginBottom: spacing.lg,
     },
     title: {
-      fontSize: 24,
-      fontWeight: '700' as const,
+      ...typography.display,
       color: colors.textPrimary,
       textAlign: 'center' as const,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     subtitle: {
-      fontSize: 16,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.textSecondary,
       textAlign: 'center' as const,
-      lineHeight: 22,
     },
     formContainer: {
-      marginBottom: 24,
+      marginBottom: spacing.xl,
     },
     inputGroup: {
-      marginBottom: 20,
+      marginBottom: spacing.lg,
     },
     inputLabel: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     textInput: {
       backgroundColor: colors.bgCard,
       borderWidth: 1,
       borderColor: colors.borderLight,
-      borderRadius: 8,
-      paddingHorizontal: 12,
-      paddingVertical: 12,
-      fontSize: 16,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.textPrimary,
     },
     inputHelp: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
-      marginTop: 4,
+      marginTop: spacing.xs,
     },
     actionsContainer: {
-      gap: 12,
+      gap: spacing.md,
     },
     helpButton: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      paddingVertical: 12,
+      paddingVertical: spacing.md,
+      minHeight: touchTarget.min,
     },
     helpButtonText: {
-      fontSize: 16,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.accent,
-      marginLeft: 8,
+      marginLeft: spacing.sm,
     },
     saveButton: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
       backgroundColor: '#25D366',
-      borderRadius: 8,
-      paddingVertical: 16,
-      gap: 8,
+      borderRadius: radius.md,
+      paddingVertical: spacing.lg,
+      gap: spacing.sm,
+      minHeight: touchTarget.min,
     },
     saveButtonDisabled: {
       opacity: 0.6,
     },
     saveButtonText: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textInverse,
     },
     instructionsContainer: {
-      marginBottom: 24,
+      marginBottom: spacing.xl,
     },
     instructionStep: {
       flexDirection: 'row' as const,
-      marginBottom: 24,
+      marginBottom: spacing.xl,
     },
     stepNumber: {
       width: 32,
       height: 32,
-      borderRadius: 16,
+      borderRadius: radius.xl,
       backgroundColor: colors.accent,
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
-      marginRight: 16,
+      marginRight: spacing.lg,
     },
     stepNumberText: {
-      fontSize: 16,
+      ...typography.title,
       fontWeight: '700' as const,
       color: colors.textInverse,
     },
@@ -174,49 +175,51 @@ export const WhatsAppOnboardingSetup: React.FC<WhatsAppOnboardingSetupProps> = (
       flex: 1,
     },
     stepTitle: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     stepDescription: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
-      lineHeight: 20,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     linkButton: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 4,
+      gap: spacing.xs,
     },
     linkButtonText: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.accent,
       textDecorationLine: 'underline' as const,
     },
     helpLinks: {
-      marginBottom: 24,
+      marginBottom: spacing.xl,
     },
     helpLink: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 8,
-      paddingVertical: 12,
+      gap: spacing.sm,
+      paddingVertical: spacing.md,
+      minHeight: touchTarget.min,
     },
     helpLinkText: {
-      fontSize: 16,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.accent,
     },
     backButton: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      gap: 8,
-      paddingVertical: 16,
+      gap: spacing.sm,
+      paddingVertical: spacing.lg,
+      minHeight: touchTarget.min,
     },
     backButtonText: {
-      fontSize: 16,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.accent,
     },
   }));
@@ -527,7 +530,7 @@ export const WhatsAppOnboardingSetup: React.FC<WhatsAppOnboardingSetupProps> = (
   return (
     <View style={styles.modalContainer}>
       <View style={styles.modalHeader}>
-        <TouchableOpacity onPress={() => onComplete(false)}>
+        <TouchableOpacity onPress={() => onComplete(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Ionicons name="close" size={24} color={colors.textSecondary} />
         </TouchableOpacity>
         <Text style={styles.modalTitle}>WhatsApp Business</Text>

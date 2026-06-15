@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Platform, TextInput } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 
 interface DatePickerProps {
   label?: string;
@@ -34,37 +34,34 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
   const styles = useThemedStyles((colors) => ({
     container: {
-      marginBottom: 16,
+      marginBottom: spacing.lg,
     },
     labelContainer: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     label: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
     },
     required: {
+      ...typography.title,
       color: colors.statusError,
-      fontSize: 16,
-      fontWeight: '600' as const,
     },
     description: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
-      marginBottom: 8,
-      lineHeight: 20,
+      marginBottom: spacing.sm,
     },
     dateButton: {
       backgroundColor: colors.bgCard,
       borderWidth: 1,
       borderColor: colors.borderMedium,
-      borderRadius: 8,
-      paddingHorizontal: 12,
-      paddingVertical: 12,
-      minHeight: 48,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+      minHeight: touchTarget.min,
       justifyContent: 'center' as const,
     },
     dateButtonError: {
@@ -78,10 +75,11 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       alignItems: 'center' as const,
     },
     calendarIcon: {
-      marginRight: 8,
+      marginRight: spacing.sm,
     },
     dateText: {
-      fontSize: 16,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.textPrimary,
       flex: 1,
     },
@@ -89,12 +87,12 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       color: colors.textSecondary,
     },
     clearButton: {
-      marginLeft: 8,
+      marginLeft: spacing.sm,
     },
     errorText: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.statusError,
-      marginTop: 4,
+      marginTop: spacing.xs,
     },
   }));
 

@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MarketplaceTeam } from '../types/marketplace';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography } from '../theme';
 
 interface TeamMarketplaceCardProps {
   team: MarketplaceTeam;
@@ -24,111 +24,105 @@ const TeamMarketplaceCard: React.FC<TeamMarketplaceCardProps> = ({
   const styles = useThemedStyles((colors) => ({
     card: {
       backgroundColor: colors.bgCard,
-      borderRadius: 16,
-      padding: 16,
-      marginBottom: 16,
+      borderRadius: radius.xl,
+      padding: spacing.md,
+      marginBottom: spacing.lg,
       borderWidth: 1,
       borderColor: colors.borderLight,
-      shadowColor: colors.shadowColor,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
-      elevation: 3,
     },
     header: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      marginBottom: 12,
+      marginBottom: spacing.md,
     },
     avatar: {
       width: 48,
       height: 48,
-      borderRadius: 24,
+      borderRadius: radius.pill,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      marginRight: 12,
+      marginRight: spacing.md,
     },
     avatarText: {
-      fontSize: 20,
+      ...typography.h1,
       fontWeight: 'bold' as const,
     },
     headerInfo: {
       flex: 1,
     },
     name: {
-      fontSize: 18,
+      ...typography.h2,
       fontWeight: 'bold' as const,
       color: colors.textPrimary,
       marginBottom: 2,
     },
     category: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
       fontWeight: '500' as const,
     },
     teamSizeBadge: {
       backgroundColor: colors.accent,
-      borderRadius: 12,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
+      borderRadius: radius.lg,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
     },
     teamSizeText: {
-      fontSize: 12,
+      ...typography.caption,
       color: colors.textInverse,
       fontWeight: '600' as const,
     },
     description: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
-      lineHeight: 20,
-      marginBottom: 16,
+      marginBottom: spacing.lg,
     },
     membersSection: {
-      marginBottom: 16,
+      marginBottom: spacing.lg,
     },
     membersTitle: {
-      fontSize: 14,
-      fontWeight: '600' as const,
+      ...typography.bodyStrong,
       color: colors.textPrimary,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     memberRow: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     memberText: {
-      fontSize: 13,
+      ...typography.label,
+      fontWeight: '400' as const,
       color: colors.textSecondary,
-      marginLeft: 6,
+      marginLeft: spacing.sm,
       flex: 1,
     },
     moreMembers: {
-      fontSize: 12,
+      ...typography.caption,
       color: colors.accent,
       fontWeight: '500' as const,
-      marginTop: 4,
+      marginTop: spacing.xs,
     },
     capabilitiesSection: {
-      marginBottom: 16,
+      marginBottom: spacing.lg,
     },
     capabilitiesTitle: {
-      fontSize: 14,
-      fontWeight: '600' as const,
+      ...typography.bodyStrong,
       color: colors.textPrimary,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     capabilitiesList: {
-      gap: 4,
+      gap: spacing.xs,
     },
     capabilityItem: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
     },
     capabilityText: {
-      fontSize: 13,
+      ...typography.label,
+      fontWeight: '400' as const,
       color: colors.textSecondary,
-      marginLeft: 6,
+      marginLeft: spacing.sm,
       flex: 1,
     },
     footer: {
@@ -140,22 +134,21 @@ const TeamMarketplaceCard: React.FC<TeamMarketplaceCardProps> = ({
       flex: 1,
     },
     costLabel: {
-      fontSize: 12,
+      ...typography.caption,
       color: colors.textSecondary,
       marginBottom: 2,
     },
     costValue: {
-      fontSize: 14,
-      fontWeight: '600' as const,
+      ...typography.bodyStrong,
       color: colors.textPrimary,
     },
     actionButton: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 4,
+      gap: spacing.xs,
     },
     actionButtonText: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.accent,
       fontWeight: '500' as const,
     },

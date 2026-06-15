@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { FunctionDefinition, FunctionApiKeyRequirements } from '../types';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 
 export interface GroupedFunctionListProps {
   functions: FunctionDefinition[];
@@ -65,59 +65,54 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
       flex: 1,
     },
     group: {
-      marginBottom: 24,
+      marginBottom: spacing.xl,
     },
     groupHeader: {
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
       backgroundColor: colors.bgApp,
-      borderRadius: 8,
-      marginBottom: 8,
+      borderRadius: radius.md,
+      marginBottom: spacing.sm,
     },
     groupTitle: {
-      fontSize: 18,
-      fontWeight: '600' as const,
+      ...typography.h2,
       color: colors.textPrimary,
     },
     groupCount: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
     },
     typeGroup: {
-      marginBottom: 12,
+      marginBottom: spacing.md,
     },
     typeHeader: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      paddingHorizontal: 16,
-      paddingVertical: 8,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
       backgroundColor: colors.bgCard,
-      borderRadius: 6,
-      marginBottom: 4,
-      gap: 8,
+      borderRadius: radius.sm,
+      marginBottom: spacing.xs,
+      gap: spacing.sm,
     },
     typeTitle: {
-      fontSize: 14,
-      fontWeight: '600' as const,
+      ...typography.bodyStrong,
     },
     typeCount: {
-      fontSize: 12,
+      ...typography.caption,
       color: colors.textSecondary,
     },
     functionItem: {
       backgroundColor: colors.bgCard,
-      borderRadius: 8,
-      padding: 12,
-      marginBottom: 8,
-      marginHorizontal: 8,
-      shadowColor: colors.shadowColor,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.1,
-      shadowRadius: 2,
-      elevation: 1,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      marginBottom: spacing.sm,
+      marginHorizontal: spacing.sm,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
     },
     selectedFunctionItem: {
       backgroundColor: colors.accentSoft,
@@ -133,12 +128,12 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
       flex: 1,
       flexDirection: 'row' as const,
       alignItems: 'flex-start' as const,
-      gap: 12,
+      gap: spacing.md,
     },
     checkbox: {
       width: 20,
       height: 20,
-      borderRadius: 4,
+      borderRadius: radius.sm,
       borderWidth: 2,
       borderColor: colors.textTertiary,
       alignItems: 'center' as const,
@@ -153,50 +148,48 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
       flex: 1,
     },
     functionName: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     functionDescription: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
-      lineHeight: 20,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     functionMeta: {
       flexDirection: 'row' as const,
-      gap: 16,
+      gap: spacing.lg,
     },
     metaItem: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 4,
+      gap: spacing.xs,
     },
     metaText: {
-      fontSize: 12,
+      ...typography.caption,
       color: colors.textSecondary,
       fontWeight: '500' as const,
     },
     actionButtons: {
       flexDirection: 'row' as const,
-      gap: 8,
+      gap: spacing.sm,
     },
     actionButton: {
-      padding: 8,
-      borderRadius: 6,
+      padding: spacing.sm,
+      borderRadius: radius.sm,
       backgroundColor: colors.bgApp,
     },
     emptyContainer: {
       flex: 1,
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
-      paddingVertical: 64,
+      paddingVertical: spacing.xxxl,
     },
     emptyMessage: {
-      fontSize: 16,
+      ...typography.title,
       color: colors.textSecondary,
-      marginTop: 16,
+      marginTop: spacing.lg,
       textAlign: 'center' as const,
     },
   }));
@@ -360,7 +353,7 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
           <View style={styles.functionInfo}>
             {showSelectionCheckboxes && (
               <View style={[styles.checkbox, selected && styles.checkedCheckbox]}>
-                {selected && <Ionicons name="checkmark" size={14} color="white" />}
+                {selected && <Ionicons name="checkmark" size={14} color={colors.textInverse} />}
               </View>
             )}
             <View style={styles.functionDetails}>
@@ -404,6 +397,7 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
               {showApiKeyStatus && apiKeyStatus !== 'configured' && onConfigureApiKeys && (
                 <TouchableOpacity
                   style={styles.actionButton}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   onPress={() => onConfigureApiKeys(func)}
                 >
                   <Ionicons name="key-outline" size={18} color={colors.statusWarning} />
@@ -412,6 +406,7 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
               {onTest && (
                 <TouchableOpacity
                   style={styles.actionButton}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   onPress={() => onTest(func)}
                 >
                   <Ionicons name="play-outline" size={18} color={colors.statusSuccess} />
@@ -420,6 +415,7 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
               {onEdit && (
                 <TouchableOpacity
                   style={styles.actionButton}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   onPress={() => onEdit(func)}
                 >
                   <Ionicons name="create-outline" size={18} color={colors.accent} />
@@ -428,6 +424,7 @@ const GroupedFunctionList: React.FC<GroupedFunctionListProps> = ({
               {onDelete && (
                 <TouchableOpacity
                   style={styles.actionButton}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   onPress={() => onDelete(func.id)}
                 >
                   <Ionicons name="trash-outline" size={18} color={colors.statusError} />

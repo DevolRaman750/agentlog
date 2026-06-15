@@ -359,7 +359,7 @@ func (p *KimiProvider) parseKimiResponse(response map[string]interface{}, durati
 			}
 
 			// Extract tool_call_id
-		toolCallID, _ := tc["id"].(string)
+			toolCallID, _ := tc["id"].(string)
 
 			functionCalls = append(functionCalls, FunctionCall{
 				ID:   toolCallID,

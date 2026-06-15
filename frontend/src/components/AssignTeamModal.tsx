@@ -9,7 +9,7 @@ import {
   FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 import { goGentAPI } from '../api/client';
 import { Team, Agent } from '../types';
 import { AlertAPI } from './CustomAlert';
@@ -43,22 +43,26 @@ const AssignTeamModal: React.FC<AssignTeamModalProps> = ({
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
       backgroundColor: colors.bgCard,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
     },
     closeButton: {
-      padding: 8,
+      padding: spacing.sm,
+      minWidth: touchTarget.min,
+      minHeight: touchTarget.min,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
     },
     closeButtonText: {
-      fontSize: 16,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.accent,
     },
     headerTitle: {
-      fontSize: 18,
-      fontWeight: '600' as const,
+      ...typography.h2,
       color: colors.textPrimary,
     },
     headerSpacer: {
@@ -66,33 +70,31 @@ const AssignTeamModal: React.FC<AssignTeamModalProps> = ({
     },
     agentInfo: {
       backgroundColor: colors.bgCard,
-      padding: 16,
+      padding: spacing.md,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
     },
     agentName: {
-      fontSize: 18,
-      fontWeight: '600' as const,
+      ...typography.h2,
       color: colors.textPrimary,
     },
     agentSubtitle: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
-      marginTop: 4,
+      marginTop: spacing.xs,
     },
     currentTeamSection: {
       backgroundColor: colors.bgCard,
-      margin: 16,
-      borderRadius: 12,
-      padding: 16,
+      margin: spacing.lg,
+      borderRadius: radius.lg,
+      padding: spacing.md,
       borderWidth: 1,
       borderColor: colors.borderLight,
     },
     sectionTitle: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
-      marginBottom: 12,
+      marginBottom: spacing.md,
     },
     currentTeamContainer: {
       flexDirection: 'row' as const,
@@ -105,103 +107,107 @@ const AssignTeamModal: React.FC<AssignTeamModalProps> = ({
       flex: 1,
     },
     currentTeamName: {
-      fontSize: 16,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.textPrimary,
-      marginLeft: 8,
+      marginLeft: spacing.sm,
     },
     removeButton: {
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 6,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.sm,
       borderWidth: 1,
       borderColor: colors.statusError,
       minWidth: 70,
+      minHeight: touchTarget.min,
       alignItems: 'center' as const,
+      justifyContent: 'center' as const,
     },
     removeButtonText: {
-      fontSize: 14,
+      ...typography.label,
       color: colors.statusError,
-      fontWeight: '500' as const,
     },
     teamsSection: {
       flex: 1,
-      margin: 16,
+      margin: spacing.lg,
     },
     sectionHeader: {
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      marginBottom: 12,
+      marginBottom: spacing.md,
     },
     createButton: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 6,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.sm,
       borderWidth: 1,
       borderColor: colors.accent,
+      minHeight: touchTarget.min,
     },
     createButtonText: {
-      fontSize: 14,
+      ...typography.label,
       color: colors.accent,
-      marginLeft: 4,
-      fontWeight: '500' as const,
+      marginLeft: spacing.xs,
     },
     loadingContainer: {
       flex: 1,
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
       backgroundColor: colors.bgCard,
-      borderRadius: 12,
-      padding: 32,
+      borderRadius: radius.lg,
+      padding: spacing.xxl,
     },
     loadingText: {
-      fontSize: 16,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.textSecondary,
-      marginTop: 12,
+      marginTop: spacing.md,
     },
     emptyContainer: {
       flex: 1,
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
       backgroundColor: colors.bgCard,
-      borderRadius: 12,
-      padding: 32,
+      borderRadius: radius.lg,
+      padding: spacing.xxl,
     },
     emptyTitle: {
-      fontSize: 18,
-      fontWeight: '600' as const,
+      ...typography.h2,
       color: colors.textPrimary,
-      marginTop: 16,
+      marginTop: spacing.lg,
     },
     emptySubtitle: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
       textAlign: 'center' as const,
-      marginTop: 8,
+      marginTop: spacing.sm,
       lineHeight: 20,
     },
     emptyCreateButton: {
       backgroundColor: colors.accent,
-      paddingHorizontal: 20,
-      paddingVertical: 10,
-      borderRadius: 8,
-      marginTop: 16,
+      paddingHorizontal: spacing.xl,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.md,
+      marginTop: spacing.lg,
+      minHeight: touchTarget.min,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
     },
     emptyCreateButtonText: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textInverse,
     },
     teamsList: {
-      paddingBottom: 20,
+      paddingBottom: spacing.xl,
     },
     teamCard: {
       backgroundColor: colors.bgCard,
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 12,
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      marginBottom: spacing.md,
       borderWidth: 1,
       borderColor: colors.borderLight,
     },
@@ -216,48 +222,47 @@ const AssignTeamModal: React.FC<AssignTeamModalProps> = ({
     teamIcon: {
       width: 40,
       height: 40,
-      borderRadius: 20,
+      borderRadius: radius.pill,
       backgroundColor: colors.bgHover,
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
     },
     teamInfo: {
       flex: 1,
-      marginLeft: 12,
+      marginLeft: spacing.md,
     },
     teamName: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
     },
     teamDescription: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
       marginTop: 2,
       lineHeight: 18,
     },
     teamStats: {
       flexDirection: 'row' as const,
-      marginTop: 8,
+      marginTop: spacing.sm,
     },
     statItem: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      marginRight: 16,
+      marginRight: spacing.lg,
     },
     statText: {
-      fontSize: 12,
+      ...typography.caption,
       color: colors.textSecondary,
-      marginLeft: 4,
+      marginLeft: spacing.xs,
     },
     currentBadge: {
       backgroundColor: colors.accent,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 4,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: radius.sm,
     },
     currentBadgeText: {
-      fontSize: 12,
+      ...typography.micro,
       fontWeight: '600' as const,
       color: colors.textInverse,
     },
@@ -351,11 +356,11 @@ const AssignTeamModal: React.FC<AssignTeamModalProps> = ({
             )}
             <View style={styles.teamStats}>
               <View style={styles.statItem}>
-                <Ionicons name="people-outline" size={14} color="#6B6B6B" />
+                <Ionicons name="people-outline" size={14} color={colors.textSecondary} />
                 <Text style={styles.statText}>{team.agentCount} agents</Text>
               </View>
               <View style={styles.statItem}>
-                <Ionicons name="flash-outline" size={14} color="#6B6B6B" />
+                <Ionicons name="flash-outline" size={14} color={colors.textSecondary} />
                 <Text style={styles.statText}>
                   {team.tokensUsedToday.toLocaleString()}/{team.maxTokensPerDay.toLocaleString()} tokens
                 </Text>
@@ -427,7 +432,7 @@ const AssignTeamModal: React.FC<AssignTeamModalProps> = ({
           )}
 
           {/* Teams List */}
-          <View style={[styles.teamsSection, agent.teamId ? { marginTop: 0 } : { marginTop: 16 }]}>
+          <View style={[styles.teamsSection, agent.teamId ? { marginTop: spacing.none } : { marginTop: spacing.lg }]}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Available Teams</Text>
               <TouchableOpacity

@@ -15,7 +15,7 @@ import { UserApiKey, CreateApiKeyRequest } from '../types';
 import { ModelKeyRequirement } from '../utils/modelKeyUtils';
 import { useToast } from '../context/ToastContext';
 import { webInputStyles } from '../styles/containers';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 
 interface ModelKeyModalProps {
   visible: boolean;
@@ -42,41 +42,41 @@ const ModelKeyModal: React.FC<ModelKeyModalProps> = ({
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      paddingHorizontal: 20,
-      paddingVertical: 16,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.lg,
       backgroundColor: colors.bgCard,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
-      paddingTop: Platform.OS === 'ios' ? 60 : 16,
+      paddingTop: Platform.OS === 'ios' ? 60 : spacing.lg,
     },
     headerContent: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
     },
     title: {
-      fontSize: 18,
-      fontWeight: '600' as const,
-      marginLeft: 8,
+      ...typography.h2,
+      marginLeft: spacing.sm,
       color: colors.textPrimary,
     },
     closeButton: {
-      padding: 8,
-      minWidth: 44,
-      minHeight: 44,
+      padding: spacing.sm,
+      minWidth: touchTarget.min,
+      minHeight: touchTarget.min,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
     },
     content: {
       flex: 1,
-      padding: 20,
+      padding: spacing.lg,
     },
     infoSection: {
-      marginBottom: 24,
+      marginBottom: spacing.xl,
     },
     configurationText: {
-      fontSize: 16,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.textSecondary,
-      marginBottom: 12,
+      marginBottom: spacing.md,
     },
     configurationName: {
       fontWeight: '600' as const,
@@ -84,38 +84,37 @@ const ModelKeyModal: React.FC<ModelKeyModalProps> = ({
     },
     requirementCard: {
       backgroundColor: colors.bgCard,
-      padding: 16,
-      borderRadius: 12,
+      padding: spacing.md,
+      borderRadius: radius.lg,
       borderWidth: 1,
       borderColor: colors.borderLight,
     },
     requirementTitle: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     requirementDescription: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
-      lineHeight: 20,
     },
     inputSection: {
-      marginBottom: 24,
+      marginBottom: spacing.xl,
     },
     inputLabel: {
-      fontSize: 16,
+      ...typography.title,
       fontWeight: '500' as const,
       color: colors.textPrimary,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     textInput: {
       borderWidth: 1,
       borderColor: colors.borderLight,
-      borderRadius: 8,
-      paddingHorizontal: 12,
-      paddingVertical: 12,
-      fontSize: 16,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+      ...typography.title,
+      fontWeight: '400' as const,
       backgroundColor: colors.bgCard,
     },
     keyInput: {
@@ -123,17 +122,18 @@ const ModelKeyModal: React.FC<ModelKeyModalProps> = ({
     },
     buttonContainer: {
       flexDirection: 'row' as const,
-      gap: 12,
+      gap: spacing.md,
     },
     button: {
       flex: 1,
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      paddingVertical: 14,
-      paddingHorizontal: 20,
-      borderRadius: 8,
-      gap: 8,
+      minHeight: touchTarget.min,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+      borderRadius: radius.md,
+      gap: spacing.sm,
     },
     testButton: {
       backgroundColor: colors.bgCard,
@@ -141,17 +141,15 @@ const ModelKeyModal: React.FC<ModelKeyModalProps> = ({
       borderColor: colors.accent,
     },
     testButtonText: {
+      ...typography.title,
       color: colors.accent,
-      fontWeight: '600' as const,
-      fontSize: 16,
     },
     saveButton: {
       backgroundColor: colors.accent,
     },
     saveButtonText: {
+      ...typography.title,
       color: colors.textInverse,
-      fontWeight: '600' as const,
-      fontSize: 16,
     },
   }));
 
@@ -272,7 +270,7 @@ const ModelKeyModal: React.FC<ModelKeyModalProps> = ({
                 styles.keyInput
               ]}
               placeholder={getKeyPlaceholder(requirement.keyName)}
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.textTertiary}
               value={keyValue}
               onChangeText={setKeyValue}
               secureTextEntry
@@ -304,10 +302,10 @@ const ModelKeyModal: React.FC<ModelKeyModalProps> = ({
               disabled={loading || testing || !keyValue.trim()}
             >
               {loading ? (
-                <ActivityIndicator size="small" color="white" />
+                <ActivityIndicator size="small" color={colors.textInverse} />
               ) : (
                 <>
-                  <Ionicons name="save" size={20} color="white" />
+                  <Ionicons name="save" size={20} color={colors.textInverse} />
                   <Text style={styles.saveButtonText}>Save & Continue</Text>
                 </>
               )}

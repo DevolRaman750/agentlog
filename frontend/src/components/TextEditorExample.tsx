@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import TextEditor from './TextEditor';
-import { useThemedStyles } from '../theme';
+import { useThemedStyles, spacing, typography } from '../theme';
 
 const TextEditorExample: React.FC = () => {
   const [prompt, setPrompt] = useState('Create a comprehensive marketing plan for a sustainable tech startup.\n\nInclude the following sections:\n- Executive Summary\n- Market Analysis\n- Target Audience\n- Marketing Strategies\n- Budget Allocation\n- Success Metrics');
@@ -33,24 +33,22 @@ const TextEditorExample: React.FC = () => {
       backgroundColor: colors.bgApp,
     },
     content: {
-      padding: 20,
+      padding: spacing.lg,
       paddingBottom: 100,
     },
     title: {
-      fontSize: 28,
-      fontWeight: 'bold' as const,
+      ...typography.display,
       color: colors.textPrimary,
-      marginBottom: 30,
+      marginBottom: spacing.xxl,
       textAlign: 'center' as const,
     },
     section: {
-      marginBottom: 30,
+      marginBottom: spacing.xxl,
     },
     sectionTitle: {
-      fontSize: 18,
-      fontWeight: '600' as const,
+      ...typography.h2,
       color: colors.textPrimary,
-      marginBottom: 12,
+      marginBottom: spacing.md,
     },
   }));
 

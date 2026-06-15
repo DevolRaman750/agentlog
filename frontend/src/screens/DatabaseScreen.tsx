@@ -21,7 +21,7 @@ import { AlertAPI } from '../components/CustomAlert';
 import ScreenContainer from '../components/ScreenContainer';
 import LoadingScreen from '../components/LoadingScreen';
 import { useContainerStyles } from '../styles/useContainerStyles';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 import type { ThemeColors } from '../theme';
 
 const { width } = Dimensions.get('window');
@@ -169,6 +169,7 @@ const DatabaseScreen: React.FC = () => {
         </Text>
         <TouchableOpacity
           style={styles.refreshButton}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           onPress={handleRefresh}
           disabled={isRefreshing}
         >
@@ -294,7 +295,7 @@ const DatabaseScreen: React.FC = () => {
             <Text style={styles.rowCount}>
               {(tableData.rows?.length || 0)} of {tableData.totalRows || 0} rows
             </Text>
-            <TouchableOpacity style={styles.refreshButton} onPress={handleRefresh}>
+            <TouchableOpacity style={styles.refreshButton} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} onPress={handleRefresh}>
               <Ionicons name="refresh" size={18} color={colors.accent} />
             </TouchableOpacity>
           </View>
@@ -429,9 +430,10 @@ const DatabaseScreen: React.FC = () => {
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Row Details</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => setShowRowModal(false)}
               style={styles.modalCloseButton}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Ionicons name="close" size={24} color={colors.accent} />
             </TouchableOpacity>
@@ -543,50 +545,55 @@ const createStyles = (colors: ThemeColors) => ({
   },
   statusContainer: {
     backgroundColor: colors.bgCard,
-    borderRadius: 12,
-    padding: 16,
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 8,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    padding: spacing.md,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
   },
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 8,
+    width: spacing.sm,
+    height: spacing.sm,
+    borderRadius: spacing.xs,
+    marginRight: spacing.sm,
   },
   statusText: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textPrimary,
     flex: 1,
   },
   refreshButton: {
-    padding: 4,
+    padding: spacing.xs,
   },
   section: {
     backgroundColor: colors.bgCard,
-    borderRadius: 12,
-    padding: 16,
-    marginHorizontal: 16,
-    marginTop: 16,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    padding: spacing.md,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...typography.h2,
     color: colors.textPrimary,
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   statsGrid: {
-    gap: 12,
+    gap: spacing.md,
   },
   statsCard: {
     backgroundColor: colors.bgApp,
-    borderRadius: 8,
-    padding: 16,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    padding: spacing.md,
     borderLeftWidth: 4,
   },
   statsContent: {
@@ -594,28 +601,31 @@ const createStyles = (colors: ThemeColors) => ({
     alignItems: 'center',
   },
   statsText: {
-    marginLeft: 12,
+    marginLeft: spacing.md,
     flex: 1,
   },
   statsValue: {
-    fontSize: 20,
-    fontWeight: '600',
+    ...typography.h1,
+    fontWeight: '600' as const,
     color: colors.textPrimary,
   },
   statsLabel: {
-    fontSize: 12,
+    ...typography.caption,
     color: colors.textSecondary,
-    marginTop: 2,
+    marginTop: spacing.xs / 2,
   },
   tableItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
     backgroundColor: colors.bgApp,
-    borderRadius: 8,
-    marginBottom: 8,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    marginBottom: spacing.sm,
+    minHeight: touchTarget.min,
   },
   tableItemContent: {
     flexDirection: 'row',
@@ -623,17 +633,17 @@ const createStyles = (colors: ThemeColors) => ({
     flex: 1,
   },
   tableItemText: {
-    fontSize: 14,
-    fontWeight: '500',
+    ...typography.body,
+    fontWeight: '500' as const,
     color: colors.textPrimary,
-    marginLeft: 8,
+    marginLeft: spacing.sm,
   },
   emptyState: {
-    padding: 20,
+    padding: spacing.lg,
     alignItems: 'center',
   },
   emptyStateText: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textSecondary,
     textAlign: 'center',
   },
@@ -641,67 +651,68 @@ const createStyles = (colors: ThemeColors) => ({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 32,
+    padding: spacing.xxl,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+    ...typography.h1,
+    fontWeight: '600' as const,
     color: colors.textSecondary,
-    marginTop: 16,
+    marginTop: spacing.lg,
   },
   emptySubtitle: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textTertiary,
     textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 20,
+    marginTop: spacing.sm,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 32,
+    padding: spacing.xxl,
   },
   loadingText: {
-    fontSize: 16,
+    ...typography.title,
     color: colors.textSecondary,
-    marginTop: 16,
+    marginTop: spacing.lg,
   },
   tableContainer: {
     flex: 1,
     backgroundColor: colors.bgCard,
-    margin: 16,
-    borderRadius: 12,
+    margin: spacing.lg,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
   },
   tableHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
   },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: spacing.lg,
+    minHeight: touchTarget.min,
   },
   backButtonText: {
-    fontSize: 16,
+    ...typography.title,
     color: colors.accent,
-    marginLeft: 4,
+    marginLeft: spacing.xs,
   },
   tableInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: spacing.md,
   },
   tableName: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...typography.h2,
     color: colors.textPrimary,
   },
   rowCount: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textSecondary,
   },
   tableScrollView: {
@@ -724,22 +735,22 @@ const createStyles = (colors: ThemeColors) => ({
   },
   tableHeaderCell: {
     width: 150,
-    padding: 12,
+    padding: spacing.md,
     backgroundColor: colors.bgApp,
     borderRightWidth: 1,
     borderRightColor: colors.borderLight,
     justifyContent: 'center',
   },
   tableHeaderText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...typography.caption,
+    fontWeight: '600' as const,
     color: colors.textPrimary,
     textTransform: 'uppercase' as const,
     textAlign: 'center' as const,
   },
   tableCell: {
     width: 150,
-    padding: 8,
+    padding: spacing.sm,
     borderRightWidth: 1,
     borderRightColor: colors.borderLight,
     justifyContent: 'center',
@@ -753,51 +764,55 @@ const createStyles = (colors: ThemeColors) => ({
     minHeight: 24,
   },
   cellValue: {
-    fontSize: 12,
+    ...typography.caption,
     color: colors.textPrimary,
     textAlign: 'center' as const,
     flex: 1,
   },
   expandIcon: {
-    marginLeft: 4,
+    marginLeft: spacing.xs,
   },
   nullValue: {
-    fontSize: 12,
+    ...typography.caption,
     color: colors.textTertiary,
     fontStyle: 'italic' as const,
   },
   booleanValue: {
-    fontSize: 12,
+    ...typography.caption,
     color: colors.accent,
-    fontWeight: '500',
+    fontWeight: '500' as const,
   },
   numberValue: {
-    fontSize: 12,
+    ...typography.caption,
     color: colors.textPrimary,
     fontFamily: 'monospace',
   },
   emptyTableState: {
-    padding: 32,
+    padding: spacing.xxl,
     alignItems: 'center',
   },
   modalContainer: {
     flex: 1,
     backgroundColor: colors.bgCard,
-    padding: 20,
+    padding: spacing.lg,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+    ...typography.h1,
+    fontWeight: '600' as const,
     color: colors.textPrimary,
   },
   modalCloseButton: {
-    padding: 8,
+    padding: spacing.sm,
+    minWidth: touchTarget.min,
+    minHeight: touchTarget.min,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalContent: {
     flex: 1,
@@ -806,36 +821,36 @@ const createStyles = (colors: ThemeColors) => ({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
   },
   modalColumnName: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...typography.body,
+    fontWeight: '600' as const,
     color: colors.textPrimary,
     textTransform: 'uppercase' as const,
   },
   modalValueContainer: {
     flex: 1,
-    marginLeft: 10,
+    marginLeft: spacing.sm,
   },
   modalValue: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textPrimary,
   },
   modalNullValue: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textTertiary,
     fontStyle: 'italic' as const,
   },
   modalBooleanValue: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.accent,
-    fontWeight: '500',
+    fontWeight: '500' as const,
   },
   modalNumberValue: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textPrimary,
     fontFamily: 'monospace',
   },

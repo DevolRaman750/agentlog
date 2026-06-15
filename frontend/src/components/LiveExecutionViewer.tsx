@@ -15,22 +15,17 @@ import { goGentAPI } from '../api/client';
 import { ExecutionLog, ExecutionFlowEvent } from '../types';
 import ExecutionFlowGraph from './ExecutionFlowGraph';
 import ExecutionLogsCard from './ExecutionLogsCard';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 import type { ThemeColors } from '../theme';
 import { useResponsive } from '../context/ResponsiveContext';
 
 const createStyles = (colors: ThemeColors) => ({
   container: {
     backgroundColor: colors.bgCard,
-    borderRadius: 16,
-    marginBottom: 32,
+    borderRadius: radius.xl,
+    marginBottom: spacing.xxl,
     borderWidth: 1,
     borderColor: colors.borderLight,
-    shadowColor: colors.shadowColor,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
     overflow: 'hidden' as const,
     flex: 1,
     maxHeight: '100%' as const,
@@ -39,7 +34,7 @@ const createStyles = (colors: ThemeColors) => ({
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
     alignItems: 'center' as const,
-    padding: 16,
+    padding: spacing.lg,
     backgroundColor: colors.bgSurface,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
@@ -51,19 +46,19 @@ const createStyles = (colors: ThemeColors) => ({
   },
   progressIconContainer: {
     position: 'relative' as const,
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   progressRing: {
     position: 'absolute' as const,
     bottom: -8,
     right: -8,
     backgroundColor: colors.accent,
-    borderRadius: 12,
-    paddingHorizontal: 6,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 2,
   },
   progressText: {
-    fontSize: 10,
+    ...typography.micro,
     fontWeight: '700' as const,
     color: colors.textInverse,
   },
@@ -71,17 +66,16 @@ const createStyles = (colors: ThemeColors) => ({
     flex: 1,
   },
   progressTitle: {
-    fontSize: 16,
-    fontWeight: '600' as const,
+    ...typography.title,
     color: colors.textPrimary,
     marginBottom: 2,
   },
   progressSubtitle: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textSecondary,
   },
   temporaryIdNote: {
-    fontSize: 12,
+    ...typography.caption,
     color: colors.statusWarning,
     fontStyle: 'italic' as const,
     marginTop: 2,
@@ -89,11 +83,11 @@ const createStyles = (colors: ThemeColors) => ({
   headerControls: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    gap: 8,
+    gap: spacing.sm,
   },
   controlButton: {
-    padding: 8,
-    borderRadius: 8,
+    padding: spacing.sm,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.borderLight,
     backgroundColor: colors.bgCard,
@@ -105,45 +99,43 @@ const createStyles = (colors: ThemeColors) => ({
   cancelButton: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     backgroundColor: `${colors.statusError}10`,
-    borderRadius: 8,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: `${colors.statusError}20`,
-    gap: 4,
+    gap: spacing.xs,
   },
   cancelButtonText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
+    ...typography.bodyStrong,
     color: colors.statusError,
   },
   viewModeSelector: {
     flexDirection: 'row' as const,
-    padding: 12,
+    padding: spacing.md,
     backgroundColor: colors.bgSurface,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
-    gap: 8,
+    gap: spacing.sm,
   },
   viewModeButton: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.borderLight,
     backgroundColor: colors.bgCard,
-    gap: 4,
+    gap: spacing.xs,
   },
   activeViewModeButton: {
     backgroundColor: colors.accent,
     borderColor: colors.accent,
   },
   viewModeText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
+    ...typography.bodyStrong,
     color: colors.accent,
   },
   activeViewModeText: {
@@ -152,14 +144,14 @@ const createStyles = (colors: ThemeColors) => ({
   errorBanner: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    padding: 12,
+    padding: spacing.md,
     backgroundColor: `${colors.statusError}10`,
     borderBottomWidth: 1,
     borderBottomColor: `${colors.statusError}20`,
-    gap: 8,
+    gap: spacing.sm,
   },
   errorText: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.statusError,
     flex: 1,
   },
@@ -173,27 +165,26 @@ const createStyles = (colors: ThemeColors) => ({
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
     alignItems: 'center' as const,
-    padding: 16,
+    padding: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
   },
   logsTitle: {
-    fontSize: 16,
-    fontWeight: '600' as const,
+    ...typography.title,
     color: colors.textPrimary,
   },
   logsConfigIndicator: {
-    fontSize: 14,
-    color: colors.textSecondary,
+    ...typography.body,
     fontWeight: '500' as const,
+    color: colors.textSecondary,
   },
   logsStats: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    gap: 8,
+    gap: spacing.sm,
   },
   logsCount: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textSecondary,
   },
   logsScrollView: {
@@ -208,12 +199,12 @@ const createStyles = (colors: ThemeColors) => ({
   emptyState: {
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
-    paddingVertical: 40,
+    paddingVertical: spacing.xxl,
   },
   emptyStateText: {
-    fontSize: 16,
+    ...typography.title,
     color: colors.textSecondary,
-    marginTop: 12,
+    marginTop: spacing.md,
   },
   logEntry: {
     borderBottomWidth: 1,
@@ -221,10 +212,10 @@ const createStyles = (colors: ThemeColors) => ({
   },
   logHeader: {
     flexDirection: 'row' as const,
-    padding: 12,
+    padding: spacing.md,
   },
   logIcon: {
-    marginRight: 12,
+    marginRight: spacing.md,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
@@ -238,27 +229,26 @@ const createStyles = (colors: ThemeColors) => ({
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
     alignItems: 'center' as const,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   logCategory: {
-    fontSize: 12,
+    ...typography.caption,
     fontWeight: '600' as const,
     color: colors.accent,
     textTransform: 'uppercase' as const,
   },
   logTimestamp: {
-    fontSize: 12,
+    ...typography.caption,
     color: colors.textSecondary,
     fontFamily: 'monospace',
   },
   logMessage: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textPrimary,
-    lineHeight: 20,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   logLevel: {
-    fontSize: 12,
+    ...typography.caption,
     fontWeight: '500' as const,
   },
   flowContainer: {
@@ -268,13 +258,12 @@ const createStyles = (colors: ThemeColors) => ({
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
     alignItems: 'center' as const,
-    padding: 16,
+    padding: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
   },
   flowTitle: {
-    fontSize: 16,
-    fontWeight: '600' as const,
+    ...typography.title,
     color: colors.textPrimary,
   },
   bothContainer: {
@@ -295,26 +284,26 @@ const createStyles = (colors: ThemeColors) => ({
     borderBottomColor: colors.borderLight,
   },
   progressHeaderCollapsed: {
-    padding: 8,
+    padding: spacing.sm,
   },
   viewModeSelectorCompact: {
-    padding: 6,
-    gap: 4,
+    padding: spacing.sm,
+    gap: spacing.xs,
   },
   // Simulated flow styles
   simulatedFlowContainer: {
     flex: 1,
-    padding: 16,
+    padding: spacing.lg,
   },
   simulatedFlowEvent: {
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   simulatedEventHeader: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     backgroundColor: colors.bgCard,
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: radius.md,
+    padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.borderLight,
   },
@@ -324,7 +313,7 @@ const createStyles = (colors: ThemeColors) => ({
     borderRadius: 16,
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   simulatedEventIcon: {
     fontSize: 16,
@@ -333,19 +322,17 @@ const createStyles = (colors: ThemeColors) => ({
     flex: 1,
   },
   simulatedEventType: {
-    fontSize: 14,
-    fontWeight: '600' as const,
+    ...typography.bodyStrong,
     color: colors.textPrimary,
     marginBottom: 2,
   },
   simulatedEventMessage: {
-    fontSize: 12,
+    ...typography.caption,
     color: colors.textSecondary,
     marginBottom: 2,
   },
   simulatedEventStatusText: {
-    fontSize: 10,
-    fontWeight: '500' as const,
+    ...typography.micro,
     color: colors.textSecondary,
     textTransform: 'uppercase' as const,
   },
@@ -354,21 +341,20 @@ const createStyles = (colors: ThemeColors) => ({
     height: 12,
     backgroundColor: colors.borderLight,
     marginLeft: 27,
-    marginVertical: 4,
+    marginVertical: spacing.xs,
   },
   simulatedStatsContainer: {
     backgroundColor: colors.bgSurface,
-    borderRadius: 8,
-    padding: 16,
-    marginTop: 16,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    marginTop: spacing.lg,
     borderWidth: 1,
     borderColor: colors.borderLight,
   },
   simulatedStatsTitle: {
-    fontSize: 14,
-    fontWeight: '600' as const,
+    ...typography.bodyStrong,
     color: colors.textPrimary,
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   simulatedStatsGrid: {
     flexDirection: 'row' as const,
@@ -379,42 +365,41 @@ const createStyles = (colors: ThemeColors) => ({
     flex: 1,
   },
   simulatedStatValue: {
-    fontSize: 16,
+    ...typography.title,
     fontWeight: '700' as const,
     color: colors.accent,
   },
   simulatedStatLabel: {
-    fontSize: 11,
+    ...typography.micro,
     color: colors.textSecondary,
     textAlign: 'center' as const,
     marginTop: 2,
   },
   // Configuration tabs styles
   configTabsContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
     backgroundColor: colors.bgSurface,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
   },
   configTabsTitle: {
-    fontSize: 14,
-    fontWeight: '600' as const,
+    ...typography.bodyStrong,
     color: colors.textPrimary,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   configTabsScroll: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    gap: 8,
-    paddingHorizontal: 4,
+    gap: spacing.sm,
+    paddingHorizontal: spacing.xs,
   },
   configTab: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.xl,
     borderWidth: 1,
     borderColor: colors.borderLight,
     backgroundColor: colors.bgCard,
@@ -426,11 +411,10 @@ const createStyles = (colors: ThemeColors) => ({
   configTabContent: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    gap: 8,
+    gap: spacing.sm,
   },
   configTabText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
+    ...typography.bodyStrong,
     color: colors.textPrimary,
   },
   activeConfigTabText: {
@@ -438,8 +422,8 @@ const createStyles = (colors: ThemeColors) => ({
   },
   configTabBadge: {
     backgroundColor: colors.accent,
-    borderRadius: 10,
-    paddingHorizontal: 6,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 2,
   },
   activeConfigTabBadge: {
@@ -447,7 +431,7 @@ const createStyles = (colors: ThemeColors) => ({
     borderColor: colors.textInverse,
   },
   configTabBadgeText: {
-    fontSize: 10,
+    ...typography.micro,
     fontWeight: '700' as const,
     color: colors.textInverse,
   },
@@ -1084,6 +1068,7 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
           <TouchableOpacity
             style={[styles.controlButton, autoRefresh && styles.activeControlButton]}
             onPress={() => setAutoRefresh(!autoRefresh)}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           >
             <Ionicons
               name={autoRefresh ? "pause" : "play"}
@@ -1092,7 +1077,11 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
             />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.controlButton} onPress={handleRefresh}>
+          <TouchableOpacity
+            style={styles.controlButton}
+            onPress={handleRefresh}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          >
             <Ionicons name="refresh" size={16} color={colors.accent} />
           </TouchableOpacity>
 
@@ -1286,7 +1275,10 @@ const LiveExecutionViewer: React.FC<LiveExecutionViewerProps> = ({
         <View style={styles.errorBanner}>
           <Ionicons name="warning" size={16} color={colors.statusError} />
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity onPress={() => setError(null)}>
+          <TouchableOpacity
+            onPress={() => setError(null)}
+            hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+          >
             <Ionicons name="close" size={16} color={colors.statusError} />
           </TouchableOpacity>
         </View>

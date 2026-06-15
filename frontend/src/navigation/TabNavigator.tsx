@@ -6,7 +6,7 @@ import { TabParamList } from '../types';
 import { ResponsiveNavigation } from '../components/ResponsiveNavigation';
 import { useAuth } from '../context/AuthContext';
 import { useResponsive } from '../context/ResponsiveContext';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, layout } from '../theme';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { getInitialRouteName } from './linking';
 import {
@@ -327,8 +327,18 @@ const ScreenWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         <MobileNavigationDropdown />
       ) : null}
 
-      <View style={{ flex: 1 }}>
-        {children}
+      {/*
+        On desktop/sidebar layouts, cap the content column width and center it
+        so screens don't stretch edge-to-edge on large/wide displays. On phone
+        and tablet it fills the available width as before.
+      */}
+      <View style={{ flex: 1, alignItems: isSidebarLayout ? 'center' : 'stretch' }}>
+        <View style={[
+          { flex: 1, width: '100%' as const },
+          isSidebarLayout && { maxWidth: layout.maxContentWidth },
+        ]}>
+          {children}
+        </View>
       </View>
     </View>
   );

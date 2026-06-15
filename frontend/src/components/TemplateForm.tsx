@@ -22,6 +22,7 @@ import ConfigurationModal from './ConfigurationModal';
 import { ExecutionTemplate, TemplateFormData, TemplateParameter } from '../types/templates';
 import { FunctionDefinition, APIConfiguration } from '../types';
 import { useTheme, useThemedStyles } from '../theme';
+import { spacing, radius, typography } from '../theme';
 import { useContainerStyles } from '../styles/useContainerStyles';
 
 interface TemplateFormProps {
@@ -67,6 +68,7 @@ const TooltipComponent: React.FC<TooltipInternalProps> = React.memo(({ title, co
           <TouchableOpacity
             onPress={onClose}
             style={themedStyles.tooltipClose}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityLabel="Close tooltip"
             accessibilityRole="button"
           >
@@ -146,131 +148,131 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      paddingHorizontal: 20,
-      paddingVertical: 16,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
       backgroundColor: colors.bgCard,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
     },
-    headerButton: { padding: 8 },
+    headerButton: { padding: spacing.sm },
     headerButtonDisabled: { opacity: 0.5 },
-    title: { fontSize: 20, fontWeight: '600' as const, color: colors.textPrimary },
-    saveText: { fontSize: 16, fontWeight: '600' as const, color: colors.accent },
+    title: { ...typography.h1, color: colors.textPrimary },
+    saveText: { ...typography.title, color: colors.accent },
     saveTextDisabled: { color: colors.textSecondary },
-    content: { flex: 1, paddingHorizontal: 20 },
-    section: { marginVertical: 16 },
-    sectionHeader: { flexDirection: 'row' as const, alignItems: 'center' as const, marginBottom: 16, gap: 8 },
-    sectionTitle: { fontSize: 18, fontWeight: '600' as const, color: colors.textPrimary, flex: 1 },
-    tooltipButton: { padding: 4 },
-    infoCard: { backgroundColor: colors.bgSurface, padding: 16, borderRadius: 12, borderLeftWidth: 4, borderLeftColor: colors.accent },
-    infoText: { fontSize: 14, color: colors.textSecondary, lineHeight: 20 },
-    inputRow: { flexDirection: 'row' as const, gap: 12, marginBottom: 16 },
+    content: { flex: 1, paddingHorizontal: spacing.lg },
+    section: { marginVertical: spacing.lg },
+    sectionHeader: { flexDirection: 'row' as const, alignItems: 'center' as const, marginBottom: spacing.lg, gap: spacing.sm },
+    sectionTitle: { ...typography.h2, color: colors.textPrimary, flex: 1 },
+    tooltipButton: { padding: spacing.xs },
+    infoCard: { backgroundColor: colors.bgSurface, padding: spacing.md, borderRadius: radius.lg, borderLeftWidth: 4, borderLeftColor: colors.accent },
+    infoText: { ...typography.body, color: colors.textSecondary },
+    inputRow: { flexDirection: 'row' as const, gap: spacing.md, marginBottom: spacing.lg },
     inputContainer: { flex: 1 },
-    labelContainer: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, marginBottom: 8 },
-    fieldLabel: { fontSize: 14, fontWeight: '500' as const, color: colors.textPrimary },
+    labelContainer: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, marginBottom: spacing.sm },
+    fieldLabel: { ...typography.label, color: colors.textPrimary },
     textArea: { minHeight: 80, textAlignVertical: 'top' as const },
     promptArea: { minHeight: 120, textAlignVertical: 'top' as const },
-    variablesContainer: { marginBottom: 12 },
-    variablesLabel: { fontSize: 12, fontWeight: '500' as const, color: colors.textSecondary, marginBottom: 8 },
-    variableChips: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 8 },
-    variableChip: { backgroundColor: colors.accent, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
-    variableChipText: { fontSize: 12, fontWeight: '500' as const, color: colors.textInverse },
-    detectedParametersContainer: { backgroundColor: colors.accentSoft, borderRadius: 8, padding: 12, marginTop: 12, borderLeftWidth: 3, borderLeftColor: colors.accent },
-    detectedParametersLabel: { fontSize: 12, fontWeight: '600' as const, color: colors.accent, marginBottom: 8 },
-    detectedParametersList: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 6 },
-    detectedParameterChip: { backgroundColor: colors.bgSurface, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: colors.accent },
-    detectedParameterText: { fontSize: 11, fontWeight: '600' as const, color: colors.accent, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
-    selectorButton: { backgroundColor: colors.bgCard, borderRadius: 12, padding: 16, borderWidth: 1, borderColor: colors.borderLight },
+    variablesContainer: { marginBottom: spacing.md },
+    variablesLabel: { ...typography.caption, fontWeight: '500' as const, color: colors.textSecondary, marginBottom: spacing.sm },
+    variableChips: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: spacing.sm },
+    variableChip: { backgroundColor: colors.accent, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.xl },
+    variableChipText: { ...typography.caption, fontWeight: '500' as const, color: colors.textInverse },
+    detectedParametersContainer: { backgroundColor: colors.accentSoft, borderRadius: radius.md, padding: spacing.md, marginTop: spacing.md, borderLeftWidth: 3, borderLeftColor: colors.accent },
+    detectedParametersLabel: { ...typography.caption, fontWeight: '600' as const, color: colors.accent, marginBottom: spacing.sm },
+    detectedParametersList: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: spacing.sm },
+    detectedParameterChip: { backgroundColor: colors.bgSurface, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.accent },
+    detectedParameterText: { ...typography.micro, fontWeight: '600' as const, color: colors.accent, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
+    selectorButton: { backgroundColor: colors.bgCard, borderRadius: radius.lg, padding: spacing.md, borderWidth: 1, borderColor: colors.borderLight },
     selectorContent: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const },
     selectorMain: { flex: 1 },
-    selectorLabel: { fontSize: 12, fontWeight: '500' as const, color: colors.textSecondary, marginBottom: 4 },
-    selectorValue: { fontSize: 16, fontWeight: '500' as const, color: colors.textPrimary },
-    enhancedSelectorButton: { backgroundColor: colors.bgCard, borderRadius: 12, padding: 16, borderWidth: 1, borderColor: colors.borderLight },
+    selectorLabel: { ...typography.caption, fontWeight: '500' as const, color: colors.textSecondary, marginBottom: spacing.xs },
+    selectorValue: { ...typography.title, fontWeight: '500' as const, color: colors.textPrimary },
+    enhancedSelectorButton: { backgroundColor: colors.bgCard, borderRadius: radius.lg, padding: spacing.md, borderWidth: 1, borderColor: colors.borderLight },
     modelSelectorContent: { flexDirection: 'row' as const, alignItems: 'flex-start' as const, justifyContent: 'space-between' as const },
-    modelSelectorMain: { flex: 1, marginRight: 12 },
-    modelSelectorHeader: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, marginBottom: 4 },
-    modelSelectorLabel: { fontSize: 12, fontWeight: '500' as const, color: colors.textSecondary },
-    modelSelectorValue: { fontSize: 16, fontWeight: '600' as const, color: colors.textPrimary, marginBottom: 4 },
-    modelSelectorDescription: { fontSize: 14, color: colors.textSecondary, lineHeight: 18, marginBottom: 4 },
-    modelIdealFor: { fontSize: 12, color: colors.accent, fontWeight: '500' as const, marginBottom: 4 },
-    modelTokenInfo: { fontSize: 11, color: colors.textSecondary, fontWeight: '400' as const },
-    switchContainer: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, backgroundColor: colors.bgCard, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: colors.borderLight },
-    switchLabel: { flex: 1, marginRight: 16 },
-    switchText: { fontSize: 16, fontWeight: '500' as const, color: colors.textPrimary, marginBottom: 4 },
-    switchDescription: { fontSize: 12, color: colors.textSecondary },
-    functionsButton: { backgroundColor: colors.bgCard, borderRadius: 12, padding: 16, marginTop: 12, borderWidth: 1, borderColor: colors.borderLight },
+    modelSelectorMain: { flex: 1, marginRight: spacing.md },
+    modelSelectorHeader: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, marginBottom: spacing.xs },
+    modelSelectorLabel: { ...typography.caption, fontWeight: '500' as const, color: colors.textSecondary },
+    modelSelectorValue: { ...typography.title, color: colors.textPrimary, marginBottom: spacing.xs },
+    modelSelectorDescription: { ...typography.body, color: colors.textSecondary, marginBottom: spacing.xs },
+    modelIdealFor: { ...typography.caption, fontWeight: '500' as const, color: colors.accent, marginBottom: spacing.xs },
+    modelTokenInfo: { ...typography.micro, fontWeight: '400' as const, color: colors.textSecondary },
+    switchContainer: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, backgroundColor: colors.bgCard, padding: spacing.md, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.borderLight },
+    switchLabel: { flex: 1, marginRight: spacing.lg },
+    switchText: { ...typography.title, fontWeight: '500' as const, color: colors.textPrimary, marginBottom: spacing.xs },
+    switchDescription: { ...typography.caption, color: colors.textSecondary },
+    functionsButton: { backgroundColor: colors.bgCard, borderRadius: radius.lg, padding: spacing.md, marginTop: spacing.md, borderWidth: 1, borderColor: colors.borderLight },
     functionsContent: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const },
-    functionsLabel: { fontSize: 16, fontWeight: '500' as const, color: colors.textPrimary },
-    functionsViewContainer: { marginTop: 12 },
-    functionsViewLabel: { fontSize: 16, fontWeight: '500' as const, color: colors.textPrimary, marginBottom: 8 },
-    functionsList: { gap: 8 },
-    functionItem: { backgroundColor: colors.bgSurface, borderRadius: 8, padding: 12, borderWidth: 1, borderColor: colors.borderLight },
-    functionItemHeader: { flexDirection: 'row' as const, alignItems: 'center' as const, marginBottom: 4, gap: 8 },
-    functionName: { fontSize: 14, fontWeight: '600' as const, color: colors.textPrimary, flex: 1 },
-    functionDescription: { fontSize: 12, color: colors.textSecondary, lineHeight: 16 },
-    noFunctionsContainer: { backgroundColor: colors.bgSurface, borderRadius: 8, padding: 16, alignItems: 'center' as const, borderWidth: 1, borderColor: colors.borderLight },
-    noFunctionsText: { fontSize: 14, color: colors.textSecondary, fontStyle: 'italic' as const },
-    parameterCard: { backgroundColor: colors.bgCard, borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.borderLight },
-    parameterHeader: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, marginBottom: 12 },
-    parameterTitle: { fontSize: 16, fontWeight: '600' as const, color: colors.textPrimary },
-    removeButton: { padding: 8 },
-    parameterRow: { flexDirection: 'row' as const, gap: 12, marginBottom: 12 },
+    functionsLabel: { ...typography.title, fontWeight: '500' as const, color: colors.textPrimary },
+    functionsViewContainer: { marginTop: spacing.md },
+    functionsViewLabel: { ...typography.title, fontWeight: '500' as const, color: colors.textPrimary, marginBottom: spacing.sm },
+    functionsList: { gap: spacing.sm },
+    functionItem: { backgroundColor: colors.bgSurface, borderRadius: radius.md, padding: spacing.md, borderWidth: 1, borderColor: colors.borderLight },
+    functionItemHeader: { flexDirection: 'row' as const, alignItems: 'center' as const, marginBottom: spacing.xs, gap: spacing.sm },
+    functionName: { ...typography.bodyStrong, color: colors.textPrimary, flex: 1 },
+    functionDescription: { ...typography.caption, color: colors.textSecondary },
+    noFunctionsContainer: { backgroundColor: colors.bgSurface, borderRadius: radius.md, padding: spacing.md, alignItems: 'center' as const, borderWidth: 1, borderColor: colors.borderLight },
+    noFunctionsText: { ...typography.body, color: colors.textSecondary, fontStyle: 'italic' as const },
+    parameterCard: { backgroundColor: colors.bgCard, borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.md, borderWidth: 1, borderColor: colors.borderLight },
+    parameterHeader: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, marginBottom: spacing.md },
+    parameterTitle: { ...typography.title, color: colors.textPrimary },
+    removeButton: { padding: spacing.sm },
+    parameterRow: { flexDirection: 'row' as const, gap: spacing.md, marginBottom: spacing.md },
     parameterField: { flex: 1 },
-    parameterFieldLabel: { fontSize: 12, fontWeight: '500' as const, color: colors.textSecondary, marginBottom: 4 },
-    parameterInput: { fontSize: 14 },
-    pickerContainer: { backgroundColor: colors.bgSurface, borderRadius: 8, borderWidth: 1, borderColor: colors.borderLight },
+    parameterFieldLabel: { ...typography.caption, fontWeight: '500' as const, color: colors.textSecondary, marginBottom: spacing.xs },
+    parameterInput: { ...typography.body },
+    pickerContainer: { backgroundColor: colors.bgSurface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.borderLight },
     picker: { height: 44 },
-    addParameterButton: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'center' as const, backgroundColor: colors.bgSurface, padding: 16, borderRadius: 12, borderWidth: 2, borderColor: colors.accent, borderStyle: 'dashed' as const, gap: 8 },
-    addParameterText: { fontSize: 16, fontWeight: '500' as const, color: colors.accent },
-    parametersInfo: { backgroundColor: colors.accentSoft, borderRadius: 8, padding: 12, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: colors.accent },
-    parametersInfoText: { fontSize: 14, color: colors.textPrimary, lineHeight: 18 },
-    parameterHeaderLeft: { flexDirection: 'row' as const, alignItems: 'center' as const, flex: 1, gap: 8 },
-    autoDetectedBadge: { backgroundColor: `${colors.statusSuccess}15`, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12, borderWidth: 1, borderColor: colors.statusSuccess },
-    autoDetectedText: { fontSize: 10, fontWeight: '600' as const, color: colors.statusSuccess },
-    parameterNameContainer: { backgroundColor: colors.bgSurface, borderRadius: 8, padding: 12, borderWidth: 1, borderColor: colors.borderLight },
-    parameterNameValue: { fontSize: 14, fontWeight: '600' as const, color: colors.textPrimary, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
-    parameterNameNote: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
-    parameterDescriptionContainer: { marginTop: 12 },
-    parameterDescriptionInput: { fontSize: 14, minHeight: 60, textAlignVertical: 'top' as const },
-    errorText: { fontSize: 12, color: colors.statusError, marginTop: 4 },
+    addParameterButton: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'center' as const, backgroundColor: colors.bgSurface, padding: spacing.md, borderRadius: radius.lg, borderWidth: 2, borderColor: colors.accent, borderStyle: 'dashed' as const, gap: spacing.sm },
+    addParameterText: { ...typography.title, fontWeight: '500' as const, color: colors.accent },
+    parametersInfo: { backgroundColor: colors.accentSoft, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.lg, borderLeftWidth: 4, borderLeftColor: colors.accent },
+    parametersInfoText: { ...typography.body, color: colors.textPrimary },
+    parameterHeaderLeft: { flexDirection: 'row' as const, alignItems: 'center' as const, flex: 1, gap: spacing.sm },
+    autoDetectedBadge: { backgroundColor: `${colors.statusSuccess}15`, paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.statusSuccess },
+    autoDetectedText: { ...typography.micro, fontWeight: '600' as const, color: colors.statusSuccess },
+    parameterNameContainer: { backgroundColor: colors.bgSurface, borderRadius: radius.md, padding: spacing.md, borderWidth: 1, borderColor: colors.borderLight },
+    parameterNameValue: { ...typography.bodyStrong, color: colors.textPrimary, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
+    parameterNameNote: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
+    parameterDescriptionContainer: { marginTop: spacing.md },
+    parameterDescriptionInput: { ...typography.body, minHeight: 60, textAlignVertical: 'top' as const },
+    errorText: { ...typography.caption, color: colors.statusError, marginTop: spacing.xs },
     modalContainer: { flex: 1, backgroundColor: colors.bgApp },
-    modalHeader: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const, paddingHorizontal: 20, paddingVertical: 20, backgroundColor: colors.bgCard, borderBottomWidth: 1, borderBottomColor: colors.borderLight },
-    modalTitle: { fontSize: 20, fontWeight: '600' as const, color: colors.textPrimary },
-    modalCloseButton: { padding: 4 },
-    modelList: { paddingHorizontal: 20, paddingTop: 20 },
-    modelCard: { backgroundColor: colors.bgCard, borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.borderLight, position: 'relative' as const },
+    modalHeader: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const, paddingHorizontal: spacing.lg, paddingVertical: spacing.lg, backgroundColor: colors.bgCard, borderBottomWidth: 1, borderBottomColor: colors.borderLight },
+    modalTitle: { ...typography.h1, color: colors.textPrimary },
+    modalCloseButton: { padding: spacing.xs },
+    modelList: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
+    modelCard: { backgroundColor: colors.bgCard, borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.md, borderWidth: 1, borderColor: colors.borderLight, position: 'relative' as const },
     modelCardSelected: { backgroundColor: colors.accent, borderColor: colors.accent },
-    modelCardHeader: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'flex-start' as const, marginBottom: 8 },
-    modelCardTitle: { fontSize: 16, fontWeight: '600' as const, color: colors.textPrimary, flex: 1, marginRight: 8 },
+    modelCardHeader: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'flex-start' as const, marginBottom: spacing.sm },
+    modelCardTitle: { ...typography.title, color: colors.textPrimary, flex: 1, marginRight: spacing.sm },
     modelCardTitleSelected: { color: colors.textInverse },
-    modelCardDescription: { fontSize: 14, color: colors.textSecondary, lineHeight: 18, marginBottom: 4 },
+    modelCardDescription: { ...typography.body, color: colors.textSecondary, marginBottom: spacing.xs },
     modelCardDescriptionSelected: { color: colors.textInverse, opacity: 0.9 },
-    modelCardTokens: { fontSize: 12, color: colors.textSecondary, fontWeight: '500' as const },
-    recommendedBadge: { backgroundColor: colors.statusWarning, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-    badgeText: { fontSize: 12, fontWeight: '600' as const, color: colors.textInverse },
-    selectedIndicator: { position: 'absolute' as const, top: 16, right: 16 },
-    enhancedModelCard: { backgroundColor: colors.bgCard, borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: colors.borderLight, position: 'relative' as const },
+    modelCardTokens: { ...typography.caption, fontWeight: '500' as const, color: colors.textSecondary },
+    recommendedBadge: { backgroundColor: colors.statusWarning, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.sm },
+    badgeText: { ...typography.caption, fontWeight: '600' as const, color: colors.textInverse },
+    selectedIndicator: { position: 'absolute' as const, top: spacing.lg, right: spacing.lg },
+    enhancedModelCard: { backgroundColor: colors.bgCard, borderRadius: radius.xl, padding: spacing.md, marginBottom: spacing.lg, borderWidth: 1, borderColor: colors.borderLight, position: 'relative' as const },
     enhancedModelCardSelected: { backgroundColor: colors.bgCard, borderColor: colors.accent, borderWidth: 2 },
-    enhancedModelCardHeader: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'flex-start' as const, marginBottom: 8 },
-    modelCardTitleRow: { flexDirection: 'row' as const, alignItems: 'center' as const, flex: 1, gap: 12 },
-    enhancedModelCardTitle: { fontSize: 18, fontWeight: '700' as const, color: colors.textPrimary, flex: 1 },
+    enhancedModelCardHeader: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'flex-start' as const, marginBottom: spacing.sm },
+    modelCardTitleRow: { flexDirection: 'row' as const, alignItems: 'center' as const, flex: 1, gap: spacing.md },
+    enhancedModelCardTitle: { ...typography.h2, fontWeight: '700' as const, color: colors.textPrimary, flex: 1 },
     enhancedModelCardTitleSelected: { color: colors.accent },
-    enhancedModelCardDescription: { fontSize: 15, color: colors.textSecondary, lineHeight: 20, marginBottom: 8 },
+    enhancedModelCardDescription: { ...typography.body, color: colors.textSecondary, marginBottom: spacing.sm },
     enhancedModelCardDescriptionSelected: { color: colors.textSecondary, opacity: 1 },
-    modelIdealForCard: { fontSize: 13, color: colors.accent, fontWeight: '600' as const, marginBottom: 8, fontStyle: 'italic' as const },
-    modelDetailsRow: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const, marginBottom: 12 },
-    useCasesContainer: { marginTop: 8 },
-    useCasesTitle: { fontSize: 12, fontWeight: '600' as const, color: colors.textSecondary, marginBottom: 8 },
-    useCasesList: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 6 },
-    useCaseChip: { backgroundColor: colors.accentSoft, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 16, borderWidth: 1, borderColor: `${colors.accent}40` },
-    useCaseText: { fontSize: 11, fontWeight: '500' as const, color: colors.textSecondary },
+    modelIdealForCard: { ...typography.label, fontWeight: '600' as const, color: colors.accent, marginBottom: spacing.sm, fontStyle: 'italic' as const },
+    modelDetailsRow: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const, marginBottom: spacing.md },
+    useCasesContainer: { marginTop: spacing.sm },
+    useCasesTitle: { ...typography.caption, fontWeight: '600' as const, color: colors.textSecondary, marginBottom: spacing.sm },
+    useCasesList: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: spacing.sm },
+    useCaseChip: { backgroundColor: colors.accentSoft, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.xl, borderWidth: 1, borderColor: `${colors.accent}40` },
+    useCaseText: { ...typography.micro, color: colors.textSecondary },
     useCaseTextSelected: { color: colors.accent },
-    tooltipOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center' as const, alignItems: 'center' as const, paddingHorizontal: 20 },
-    tooltipContainer: { backgroundColor: colors.bgCard, borderRadius: 16, padding: 20, maxWidth: '90%' as const },
-    tooltipHeader: { flexDirection: 'row' as const, alignItems: 'center' as const, marginBottom: 12 },
-    tooltipTitle: { fontSize: 18, fontWeight: '600' as const, color: colors.textPrimary, marginLeft: 8, flex: 1 },
-    tooltipClose: { padding: 4 },
-    tooltipContent: { fontSize: 14, color: colors.textSecondary, lineHeight: 20 },
+    tooltipOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center' as const, alignItems: 'center' as const, paddingHorizontal: spacing.lg },
+    tooltipContainer: { backgroundColor: colors.bgCard, borderRadius: radius.xl, padding: spacing.md, maxWidth: '90%' as const },
+    tooltipHeader: { flexDirection: 'row' as const, alignItems: 'center' as const, marginBottom: spacing.md },
+    tooltipTitle: { ...typography.h2, color: colors.textPrimary, marginLeft: spacing.sm, flex: 1 },
+    tooltipClose: { padding: spacing.xs },
+    tooltipContent: { ...typography.body, color: colors.textSecondary },
   }));
 
   // Refs for cleanup and focus management
@@ -694,7 +696,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <TouchableOpacity style={styles.headerButton} onPress={onClose}>
+      <TouchableOpacity style={styles.headerButton} onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
         <Ionicons name="close" size={24} color={colors.accent} />
       </TouchableOpacity>
       <Text style={styles.title}>
@@ -721,9 +723,10 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
       <View style={styles.sectionHeader}>
         <Ionicons name="help-circle" size={20} color={colors.accent} />
         <Text style={styles.sectionTitle}>What is an Execution Template?</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.tooltipButton}
           onPress={() => setShowTooltip('overview')}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <Ionicons name="information-circle" size={20} color={colors.accent} />
         </TouchableOpacity>
@@ -748,7 +751,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
         <View style={styles.inputContainer}>
           <View style={styles.labelContainer}>
             <Text style={styles.fieldLabel}>Template Name</Text>
-            <TouchableOpacity onPress={() => setShowTooltip('name')}>
+            <TouchableOpacity onPress={() => setShowTooltip('name')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="help-circle-outline" size={16} color={colors.accent} />
             </TouchableOpacity>
           </View>
@@ -774,7 +777,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
       <View style={styles.inputContainer}>
         <View style={styles.labelContainer}>
           <Text style={styles.fieldLabel}>Description</Text>
-          <TouchableOpacity onPress={() => setShowTooltip('description')}>
+          <TouchableOpacity onPress={() => setShowTooltip('description')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="help-circle-outline" size={16} color={colors.accent} />
           </TouchableOpacity>
         </View>
@@ -803,7 +806,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
       <View style={styles.sectionHeader}>
         <Ionicons name="chatbox" size={20} color={colors.accent} />
         <Text style={styles.sectionTitle}>Template Prompt</Text>
-        <TouchableOpacity onPress={() => setShowTooltip('prompt')}>
+        <TouchableOpacity onPress={() => setShowTooltip('prompt')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Ionicons name="help-circle-outline" size={16} color={colors.accent} />
         </TouchableOpacity>
       </View>
@@ -870,7 +873,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
       <View style={styles.sectionHeader}>
         <Ionicons name="library" size={20} color={colors.accent} />
         <Text style={styles.sectionTitle}>Context Template</Text>
-        <TouchableOpacity onPress={() => setShowTooltip('context')}>
+        <TouchableOpacity onPress={() => setShowTooltip('context')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Ionicons name="help-circle-outline" size={16} color={colors.accent} />
         </TouchableOpacity>
       </View>
@@ -925,7 +928,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
         <View style={styles.sectionHeader}>
           <Ionicons name="settings" size={20} color={colors.accent} />
           <Text style={styles.sectionTitle}>Configuration</Text>
-          <TouchableOpacity onPress={() => setShowTooltip('configuration')}>
+          <TouchableOpacity onPress={() => setShowTooltip('configuration')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="help-circle-outline" size={16} color={colors.accent} />
           </TouchableOpacity>
         </View>
@@ -972,7 +975,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
       <View style={styles.sectionHeader}>
         <Ionicons name="extension-puzzle" size={20} color={colors.accent} />
         <Text style={styles.sectionTitle}>Function Calling</Text>
-        <TouchableOpacity onPress={() => setShowTooltip('functions')}>
+        <TouchableOpacity onPress={() => setShowTooltip('functions')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Ionicons name="help-circle-outline" size={16} color={colors.accent} />
         </TouchableOpacity>
       </View>
@@ -1047,7 +1050,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({
       <View style={styles.sectionHeader}>
         <Ionicons name="options" size={20} color={colors.accent} />
         <Text style={styles.sectionTitle}>Parameters</Text>
-        <TouchableOpacity onPress={() => setShowTooltip('parameters')}>
+        <TouchableOpacity onPress={() => setShowTooltip('parameters')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Ionicons name="help-circle-outline" size={16} color={colors.accent} />
         </TouchableOpacity>
       </View>

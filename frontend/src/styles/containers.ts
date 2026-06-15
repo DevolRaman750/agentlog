@@ -1,5 +1,6 @@
 import { StyleSheet, Platform } from 'react-native';
 import { ThemeColors } from '../theme/types';
+import { spacing, radius } from '../theme/tokens';
 
 // Web-specific styles to fix double border issues (not color-dependent)
 export const webInputStyles = Platform.select({
@@ -17,6 +18,11 @@ export const webInputStyles = Platform.select({
 }) as any;
 
 // Factory: container styles
+//
+// Aesthetic: FLAT & CLEAN. Cards/surfaces use a single 1px border and NO
+// shadow (borders + shadows together read as heavy). Only `modalContainer`
+// keeps a shadow, since it floats over an overlay. All spacing/radius values
+// come from design tokens.
 export const createContainerStyles = (colors: ThemeColors) => StyleSheet.create({
   appBackground: {
     backgroundColor: colors.bgApp,
@@ -24,72 +30,54 @@ export const createContainerStyles = (colors: ThemeColors) => StyleSheet.create(
 
   primaryContainer: {
     backgroundColor: colors.bgCard,
-    marginHorizontal: 16,
-    marginTop: 20,
-    marginBottom: 8,
-    borderRadius: 8,
-    padding: 20,
-    shadowColor: colors.shadowColor,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
     borderWidth: 1,
     borderColor: colors.borderLight,
   },
 
   secondaryContainer: {
     backgroundColor: colors.bgCard,
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 6,
-    borderRadius: 8,
-    padding: 16,
-    shadowColor: colors.shadowColor,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 3,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+    borderRadius: radius.md,
+    padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.borderLight,
   },
 
   nestedContainer: {
     backgroundColor: colors.bgNested,
-    marginTop: 12,
-    marginBottom: 8,
-    borderRadius: 6,
-    padding: 16,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+    borderRadius: radius.sm,
+    padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    shadowColor: colors.shadowColor,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 1,
   },
 
   listItemContainer: {
     backgroundColor: colors.bgCard,
-    marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 4,
-    borderRadius: 6,
-    padding: 12,
-    shadowColor: colors.shadowColor,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+    borderRadius: radius.md,
+    padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.borderLight,
   },
 
   modalContainer: {
     backgroundColor: colors.bgCard,
-    borderRadius: 10,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
     shadowColor: colors.shadowColor,
-    shadowOffset: { width: 0, height: 0 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 16,
     elevation: 8,
@@ -97,48 +85,38 @@ export const createContainerStyles = (colors: ThemeColors) => StyleSheet.create(
 
   inputContainer: {
     backgroundColor: colors.bgInput,
-    borderRadius: 6,
+    borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: colors.borderLight,
-    shadowColor: colors.shadowColor,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
   },
 
   headerContainer: {
     backgroundColor: colors.bgApp,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderSubtle,
-    shadowColor: colors.shadowColor,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 3,
   },
 
   statusContainer: {
     backgroundColor: colors.bgNested,
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 8,
-    borderRadius: 6,
-    padding: 12,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+    borderRadius: radius.sm,
+    padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
   },
 
   sectionSpacer: {
-    height: 24,
+    height: spacing.xl,
   },
 
   containerSpacer: {
-    height: 16,
+    height: spacing.lg,
   },
 
   itemSpacer: {
-    height: 8,
+    height: spacing.sm,
   },
 });
 

@@ -11,7 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { APIConfiguration } from '../types';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 
 const { width } = Dimensions.get('window');
 
@@ -89,12 +89,12 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
   const { colors } = useTheme();
   const styles = useThemedStyles((colors) => ({
     container: {
-      marginBottom: 20,
+      marginBottom: spacing.xl,
     },
     selector: {
       backgroundColor: colors.bgApp,
-      borderRadius: 12,
-      padding: 16,
+      borderRadius: radius.lg,
+      padding: spacing.md,
       borderWidth: 1,
       borderColor: colors.borderLight,
     },
@@ -111,13 +111,12 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
       flex: 1,
     },
     selectedDisplayName: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
-      marginBottom: 2,
+      marginBottom: spacing.xs,
     },
     selectedModelName: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
     },
     disabledText: {
@@ -131,26 +130,26 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      padding: 20,
+      padding: spacing.lg,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
     },
     modalTitle: {
-      fontSize: 20,
+      ...typography.h1,
       fontWeight: '600' as const,
       color: colors.textPrimary,
     },
     closeButton: {
-      padding: 4,
+      padding: spacing.xs,
     },
     modelList: {
-      padding: 20,
+      padding: spacing.lg,
     },
     modelItem: {
       backgroundColor: colors.bgApp,
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 12,
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      marginBottom: spacing.md,
       borderWidth: 1,
       borderColor: colors.borderLight,
       position: 'relative' as const,
@@ -163,87 +162,84 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'flex-start' as const,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
     },
     modelDisplayName: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textPrimary,
       flex: 1,
-      marginRight: 8,
+      marginRight: spacing.sm,
     },
     selectedModelText: {
       color: colors.textInverse,
     },
     modelBadges: {
       flexDirection: 'row' as const,
-      gap: 6,
+      gap: spacing.xs,
     },
     recommendedBadge: {
       backgroundColor: colors.statusSuccess,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 12,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: radius.lg,
     },
     newBadge: {
       backgroundColor: colors.statusWarning,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 12,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: radius.lg,
     },
     badgeText: {
-      fontSize: 10,
+      ...typography.micro,
       fontWeight: '600' as const,
       color: colors.textInverse,
       textTransform: 'uppercase' as const,
     },
     modelName: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     selectedModelSecondaryText: {
       color: colors.borderLight,
     },
     modelDescription: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
-      lineHeight: 20,
     },
     selectedIndicator: {
       position: 'absolute' as const,
-      top: 16,
-      right: 16,
+      top: spacing.lg,
+      right: spacing.lg,
     },
     emptyState: {
       flex: 1,
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
-      padding: 40,
+      padding: spacing.xxl,
     },
     emptyStateTitle: {
-      fontSize: 18,
-      fontWeight: '600' as const,
+      ...typography.h2,
       color: colors.textPrimary,
-      marginTop: 16,
-      marginBottom: 8,
+      marginTop: spacing.lg,
+      marginBottom: spacing.sm,
     },
     emptyStateDescription: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
       textAlign: 'center' as const,
-      lineHeight: 20,
     },
     loadingState: {
       flex: 1,
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
-      padding: 40,
+      padding: spacing.xxl,
     },
     loadingText: {
-      fontSize: 16,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.textSecondary,
-      marginTop: 16,
+      marginTop: spacing.lg,
     },
   }));
 
@@ -405,6 +401,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
             <TouchableOpacity
               onPress={() => setIsModalVisible(false)}
               style={styles.closeButton}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Ionicons name="close" size={24} color={colors.textSecondary} />
             </TouchableOpacity>

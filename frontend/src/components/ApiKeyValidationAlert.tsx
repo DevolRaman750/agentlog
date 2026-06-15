@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 
 interface ApiKeyValidationAlertProps {
   visible: boolean;
@@ -30,14 +30,15 @@ const ApiKeyValidationAlert: React.FC<ApiKeyValidationAlertProps> = ({
       backgroundColor: 'rgba(0, 0, 0, 0.5)',
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
-      padding: 20,
+      padding: spacing.lg,
     },
     alertContainer: {
       backgroundColor: colors.bgCard,
-      borderRadius: 16,
-      padding: 24,
+      borderRadius: radius.xl,
+      padding: spacing.lg,
       maxWidth: 400,
       width: '100%' as const,
+      maxHeight: '90%' as const,
       shadowColor: colors.shadowColor,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.3,
@@ -47,76 +48,76 @@ const ApiKeyValidationAlert: React.FC<ApiKeyValidationAlertProps> = ({
     header: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      marginBottom: 16,
+      marginBottom: spacing.lg,
     },
     icon: {
-      marginRight: 12,
+      marginRight: spacing.md,
     },
     title: {
-      fontSize: 20,
-      fontWeight: '700' as const,
+      ...typography.h1,
       color: colors.textPrimary,
       flex: 1,
     },
     message: {
-      fontSize: 16,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.textSecondary,
-      lineHeight: 22,
-      marginBottom: 20,
+      marginBottom: spacing.lg,
     },
     servicesList: {
-      marginBottom: 20,
-      paddingTop: 16,
+      marginBottom: spacing.lg,
+      paddingTop: spacing.lg,
       borderTopWidth: 1,
       borderTopColor: colors.borderLight,
     },
     servicesTitle: {
-      fontSize: 14,
+      ...typography.label,
       fontWeight: '600' as const,
       color: colors.textSecondary,
-      marginBottom: 12,
+      marginBottom: spacing.md,
     },
     serviceItem: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      marginBottom: 8,
-      gap: 8,
+      marginBottom: spacing.sm,
+      gap: spacing.sm,
     },
     serviceName: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textSecondary,
     },
     buttonContainer: {
       flexDirection: 'row' as const,
-      gap: 12,
+      gap: spacing.md,
     },
     cancelButton: {
       flex: 1,
-      paddingVertical: 12,
-      paddingHorizontal: 20,
-      borderRadius: 8,
+      minHeight: touchTarget.min,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+      borderRadius: radius.md,
       backgroundColor: colors.bgApp,
       alignItems: 'center' as const,
+      justifyContent: 'center' as const,
     },
     cancelButtonText: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textSecondary,
     },
     actionButton: {
       flex: 1,
       flexDirection: 'row' as const,
-      paddingVertical: 12,
-      paddingHorizontal: 20,
-      borderRadius: 8,
+      minHeight: touchTarget.min,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+      borderRadius: radius.md,
       backgroundColor: colors.accent,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      gap: 8,
+      gap: spacing.sm,
     },
     actionButtonText: {
-      fontSize: 16,
-      fontWeight: '600' as const,
+      ...typography.title,
       color: colors.textInverse,
     },
   }));

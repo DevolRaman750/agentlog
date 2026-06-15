@@ -43,7 +43,7 @@ import ConfigurationModal from '../components/ConfigurationModal';
 import FunctionsModal from '../components/FunctionsModal';
 import OtherOptionsModal from '../components/OtherOptionsModal';
 import { webInputStyles } from '../styles/containers';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 import type { ThemeColors } from '../theme';
 import { getModelKeyRequirements, areModelKeysConfigured, ModelKeyRequirement } from '../utils/modelKeyUtils';
 import ScreenContainer from '../components/ScreenContainer';
@@ -1317,9 +1317,10 @@ const ExecuteScreen: React.FC = () => {
         <View style={styles.modeSelector}>
           <View style={styles.modeSelectorHeader}>
             <Text style={styles.modeSelectorTitle}>Execution Mode</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.modeInfoButton}
               onPress={() => setShowModeTooltip(!showModeTooltip)}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
               <Ionicons name="information-circle-outline" size={18} color={colors.accent} />
             </TouchableOpacity>
@@ -2004,98 +2005,85 @@ const ExecuteScreen: React.FC = () => {
 
 const createStyles = (colors: ThemeColors) => ({
   scrollContent: {
-    padding: Platform.OS === 'ios' ? 16 : 14, // Slightly less padding on Android
+    padding: Platform.OS === 'ios' ? spacing.lg : spacing.md, // Slightly less padding on Android
     paddingBottom: Platform.OS === 'ios' ? 120 : 100, // Platform-specific bottom spacing
     minHeight: '100%', // Ensure full height usage
   },
   header: {
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   titleIcon: {
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    ...typography.display,
     color: colors.textPrimary,
   },
   subtitle: {
-    fontSize: 16,
+    ...typography.title,
+    fontWeight: '400',
     color: colors.textSecondary,
-    lineHeight: 22,
   },
   fieldContainer: {
     backgroundColor: colors.bgCard,
-    borderRadius: 12,
-    padding: Platform.OS === 'ios' ? 16 : 14, // Slightly less padding on Android
-    marginBottom: 16, // Reduced margin for better density on mobile
-    borderWidth: Platform.OS === 'ios' ? 1 : 0.5, // Thinner borders on Android
+    borderRadius: radius.lg,
+    padding: Platform.OS === 'ios' ? spacing.md : spacing.md, // Slightly less padding on Android
+    marginBottom: spacing.lg, // Reduced margin for better density on mobile
+    borderWidth: 1,
     borderColor: colors.borderLight,
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.shadowColor,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
   },
   labelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: spacing.xs,
     flexWrap: 'wrap', // Allow wrapping on small screens
     minHeight: 24, // Ensure consistent height even when wrapping
   },
   fieldLabel: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...typography.title,
     color: colors.textPrimary,
-    marginLeft: 8,
+    marginLeft: spacing.sm,
     flex: 1, // Allow label to take available space
     minWidth: 100, // Minimum width before wrapping
   },
      optionalText: {
-     fontSize: 14,
+     ...typography.body,
      color: colors.textSecondary,
-     marginLeft: 8,
-     paddingHorizontal: 6,
+     marginLeft: spacing.sm,
+     paddingHorizontal: spacing.sm,
      paddingVertical: 2,
      backgroundColor: colors.bgSurface,
-     borderRadius: 4,
+     borderRadius: radius.sm,
    },
    requiredText: {
-     fontSize: 12, // Slightly smaller on mobile
+     ...typography.caption, // Slightly smaller on mobile
      color: colors.statusError,
-     marginLeft: 8,
+     marginLeft: spacing.sm,
      marginTop: Platform.OS === 'ios' ? 1 : 0, // Slight offset on iOS
-     paddingHorizontal: 6,
+     paddingHorizontal: spacing.sm,
      paddingVertical: 2,
      backgroundColor: colors.bgSurface,
-     borderRadius: 4,
+     borderRadius: radius.sm,
      fontWeight: '500',
      alignSelf: 'flex-start', // Prevent stretching
      flexShrink: 0, // Don't shrink the badge
    },
   fieldDescription: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textSecondary,
-    lineHeight: 18,
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   input: {
     backgroundColor: colors.bgCard,
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    ...typography.title,
+    fontWeight: '400',
     color: colors.textPrimary,
     borderWidth: 1,
     borderColor: colors.borderLight,
@@ -2109,8 +2097,8 @@ const createStyles = (colors: ThemeColors) => ({
   },
   selectorButton: {
     backgroundColor: colors.bgCard,
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -2122,38 +2110,34 @@ const createStyles = (colors: ThemeColors) => ({
     alignItems: 'center',
   },
   selectorText: {
-    fontSize: 16,
+    ...typography.title,
+    fontWeight: '400',
     color: colors.textPrimary,
-    marginLeft: 8,
+    marginLeft: spacing.sm,
   },
   executeContainer: {
-    marginTop: 20,
+    marginTop: spacing.xl,
     marginBottom: Platform.OS === 'ios' ? 40 : 30, // Platform-specific margin
-    paddingHorizontal: Platform.OS === 'ios' ? 0 : 4, // Slight padding on Android
+    paddingHorizontal: Platform.OS === 'ios' ? 0 : spacing.xs, // Slight padding on Android
   },
   executeContainerExpanded: {
     flex: 1,
   },
   executingContainer: {
     backgroundColor: colors.bgCard,
-    borderRadius: 16,
-    marginBottom: 32,
+    borderRadius: radius.xl,
+    marginBottom: spacing.xxl,
     borderWidth: 1,
     borderColor: colors.borderLight,
-    shadowColor: colors.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
   },
   executeButton: {
     backgroundColor: colors.accent,
-    borderRadius: 12,
-    padding: Platform.OS === 'ios' ? 16 : 14, // Slightly less padding on Android
+    borderRadius: radius.lg,
+    padding: Platform.OS === 'ios' ? spacing.md : spacing.md, // Slightly less padding on Android
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Platform.OS === 'ios' ? 32 : 24, // Less margin on Android
+    marginBottom: Platform.OS === 'ios' ? spacing.xxl : spacing.xl, // Less margin on Android
     minHeight: 56, // Ensure consistent touch target
     ...Platform.select({
       ios: {
@@ -2176,50 +2160,49 @@ const createStyles = (colors: ThemeColors) => ({
   },
   executeButtonText: {
     color: colors.textInverse,
-    fontSize: 18,
-    fontWeight: '600',
-    marginLeft: 8,
+    ...typography.h2,
+    marginLeft: spacing.sm,
   },
   executeDescription: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textSecondary,
     textAlign: 'center',
   },
   resultContainer: {
     backgroundColor: colors.bgSurface,
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 16,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginTop: spacing.lg,
   },
   resultHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   resultTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...typography.h2,
     color: colors.statusSuccess,
-    marginLeft: 8,
+    marginLeft: spacing.sm,
   },
   resultText: {
-    fontSize: 16,
+    ...typography.title,
+    fontWeight: '400',
     color: colors.statusSuccess,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   viewResultsButton: {
     backgroundColor: colors.accent,
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    minHeight: touchTarget.min,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
   },
   viewResultsButtonText: {
     color: colors.textInverse,
-    fontSize: 16,
-    fontWeight: '600',
+    ...typography.title,
   },
      modalContainer: {
      flex: 1,
@@ -2229,7 +2212,7 @@ const createStyles = (colors: ThemeColors) => ({
      flexDirection: 'row',
      justifyContent: 'space-between',
      alignItems: 'center',
-     padding: 20,
+     padding: spacing.lg,
      backgroundColor: colors.bgCard,
      borderBottomWidth: 1,
      borderBottomColor: colors.borderLight,
@@ -2240,68 +2223,66 @@ const createStyles = (colors: ThemeColors) => ({
      elevation: 3,
    },
    modalTitle: {
-     fontSize: 20,
-     fontWeight: '700',
+     ...typography.h1,
      color: colors.textPrimary,
    },
    modalCancelButton: {
-     fontSize: 17,
-     color: colors.textSecondary,
+     ...typography.title,
      fontWeight: '500',
+     color: colors.textSecondary,
    },
    modalSaveButton: {
-     fontSize: 17,
-     color: colors.accent,
+     ...typography.title,
      fontWeight: '700',
+     color: colors.accent,
    },
    modalContent: {
      flex: 1,
-     padding: 16,
+     padding: spacing.lg,
    },
    // No agents screen styles
    noAgentsContainer: {
      flex: 1,
      justifyContent: 'center',
      alignItems: 'center',
-     paddingHorizontal: 32,
-     paddingVertical: 48,
+     paddingHorizontal: spacing.xxl,
+     paddingVertical: spacing.xxxl,
    },
    noAgentsIconContainer: {
-     marginBottom: 24,
+     marginBottom: spacing.xl,
    },
    noAgentsTitle: {
-     fontSize: 24,
-     fontWeight: '700',
+     ...typography.display,
      color: colors.textPrimary,
      textAlign: 'center',
-     marginBottom: 12,
+     marginBottom: spacing.md,
    },
    noAgentsDescription: {
-     fontSize: 16,
+     ...typography.title,
+     fontWeight: '400',
      color: colors.textSecondary,
      textAlign: 'center',
-     lineHeight: 22,
-     marginBottom: 32,
+     marginBottom: spacing.xxl,
    },
    noAgentsActions: {
      width: '100%',
-     gap: 12,
-     marginBottom: 24,
+     gap: spacing.md,
+     marginBottom: spacing.xl,
    },
    noAgentsMarketplaceButton: {
      backgroundColor: colors.accent,
      flexDirection: 'row',
      alignItems: 'center',
      justifyContent: 'center',
-     paddingVertical: 16,
-     paddingHorizontal: 24,
-     borderRadius: 12,
-     gap: 8,
+     paddingVertical: spacing.lg,
+     paddingHorizontal: spacing.xl,
+     minHeight: touchTarget.min,
+     borderRadius: radius.lg,
+     gap: spacing.sm,
    },
    noAgentsMarketplaceButtonText: {
      color: colors.textInverse,
-     fontSize: 16,
-     fontWeight: '600',
+     ...typography.title,
    },
    noAgentsCreateButton: {
      backgroundColor: colors.bgCard,
@@ -2310,61 +2291,48 @@ const createStyles = (colors: ThemeColors) => ({
      flexDirection: 'row',
      alignItems: 'center',
      justifyContent: 'center',
-     paddingVertical: 16,
-     paddingHorizontal: 24,
-     borderRadius: 12,
-     gap: 8,
+     paddingVertical: spacing.lg,
+     paddingHorizontal: spacing.xl,
+     minHeight: touchTarget.min,
+     borderRadius: radius.lg,
+     gap: spacing.sm,
    },
    noAgentsCreateButtonText: {
      color: colors.accent,
-     fontSize: 16,
-     fontWeight: '600',
+     ...typography.title,
    },
    noAgentsHint: {
-     fontSize: 14,
+     ...typography.body,
      color: colors.textSecondary,
      textAlign: 'center',
-     lineHeight: 20,
    },
    modalSubheader: {
      flexDirection: 'row',
      justifyContent: 'space-between',
      alignItems: 'center',
-     marginBottom: 16,
-     paddingHorizontal: 4,
+     marginBottom: spacing.lg,
+     paddingHorizontal: spacing.xs,
    },
    modalSubtitle: {
-     fontSize: 14,
+     ...typography.body,
      color: colors.textSecondary,
-     lineHeight: 20,
      flex: 1,
    },
    selectedCount: {
-     fontSize: 14,
-     fontWeight: '600',
+     ...typography.bodyStrong,
      color: colors.accent,
    },
    configCard: {
      backgroundColor: colors.bgCard,
-     borderRadius: 12,
-     padding: 16,
-     marginBottom: 12,
+     borderRadius: radius.lg,
+     padding: spacing.md,
+     marginBottom: spacing.md,
      borderWidth: 1,
      borderColor: colors.borderLight,
-     shadowColor: colors.shadowColor,
-     shadowOffset: { width: 0, height: 1 },
-     shadowOpacity: 0.05,
-     shadowRadius: 2,
-     elevation: 1,
    },
    configCardSelected: {
      borderColor: colors.accent,
      borderWidth: 2,
-     shadowColor: colors.accent,
-     shadowOffset: { width: 0, height: 2 },
-     shadowOpacity: 0.1,
-     shadowRadius: 4,
-     elevation: 3,
    },
    configHeader: {
      flexDirection: 'row',
@@ -2373,39 +2341,37 @@ const createStyles = (colors: ThemeColors) => ({
    },
    configInfo: {
      flex: 1,
-     marginRight: 12,
+     marginRight: spacing.md,
    },
    configDisplayName: {
-     fontSize: 18,
-     fontWeight: '600',
+     ...typography.h2,
      color: colors.textPrimary,
-     marginBottom: 8,
+     marginBottom: spacing.sm,
    },
    configMeta: {
      flexDirection: 'row',
      flexWrap: 'wrap',
-     gap: 12,
-     marginBottom: 8,
+     gap: spacing.md,
+     marginBottom: spacing.sm,
    },
    metaItem: {
      flexDirection: 'row',
      alignItems: 'center',
-     gap: 4,
+     gap: spacing.xs,
    },
    metaValue: {
-     fontSize: 12,
-     color: colors.textPrimary,
+     ...typography.caption,
      fontWeight: '600',
+     color: colors.textPrimary,
    },
    configDescription: {
-     fontSize: 14,
+     ...typography.body,
      color: colors.textSecondary,
-     lineHeight: 20,
    },
    selectionCheckbox: {
      width: 28,
      height: 28,
-     borderRadius: 8,
+     borderRadius: radius.md,
      borderWidth: 2,
      borderColor: colors.borderLight,
      justifyContent: 'center',
@@ -2418,25 +2384,15 @@ const createStyles = (colors: ThemeColors) => ({
    },
    functionCard: {
      backgroundColor: colors.bgCard,
-     borderRadius: 12,
-     padding: 16,
-     marginBottom: 12,
+     borderRadius: radius.lg,
+     padding: spacing.md,
+     marginBottom: spacing.md,
      borderWidth: 1,
      borderColor: colors.borderLight,
-     shadowColor: colors.shadowColor,
-     shadowOffset: { width: 0, height: 1 },
-     shadowOpacity: 0.05,
-     shadowRadius: 2,
-     elevation: 1,
    },
    functionCardSelected: {
      borderColor: colors.statusSuccess,
      borderWidth: 2,
-     shadowColor: colors.statusSuccess,
-     shadowOffset: { width: 0, height: 2 },
-     shadowOpacity: 0.1,
-     shadowRadius: 4,
-     elevation: 3,
    },
    functionHeader: {
      flexDirection: 'row',
@@ -2445,49 +2401,42 @@ const createStyles = (colors: ThemeColors) => ({
    },
    functionInfo: {
      flex: 1,
-     marginRight: 12,
+     marginRight: spacing.md,
    },
    functionDisplayName: {
-     fontSize: 18,
-     fontWeight: '600',
+     ...typography.h2,
      color: colors.textPrimary,
-     marginBottom: 4,
+     marginBottom: spacing.xs,
    },
    functionDescription: {
-     fontSize: 14,
+     ...typography.body,
      color: colors.textSecondary,
-     lineHeight: 20,
-     marginBottom: 8,
+     marginBottom: spacing.sm,
    },
    functionMeta: {
      flexDirection: 'row',
      flexWrap: 'wrap',
-     gap: 16,
+     gap: spacing.lg,
    },
    functionGroupContainer: {
-     marginBottom: 24,
+     marginBottom: spacing.xl,
    },
          functionGroupTitle: {
-   fontSize: 16,
-   fontWeight: '600',
+   ...typography.title,
    color: colors.textPrimary,
  },
   // Primary prompt styles
   primaryField: {
     borderWidth: 2,
     borderColor: colors.accent,
-    shadowColor: colors.accent,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   primaryFieldLabel: {
-    fontSize: 18,
+    ...typography.h2,
     fontWeight: '700',
   },
   primaryPrompt: {
-    fontSize: 16,
+    ...typography.title,
+    fontWeight: '400',
     lineHeight: 24,
     minHeight: 140,
   },
@@ -2495,90 +2444,83 @@ const createStyles = (colors: ThemeColors) => ({
   parametersField: {
     borderWidth: 2,
     borderColor: colors.statusWarning,
-    shadowColor: colors.statusWarning,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   parametersFieldLabel: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...typography.title,
     color: colors.statusWarning,
   },
   parameterBadge: {
     backgroundColor: colors.bgSurface,
-    borderRadius: 12,
-    paddingHorizontal: 8,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 2,
-    marginLeft: 8,
+    marginLeft: spacing.sm,
   },
   parameterBadgeText: {
-    fontSize: 12,
+    ...typography.caption,
     fontWeight: '600',
     color: colors.statusWarning,
   },
   parametersDescription: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textSecondary,
-    lineHeight: 18,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   parametersContainer: {
-    gap: 12,
+    gap: spacing.md,
   },
   parameterInputContainer: {
     backgroundColor: colors.bgSurface,
-    borderRadius: 8,
-    padding: Platform.OS === 'ios' ? 12 : 10, // Slightly less padding on Android
-    borderWidth: Platform.OS === 'ios' ? 1 : 0.5, // Thinner borders on Android
-    borderColor: colors.borderLight,
-    marginBottom: 8, // Add spacing between parameters
+    borderRadius: radius.md,
+    padding: Platform.OS === 'ios' ? spacing.md : spacing.sm, // Slightly less padding on Android
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    marginBottom: spacing.sm, // Add spacing between parameters
   },
   parameterHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
     flexWrap: 'wrap', // Allow wrapping for long parameter names
-    gap: 8, // Add gap between items when wrapped
+    gap: spacing.sm, // Add gap between items when wrapped
   },
   parameterName: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...typography.bodyStrong,
     color: colors.statusWarning,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   parameterRequired: {
-    fontSize: 12,
+    ...typography.caption,
     color: colors.statusError,
     fontWeight: '500',
     backgroundColor: colors.bgSurface,
-    paddingHorizontal: 6,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: radius.sm,
   },
   parameterInput: {
     backgroundColor: colors.bgCard,
-    borderRadius: 6,
-    padding: 12,
-    fontSize: 16,
+    borderRadius: radius.sm,
+    padding: spacing.md,
+    ...typography.title,
+    fontWeight: '400',
     color: colors.textPrimary,
     borderWidth: 1,
     borderColor: colors.borderLight,
-    minHeight: 44,
+    minHeight: touchTarget.min,
   },
   parameterDescription: {
-    fontSize: 12,
+    ...typography.caption,
     color: colors.textSecondary,
-    marginTop: 4,
+    marginTop: spacing.xs,
     fontStyle: 'italic',
   },
   // Optional section styles
   optionalSection: {
     backgroundColor: colors.bgCard,
-    borderRadius: 12,
-    marginBottom: 20,
+    borderRadius: radius.lg,
+    marginBottom: spacing.xl,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.borderLight,
@@ -2587,7 +2529,7 @@ const createStyles = (colors: ThemeColors) => ({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    padding: spacing.md,
     backgroundColor: colors.bgSurface,
   },
   optionalHeaderLeft: {
@@ -2596,50 +2538,48 @@ const createStyles = (colors: ThemeColors) => ({
     flex: 1,
   },
   optionalHeaderText: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...typography.title,
     color: colors.textSecondary,
-    marginLeft: 8,
+    marginLeft: spacing.sm,
   },
   optionalBadge: {
     backgroundColor: colors.borderLight,
-    borderRadius: 12,
-    paddingHorizontal: 8,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 2,
-    marginLeft: 12,
+    marginLeft: spacing.md,
     minWidth: 24,
     alignItems: 'center',
   },
   optionalBadgeText: {
-    fontSize: 12,
+    ...typography.caption,
     fontWeight: '600',
     color: colors.textSecondary,
   },
   optionalFields: {
-    padding: 16,
+    padding: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.bgApp,
   },
   // Compact field styles
   compactFieldContainer: {
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   compactLabelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   compactFieldLabel: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...typography.bodyStrong,
     color: colors.textPrimary,
-    marginLeft: 6,
+    marginLeft: spacing.sm,
   },
   compactInput: {
     backgroundColor: colors.bgSurface,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 15,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    ...typography.body,
     color: colors.textPrimary,
     borderWidth: 1,
     borderColor: colors.borderLight,
@@ -2654,10 +2594,10 @@ const createStyles = (colors: ThemeColors) => ({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
+    padding: spacing.md,
     backgroundColor: colors.bgSurface,
-    borderRadius: 8,
-    marginBottom: 8,
+    borderRadius: radius.md,
+    marginBottom: spacing.sm,
     borderWidth: 1,
     borderColor: colors.borderLight,
   },
@@ -2665,7 +2605,7 @@ const createStyles = (colors: ThemeColors) => ({
     flex: 1,
   },
   functionGroupCount: {
-    fontSize: 12,
+    ...typography.caption,
     color: colors.textSecondary,
     marginTop: 2,
     fontWeight: '500',
@@ -2673,7 +2613,7 @@ const createStyles = (colors: ThemeColors) => ({
   categorySelectionCheckbox: {
     width: 24,
     height: 24,
-    borderRadius: 6,
+    borderRadius: radius.sm,
     borderWidth: 2,
     borderColor: colors.borderLight,
     justifyContent: 'center',
@@ -2691,9 +2631,9 @@ const createStyles = (colors: ThemeColors) => ({
   // Agent header styles
   agentHeader: {
     backgroundColor: colors.bgCard,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
     borderWidth: 1,
     borderColor: colors.borderLight,
     borderLeftWidth: 4,
@@ -2704,7 +2644,7 @@ const createStyles = (colors: ThemeColors) => ({
     alignItems: 'center',
   },
   agentDetails: {
-    marginLeft: 16,
+    marginLeft: spacing.lg,
     flex: 1,
   },
   agentNameContainer: {
@@ -2712,30 +2652,29 @@ const createStyles = (colors: ThemeColors) => ({
     alignItems: 'center',
   },
   agentName: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...typography.h2,
     color: colors.textPrimary,
   },
   tooltipIcon: {
-    marginLeft: 8,
-    padding: 4,
+    marginLeft: spacing.sm,
+    padding: spacing.xs,
   },
   agentSubtitle: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.accent,
     fontWeight: '500',
     marginTop: 2,
   },
   agentTemplate: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textSecondary,
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   tooltip: {
     backgroundColor: colors.bgSurface,
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 12,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginTop: spacing.md,
     position: 'relative',
   },
   tooltipArrow: {
@@ -2752,12 +2691,11 @@ const createStyles = (colors: ThemeColors) => ({
     borderBottomColor: colors.bgSurface,
   },
   tooltipText: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textSecondary,
-    lineHeight: 20,
   },
   headerCompact: {
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   // Template execution styles
   readOnlyField: {
@@ -2766,60 +2704,47 @@ const createStyles = (colors: ThemeColors) => ({
   },
   templateBadge: {
     backgroundColor: colors.accentSoft,
-    borderRadius: 12,
-    paddingHorizontal: 8,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 2,
-    marginLeft: 8,
+    marginLeft: spacing.sm,
   },
   templateBadgeText: {
-    fontSize: 12,
+    ...typography.caption,
     fontWeight: '600',
     color: colors.statusInfo,
   },
   templateDescription: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textSecondary,
-    lineHeight: 18,
-    marginBottom: 12,
+    marginBottom: spacing.md,
     fontStyle: 'italic',
   },
   // Execution Mode Selector Styles - Compact Design
   modeSelector: {
     backgroundColor: colors.bgCard,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
     borderWidth: 1,
     borderColor: colors.borderLight,
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.shadowColor,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
   },
   modeSelectorHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   modeSelectorTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...typography.title,
     color: colors.textPrimary,
   },
   modeInfoButton: {
-    padding: 4,
+    padding: spacing.xs,
   },
   compactModeButtons: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing.sm,
   },
   compactModeButton: {
     flex: 1,
@@ -2827,12 +2752,13 @@ const createStyles = (colors: ThemeColors) => ({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.bgSurface,
-    borderRadius: 8,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.borderLight,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    gap: 6,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    minHeight: touchTarget.min,
+    gap: spacing.xs,
   },
   compactModeButtonSelected: {
     borderWidth: 2,
@@ -2842,7 +2768,7 @@ const createStyles = (colors: ThemeColors) => ({
     opacity: 0.6,
   },
   compactModeButtonText: {
-    fontSize: 12,
+    ...typography.caption,
     fontWeight: '600',
     color: colors.textPrimary,
   },
@@ -2854,52 +2780,52 @@ const createStyles = (colors: ThemeColors) => ({
   },
   modeDescriptionBox: {
     backgroundColor: colors.bgSurface,
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 12,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginTop: spacing.md,
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: colors.borderSubtle,
   },
   modeDescriptionText: {
-    fontSize: 13,
+    ...typography.label,
+    fontWeight: '400',
     color: colors.textPrimary,
-    lineHeight: 18,
   },
   modeDescriptionNote: {
-    fontSize: 12,
+    ...typography.caption,
     color: colors.statusWarning,
     fontStyle: 'italic',
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   autoConfigStatus: {
     backgroundColor: colors.bgSurface,
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 12,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginTop: spacing.md,
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: colors.borderSubtle,
   },
   autoConfigStatusText: {
-    fontSize: 13,
+    ...typography.label,
     color: colors.statusSuccess,
     textAlign: 'center',
-    fontWeight: '500',
   },
   // Selection Container Styles (shared by agent and template)
   selectionContainer: {
     backgroundColor: colors.bgCard,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
     borderWidth: 1,
     borderColor: colors.borderLight,
   },
   selector: {
     backgroundColor: colors.bgSurface,
-    borderRadius: 8,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.borderLight,
-    padding: 12,
+    padding: spacing.md,
+    minHeight: touchTarget.min,
   },
   selectorContent: {
     flexDirection: 'row',
@@ -2907,7 +2833,8 @@ const createStyles = (colors: ThemeColors) => ({
     alignItems: 'center',
   },
   selectorPlaceholder: {
-    fontSize: 16,
+    ...typography.title,
+    fontWeight: '400',
     color: colors.textSecondary,
   },
   selectedInfo: {
@@ -2916,23 +2843,22 @@ const createStyles = (colors: ThemeColors) => ({
     flex: 1,
   },
   selectedDetails: {
-    marginLeft: 12,
+    marginLeft: spacing.md,
     flex: 1,
   },
   selectedName: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...typography.title,
     color: colors.textPrimary,
   },
   selectedSubtitle: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textSecondary,
     marginTop: 2,
   },
   templateIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: radius.pill,
     backgroundColor: colors.accentSoft,
     justifyContent: 'center',
     alignItems: 'center',
@@ -2941,7 +2867,8 @@ const createStyles = (colors: ThemeColors) => ({
   modalItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: spacing.md,
+    minHeight: touchTarget.min,
     borderBottomWidth: 1,
     borderBottomColor: colors.bgApp,
   },
@@ -2950,35 +2877,35 @@ const createStyles = (colors: ThemeColors) => ({
   },
   modalItemDetails: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: spacing.md,
   },
   modalItemName: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...typography.title,
     color: colors.textPrimary,
   },
   modalItemSubtitle: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textSecondary,
     marginTop: 2,
   },
   modalItemMeta: {
-    fontSize: 12,
+    ...typography.caption,
     color: colors.textSecondary,
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   // Warning and Info Containers
   warningContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.bgSurface,
-    borderRadius: 6,
-    padding: 8,
-    marginTop: 12,
-    gap: 6,
+    borderRadius: radius.sm,
+    padding: spacing.sm,
+    marginTop: spacing.md,
+    gap: spacing.xs,
   },
   warningText: {
-    fontSize: 13,
+    ...typography.label,
+    fontWeight: '400',
     color: colors.statusWarning,
     flex: 1,
   },
@@ -2986,13 +2913,14 @@ const createStyles = (colors: ThemeColors) => ({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.bgHover,
-    borderRadius: 6,
-    padding: 8,
-    marginTop: 12,
-    gap: 6,
+    borderRadius: radius.sm,
+    padding: spacing.sm,
+    marginTop: spacing.md,
+    gap: spacing.xs,
   },
   infoText: {
-    fontSize: 13,
+    ...typography.label,
+    fontWeight: '400',
     color: colors.accent,
     flex: 1,
   },
@@ -3010,8 +2938,8 @@ const createStyles = (colors: ThemeColors) => ({
   },
   executionFeedbackContainer: {
     backgroundColor: colors.bgCard,
-    borderRadius: 20,
-    padding: 32,
+    borderRadius: radius.xl,
+    padding: spacing.xxl,
     alignItems: 'center',
     maxWidth: Dimensions.get('window').width * 0.85,
     minWidth: 280,
@@ -3030,33 +2958,32 @@ const createStyles = (colors: ThemeColors) => ({
   executionFeedbackIcon: {
     width: 64,
     height: 64,
-    borderRadius: 32,
+    borderRadius: radius.pill,
     backgroundColor: colors.accent,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   executionFeedbackTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+    ...typography.h1,
     color: colors.textPrimary,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   executionFeedbackMessage: {
-    fontSize: 16,
+    ...typography.title,
+    fontWeight: '400',
     color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 20,
+    marginBottom: spacing.xl,
   },
   executionFeedbackProgress: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
   },
   executionFeedbackProgressText: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.accent,
     fontWeight: '500',
   },

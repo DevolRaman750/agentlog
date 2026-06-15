@@ -9,7 +9,7 @@ import {
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useThemedStyles } from '../theme';
+import { useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 import { goGentAPI } from '../api/client';
 import { AlertAPI } from './CustomAlert';
 import TaskCard, { getTaskStateColor, getTaskStateIcon, getPriorityColor, getPriorityIcon } from './TaskCard';
@@ -147,7 +147,7 @@ const TaskDetailView: React.FC<TaskDetailViewProps> = ({
             <Ionicons name="pencil-outline" size={20} color={styles._colors.accent} />
           </TouchableOpacity>
           <TouchableOpacity onPress={handleDelete} style={styles.headerButton}>
-            <Ionicons name="trash-outline" size={20} color="#EF4444" />
+            <Ionicons name="trash-outline" size={20} color={styles._colors.statusError} />
           </TouchableOpacity>
         </View>
       </View>
@@ -276,7 +276,7 @@ const TaskDetailView: React.FC<TaskDetailViewProps> = ({
         {/* Failure Info */}
         {task.failure_type && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: '#EF4444' }]}>Failure Info</Text>
+            <Text style={[styles.sectionTitle, { color: styles._colors.statusError }]}>Failure Info</Text>
             <View style={styles.failureBanner}>
               <Text style={styles.failureType}>{task.failure_type}</Text>
               {task.failure_reason ? (
@@ -300,8 +300,8 @@ const TaskDetailView: React.FC<TaskDetailViewProps> = ({
                     {JSON.stringify(source.data).substring(0, 60)}
                   </Text>
                 </View>
-                <TouchableOpacity onPress={() => handleRemoveContext(i)}>
-                  <Ionicons name="close-circle-outline" size={20} color="#EF4444" />
+                <TouchableOpacity onPress={() => handleRemoveContext(i)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                  <Ionicons name="close-circle-outline" size={20} color={styles._colors.statusError} />
                 </TouchableOpacity>
               </View>
             ))}
@@ -445,270 +445,276 @@ const createStyles = (colors: ThemeColors) => ({
   header: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderSubtle,
     backgroundColor: colors.bgCard,
-    gap: 8,
+    gap: spacing.sm,
   },
   headerButton: {
-    padding: 8,
-    borderRadius: 8,
+    padding: spacing.sm,
+    borderRadius: radius.md,
     backgroundColor: colors.bgSurface,
+    minWidth: touchTarget.min,
+    minHeight: touchTarget.min,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
   },
   headerTitleWrap: {
     flex: 1,
   },
   headerTitle: {
-    fontSize: 18,
+    ...typography.h2,
     fontWeight: 'bold' as const,
     color: colors.textPrimary,
   },
   headerActions: {
     flexDirection: 'row' as const,
-    gap: 4,
+    gap: spacing.xs,
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
   },
   section: {
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
   sectionHeader: {
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
     alignItems: 'center' as const,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600' as const,
+    ...typography.title,
     color: colors.textPrimary,
-    marginBottom: 10,
+    marginBottom: spacing.sm,
   },
   stateRow: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    gap: 10,
-    marginBottom: 12,
+    gap: spacing.sm,
+    marginBottom: spacing.md,
   },
   currentStateBadge: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 6,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.xl,
+    gap: spacing.sm,
   },
   currentStateText: {
-    fontSize: 14,
+    ...typography.label,
     fontWeight: '600' as const,
     textTransform: 'capitalize' as const,
   },
   priorityBadge: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.lg,
+    gap: spacing.xs,
   },
   priorityText: {
-    fontSize: 13,
-    fontWeight: '500' as const,
+    ...typography.label,
     textTransform: 'capitalize' as const,
   },
   transitionRow: {
     flexDirection: 'row' as const,
     flexWrap: 'wrap' as const,
-    gap: 8,
+    gap: spacing.sm,
   },
   transitionButton: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
     borderWidth: 1,
-    gap: 6,
+    gap: spacing.sm,
     backgroundColor: colors.bgCard,
+    minHeight: touchTarget.min,
   },
   transitionButtonText: {
-    fontSize: 13,
-    fontWeight: '500' as const,
+    ...typography.label,
     textTransform: 'capitalize' as const,
   },
   breadcrumb: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     flexWrap: 'wrap' as const,
-    gap: 4,
+    gap: spacing.xs,
   },
   breadcrumbItem: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    gap: 4,
+    gap: spacing.xs,
   },
   breadcrumbText: {
-    fontSize: 13,
+    ...typography.label,
+    fontWeight: '400' as const,
     color: colors.accent,
   },
   breadcrumbCurrent: {
-    fontSize: 13,
-    color: colors.textPrimary,
+    ...typography.label,
     fontWeight: '600' as const,
+    color: colors.textPrimary,
   },
   descriptionText: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textPrimary,
     lineHeight: 22,
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   emptyText: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textSecondary,
     fontStyle: 'italic' as const,
   },
   infoGrid: {
-    gap: 8,
+    gap: spacing.sm,
   },
   infoItem: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    gap: 8,
-    paddingVertical: 4,
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
   },
   infoLabel: {
-    fontSize: 13,
+    ...typography.label,
+    fontWeight: '400' as const,
     color: colors.textSecondary,
     minWidth: 80,
   },
   infoValue: {
-    fontSize: 13,
+    ...typography.label,
+    fontWeight: '400' as const,
     color: colors.textPrimary,
     flex: 1,
   },
   infoValueMono: {
-    fontSize: 12,
+    ...typography.caption,
     color: colors.textPrimary,
     fontFamily: 'monospace',
     flex: 1,
   },
   failureBanner: {
     backgroundColor: '#FEF2F2',
-    borderRadius: 8,
-    padding: 12,
-    gap: 4,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    gap: spacing.xs,
   },
   failureType: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#EF4444',
+    ...typography.bodyStrong,
+    color: colors.statusError,
   },
   failureReason: {
-    fontSize: 13,
+    ...typography.label,
+    fontWeight: '400' as const,
     color: '#B91C1C',
   },
   failureRetry: {
-    fontSize: 12,
+    ...typography.caption,
     color: '#DC2626',
   },
   contextItem: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    padding: 12,
+    padding: spacing.md,
     backgroundColor: colors.bgCard,
-    borderRadius: 8,
-    marginBottom: 8,
-    gap: 10,
+    borderRadius: radius.md,
+    marginBottom: spacing.sm,
+    gap: spacing.sm,
   },
   contextInfo: {
     flex: 1,
   },
   contextType: {
-    fontSize: 13,
+    ...typography.label,
     fontWeight: '600' as const,
     color: colors.textPrimary,
     textTransform: 'capitalize' as const,
   },
   contextData: {
-    fontSize: 12,
+    ...typography.caption,
     color: colors.textSecondary,
     marginTop: 2,
   },
   miniCard: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    padding: 10,
+    padding: spacing.sm,
     backgroundColor: colors.bgCard,
-    borderRadius: 8,
-    marginBottom: 6,
-    gap: 8,
+    borderRadius: radius.md,
+    marginBottom: spacing.sm,
+    gap: spacing.sm,
+    minHeight: touchTarget.min,
   },
   miniCardTitle: {
     flex: 1,
-    fontSize: 14,
+    ...typography.body,
     color: colors.textPrimary,
   },
   miniCardState: {
-    fontSize: 12,
+    ...typography.caption,
     fontWeight: '500' as const,
     textTransform: 'capitalize' as const,
   },
   addButton: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.sm,
     backgroundColor: colors.bgSurface,
-    gap: 4,
+    gap: spacing.xs,
+    minHeight: touchTarget.min,
   },
   addButtonText: {
-    fontSize: 13,
+    ...typography.label,
     color: colors.accent,
-    fontWeight: '500' as const,
   },
   artifactItem: {
     flexDirection: 'row' as const,
     alignItems: 'flex-start' as const,
-    padding: 10,
+    padding: spacing.sm,
     backgroundColor: colors.bgCard,
-    borderRadius: 8,
-    marginBottom: 6,
-    gap: 8,
+    borderRadius: radius.md,
+    marginBottom: spacing.sm,
+    gap: spacing.sm,
   },
   artifactInfo: {
     flex: 1,
   },
   artifactType: {
-    fontSize: 13,
+    ...typography.label,
     fontWeight: '600' as const,
     color: colors.textPrimary,
     textTransform: 'capitalize' as const,
   },
   artifactId: {
-    fontSize: 12,
+    ...typography.caption,
     color: colors.textSecondary,
     marginTop: 2,
   },
   artifactUrl: {
-    fontSize: 12,
+    ...typography.caption,
     color: colors.accent,
     marginTop: 2,
   },
   jsonBlock: {
     backgroundColor: colors.bgSurface,
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: radius.md,
+    padding: spacing.md,
   },
   jsonText: {
-    fontSize: 12,
+    ...typography.caption,
     color: colors.textPrimary,
     fontFamily: 'monospace',
   },

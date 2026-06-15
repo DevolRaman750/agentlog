@@ -78,6 +78,8 @@ GoogleService-Info.plist
 api-keys.json
 credentials.json
 eas-credentials.json
+# ...but keep the documentation data file of the same name (not a secret)
+!src/data/documentation/api-keys.json
 
 # Build artifacts
 *.ipa

@@ -8,7 +8,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -36,9 +36,9 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onDismiss }) => {
 
   const styles = useThemedStyles((colors) => ({
     toastContainer: {
-      borderRadius: 12,
+      borderRadius: radius.lg,
       borderLeftWidth: 4,
-      marginBottom: 8,
+      marginBottom: spacing.sm,
       shadowColor: colors.shadowColor,
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.1,
@@ -49,42 +49,41 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onDismiss }) => {
     toastContent: {
       flexDirection: 'row' as const,
       alignItems: 'flex-start' as const,
-      padding: 16,
+      padding: spacing.md,
     },
     toastIcon: {
-      marginRight: 12,
-      marginTop: 2,
+      marginRight: spacing.md,
+      marginTop: spacing.none,
     },
     toastTextContainer: {
       flex: 1,
-      marginRight: 8,
+      marginRight: spacing.sm,
     },
     toastTitle: {
-      fontSize: 16,
-      fontWeight: '600' as const,
-      marginBottom: 2,
+      ...typography.title,
+      marginBottom: spacing.none,
     },
     toastMessage: {
-      fontSize: 14,
+      ...typography.body,
       lineHeight: 20,
       opacity: 0.8,
     },
     actionButton: {
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 6,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.sm,
       borderWidth: 1,
-      marginRight: 8,
-      marginTop: 2,
+      marginRight: spacing.sm,
+      marginTop: spacing.none,
     },
     actionText: {
-      fontSize: 14,
+      ...typography.body,
       fontWeight: '500' as const,
     },
     dismissButton: {
-      padding: 4,
-      borderRadius: 4,
-      marginTop: 2,
+      padding: spacing.xs,
+      borderRadius: radius.sm,
+      marginTop: spacing.none,
     },
   }));
 
@@ -223,7 +222,7 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onDismis
       right: 0,
       zIndex: 9999,
       alignItems: 'center' as const,
-      paddingHorizontal: 16,
+      paddingHorizontal: spacing.md,
     },
     webContainer: {
       position: 'fixed' as any,
@@ -231,7 +230,7 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onDismis
       right: 20,
       left: 'auto' as any,
       alignItems: 'flex-end' as const,
-      paddingHorizontal: 0,
+      paddingHorizontal: spacing.none,
     },
   }));
 

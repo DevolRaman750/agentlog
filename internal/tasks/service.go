@@ -343,6 +343,8 @@ func (s *Service) validateInProgress(ctx context.Context, userID string, task *t
 			switch parent.State {
 			case types.TaskStateDefining, types.TaskStateCompiling:
 				return fmt.Errorf("parent task must be at least compiled (current: %s)", parent.State)
+			case types.TaskStateCompiled, types.TaskStateInProgress, types.TaskStateCompleted, types.TaskStateFailed:
+				// Parent is at least compiled; starting this task is allowed.
 			}
 		}
 	}

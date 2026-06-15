@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Platform, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useTheme, useThemedStyles } from '../theme';
+import { useTheme, useThemedStyles, spacing, radius, typography, touchTarget } from '../theme';
 import { Agent, AgentMemory, MemoryNode, MemoryGraph, AgentMemoryResponse, MemorySearchResult } from '../types';
 import { goGentAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -32,7 +32,7 @@ export const AgentMemoryViewer: React.FC<AgentMemoryViewerProps> = ({ agent, onC
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      padding: 16,
+      padding: spacing.lg,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
     },
@@ -41,16 +41,19 @@ export const AgentMemoryViewer: React.FC<AgentMemoryViewerProps> = ({ agent, onC
       alignItems: 'center' as const,
     },
     title: {
-      fontSize: 18,
-      fontWeight: 'bold' as const,
-      marginLeft: 8,
+      ...typography.h2,
+      marginLeft: spacing.sm,
       color: colors.textPrimary,
     },
     closeButton: {
-      padding: 8,
+      padding: spacing.sm,
+      minWidth: touchTarget.min,
+      minHeight: touchTarget.min,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
     },
     controls: {
-      padding: 16,
+      padding: spacing.lg,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
     },
@@ -58,23 +61,23 @@ export const AgentMemoryViewer: React.FC<AgentMemoryViewerProps> = ({ agent, onC
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       backgroundColor: colors.bgSurface,
-      borderRadius: 8,
-      paddingHorizontal: 12,
-      marginBottom: 12,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      marginBottom: spacing.md,
     },
     searchInput: {
       flex: 1,
-      padding: 12,
-      fontSize: 16,
+      padding: spacing.md,
+      ...typography.title,
     },
     filterContainer: {
       flexDirection: 'row' as const,
-      gap: 8,
+      gap: spacing.sm,
     },
     filterButton: {
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-      borderRadius: 20,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.pill,
       backgroundColor: colors.bgSurface,
     },
     filterButtonActive: {
@@ -82,7 +85,7 @@ export const AgentMemoryViewer: React.FC<AgentMemoryViewerProps> = ({ agent, onC
     },
     filterButtonText: {
       color: colors.textSecondary,
-      fontSize: 14,
+      ...typography.body,
     },
     filterButtonTextActive: {
       color: colors.textInverse,
@@ -90,48 +93,48 @@ export const AgentMemoryViewer: React.FC<AgentMemoryViewerProps> = ({ agent, onC
     errorContainer: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      padding: 16,
+      padding: spacing.lg,
       backgroundColor: `${colors.statusError}15`,
-      marginHorizontal: 16,
-      marginTop: 8,
-      borderRadius: 8,
+      marginHorizontal: spacing.lg,
+      marginTop: spacing.sm,
+      borderRadius: radius.md,
     },
     errorText: {
       color: colors.statusError,
-      marginLeft: 8,
+      marginLeft: spacing.sm,
       flex: 1,
     },
     memoryContainer: {
       flex: 1,
     },
     loadingContainer: {
-      padding: 32,
+      padding: spacing.xxl,
       alignItems: 'center' as const,
     },
     loadingText: {
       color: colors.textSecondary,
-      fontSize: 16,
+      ...typography.title,
     },
     memoryInfo: {
-      padding: 16,
+      padding: spacing.lg,
       backgroundColor: colors.bgSurface,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
     },
     memoryInfoText: {
       color: colors.textSecondary,
-      fontSize: 14,
-      marginBottom: 4,
+      ...typography.body,
+      marginBottom: spacing.xs,
     },
     memoryTree: {
-      padding: 16,
+      padding: spacing.lg,
     },
     nodeContainer: {
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     nodeHeader: {
-      padding: 8,
-      borderRadius: 6,
+      padding: spacing.sm,
+      borderRadius: radius.sm,
     },
     selectedNode: {
       backgroundColor: colors.accentSoft,
@@ -144,121 +147,122 @@ export const AgentMemoryViewer: React.FC<AgentMemoryViewerProps> = ({ agent, onC
       alignItems: 'center' as const,
     },
     chevron: {
-      marginRight: 4,
+      marginRight: spacing.xs,
     },
     nodeIcon: {
-      marginRight: 8,
+      marginRight: spacing.sm,
     },
     nodeLabel: {
       flex: 1,
-      fontSize: 16,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.textPrimary,
     },
     contextLabel: {
       fontWeight: 'bold' as const,
     },
     clearButton: {
-      padding: 4,
+      padding: spacing.xs,
     },
     nodeData: {
-      marginTop: 8,
-      padding: 12,
+      marginTop: spacing.sm,
+      padding: spacing.md,
       backgroundColor: colors.bgSurface,
-      borderRadius: 6,
-      marginLeft: 20,
+      borderRadius: radius.sm,
+      marginLeft: spacing.xl,
     },
     dataLabel: {
-      fontSize: 12,
+      ...typography.caption,
       fontWeight: 'bold' as const,
       color: colors.textSecondary,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     dataValue: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textPrimary,
       fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     },
     childrenContainer: {
-      marginTop: 4,
+      marginTop: spacing.xs,
     },
     searchResults: {
-      padding: 16,
+      padding: spacing.lg,
     },
     searchResultsTitle: {
-      fontSize: 16,
+      ...typography.title,
       fontWeight: 'bold' as const,
-      marginBottom: 12,
+      marginBottom: spacing.md,
       color: colors.textPrimary,
     },
     searchResult: {
-      padding: 12,
+      padding: spacing.md,
       backgroundColor: colors.bgSurface,
-      borderRadius: 8,
-      marginBottom: 8,
+      borderRadius: radius.md,
+      marginBottom: spacing.sm,
       borderLeftWidth: 3,
       borderLeftColor: colors.statusSuccess,
     },
     searchResultHeader: {
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     searchResultPath: {
-      fontSize: 14,
+      ...typography.body,
       fontWeight: 'bold' as const,
       color: colors.textPrimary,
       flex: 1,
     },
     searchResultContext: {
-      fontSize: 12,
+      ...typography.caption,
       color: colors.textSecondary,
       backgroundColor: colors.borderLight,
-      paddingHorizontal: 8,
+      paddingHorizontal: spacing.sm,
       paddingVertical: 2,
-      borderRadius: 10,
+      borderRadius: radius.lg,
     },
     searchResultData: {
-      fontSize: 12,
+      ...typography.caption,
       color: colors.textSecondary,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     searchResultRelevance: {
-      fontSize: 12,
+      ...typography.caption,
       color: colors.statusSuccess,
       fontWeight: 'bold' as const,
     },
     noResults: {
-      padding: 16,
+      padding: spacing.lg,
       textAlign: 'center' as const,
       color: colors.textSecondary,
       fontStyle: 'italic' as const,
     },
     relationshipsContainer: {
-      padding: 16,
+      padding: spacing.lg,
       borderTopWidth: 1,
       borderTopColor: colors.borderLight,
     },
     relationshipsTitle: {
-      fontSize: 16,
+      ...typography.title,
       fontWeight: 'bold' as const,
-      marginBottom: 12,
+      marginBottom: spacing.md,
       color: colors.textPrimary,
     },
     relationship: {
-      padding: 12,
+      padding: spacing.md,
       backgroundColor: `${colors.statusWarning}15`,
-      borderRadius: 8,
-      marginBottom: 8,
+      borderRadius: radius.md,
+      marginBottom: spacing.sm,
       borderLeftWidth: 3,
       borderLeftColor: colors.statusWarning,
     },
     relationshipText: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textPrimary,
-      marginBottom: 4,
+      marginBottom: spacing.xs,
     },
     relationshipStrength: {
-      fontSize: 12,
+      ...typography.caption,
       color: colors.statusWarning,
       fontWeight: 'bold' as const,
     },
@@ -266,36 +270,37 @@ export const AgentMemoryViewer: React.FC<AgentMemoryViewerProps> = ({ agent, onC
       flex: 1,
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
-      padding: 32,
+      padding: spacing.xxl,
       minHeight: 400,
     },
     emptyStateTitle: {
-      fontSize: 20,
-      fontWeight: 'bold' as const,
+      ...typography.h1,
       color: colors.textPrimary,
-      marginTop: 16,
-      marginBottom: 8,
+      marginTop: spacing.lg,
+      marginBottom: spacing.sm,
       textAlign: 'center' as const,
     },
     emptyStateText: {
-      fontSize: 16,
+      ...typography.title,
+      fontWeight: '400' as const,
       color: colors.textSecondary,
       textAlign: 'center' as const,
-      marginBottom: 12,
+      marginBottom: spacing.md,
       lineHeight: 24,
     },
     emptyStateSubtext: {
-      fontSize: 14,
+      ...typography.body,
       color: colors.textTertiary,
       textAlign: 'center' as const,
       fontStyle: 'italic' as const,
       lineHeight: 20,
     },
     emptyMessage: {
-      padding: 32,
+      padding: spacing.xxl,
       textAlign: 'center' as const,
       color: colors.textSecondary,
-      fontSize: 16,
+      ...typography.title,
+      fontWeight: '400' as const,
       fontStyle: 'italic' as const,
     },
   }));
@@ -528,6 +533,7 @@ export const AgentMemoryViewer: React.FC<AgentMemoryViewerProps> = ({ agent, onC
             {node.type === 'context' && (
               <TouchableOpacity
                 style={styles.clearButton}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 onPress={() => clearMemoryContext(node.context!)}
               >
                 <MaterialCommunityIcons name="delete" size={14} color={colors.statusError} />

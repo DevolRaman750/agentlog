@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemedStyles } from '../theme';
+import { spacing, radius, typography, touchTarget } from '../theme';
 import { Task, TaskState } from '../types';
 import type { ThemeColors } from '../theme';
 
@@ -139,76 +140,69 @@ const createStyles = (colors: ThemeColors) => ({
   _colors: colors,
   card: {
     backgroundColor: colors.bgCard,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
     borderLeftWidth: 4,
     borderLeftColor: colors.textSecondary,
-    shadowColor: colors.shadowColor,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
   },
   header: {
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
     alignItems: 'center' as const,
-    marginBottom: 8,
-    gap: 8,
+    marginBottom: spacing.sm,
+    gap: spacing.sm,
   },
   title: {
-    fontSize: 16,
-    fontWeight: '600' as const,
+    ...typography.title,
     color: colors.textPrimary,
     flex: 1,
   },
   stateBadge: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.lg,
+    gap: spacing.xs,
   },
   stateText: {
-    fontSize: 12,
-    fontWeight: '500' as const,
+    ...typography.micro,
     textTransform: 'capitalize' as const,
   },
   description: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textSecondary,
-    marginBottom: 10,
-    lineHeight: 20,
+    marginBottom: spacing.sm,
   },
   metaRow: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     flexWrap: 'wrap' as const,
-    gap: 8,
-    marginBottom: 8,
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
   },
   priorityBadge: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.md,
+    gap: spacing.xs,
   },
   priorityText: {
-    fontSize: 12,
-    fontWeight: '500' as const,
+    ...typography.micro,
     textTransform: 'capitalize' as const,
   },
   metaItem: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    gap: 4,
+    gap: spacing.xs,
   },
   metaText: {
-    fontSize: 12,
+    ...typography.caption,
     color: colors.textSecondary,
   },
   footer: {
@@ -217,7 +211,7 @@ const createStyles = (colors: ThemeColors) => ({
     alignItems: 'center' as const,
   },
   footerText: {
-    fontSize: 11,
+    ...typography.micro,
     color: colors.textSecondary,
   },
 });

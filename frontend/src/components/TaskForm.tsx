@@ -13,6 +13,7 @@ import { goGentAPI } from '../api/client';
 import { Task, TaskCreateRequest, TaskUpdateRequest } from '../types';
 import { getPriorityColor } from './TaskCard';
 import type { ThemeColors } from '../theme';
+import { spacing, radius, typography } from '../theme';
 
 interface TaskFormProps {
   onSuccess: (task: Task) => void;
@@ -105,7 +106,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
 
       {error && (
         <View style={styles.errorBanner}>
-          <Ionicons name="alert-circle" size={16} color="#EF4444" />
+          <Ionicons name="alert-circle" size={16} color={styles._colors.statusError} />
           <Text style={styles.errorText}>{error}</Text>
         </View>
       )}
@@ -207,54 +208,52 @@ const createStyles = (colors: ThemeColors) => ({
     backgroundColor: colors.bgApp,
   },
   content: {
-    padding: 20,
-    paddingBottom: 40,
+    padding: spacing.lg,
+    paddingBottom: spacing.xxxl,
   },
   header: {
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
     alignItems: 'center' as const,
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: 'bold' as const,
+    ...typography.h1,
     color: colors.textPrimary,
   },
   closeButton: {
-    padding: 8,
-    borderRadius: 8,
+    padding: spacing.sm,
+    borderRadius: radius.md,
     backgroundColor: colors.bgSurface,
   },
   errorBanner: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    backgroundColor: '#FEF2F2',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    gap: 8,
+    backgroundColor: `${colors.statusError}15`,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    gap: spacing.sm,
   },
   errorText: {
-    color: '#EF4444',
-    fontSize: 14,
+    ...typography.body,
+    color: colors.statusError,
     flex: 1,
   },
   field: {
-    marginBottom: 20,
+    marginBottom: spacing.md,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600' as const,
+    ...typography.bodyStrong,
     color: colors.textPrimary,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   input: {
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 15,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    ...typography.body,
     color: colors.textPrimary,
     backgroundColor: colors.bgCard,
   },
@@ -264,20 +263,19 @@ const createStyles = (colors: ThemeColors) => ({
   },
   priorityRow: {
     flexDirection: 'row' as const,
-    gap: 8,
+    gap: spacing.sm,
   },
   priorityButton: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
     alignItems: 'center' as const,
     backgroundColor: colors.bgCard,
   },
   priorityButtonText: {
-    fontSize: 13,
-    fontWeight: '500' as const,
+    ...typography.label,
     color: colors.textSecondary,
   },
   submitButton: {
@@ -285,18 +283,17 @@ const createStyles = (colors: ThemeColors) => ({
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     backgroundColor: colors.accent,
-    paddingVertical: 14,
-    borderRadius: 10,
-    gap: 8,
-    marginTop: 8,
+    paddingVertical: spacing.md,
+    borderRadius: radius.lg,
+    gap: spacing.sm,
+    marginTop: spacing.sm,
   },
   submitButtonDisabled: {
     opacity: 0.6,
   },
   submitButtonText: {
+    ...typography.title,
     color: colors.textInverse,
-    fontSize: 16,
-    fontWeight: '600' as const,
   },
 });
 
