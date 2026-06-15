@@ -732,9 +732,8 @@ func writeError(w http.ResponseWriter, status int, message string) {
 	})
 }
 
-func parseLimitOffset(r *http.Request) (int, int) {
-	limit := 50
-	offset := 0
+func parseLimitOffset(r *http.Request) (limit, offset int) {
+	limit = 50
 	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
 		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
 			limit = l
@@ -747,4 +746,3 @@ func parseLimitOffset(r *http.Request) (int, int) {
 	}
 	return limit, offset
 }
-

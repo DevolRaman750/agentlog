@@ -626,7 +626,7 @@ func (d *Database) GetBlockers(ctx context.Context, taskID string) ([]types.Task
 
 // GetNextAvailable returns the next task available for execution, excluding completed and failed tasks.
 // Tasks are prioritized: compiled > defining > compiling > in_progress, then by priority level, then by creation time.
-func (d *Database) GetNextAvailable(ctx context.Context, userID, teamID, agentID string) (*types.Task, error) {
+func (d *Database) GetNextAvailable(ctx context.Context, userID, teamID, _ string) (*types.Task, error) {
 	whereClauses := []string{
 		"t.user_id = ?",
 		"t.state NOT IN ('completed', 'failed')",
